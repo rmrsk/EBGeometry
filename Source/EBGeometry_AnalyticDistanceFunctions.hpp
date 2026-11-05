@@ -15,8 +15,9 @@
  * - Placement first: each constructor takes the shape's position (a center, corner, tip or point)
  *   before its sizes. PerlinSDF, which fills all of space, has none.
  * - One axis: a shape with a fixed axis has it along y (Torus, InfiniteCone, Cone,
- *   RoundedCylinder, and the defaults of Cylinder, InfiniteCylinder, Capsule and Plane). Cylinder
- *   and Capsule take two end points, and InfiniteCylinder an axis index, so they can point anywhere.
+ *   RoundedCylinder, CappedTorus, CutSphere, CutHollowSphere and Wedge, and the defaults of the
+ *   others); Rotate turns it. Cylinder, Capsule, CappedCone, RoundCone, PolygonPrism and Tube take
+ *   two end points, and InfiniteCylinder an axis index, so they can point anywhere.
  * - Outer sizes: a size is that of the finished shape, rounding included.
  * - computeBoundingVolume() returns the shape's axis-aligned bounding box. Along a direction in
  *   which the shape is unbounded, the box extends to plus or minus Math::Limits<T>::max().
@@ -2151,6 +2152,2128 @@ protected:
   T m_height = T(0.4);
 };
 
+namespace AnalyticDetail {
+
+/**
+ * @brief A point's coordinates around an axis: its distance from the axis line, and its position along it.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct AxialCoordinates
+{
+  /**
+   * @brief Distance from the axis line (never negative).
+   */
+  T m_radial;
+
+  /**
+   * @brief Position along the axis, from the axis' start point.
+   */
+  T m_axial;
+};
+
+/**
+ * @brief A point's coordinates around the axis that starts at a_start and runs along the unit a_axis.
+ * @details Internal helper; not part of the public API. The radial distance is the length of the point's
+ * offset across the axis, not sqrt(|p|^2 - axial^2), which cancels near the axis.
+ * @tparam T Floating-point precision.
+ * @param[in] a_point Point.
+ * @param[in] a_start Start of the axis.
+ * @param[in] a_axis  Unit axis.
+ * @return The coordinates.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline AxialCoordinates<T>
+axialCoordinates(const Vec3T<T>& a_point, const Vec3T<T>& a_start, const Vec3T<T>& a_axis) noexcept
+{
+  const Vec3T<T> w     = a_point - a_start;
+  const T        along = dot(w, a_axis);
+
+  return AxialCoordinates<T>{(w - along * a_axis).length(), along};
+}
+
+/**
+ * @brief The signed distance to a 2D profile extruded between two parallel planes: the exact distance,
+ * from the profile's signed distance and the signed distance to the slab between the planes.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_profile Signed distance to the profile, in the cross-section.
+ * @param[in] a_slab    Signed distance to the slab, along the axis.
+ * @return The signed distance to the extruded solid.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+extrusion(const T a_profile, const T a_slab) noexcept
+{
+  const T outsideProfile = Math::max(a_profile, T(0));
+  const T outsideSlab    = Math::max(a_slab, T(0));
+
+  return Math::min(Math::max(a_profile, a_slab), T(0)) +
+         std::sqrt(outsideProfile * outsideProfile + outsideSlab * outsideSlab);
+}
+
+/**
+ * @brief Checks that a point given to a constructor is finite.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_point The point.
+ * @return Whether every coordinate is finite.
+ */
+template <class T>
+[[nodiscard]] inline bool
+isFinite(const Vec3T<T>& a_point) noexcept
+{
+  return std::isfinite(a_point[0]) && std::isfinite(a_point[1]) && std::isfinite(a_point[2]);
+}
+
+/**
+ * @brief The root of Eberly's function F(s) = sum_i (a_n[i] / (s + a_r[i]))^2 - 1 over the components with
+ * a_n[i] > 0, for the closest point on an ellipse or ellipsoid scaled so that its smallest semi-axis is 1.
+ * @details Internal helper; not part of the public API. F is decreasing and convex for s > -min(a_r), and
+ * its root lies in [a_lo, a_hi], where F(a_lo) >= 0 (Eberly, "Distance from a point to an ellipse, an
+ * ellipsoid, or a hyperellipsoid", 2013). Newton's method from a_lo therefore increases monotonically to
+ * the root and never overshoots it; a step that would leave the bracket (by rounding) is replaced by
+ * bisection. It stops when F is no longer positive, when a step makes no progress or changes s by no more
+ * than a few units in the last place, or after MaxIterations.
+ * @tparam T Floating-point precision.
+ * @tparam N Number of components (2 or 3).
+ * @param[in] a_r  The squared ratios of the semi-axes to the smallest one.
+ * @param[in] a_n  The scaled coordinates of the point, a_r[i] times the point's coordinate over the semi-axis.
+ * @param[in] a_lo Lower end of the bracket, with F(a_lo) >= 0.
+ * @param[in] a_hi Upper end of the bracket, with F(a_hi) <= 0.
+ * @return The root.
+ */
+template <class T, size_t N>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+ellipsoidRoot(const T (&a_r)[N], const T (&a_n)[N], const T a_lo, const T a_hi) noexcept
+{
+  constexpr int MaxIterations = 64;
+
+  const T eps = Math::Limits<T>::epsilon();
+
+  T s  = a_lo;
+  T hi = a_hi;
+
+  for (int i = 0; i < MaxIterations; i++) {
+    T f  = T(-1);
+    T df = T(0);
+
+    for (size_t k = 0; k < N; k++) {
+      const T ratio = a_n[k] / (s + a_r[k]);
+
+      f += ratio * ratio;
+      df -= T(2) * ratio * ratio / (s + a_r[k]);
+    }
+
+    if (f <= T(0)) {
+      break;
+    }
+
+    T next = (df < T(0)) ? s - f / df : hi;
+
+    // No progress: s is the root to rounding. (Bisecting from here would step past it.)
+    if (!(next > s)) {
+      break;
+    }
+    if (next > hi) {
+      next = T(0.5) * (s + hi);
+    }
+
+    const bool converged = next - s <= T(4) * eps * Math::max(T(1), std::abs(s));
+
+    s = next;
+
+    if (converged) {
+      break;
+    }
+  }
+
+  return s;
+}
+
+/**
+ * @brief The distance from a point to an ellipse with semi-axes a_e0 >= a_e1 > 0, for a point with
+ * coordinates a_y0, a_y1 >= 0 (Eberly's algorithm).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_e0 Larger semi-axis.
+ * @param[in] a_e1 Smaller semi-axis.
+ * @param[in] a_y0 Coordinate along a_e0.
+ * @param[in] a_y1 Coordinate along a_e1.
+ * @return The unsigned distance to the ellipse curve.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+ellipseDistance(const T a_e0, const T a_e1, const T a_y0, const T a_y1) noexcept
+{
+  if (a_y1 > T(0)) {
+    if (a_y0 > T(0)) {
+      const T z0 = a_y0 / a_e0;
+      const T z1 = a_y1 / a_e1;
+      const T g  = z0 * z0 + z1 * z1 - T(1);
+
+      if (g == T(0)) {
+        return T(0);
+      }
+
+      const T r0 = (a_e0 / a_e1) * (a_e0 / a_e1);
+      const T r[2]{r0, T(1)};
+      const T n[2]{r0 * z0, z1};
+      const T s = ellipsoidRoot<T, 2>(r, n, z1 - T(1), (g < T(0)) ? T(0) : std::sqrt(n[0] * n[0] + z1 * z1) - T(1));
+
+      const T x0 = r0 * a_y0 / (s + r0);
+      const T x1 = a_y1 / (s + T(1));
+
+      return std::sqrt((x0 - a_y0) * (x0 - a_y0) + (x1 - a_y1) * (x1 - a_y1));
+    }
+
+    return std::abs(a_y1 - a_e1);
+  }
+
+  const T numer0 = a_e0 * a_y0;
+  const T denom0 = a_e0 * a_e0 - a_e1 * a_e1;
+
+  if (numer0 < denom0) {
+    const T xde0 = numer0 / denom0;
+    const T x0   = a_e0 * xde0;
+    const T x1   = a_e1 * std::sqrt(Math::max(T(0), T(1) - xde0 * xde0));
+
+    return std::sqrt((x0 - a_y0) * (x0 - a_y0) + x1 * x1);
+  }
+
+  return std::abs(a_y0 - a_e0);
+}
+
+/**
+ * @brief The distance from a point to an ellipsoid with semi-axes a_e0 >= a_e1 >= a_e2 > 0, for a point with
+ * coordinates a_y0, a_y1, a_y2 >= 0 (Eberly's algorithm).
+ * @details Internal helper; not part of the public API. A point on a coordinate plane is handled by the
+ * planar cases of the algorithm: its closest point is on the ellipse in that plane, or, for a point inside
+ * near the plane of the two larger axes, off it.
+ * @tparam T Floating-point precision.
+ * @param[in] a_e0 Largest semi-axis.
+ * @param[in] a_e1 Middle semi-axis.
+ * @param[in] a_e2 Smallest semi-axis.
+ * @param[in] a_y0 Coordinate along a_e0.
+ * @param[in] a_y1 Coordinate along a_e1.
+ * @param[in] a_y2 Coordinate along a_e2.
+ * @return The unsigned distance to the ellipsoid surface.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+ellipsoidDistance(const T a_e0, const T a_e1, const T a_e2, const T a_y0, const T a_y1, const T a_y2) noexcept
+{
+  if (a_y2 > T(0)) {
+    if (a_y1 > T(0)) {
+      if (a_y0 > T(0)) {
+        const T z0 = a_y0 / a_e0;
+        const T z1 = a_y1 / a_e1;
+        const T z2 = a_y2 / a_e2;
+        const T g  = z0 * z0 + z1 * z1 + z2 * z2 - T(1);
+
+        if (g == T(0)) {
+          return T(0);
+        }
+
+        const T r0 = (a_e0 / a_e2) * (a_e0 / a_e2);
+        const T r1 = (a_e1 / a_e2) * (a_e1 / a_e2);
+        const T r[3]{r0, r1, T(1)};
+        const T n[3]{r0 * z0, r1 * z1, z2};
+        const T hi = (g < T(0)) ? T(0) : std::sqrt(n[0] * n[0] + n[1] * n[1] + z2 * z2) - T(1);
+        const T s  = ellipsoidRoot<T, 3>(r, n, z2 - T(1), hi);
+
+        const T x0 = r0 * a_y0 / (s + r0);
+        const T x1 = r1 * a_y1 / (s + r1);
+        const T x2 = a_y2 / (s + T(1));
+
+        return std::sqrt((x0 - a_y0) * (x0 - a_y0) + (x1 - a_y1) * (x1 - a_y1) + (x2 - a_y2) * (x2 - a_y2));
+      }
+
+      return ellipseDistance(a_e1, a_e2, a_y1, a_y2);
+    }
+
+    if (a_y0 > T(0)) {
+      return ellipseDistance(a_e0, a_e2, a_y0, a_y2);
+    }
+
+    return std::abs(a_y2 - a_e2);
+  }
+
+  const T denom0 = a_e0 * a_e0 - a_e2 * a_e2;
+  const T denom1 = a_e1 * a_e1 - a_e2 * a_e2;
+  const T numer0 = a_e0 * a_y0;
+  const T numer1 = a_e1 * a_y1;
+
+  if (numer0 < denom0 && numer1 < denom1) {
+    const T xde0  = numer0 / denom0;
+    const T xde1  = numer1 / denom1;
+    const T discr = T(1) - xde0 * xde0 - xde1 * xde1;
+
+    if (discr > T(0)) {
+      const T x0 = a_e0 * xde0;
+      const T x1 = a_e1 * xde1;
+      const T x2 = a_e2 * std::sqrt(discr);
+
+      return std::sqrt((x0 - a_y0) * (x0 - a_y0) + (x1 - a_y1) * (x1 - a_y1) + x2 * x2);
+    }
+  }
+
+  return ellipseDistance(a_e0, a_e1, a_y0, a_y1);
+}
+
+} // namespace AnalyticDetail
+
+/**
+ * @brief Signed distance field for an ellipsoid with its semi-axes along x, y and z.
+ * @details The value is the exact signed distance. There is no closed form for it: the closest point on the
+ * surface is the root of a scalar equation (Eberly, "Distance from a point to an ellipse, an ellipsoid, or a
+ * hyperellipsoid", 2013), found by safeguarded Newton steps from a bracket, a few iterations for most points and
+ * at most 64. An ellipsoid therefore costs several times as much to evaluate as the other shapes here. The
+ * common formula |p / r| (|p / r| - 1) / |p / r^2| is cheaper, but it can overestimate the distance, which a
+ * DistanceQuality::Bound may not. Turn the ellipsoid with Rotate. By default the ellipsoid is the unit sphere
+ * at the origin.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class EllipsoidSDF
+{
+  static_assert(std::is_floating_point_v<T>, "EllipsoidSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs the unit sphere at the origin.
+   */
+  EllipsoidSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center Center.
+   * @param[in] a_radii  The semi-axes along x, y and z, each finite and positive.
+   */
+  EllipsoidSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_radii) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
+                       "EllipsoidSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_radii) && a_radii[0] > T(0) && a_radii[1] > T(0) && a_radii[2] > T(0),
+                       "EllipsoidSDF: the radii must be finite and positive (%g, %g, %g)",
+                       double(a_radii[0]),
+                       double(a_radii[1]),
+                       double(a_radii[2]));
+
+    m_center = a_center;
+    m_radii  = a_radii;
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  EllipsoidSDF(const EllipsoidSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  EllipsoidSDF(EllipsoidSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  EllipsoidSDF&
+  operator=(const EllipsoidSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  EllipsoidSDF&
+  operator=(EllipsoidSDF&&) = default;
+
+  /**
+   * @brief Get the center.
+   * @return m_center.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
+
+  /**
+   * @brief Get the semi-axes.
+   * @return m_radii.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getRadii() const noexcept
+  {
+    return m_radii;
+  }
+
+  /**
+   * @brief Signed distance function for the ellipsoid.
+   * @details The point is folded into the first octant and the axes sorted from largest to smallest, as
+   * Eberly's algorithm takes them.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the ellipsoid surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    T e[3]{m_radii[0], m_radii[1], m_radii[2]};
+    T y[3]{std::abs(a_point[0] - m_center[0]), std::abs(a_point[1] - m_center[1]), std::abs(a_point[2] - m_center[2])};
+
+    const T inside = (y[0] / e[0]) * (y[0] / e[0]) + (y[1] / e[1]) * (y[1] / e[1]) + (y[2] / e[2]) * (y[2] / e[2]);
+
+    // Sort the axes from largest to smallest, carrying the coordinates along.
+    const auto order = [&e, &y](const size_t a_i, const size_t a_j) noexcept {
+      if (e[a_i] < e[a_j]) {
+        const T axis  = e[a_i];
+        const T coord = y[a_i];
+
+        e[a_i] = e[a_j];
+        y[a_i] = y[a_j];
+        e[a_j] = axis;
+        y[a_j] = coord;
+      }
+    };
+
+    order(0, 1);
+    order(1, 2);
+    order(0, 1);
+
+    const T distance = AnalyticDetail::ellipsoidDistance(e[0], e[1], e[2], y[0], y[1], y[2]);
+
+    return (inside < T(1)) ? -distance : distance;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_center - m_radii, m_center + m_radii);
+  }
+
+protected:
+  /**
+   * @brief Center.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Semi-axes along x, y and z.
+   */
+  Vec3T<T> m_radii = Vec3T<T>::ones();
+};
+
+/**
+ * @brief Signed distance field for a capped cone (a frustum): a cone cut flat at both ends, between two end
+ * centers, with a radius at each.
+ * @details One radius may be zero, which makes a cone with its tip at that end, pointing anywhere (ConeSDF
+ * points along y). The distance is exact (Quilez's capped cone): in the plane through the axis, the nearer of
+ * the distances to the end discs and to the slanted side. By default the frustum runs from (0,-0.5,0) with
+ * radius 1 to (0,0.5,0) with radius 0.5.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class CappedConeSDF
+{
+  static_assert(std::is_floating_point_v<T>, "CappedConeSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a frustum from (0,-0.5,0) with radius 1 to (0,0.5,0) with radius 0.5.
+   */
+  CappedConeSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center1 Center of one end.
+   * @param[in] a_center2 Center of the other end; it must differ from a_center1.
+   * @param[in] a_radius1 Radius at a_center1, at least 0.
+   * @param[in] a_radius2 Radius at a_center2, at least 0; not both radii may be 0.
+   */
+  CappedConeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_radius1, const T a_radius2) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
+                       "CappedConeSDF: the first center must be finite (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center2),
+                       "CappedConeSDF: the second center must be finite (%g, %g, %g)",
+                       double(a_center2[0]),
+                       double(a_center2[1]),
+                       double(a_center2[2]));
+    EBGEOMETRY_REQUIRE((a_center2 - a_center1).length() > T(0),
+                       "CappedConeSDF: the two centers must differ, but both are (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius1) && std::isfinite(a_radius2) && a_radius1 >= T(0) && a_radius2 >= T(0) &&
+                         a_radius1 + a_radius2 > T(0),
+                       "CappedConeSDF: the radii must be finite, at least 0 and not both 0 (%g, %g)",
+                       double(a_radius1),
+                       double(a_radius2));
+
+    m_center1 = a_center1;
+    m_center2 = a_center2;
+    m_radius1 = a_radius1;
+    m_radius2 = a_radius2;
+    m_length  = (a_center2 - a_center1).length();
+    m_axis    = (a_center2 - a_center1) / m_length;
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  CappedConeSDF(const CappedConeSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  CappedConeSDF(CappedConeSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  CappedConeSDF&
+  operator=(const CappedConeSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  CappedConeSDF&
+  operator=(CappedConeSDF&&) = default;
+
+  /**
+   * @brief Get the center of one end.
+   * @return m_center1.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return m_center1;
+  }
+
+  /**
+   * @brief Get the center of the other end.
+   * @return m_center2.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return m_center2;
+  }
+
+  /**
+   * @brief Get the radius at m_center1.
+   * @return m_radius1.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius1() const noexcept
+  {
+    return m_radius1;
+  }
+
+  /**
+   * @brief Get the radius at m_center2.
+   * @return m_radius2.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius2() const noexcept
+  {
+    return m_radius2;
+  }
+
+  /**
+   * @brief Signed distance function for the frustum.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the frustum surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const AnalyticDetail::AxialCoordinates<T> q = AnalyticDetail::axialCoordinates(a_point, m_center1, m_axis);
+
+    const T x = q.m_radial;
+    const T y = q.m_axial;
+    const T h = m_length;
+
+    // Distance to the nearer end disc: radially beyond its radius, and axially beyond the slab.
+    const T capX = Math::max(T(0), x - ((y < T(0.5) * h) ? m_radius1 : m_radius2));
+    const T capY = std::abs(y - T(0.5) * h) - T(0.5) * h;
+
+    // Distance to the slanted side, the segment from (radius1, 0) to (radius2, h).
+    const T dr    = m_radius2 - m_radius1;
+    const T f     = Math::clamp((dr * (x - m_radius1) + y * h) / (dr * dr + h * h), T(0), T(1));
+    const T sideX = x - m_radius1 - f * dr;
+    const T sideY = y - f * h;
+
+    const T sign = (sideX < T(0) && capY < T(0)) ? T(-1) : T(1);
+
+    return sign * std::sqrt(Math::min(capX * capX + capY * capY, sideX * sideX + sideY * sideY));
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The box around the two end discs: along axis i, each disc reaches its radius times
+   * sqrt(1 - axis_i^2) beyond its center.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    Vec3T<T> lo;
+    Vec3T<T> hi;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T across = std::sqrt(Math::max(T(0), T(1) - m_axis[dir] * m_axis[dir]));
+
+      lo[dir] = Math::min(m_center1[dir] - m_radius1 * across, m_center2[dir] - m_radius2 * across);
+      hi[dir] = Math::max(m_center1[dir] + m_radius1 * across, m_center2[dir] + m_radius2 * across);
+    }
+
+    return BoundingVolumes::AABBT<T>(lo, hi);
+  }
+
+protected:
+  /**
+   * @brief Center of one end.
+   */
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
+
+  /**
+   * @brief Center of the other end.
+   */
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
+
+  /**
+   * @brief Unit axis from m_center1 to m_center2.
+   */
+  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Distance between the end centers.
+   */
+  T m_length = T(1);
+
+  /**
+   * @brief Radius at m_center1.
+   */
+  T m_radius1 = T(1);
+
+  /**
+   * @brief Radius at m_center2.
+   */
+  T m_radius2 = T(0.5);
+};
+
+/**
+ * @brief Signed distance field for a round cone: two spheres, of different radii, and the cone tangent to
+ * both, like a capsule with a radius at each end.
+ * @details The distance is exact (Quilez's round cone). The spheres are centered at the two end centers;
+ * the smaller one must not lie inside the larger, so the difference of the radii must be less than the
+ * distance between the centers. By default the round cone runs from (0,-0.5,0) with radius 0.5 to (0,0.5,0)
+ * with radius 0.25.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class RoundConeSDF
+{
+  static_assert(std::is_floating_point_v<T>, "RoundConeSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a round cone from (0,-0.5,0) with radius 0.5 to (0,0.5,0) with
+   * radius 0.25.
+   */
+  RoundConeSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center1 Center of one sphere.
+   * @param[in] a_center2 Center of the other sphere.
+   * @param[in] a_radius1 Radius of the sphere at a_center1, at least 0.
+   * @param[in] a_radius2 Radius of the sphere at a_center2, at least 0; not both radii may be 0, and their
+   * difference must be less than the distance between the centers.
+   */
+  RoundConeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_radius1, const T a_radius2) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
+                       "RoundConeSDF: the first center must be finite (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center2),
+                       "RoundConeSDF: the second center must be finite (%g, %g, %g)",
+                       double(a_center2[0]),
+                       double(a_center2[1]),
+                       double(a_center2[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius1) && std::isfinite(a_radius2) && a_radius1 >= T(0) && a_radius2 >= T(0) &&
+                         a_radius1 + a_radius2 > T(0),
+                       "RoundConeSDF: the radii must be finite, at least 0 and not both 0 (%g, %g)",
+                       double(a_radius1),
+                       double(a_radius2));
+    EBGEOMETRY_REQUIRE(std::abs(a_radius1 - a_radius2) < (a_center2 - a_center1).length(),
+                       "RoundConeSDF: the difference of the radii (%g, %g) must be less than the distance between "
+                       "the centers (%g)",
+                       double(a_radius1),
+                       double(a_radius2),
+                       double((a_center2 - a_center1).length()));
+
+    m_center1 = a_center1;
+    m_center2 = a_center2;
+    m_radius1 = a_radius1;
+    m_radius2 = a_radius2;
+    m_length  = (a_center2 - a_center1).length();
+    m_axis    = (a_center2 - a_center1) / m_length;
+    m_sin     = (a_radius1 - a_radius2) / m_length;
+    m_cos     = std::sqrt(T(1) - m_sin * m_sin);
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  RoundConeSDF(const RoundConeSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  RoundConeSDF(RoundConeSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  RoundConeSDF&
+  operator=(const RoundConeSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  RoundConeSDF&
+  operator=(RoundConeSDF&&) = default;
+
+  /**
+   * @brief Get the center of one sphere.
+   * @return m_center1.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return m_center1;
+  }
+
+  /**
+   * @brief Get the center of the other sphere.
+   * @return m_center2.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return m_center2;
+  }
+
+  /**
+   * @brief Get the radius of the sphere at m_center1.
+   * @return m_radius1.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius1() const noexcept
+  {
+    return m_radius1;
+  }
+
+  /**
+   * @brief Get the radius of the sphere at m_center2.
+   * @return m_radius2.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius2() const noexcept
+  {
+    return m_radius2;
+  }
+
+  /**
+   * @brief Signed distance function for the round cone.
+   * @details In the plane through the axis, the point is nearest the first sphere, the second sphere or the
+   * tangent line between them, as its position along the line's direction says.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the round cone surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const AnalyticDetail::AxialCoordinates<T> q = AnalyticDetail::axialCoordinates(a_point, m_center1, m_axis);
+
+    const T x = q.m_radial;
+    const T y = q.m_axial;
+
+    // Position along the tangent line's direction (-sin, cos) in the (radial, axial) plane.
+    const T k = -m_sin * x + m_cos * y;
+
+    if (k < T(0)) {
+      return std::sqrt(x * x + y * y) - m_radius1;
+    }
+    if (k > m_cos * m_length) {
+      return std::sqrt(x * x + (y - m_length) * (y - m_length)) - m_radius2;
+    }
+
+    return m_cos * x + m_sin * y - m_radius1;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: the box around the two spheres.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(
+      min(m_center1 - m_radius1 * Vec3T<T>::ones(), m_center2 - m_radius2 * Vec3T<T>::ones()),
+      max(m_center1 + m_radius1 * Vec3T<T>::ones(), m_center2 + m_radius2 * Vec3T<T>::ones()));
+  }
+
+protected:
+  /**
+   * @brief Center of one sphere.
+   */
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
+
+  /**
+   * @brief Center of the other sphere.
+   */
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
+
+  /**
+   * @brief Unit axis from m_center1 to m_center2.
+   */
+  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Distance between the centers.
+   */
+  T m_length = T(1);
+
+  /**
+   * @brief Radius of the sphere at m_center1.
+   */
+  T m_radius1 = T(0.5);
+
+  /**
+   * @brief Radius of the sphere at m_center2.
+   */
+  T m_radius2 = T(0.25);
+
+  /**
+   * @brief Sine of the cone's half-angle, (m_radius1 - m_radius2) / m_length.
+   */
+  T m_sin = T(0.25);
+
+  /**
+   * @brief Cosine of the cone's half-angle.
+   */
+  T m_cos = T(0.96824583655185422);
+};
+
+/**
+ * @brief Signed distance field for a regular prism: a regular polygon of n sides, extruded between two end
+ * centers.
+ * @details The polygon's circumradius (the distance from the axis to a vertex) is the radius given, and one
+ * vertex points along the given direction, across the axis. The distance is exact: in the cross-section, the
+ * point is turned into the polygon's first sector, where the distance to the regular polygon is that to one
+ * edge (Quilez's regular polygon), and the extrusion between the end planes is exact too. Three sides make a
+ * triangular prism, four a square one, six a hexagonal rod. Round its edges with Offset of a slightly smaller
+ * prism. By default the prism is a hexagonal one from (0,-0.5,0) to (0,0.5,0), of circumradius 1, with a
+ * vertex along x.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class PolygonPrismSDF
+{
+  static_assert(std::is_floating_point_v<T>, "PolygonPrismSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a hexagonal prism from (0,-0.5,0) to (0,0.5,0), of circumradius 1,
+   * with a vertex along x.
+   */
+  PolygonPrismSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center1         Center of one end.
+   * @param[in] a_center2         Center of the other end; it must differ from a_center1.
+   * @param[in] a_radius          Circumradius: the distance from the axis to a vertex, finite and positive.
+   * @param[in] a_sides           Number of sides, at least 3.
+   * @param[in] a_vertexDirection Direction from the axis toward one vertex. Only its part across the axis is
+   * used, and that must not be zero.
+   */
+  PolygonPrismSDF(const Vec3T<T>& a_center1,
+                  const Vec3T<T>& a_center2,
+                  const T         a_radius,
+                  const unsigned  a_sides,
+                  const Vec3T<T>& a_vertexDirection) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
+                       "PolygonPrismSDF: the first center must be finite (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center2),
+                       "PolygonPrismSDF: the second center must be finite (%g, %g, %g)",
+                       double(a_center2[0]),
+                       double(a_center2[1]),
+                       double(a_center2[2]));
+    EBGEOMETRY_REQUIRE((a_center2 - a_center1).length() > T(0),
+                       "PolygonPrismSDF: the two centers must differ, but both are (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "PolygonPrismSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(a_sides >= 3U, "PolygonPrismSDF: the number of sides must be at least 3 (%u)", a_sides);
+
+    const T        length = (a_center2 - a_center1).length();
+    const Vec3T<T> axis   = (a_center2 - a_center1) / length;
+    const Vec3T<T> across = a_vertexDirection - dot(a_vertexDirection, axis) * axis;
+
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_vertexDirection) && across.length() > T(0),
+                       "PolygonPrismSDF: the vertex direction (%g, %g, %g) must have a part across the axis",
+                       double(a_vertexDirection[0]),
+                       double(a_vertexDirection[1]),
+                       double(a_vertexDirection[2]));
+
+    m_center1 = a_center1;
+    m_center2 = a_center2;
+    m_axis    = axis;
+    m_length  = length;
+    m_radius  = a_radius;
+    m_sides   = a_sides;
+    m_vertex  = across / across.length();
+    m_side    = cross(m_axis, m_vertex);
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  PolygonPrismSDF(const PolygonPrismSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  PolygonPrismSDF(PolygonPrismSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  PolygonPrismSDF&
+  operator=(const PolygonPrismSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  PolygonPrismSDF&
+  operator=(PolygonPrismSDF&&) = default;
+
+  /**
+   * @brief Get the center of one end.
+   * @return m_center1.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return m_center1;
+  }
+
+  /**
+   * @brief Get the center of the other end.
+   * @return m_center2.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return m_center2;
+  }
+
+  /**
+   * @brief Get the circumradius.
+   * @return m_radius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
+  }
+
+  /**
+   * @brief Get the number of sides.
+   * @return m_sides.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  unsigned
+  getSides() const noexcept
+  {
+    return m_sides;
+  }
+
+  /**
+   * @brief Get the unit direction from the axis toward the first vertex, across the axis.
+   * @return m_vertex.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getVertexDirection() const noexcept
+  {
+    return m_vertex;
+  }
+
+  /**
+   * @brief The signed distance to the polygon in the cross-section, at coordinates a_u along the vertex
+   * direction and a_v across it.
+   * @param[in] a_u Coordinate along the direction toward the first vertex.
+   * @param[in] a_v Coordinate along the other direction across the axis.
+   * @return The signed distance to the polygon.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  polygonDistance(const T a_u, const T a_v) const noexcept
+  {
+    const T half = pi<T> / T(m_sides);
+
+    // The angle from the first vertex, turned into [-half, half) around the middle of the first edge.
+    const T angle = std::atan2(a_v, a_u);
+    const T turn  = angle - T(2) * half * std::floor(angle / (T(2) * half)) - half;
+    const T r     = std::sqrt(a_u * a_u + a_v * a_v);
+
+    // The point in the first sector: x toward the edge's middle, y along the edge.
+    const T x = r * std::cos(turn) - m_radius * std::cos(half);
+    T       y = r * std::abs(std::sin(turn)) - m_radius * std::sin(half);
+
+    y += Math::clamp(-y, T(0), m_radius * std::sin(half));
+
+    const T length = std::sqrt(x * x + y * y);
+
+    return (x < T(0)) ? -length : length;
+  }
+
+  /**
+   * @brief Signed distance function for the prism.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the prism surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const Vec3T<T> w = a_point - m_center1;
+    const T        y = dot(w, m_axis);
+
+    return AnalyticDetail::extrusion(polygonDistance(dot(w, m_vertex), dot(w, m_side)),
+                                     std::abs(y - T(0.5) * m_length) - T(0.5) * m_length);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details The box around the circumscribed cylinder: along axis i, each end reaches the circumradius times
+   * sqrt(1 - axis_i^2) beyond its center.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    Vec3T<T> reach;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      reach[dir] = m_radius * std::sqrt(Math::max(T(0), T(1) - m_axis[dir] * m_axis[dir]));
+    }
+
+    return BoundingVolumes::AABBT<T>(min(m_center1, m_center2) - reach, max(m_center1, m_center2) + reach);
+  }
+
+protected:
+  /**
+   * @brief Center of one end.
+   */
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
+
+  /**
+   * @brief Center of the other end.
+   */
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
+
+  /**
+   * @brief Unit axis from m_center1 to m_center2.
+   */
+  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Unit direction from the axis toward the first vertex.
+   */
+  Vec3T<T> m_vertex = Vec3T<T>(T(1), T(0), T(0));
+
+  /**
+   * @brief Unit direction across the axis and m_vertex, cross(m_axis, m_vertex).
+   */
+  Vec3T<T> m_side = Vec3T<T>(T(0), T(0), T(-1));
+
+  /**
+   * @brief Distance between the end centers.
+   */
+  T m_length = T(1);
+
+  /**
+   * @brief Circumradius.
+   */
+  T m_radius = T(1);
+
+  /**
+   * @brief Number of sides.
+   */
+  unsigned m_sides = 6U;
+};
+
+/**
+ * @brief Signed distance field for a tube (a pipe): the space between two coaxial cylinders, cut flat at two
+ * end centers.
+ * @details The distance is exact: an annulus in the cross-section, extruded between the end planes. An inner
+ * radius of 0 would be a cylinder (CylinderSDF). Round its edges with Offset of a slightly smaller tube. By
+ * default the tube runs from (0,-0.5,0) to (0,0.5,0), with inner radius 0.5 and outer radius 1.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class TubeSDF
+{
+  static_assert(std::is_floating_point_v<T>, "TubeSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a tube from (0,-0.5,0) to (0,0.5,0), with inner radius 0.5 and outer
+   * radius 1.
+   */
+  TubeSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center1     Center of one end.
+   * @param[in] a_center2     Center of the other end; it must differ from a_center1.
+   * @param[in] a_innerRadius Inner radius, positive.
+   * @param[in] a_outerRadius Outer radius, finite and larger than the inner radius.
+   */
+  TubeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_innerRadius, const T a_outerRadius) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
+                       "TubeSDF: the first center must be finite (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center2),
+                       "TubeSDF: the second center must be finite (%g, %g, %g)",
+                       double(a_center2[0]),
+                       double(a_center2[1]),
+                       double(a_center2[2]));
+    EBGEOMETRY_REQUIRE((a_center2 - a_center1).length() > T(0),
+                       "TubeSDF: the two centers must differ, but both are (%g, %g, %g)",
+                       double(a_center1[0]),
+                       double(a_center1[1]),
+                       double(a_center1[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_outerRadius) && a_innerRadius > T(0) && a_innerRadius < a_outerRadius,
+                       "TubeSDF: the radii must satisfy 0 < inner (%g) < outer (%g)",
+                       double(a_innerRadius),
+                       double(a_outerRadius));
+
+    m_center1     = a_center1;
+    m_center2     = a_center2;
+    m_innerRadius = a_innerRadius;
+    m_outerRadius = a_outerRadius;
+    m_length      = (a_center2 - a_center1).length();
+    m_axis        = (a_center2 - a_center1) / m_length;
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  TubeSDF(const TubeSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  TubeSDF(TubeSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  TubeSDF&
+  operator=(const TubeSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  TubeSDF&
+  operator=(TubeSDF&&) = default;
+
+  /**
+   * @brief Get the center of one end.
+   * @return m_center1.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter1() const noexcept
+  {
+    return m_center1;
+  }
+
+  /**
+   * @brief Get the center of the other end.
+   * @return m_center2.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter2() const noexcept
+  {
+    return m_center2;
+  }
+
+  /**
+   * @brief Get the inner radius.
+   * @return m_innerRadius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getInnerRadius() const noexcept
+  {
+    return m_innerRadius;
+  }
+
+  /**
+   * @brief Get the outer radius.
+   * @return m_outerRadius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getOuterRadius() const noexcept
+  {
+    return m_outerRadius;
+  }
+
+  /**
+   * @brief Signed distance function for the tube.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the tube surface; negative inside the wall.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const AnalyticDetail::AxialCoordinates<T> q = AnalyticDetail::axialCoordinates(a_point, m_center1, m_axis);
+
+    const T annulus =
+      std::abs(q.m_radial - T(0.5) * (m_innerRadius + m_outerRadius)) - T(0.5) * (m_outerRadius - m_innerRadius);
+
+    return AnalyticDetail::extrusion(annulus, std::abs(q.m_axial - T(0.5) * m_length) - T(0.5) * m_length);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: the box of the outer cylinder.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    Vec3T<T> reach;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      reach[dir] = m_outerRadius * std::sqrt(Math::max(T(0), T(1) - m_axis[dir] * m_axis[dir]));
+    }
+
+    return BoundingVolumes::AABBT<T>(min(m_center1, m_center2) - reach, max(m_center1, m_center2) + reach);
+  }
+
+protected:
+  /**
+   * @brief Center of one end.
+   */
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-0.5), T(0));
+
+  /**
+   * @brief Center of the other end.
+   */
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(0.5), T(0));
+
+  /**
+   * @brief Unit axis from m_center1 to m_center2.
+   */
+  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Distance between the end centers.
+   */
+  T m_length = T(1);
+
+  /**
+   * @brief Inner radius.
+   */
+  T m_innerRadius = T(0.5);
+
+  /**
+   * @brief Outer radius.
+   */
+  T m_outerRadius = T(1);
+};
+
+/**
+ * @brief Signed distance field for a capped torus: an arc of a torus with flat ends, such as a pipe elbow.
+ * @details The torus' ring lies in the xz-plane around an axis along y through the center, like TorusSDF's.
+ * The arc sweeps the given angle, symmetric about +x, and each end is the disc where the tube is cut by the
+ * half-plane through the axis at that angle. The distance is exact. Inside the arc's angle, the nearest point
+ * of the solid is that of the whole torus, unless the point is inside and an end disc is nearer. Outside the
+ * angle, it is on an end disc: any point of the solid turned around the axis toward the point stays in the
+ * solid, and is nearer, until it reaches an end. An angle of 360 degrees is the whole torus. By default the arc
+ * sweeps 90 degrees, with major radius 1 and minor radius 0.25.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class CappedTorusSDF
+{
+  static_assert(std::is_floating_point_v<T>, "CappedTorusSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs an arc of 90 degrees, centered at the origin, with major radius 1 and
+   * minor radius 0.25.
+   */
+  CappedTorusSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center      Center of the torus.
+   * @param[in] a_majorRadius Major (ring) radius.
+   * @param[in] a_minorRadius Minor (tube) radius, positive and less than the major radius.
+   * @param[in] a_angle       The angle the arc sweeps, in degrees, in (0, 360].
+   */
+  CappedTorusSDF(const Vec3T<T>& a_center, const T a_majorRadius, const T a_minorRadius, const T a_angle) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
+                       "CappedTorusSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_majorRadius) && a_minorRadius > T(0) && a_minorRadius < a_majorRadius,
+                       "CappedTorusSDF: the radii must satisfy 0 < minor (%g) < major (%g)",
+                       double(a_minorRadius),
+                       double(a_majorRadius));
+    EBGEOMETRY_REQUIRE(a_angle > T(0) && a_angle <= T(360),
+                       "CappedTorusSDF: the angle must be in (0, 360] degrees (%g)",
+                       double(a_angle));
+
+    m_center      = a_center;
+    m_majorRadius = a_majorRadius;
+    m_minorRadius = a_minorRadius;
+    m_angle       = a_angle;
+    m_whole       = !(a_angle < T(360));
+    m_cos         = std::cos(T(0.5) * a_angle * pi<T> / T(180));
+    m_sin         = std::sin(T(0.5) * a_angle * pi<T> / T(180));
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  CappedTorusSDF(const CappedTorusSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  CappedTorusSDF(CappedTorusSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  CappedTorusSDF&
+  operator=(const CappedTorusSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  CappedTorusSDF&
+  operator=(CappedTorusSDF&&) = default;
+
+  /**
+   * @brief Get the center.
+   * @return m_center.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
+
+  /**
+   * @brief Get the major (ring) radius.
+   * @return m_majorRadius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getMajorRadius() const noexcept
+  {
+    return m_majorRadius;
+  }
+
+  /**
+   * @brief Get the minor (tube) radius.
+   * @return m_minorRadius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getMinorRadius() const noexcept
+  {
+    return m_minorRadius;
+  }
+
+  /**
+   * @brief Get the angle the arc sweeps, in degrees.
+   * @return m_angle.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getAngle() const noexcept
+  {
+    return m_angle;
+  }
+
+  /**
+   * @brief Signed distance function for the capped torus.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const Vec3T<T> p   = a_point - m_center;
+    const T        rho = std::sqrt(p[0] * p[0] + p[2] * p[2]);
+
+    // The distance to the whole torus.
+    const T torus = std::sqrt((rho - m_majorRadius) * (rho - m_majorRadius) + p[1] * p[1]) - m_minorRadius;
+
+    if (m_whole) {
+      return torus;
+    }
+
+    // The distance to the end disc in the half-plane at angle a_sin, a_cos from +x: the part across the
+    // half-plane, and in it, how far beyond the disc's rim the point lies.
+    const auto disc = [&p, this](const T a_sin) noexcept {
+      const T across = p[2] * m_cos - p[0] * a_sin;
+      const T radial = p[0] * m_cos + p[2] * a_sin;
+      const T rim =
+        Math::max(T(0), std::sqrt((radial - m_majorRadius) * (radial - m_majorRadius) + p[1] * p[1]) - m_minorRadius);
+
+      return std::sqrt(across * across + rim * rim);
+    };
+
+    const T ends = Math::min(disc(m_sin), disc(-m_sin));
+
+    // Inside the arc's angle: cos(angle to the point) >= cos(half the arc).
+    if (p[0] >= rho * m_cos) {
+      return (torus >= T(0)) ? torus : -Math::min(-torus, ends);
+    }
+
+    return ends;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @details Every point of the solid lies in a half-plane through the axis within the arc, at a distance from
+   * the axis between the major radius less the minor one and their sum.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T outer = m_majorRadius + m_minorRadius;
+    const T inner = m_majorRadius - m_minorRadius;
+
+    // The arc reaches angle 180 (-x) only when whole; it reaches +-90 (z) when it sweeps at least 180.
+    const T xLow  = m_whole ? -outer : ((m_cos >= T(0)) ? inner : outer) * m_cos;
+    const T zHigh = (m_cos <= T(0)) ? outer : outer * m_sin;
+
+    return BoundingVolumes::AABBT<T>(m_center + Vec3T<T>(xLow, -m_minorRadius, -zHigh),
+                                     m_center + Vec3T<T>(outer, m_minorRadius, zHigh));
+  }
+
+protected:
+  /**
+   * @brief Center of the torus.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Major (ring) radius.
+   */
+  T m_majorRadius = T(1);
+
+  /**
+   * @brief Minor (tube) radius.
+   */
+  T m_minorRadius = T(0.25);
+
+  /**
+   * @brief The angle the arc sweeps, in degrees.
+   */
+  T m_angle = T(90);
+
+  /**
+   * @brief Cosine of half the arc's angle.
+   */
+  T m_cos = T(0.70710678118654752);
+
+  /**
+   * @brief Sine of half the arc's angle.
+   */
+  T m_sin = T(0.70710678118654752);
+
+  /**
+   * @brief Whether the arc is the whole torus, with no ends.
+   */
+  bool m_whole = false;
+};
+
+/**
+ * @brief Signed distance field for a cut sphere: the part of a sphere above a horizontal plane, a dome or a
+ * sphere with a flat bottom.
+ * @details The solid is the part of the sphere at y >= center.y + height: a dome (a spherical cap) for a
+ * positive height, more than a hemisphere for a negative one. The distance is exact (Quilez's cut sphere): in
+ * the plane through the y axis, the point is nearest the sphere, the flat face or the rim between them. Turn it
+ * with Rotate. By default it is the upper half of the unit sphere at the origin.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class CutSphereSDF
+{
+  static_assert(std::is_floating_point_v<T>, "CutSphereSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs the upper half of the unit sphere at the origin.
+   */
+  CutSphereSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center Center of the sphere.
+   * @param[in] a_radius Radius, finite and positive.
+   * @param[in] a_height Height of the cut plane above the center, between -a_radius and a_radius.
+   */
+  CutSphereSDF(const Vec3T<T>& a_center, const T a_radius, const T a_height) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
+                       "CutSphereSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "CutSphereSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(std::abs(a_height) < a_radius,
+                       "CutSphereSDF: the height (%g) must be between minus and plus the radius (%g)",
+                       double(a_height),
+                       double(a_radius));
+
+    m_center = a_center;
+    m_radius = a_radius;
+    m_height = a_height;
+    m_rim    = std::sqrt(a_radius * a_radius - a_height * a_height);
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  CutSphereSDF(const CutSphereSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  CutSphereSDF(CutSphereSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  CutSphereSDF&
+  operator=(const CutSphereSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  CutSphereSDF&
+  operator=(CutSphereSDF&&) = default;
+
+  /**
+   * @brief Get the center of the sphere.
+   * @return m_center.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
+
+  /**
+   * @brief Get the radius.
+   * @return m_radius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
+  }
+
+  /**
+   * @brief Get the height of the cut plane above the center.
+   * @return m_height.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getHeight() const noexcept
+  {
+    return m_height;
+  }
+
+  /**
+   * @brief Signed distance function for the cut sphere.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const Vec3T<T> p = a_point - m_center;
+    const T        x = std::sqrt(p[0] * p[0] + p[2] * p[2]);
+    const T        y = p[1];
+    const T        r = m_radius;
+    const T        h = m_height;
+    const T        w = m_rim;
+
+    // s < 0 where the nearest point is on the sphere; otherwise on the flat face (x < w) or the rim.
+    const T s = Math::max((h - r) * x * x + w * w * (h + r - T(2) * y), h * x - w * y);
+
+    if (s < T(0)) {
+      return std::sqrt(x * x + y * y) - r;
+    }
+    if (x < w) {
+      return h - y;
+    }
+
+    return std::sqrt((x - w) * (x - w) + (y - h) * (y - h));
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T across = (m_height <= T(0)) ? m_radius : m_rim;
+
+    return BoundingVolumes::AABBT<T>(m_center + Vec3T<T>(-across, m_height, -across),
+                                     m_center + Vec3T<T>(across, m_radius, across));
+  }
+
+protected:
+  /**
+   * @brief Center of the sphere.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Radius.
+   */
+  T m_radius = T(1);
+
+  /**
+   * @brief Height of the cut plane above the center.
+   */
+  T m_height = T(0);
+
+  /**
+   * @brief Radius of the rim, sqrt(radius^2 - height^2).
+   */
+  T m_rim = T(1);
+};
+
+/**
+ * @brief Signed distance field for a cut hollow sphere: a spherical shell of some thickness, the part above a
+ * horizontal plane, such as a dome or a radome.
+ * @details The shell is the set of points within half the thickness of the sphere, and the part kept is the
+ * one above the cone from the center through the rim, where the sphere meets the plane y = center.y + height.
+ * The shell's rims are therefore rounded, with radius half the thickness. The distance is exact (Quilez's cut
+ * hollow sphere): the distance to the sphere's arc above the rim, or to the rim, less half the thickness. Turn
+ * it with Rotate. By default it is the upper half of a shell of thickness 0.1 around the unit sphere at the
+ * origin.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class CutHollowSphereSDF
+{
+  static_assert(std::is_floating_point_v<T>, "CutHollowSphereSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs the upper half of a shell of thickness 0.1 around the unit sphere
+   * at the origin.
+   */
+  CutHollowSphereSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center    Center of the sphere.
+   * @param[in] a_radius    Radius of the shell's middle surface, finite and positive.
+   * @param[in] a_height    Height of the cut plane above the center, between -a_radius and a_radius.
+   * @param[in] a_thickness The shell's thickness, positive and less than twice the radius.
+   */
+  CutHollowSphereSDF(const Vec3T<T>& a_center, const T a_radius, const T a_height, const T a_thickness) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
+                       "CutHollowSphereSDF: the center must be finite (%g, %g, %g)",
+                       double(a_center[0]),
+                       double(a_center[1]),
+                       double(a_center[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_radius) && a_radius > T(0),
+                       "CutHollowSphereSDF: the radius must be finite and positive (%g)",
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(std::abs(a_height) < a_radius,
+                       "CutHollowSphereSDF: the height (%g) must be between minus and plus the radius (%g)",
+                       double(a_height),
+                       double(a_radius));
+    EBGEOMETRY_REQUIRE(a_thickness > T(0) && a_thickness < T(2) * a_radius,
+                       "CutHollowSphereSDF: the thickness (%g) must be positive and less than twice the radius (%g)",
+                       double(a_thickness),
+                       double(a_radius));
+
+    m_center    = a_center;
+    m_radius    = a_radius;
+    m_height    = a_height;
+    m_thickness = a_thickness;
+    m_rim       = std::sqrt(a_radius * a_radius - a_height * a_height);
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  CutHollowSphereSDF(const CutHollowSphereSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  CutHollowSphereSDF(CutHollowSphereSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  CutHollowSphereSDF&
+  operator=(const CutHollowSphereSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  CutHollowSphereSDF&
+  operator=(CutHollowSphereSDF&&) = default;
+
+  /**
+   * @brief Get the center of the sphere.
+   * @return m_center.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
+
+  /**
+   * @brief Get the radius of the shell's middle surface.
+   * @return m_radius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getRadius() const noexcept
+  {
+    return m_radius;
+  }
+
+  /**
+   * @brief Get the height of the cut plane above the center.
+   * @return m_height.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getHeight() const noexcept
+  {
+    return m_height;
+  }
+
+  /**
+   * @brief Get the shell's thickness.
+   * @return m_thickness.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getThickness() const noexcept
+  {
+    return m_thickness;
+  }
+
+  /**
+   * @brief Signed distance function for the cut hollow sphere.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside the shell.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    const Vec3T<T> p = a_point - m_center;
+    const T        x = std::sqrt(p[0] * p[0] + p[2] * p[2]);
+    const T        y = p[1];
+
+    // Below the cone through the rim, the nearest point of the arc is the rim; above it, on the sphere.
+    const T arc = (m_rim * y < m_height * x) ? std::sqrt((x - m_rim) * (x - m_rim) + (y - m_height) * (y - m_height))
+                                             : std::abs(std::sqrt(x * x + y * y) - m_radius);
+
+    return arc - T(0.5) * m_thickness;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T half   = T(0.5) * m_thickness;
+    const T across = ((m_height <= T(0)) ? m_radius : m_rim) + half;
+
+    return BoundingVolumes::AABBT<T>(m_center + Vec3T<T>(-across, m_height - half, -across),
+                                     m_center + Vec3T<T>(across, m_radius + half, across));
+  }
+
+protected:
+  /**
+   * @brief Center of the sphere.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Radius of the shell's middle surface.
+   */
+  T m_radius = T(1);
+
+  /**
+   * @brief Height of the cut plane above the center.
+   */
+  T m_height = T(0);
+
+  /**
+   * @brief The shell's thickness.
+   */
+  T m_thickness = T(0.1);
+
+  /**
+   * @brief Radius of the rim, sqrt(radius^2 - height^2).
+   */
+  T m_rim = T(1);
+};
+
+/**
+ * @brief Signed distance field for an infinite wedge: a knife edge.
+ * @details The wedge's edge runs along z through the tip, and the wedge points toward +y: it is the space below
+ * two planes through the edge, each at half the opening angle from -y. It is unbounded along z, and downward and
+ * sideways from the edge. The distance is exact: inside, that to the nearer plane; outside, to the nearer face,
+ * or to the edge where the point is beyond both faces. Round the edge with Offset of a wedge whose tip is set
+ * back. Turn it with Rotate. By default the tip is at the origin and the opening is 60 degrees.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class WedgeSDF
+{
+  static_assert(std::is_floating_point_v<T>, "WedgeSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a wedge with its tip at the origin and an opening of 60 degrees.
+   */
+  WedgeSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_tip   A point on the edge.
+   * @param[in] a_angle The opening angle, in degrees, in (0, 180).
+   */
+  WedgeSDF(const Vec3T<T>& a_tip, const T a_angle) noexcept
+  {
+    EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_tip),
+                       "WedgeSDF: the tip must be finite (%g, %g, %g)",
+                       double(a_tip[0]),
+                       double(a_tip[1]),
+                       double(a_tip[2]));
+    EBGEOMETRY_REQUIRE(
+      a_angle > T(0) && a_angle < T(180), "WedgeSDF: the angle must be in (0, 180) degrees (%g)", double(a_angle));
+
+    m_tip   = a_tip;
+    m_angle = a_angle;
+    m_sin   = std::sin(T(0.5) * a_angle * pi<T> / T(180));
+    m_cos   = std::cos(T(0.5) * a_angle * pi<T> / T(180));
+  }
+
+  /**
+   * @brief Copy constructor.
+   */
+  WedgeSDF(const WedgeSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  WedgeSDF(WedgeSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  WedgeSDF&
+  operator=(const WedgeSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  WedgeSDF&
+  operator=(WedgeSDF&&) = default;
+
+  /**
+   * @brief Get the tip, a point on the edge.
+   * @return m_tip.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getTip() const noexcept
+  {
+    return m_tip;
+  }
+
+  /**
+   * @brief Get the opening angle, in degrees.
+   * @return m_angle.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getAngle() const noexcept
+  {
+    return m_angle;
+  }
+
+  /**
+   * @brief The unit outward normal of the face on the +x side; the other face's is mirrored in x.
+   * @return (cos, sin) of half the opening angle, in x and y.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Vec3T<T>
+  getFaceNormal() const noexcept
+  {
+    return Vec3T<T>(m_cos, m_sin, T(0));
+  }
+
+  /**
+   * @brief Signed distance function for the wedge.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    // In the cross-section, folded onto the +x face: x >= 0.
+    const T x = std::abs(a_point[0] - m_tip[0]);
+    const T y = a_point[1] - m_tip[1];
+
+    // The face's outward normal is (cos, sin), its direction away from the tip (sin, -cos).
+    const T plane = m_cos * x + m_sin * y;
+    const T along = m_sin * x - m_cos * y;
+
+    if (plane <= T(0) || along >= T(0)) {
+      return plane;
+    }
+
+    return std::sqrt(x * x + y * y);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: unbounded but above the tip.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T big = Math::Limits<T>::max();
+
+    return BoundingVolumes::AABBT<T>(Vec3T<T>(-big, -big, -big), Vec3T<T>(big, m_tip[1], big));
+  }
+
+protected:
+  /**
+   * @brief A point on the edge.
+   */
+  Vec3T<T> m_tip = Vec3T<T>::zeros();
+
+  /**
+   * @brief The opening angle, in degrees.
+   */
+  T m_angle = T(60);
+
+  /**
+   * @brief Sine of half the opening angle.
+   */
+  T m_sin = T(0.5);
+
+  /**
+   * @brief Cosine of half the opening angle.
+   */
+  T m_cos = T(0.86602540378443865);
+};
+
 /**
  * @brief Every analytic shape must be trivially copyable: that is what lets it be byte-copied into a
  * device address space, or into a pool-backed array, with no pointer patching.
@@ -2185,6 +4308,30 @@ static_assert(std::is_trivially_copyable_v<RoundedCylinderSDF<float>>,
               "RoundedCylinderSDF<float> must be trivially copyable");
 static_assert(std::is_trivially_copyable_v<RoundedCylinderSDF<double>>,
               "RoundedCylinderSDF<double> must be trivially copyable");
+
+static_assert(std::is_trivially_copyable_v<EllipsoidSDF<float>>, "EllipsoidSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<EllipsoidSDF<double>>, "EllipsoidSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CappedConeSDF<float>>, "CappedConeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CappedConeSDF<double>>, "CappedConeSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<RoundConeSDF<float>>, "RoundConeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<RoundConeSDF<double>>, "RoundConeSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PolygonPrismSDF<float>>,
+              "PolygonPrismSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<PolygonPrismSDF<double>>,
+              "PolygonPrismSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TubeSDF<float>>, "TubeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<TubeSDF<double>>, "TubeSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CappedTorusSDF<float>>, "CappedTorusSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CappedTorusSDF<double>>,
+              "CappedTorusSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CutSphereSDF<float>>, "CutSphereSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CutSphereSDF<double>>, "CutSphereSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CutHollowSphereSDF<float>>,
+              "CutHollowSphereSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<CutHollowSphereSDF<double>>,
+              "CutHollowSphereSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<WedgeSDF<float>>, "WedgeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<WedgeSDF<double>>, "WedgeSDF<double> must be trivially copyable");
 
 } // namespace EBGeometry
 

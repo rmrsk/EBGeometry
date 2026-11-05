@@ -188,9 +188,18 @@ struct AllShapes
   RoundedBoxSDF<T>       roundedBox{Vec3T<T>::zeros(), T(1.2) * Vec3T<T>::ones(), T(0.1)};
   PerlinSDF<T>           perlin{T(1), Vec3T<T>::ones(), T(0.5), 4U};
   RoundedCylinderSDF<T>  roundedCylinder{Vec3T<T>::zeros(), T(1), T(0.1), T(1)};
+  EllipsoidSDF<T>        ellipsoid{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0.5), T(0.25))};
+  CappedConeSDF<T>       cappedCone{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.5), T(0.1)};
+  RoundConeSDF<T>        roundCone{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.3), T(0.1)};
+  PolygonPrismSDF<T>     polygonPrism{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.3), 6U, Vec3T<T>::unit(0)};
+  TubeSDF<T>             tube{Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.1), T(0.2)};
+  CappedTorusSDF<T>      cappedTorus{Vec3T<T>::zeros(), T(1), T(0.1), T(120)};
+  CutSphereSDF<T>        cutSphere{Vec3T<T>::zeros(), T(1), T(0.3)};
+  CutHollowSphereSDF<T>  cutHollowSphere{Vec3T<T>::zeros(), T(1), T(0.3), T(0.1)};
+  WedgeSDF<T>            wedge{Vec3T<T>::zeros(), T(60)};
 };
 
-// Sum of every shape's signed distance at a_point, so one number checks all twelve formulas.
+// Sum of every shape's signed distance at a_point, so one number checks every formula.
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 T
@@ -201,7 +210,12 @@ sumOfShapes(const AllShapes<T>& a_shapes, const Vec3T<T>& a_point) noexcept
          a_shapes.cylinder.signedDistance(a_point) + a_shapes.infiniteCylinder.signedDistance(a_point) +
          a_shapes.capsule.signedDistance(a_point) + a_shapes.infiniteCone.signedDistance(a_point) +
          a_shapes.cone.signedDistance(a_point) + a_shapes.roundedBox.signedDistance(a_point) +
-         a_shapes.perlin.signedDistance(a_point) + a_shapes.roundedCylinder.signedDistance(a_point);
+         a_shapes.perlin.signedDistance(a_point) + a_shapes.roundedCylinder.signedDistance(a_point) +
+         a_shapes.ellipsoid.signedDistance(a_point) + a_shapes.cappedCone.signedDistance(a_point) +
+         a_shapes.roundCone.signedDistance(a_point) + a_shapes.polygonPrism.signedDistance(a_point) +
+         a_shapes.tube.signedDistance(a_point) + a_shapes.cappedTorus.signedDistance(a_point) +
+         a_shapes.cutSphere.signedDistance(a_point) + a_shapes.cutHollowSphere.signedDistance(a_point) +
+         a_shapes.wedge.signedDistance(a_point);
 }
 
 // Points that land inside, outside and near the surfaces of the shapes above.
@@ -330,6 +344,275 @@ TEMPLATE_TEST_CASE("InfiniteConeSDF and ConeSDF: open along -y from the tip", "[
 
 namespace {
 
+// Random points in the cube [-a_extent, a_extent]^3, for comparing two shapes that should agree.
+template <class T>
+std::vector<Vec3T<T>>
+randomPoints(const T a_extent, const int a_count)
+{
+  std::mt19937                      rng(2468);
+  std::uniform_real_distribution<T> coord(-a_extent, a_extent);
+  std::vector<Vec3T<T>>             points;
+
+  for (int i = 0; i < a_count; i++) {
+    points.emplace_back(coord(rng), coord(rng), coord(rng));
+  }
+
+  return points;
+}
+
+// Requires two shapes to give the same signed distance at random points.
+template <class T, class A, class B>
+void
+requireSameDistances(const A& a_shape, const B& a_reference, const T a_extent)
+{
+  for (const auto& p : randomPoints<T>(a_extent, 500)) {
+    INFO("p = " << p);
+    REQUIRE_THAT(a_shape.signedDistance(p), withinAbsT<T>(a_reference.signedDistance(p), looseMargin<T>()));
+  }
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("EllipsoidSDF: a sphere when the radii agree, and the brute-force distance otherwise",
+                   "[EllipsoidSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 center(T(0.3), T(-0.2), T(0.1));
+
+  requireSameDistances<T>(EllipsoidSDF<T>(center, T(0.8) * Vec3::ones()), SphereSDF<T>(center, T(0.8)), T(2));
+
+  // Along an axis the distance is plain: outside, beyond the semi-axis; at the center, the smallest one.
+  const EllipsoidSDF<T> ellipsoid(center, Vec3(T(2), T(1), T(0.5)));
+
+  REQUIRE_THAT(ellipsoid.signedDistance(center + Vec3(T(3), T(0), T(0))), WithinRel(T(1)));
+  REQUIRE_THAT(ellipsoid.signedDistance(center + Vec3(T(0), T(-1.5), T(0))), WithinRel(T(0.5)));
+  REQUIRE_THAT(ellipsoid.signedDistance(center), WithinRel(T(-0.5)));
+
+  // Against the nearest of many points on the surface, (a cos u sin v, b cos v, c sin u sin v), at random
+  // points inside and outside. The sampling overestimates by at most about (spacing / 2)^2 / (2 distance).
+  const Vec3 radii(T(1.5), T(0.3), T(0.8));
+
+  const EllipsoidSDF<T> flat(Vec3::zeros(), radii);
+
+  constexpr int numU = 600;
+  constexpr int numV = 300;
+
+  std::vector<Vec3> surface;
+
+  for (int i = 0; i < numU; i++) {
+    for (int j = 0; j <= numV; j++) {
+      const double u = 2.0 * pi<double> * i / numU;
+      const double v = pi<double> * j / numV;
+
+      surface.emplace_back(T(double(radii[0]) * std::cos(u) * std::sin(v)),
+                           T(double(radii[1]) * std::cos(v)),
+                           T(double(radii[2]) * std::sin(u) * std::sin(v)));
+    }
+  }
+
+  for (const auto& p : randomPoints<T>(T(2), 40)) {
+    T nearest = std::numeric_limits<T>::max();
+
+    for (const auto& s : surface) {
+      nearest = std::min(nearest, (p - s).length());
+    }
+
+    const T d = flat.signedDistance(p);
+
+    INFO("p = " << p << ", d = " << d << ", sampled " << nearest);
+    REQUIRE(std::abs(d) <= nearest + T(looseMargin<T>()));
+    REQUIRE(std::abs(d) >= nearest - T(2e-3));
+  }
+}
+
+TEMPLATE_TEST_CASE("CappedConeSDF: a cylinder for equal radii, and ConeSDF for a zero radius",
+                   "[CappedConeSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 c1(T(-0.2), T(-0.6), T(0.1));
+  const Vec3 c2(T(0.3), T(0.7), T(-0.2));
+
+  requireSameDistances<T>(CappedConeSDF<T>(c1, c2, T(0.4), T(0.4)), CylinderSDF<T>(c1, c2, T(0.4)), T(2));
+
+  // ConeSDF's tip is at the top, opening downward: a frustum from a base of radius 0.5 to a tip 1.5 above it.
+  const Vec3 tip(T(0.1), T(0.8), T(-0.1));
+  const T    angle = T(2) * std::atan(T(0.5) / T(1.5)) * T(180) / pi<T>;
+
+  requireSameDistances<T>(
+    CappedConeSDF<T>(tip - T(1.5) * Vec3::unit(1), tip, T(0.5), T(0)), ConeSDF<T>(tip, T(1.5), angle), T(2));
+}
+
+TEMPLATE_TEST_CASE("RoundConeSDF: a capsule for equal radii, and spheres at its ends",
+                   "[RoundConeSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 c1(T(-0.2), T(-0.6), T(0.1));
+  const Vec3 c2(T(0.3), T(0.7), T(-0.2));
+  const Vec3 axis = (c2 - c1) / (c2 - c1).length();
+
+  // CapsuleSDF takes its outer tips, a radius beyond the centers.
+  requireSameDistances<T>(
+    RoundConeSDF<T>(c1, c2, T(0.3), T(0.3)), CapsuleSDF<T>(c1 - T(0.3) * axis, c2 + T(0.3) * axis, T(0.3)), T(2));
+
+  // Beyond either end on the axis, the distance is to that end's sphere.
+  const RoundConeSDF<T> cone(c1, c2, T(0.5), T(0.2));
+
+  REQUIRE_THAT(cone.signedDistance(c1 - T(1) * axis), WithinRel(T(0.5)));
+  REQUIRE_THAT(cone.signedDistance(c2 + T(1) * axis), WithinRel(T(0.8)));
+}
+
+TEMPLATE_TEST_CASE("PolygonPrismSDF: a square prism is a box, and a hexagon's edges are at its apothem",
+                   "[PolygonPrismSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Four sides with vertices on the diagonals: a square of half-side R / sqrt(2), axis-aligned.
+  const T half = T(0.5);
+
+  requireSameDistances<T>(
+    PolygonPrismSDF<T>(Vec3(T(0), T(-0.4), T(0)), Vec3(T(0), T(0.9), T(0)), half * std::sqrt(T(2)), 4U, Vec3(1, 0, 1)),
+    BoxSDF<T>(Vec3(-half, T(-0.4), -half), Vec3(half, T(0.9), half)),
+    T(2));
+
+  // A hexagon along z, a vertex along x: vertices at radius 1, edges' middles at the apothem cos(30).
+  const PolygonPrismSDF<T> hexagon(Vec3::zeros(), Vec3(T(0), T(0), T(2)), T(1), 6U, Vec3::unit(0));
+  const T                  apothem = std::cos(pi<T> / T(6));
+
+  REQUIRE_THAT(hexagon.signedDistance(Vec3(T(2), T(0), T(1))), WithinRel(T(1)));
+  REQUIRE_THAT(hexagon.signedDistance(Vec3(T(0), T(2), T(1))), WithinRel(T(2) - apothem));
+  REQUIRE_THAT(hexagon.signedDistance(Vec3(T(0), T(0), T(1))), WithinRel(-apothem));
+  REQUIRE_THAT(hexagon.signedDistance(Vec3(T(0), T(0), T(3))), WithinRel(T(1)));
+
+  // Turning the vertex direction turns the polygon: a vertex now along y.
+  const PolygonPrismSDF<T> turned(Vec3::zeros(), Vec3(T(0), T(0), T(2)), T(1), 6U, Vec3(T(0), T(1), T(5)));
+
+  REQUIRE_THAT(turned.signedDistance(Vec3(T(0), T(2), T(1))), WithinRel(T(1)));
+  REQUIRE_THAT(turned.signedDistance(Vec3(T(2), T(0), T(1))), WithinRel(T(2) - apothem));
+}
+
+TEMPLATE_TEST_CASE("TubeSDF: hollow along its axis, solid in its wall", "[TubeSDF]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const TubeSDF<T> tube(Vec3::zeros(), Vec3(T(0), T(0), T(4)), T(0.5), T(1));
+
+  REQUIRE_THAT(tube.signedDistance(Vec3(T(0), T(0), T(2))), WithinRel(T(0.5)));
+  REQUIRE_THAT(tube.signedDistance(Vec3(T(0.75), T(0), T(2))), WithinRel(T(-0.25)));
+  REQUIRE_THAT(tube.signedDistance(Vec3(T(0), T(3), T(2))), WithinRel(T(2)));
+  REQUIRE_THAT(tube.signedDistance(Vec3(T(0), T(-0.75), T(5))), WithinRel(T(1)));
+  REQUIRE_THAT(tube.signedDistance(Vec3(T(0), T(0), T(5))), WithinRel(std::sqrt(T(1.25))));
+  REQUIRE_THAT(tube.signedDistance(Vec3(T(0.75), T(0), T(0.1))), WithinRel(T(-0.1)));
+}
+
+TEMPLATE_TEST_CASE("CappedTorusSDF: the torus inside its angle, flat ends outside it, the torus when whole",
+                   "[CappedTorusSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 center(T(0.1), T(-0.2), T(0.3));
+
+  requireSameDistances<T>(CappedTorusSDF<T>(center, T(1), T(0.3), T(360)), TorusSDF<T>(center, T(1), T(0.3)), T(2));
+
+  // Half a torus, about +x: its ends are the discs around (0, 0, +-1) in the plane x = 0.
+  const CappedTorusSDF<T> half(center, T(1), T(0.3), T(180));
+  const TorusSDF<T>       torus(center, T(1), T(0.3));
+
+  REQUIRE_THAT(half.signedDistance(center + Vec3(T(-0.4), T(0), T(1))), WithinRel(T(0.4)));
+  REQUIRE_THAT(half.signedDistance(center + Vec3(T(-0.4), T(0.1), T(-1))), WithinRel(T(0.4)));
+  REQUIRE_THAT(half.signedDistance(center + Vec3(T(-0.4), T(0.5), T(-1))), WithinRel(std::sqrt(T(0.2))));
+
+  // Inside its angle, and outside the tube, it is the torus.
+  for (const auto& p : {Vec3(T(1.5), T(0.2), T(0.1)), Vec3(T(0.2), T(0.5), T(-0.9)), Vec3(T(0), T(0), T(0))}) {
+    REQUIRE_THAT(half.signedDistance(center + p), withinAbsT<T>(torus.signedDistance(center + p), looseMargin<T>()));
+  }
+
+  // Inside the tube next to an end, the end is nearer than the tube wall.
+  REQUIRE_THAT(half.signedDistance(center + Vec3(T(0.05), T(0), T(1))), WithinRel(T(-0.05)));
+}
+
+TEMPLATE_TEST_CASE("CutSphereSDF: a dome above its cut", "[CutSphereSDF]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 center(T(0.1), T(-0.2), T(0.3));
+
+  // The upper half: below the center is outside, the center is on the flat face.
+  const CutSphereSDF<T> half(center, T(1), T(0));
+
+  REQUIRE_THAT(half.signedDistance(center - T(0.5) * Vec3::unit(1)), WithinRel(T(0.5)));
+  REQUIRE_THAT(half.signedDistance(center + T(1.5) * Vec3::unit(1)), WithinRel(T(0.5)));
+  REQUIRE_THAT(half.signedDistance(center), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(half.signedDistance(center + T(0.5) * Vec3::unit(1)), WithinRel(T(-0.5)));
+
+  // A dome cut 0.5 up: the rim is at radius sqrt(0.75), and the center is 0.5 below the flat face.
+  const CutSphereSDF<T> dome(center, T(1), T(0.5));
+  const T               rim = std::sqrt(T(0.75));
+
+  REQUIRE_THAT(dome.signedDistance(center), WithinRel(T(0.5)));
+  REQUIRE_THAT(dome.signedDistance(center + Vec3(rim + T(0.5), T(0.5), T(0))), WithinRel(T(0.5)));
+
+  // Cut 0.5 down: more than a hemisphere, whose center is inside.
+  const CutSphereSDF<T> ball(center, T(1), T(-0.5));
+
+  REQUIRE_THAT(ball.signedDistance(center), WithinRel(T(-0.5)));
+}
+
+TEMPLATE_TEST_CASE("CutHollowSphereSDF: a shell above its cut, with rounded rims",
+                   "[CutHollowSphereSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Vec3                  center(T(0.1), T(-0.2), T(0.3));
+  const CutHollowSphereSDF<T> shell(center, T(1), T(0.5), T(0.2));
+  const T                     rim = std::sqrt(T(0.75));
+
+  REQUIRE_THAT(shell.signedDistance(center), WithinRel(T(0.9)));
+  REQUIRE_THAT(shell.signedDistance(center + Vec3::unit(1)), WithinRel(T(-0.1)));
+  REQUIRE_THAT(shell.signedDistance(center + Vec3(rim, T(0.5), T(0))), WithinRel(T(-0.1)));
+
+  // Below the rim, the nearest point is on the rounded rim, not the sphere.
+  REQUIRE_THAT(shell.signedDistance(center + Vec3(rim, T(0), T(0))), WithinRel(T(0.4)));
+  REQUIRE_THAT(shell.signedDistance(center - Vec3::unit(1)), WithinRel(std::sqrt(T(0.75) + T(2.25)) - T(0.1)));
+}
+
+TEMPLATE_TEST_CASE("WedgeSDF: inside below its edge, distances to a face or the edge outside",
+                   "[WedgeSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A right-angled wedge: its faces leave the edge at 45 degrees below horizontal.
+  const Vec3        tip(T(1), T(2), T(3));
+  const WedgeSDF<T> wedge(tip, T(90));
+  const T           c = std::sqrt(T(0.5));
+
+  REQUIRE_THAT(wedge.signedDistance(tip - T(2) * Vec3::unit(1)), WithinRel(T(-2) * c));
+  REQUIRE_THAT(wedge.signedDistance(tip + T(2) * Vec3::unit(1)), WithinRel(T(2)));
+  REQUIRE_THAT(wedge.signedDistance(tip + T(2) * Vec3::unit(0)), WithinRel(T(2) * c));
+  REQUIRE_THAT(wedge.signedDistance(tip + Vec3(T(-1), T(-1), T(7))), WithinAbs(0.0, looseMargin<T>()));
+  REQUIRE_THAT(wedge.signedDistance(tip + Vec3(T(1), T(1), T(0))), WithinRel(std::sqrt(T(2))));
+}
+
+namespace {
+
 // Checks that a_shape behaves as an exact signed distance function at random points in the cube
 // [-a_extent, a_extent]^3. For an exact SDF f and a point p off the medial axis, |grad f| = 1, and
 // stepping back along the gradient by f(p) lands on the surface: f(p - f(p) grad f(p)) = 0. A
@@ -442,6 +725,56 @@ TEMPLATE_TEST_CASE("Analytic shapes: every exact shape is a true signed distance
   SECTION("RoundedCylinderSDF")
   {
     requireExactSDF<T>(RoundedCylinderSDF<T>(Vec3(T(-0.1), T(0.2), T(0.1)), T(0.8), T(0.2), T(1.6)), T(1.5));
+  }
+  SECTION("EllipsoidSDF")
+  {
+    requireExactSDF<T>(EllipsoidSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), Vec3(T(1.2), T(0.4), T(0.7))), T(2));
+    requireExactSDF<T>(EllipsoidSDF<T>(Vec3::zeros(), Vec3(T(0.1), T(1.5), T(0.6))), T(2));
+  }
+  SECTION("CappedConeSDF")
+  {
+    requireExactSDF<T>(CappedConeSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.8), T(0.3)),
+                       T(2));
+    requireExactSDF<T>(CappedConeSDF<T>(Vec3(T(0.1), T(-0.5), T(0)), Vec3(T(-0.2), T(0.8), T(0.3)), T(0), T(0.6)),
+                       T(2));
+  }
+  SECTION("RoundConeSDF")
+  {
+    requireExactSDF<T>(RoundConeSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.7), T(0.2)),
+                       T(2));
+  }
+  SECTION("PolygonPrismSDF")
+  {
+    for (const unsigned sides : {3U, 4U, 6U, 11U}) {
+      requireExactSDF<T>(
+        PolygonPrismSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.9), sides, Vec3::ones()),
+        T(2));
+    }
+  }
+  SECTION("TubeSDF")
+  {
+    requireExactSDF<T>(TubeSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.5), T(0.9)), T(2));
+  }
+  SECTION("CappedTorusSDF")
+  {
+    for (const T angle : {T(60), T(180), T(270), T(360)}) {
+      requireExactSDF<T>(CappedTorusSDF<T>(Vec3(T(0.1), T(0), T(-0.1)), T(1), T(0.3), angle), T(2));
+    }
+  }
+  SECTION("CutSphereSDF")
+  {
+    requireExactSDF<T>(CutSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(0.4)), T(2));
+    requireExactSDF<T>(CutSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(-0.5)), T(2));
+  }
+  SECTION("CutHollowSphereSDF")
+  {
+    requireExactSDF<T>(CutHollowSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(0.4), T(0.2)), T(2));
+    requireExactSDF<T>(CutHollowSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(-0.5), T(0.3)), T(2));
+  }
+  SECTION("WedgeSDF")
+  {
+    requireExactSDF<T>(WedgeSDF<T>(Vec3(T(0.1), T(0.3), T(-0.2)), T(50)), T(2));
+    requireExactSDF<T>(WedgeSDF<T>(Vec3(T(0.1), T(0.3), T(-0.2)), T(150)), T(2));
   }
 }
 
@@ -583,6 +916,92 @@ TEMPLATE_TEST_CASE("Analytic shapes: computeBoundingVolume is the shape's boundi
     requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.9), T(-0.6), T(-0.7)), Vec3(T(0.7), T(1), T(0.9)));
     requireSurfaceInsideBox<T>(shape, T(2));
   }
+  SECTION("EllipsoidSDF")
+  {
+    const EllipsoidSDF<T> shape(Vec3(T(0.1), T(-0.2), T(0.1)), Vec3(T(1.2), T(0.4), T(0.7)));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-1.1), T(-0.6), T(-0.6)), Vec3(T(1.3), T(0.2), T(0.8)));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
+  SECTION("CappedConeSDF")
+  {
+    const CappedConeSDF<T> straight(Vec3(T(0), T(0), T(-1)), Vec3(T(0), T(0), T(1)), T(0.5), T(0.2));
+
+    requireBox<T>(straight.computeBoundingVolume(), Vec3(T(-0.5), T(-0.5), T(-1)), Vec3(T(0.5), T(0.5), T(1)));
+    requireSurfaceInsideBox<T>(
+      CappedConeSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.8), T(0.3)), T(2));
+  }
+  SECTION("RoundConeSDF")
+  {
+    const RoundConeSDF<T> shape(Vec3(T(0), T(0), T(-1)), Vec3(T(0), T(0), T(1)), T(0.5), T(0.2));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.5), T(-0.5), T(-1.5)), Vec3(T(0.5), T(0.5), T(1.2)));
+    requireSurfaceInsideBox<T>(
+      RoundConeSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.7), T(0.2)), T(2));
+  }
+  SECTION("PolygonPrismSDF")
+  {
+    const PolygonPrismSDF<T> shape(Vec3(T(0), T(-1), T(0)), Vec3(T(0), T(1), T(0)), T(0.5), 6U, Vec3::unit(0));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.5), T(-1), T(-0.5)), Vec3(T(0.5), T(1), T(0.5)));
+    requireSurfaceInsideBox<T>(
+      PolygonPrismSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.9), 5U, Vec3::ones()),
+      T(2));
+  }
+  SECTION("TubeSDF")
+  {
+    const TubeSDF<T> shape(Vec3(T(0), T(0), T(-1)), Vec3(T(0), T(0), T(1)), T(0.3), T(0.5));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(T(-0.5), T(-0.5), T(-1)), Vec3(T(0.5), T(0.5), T(1)));
+    requireSurfaceInsideBox<T>(
+      TubeSDF<T>(Vec3(T(-0.2), T(-0.6), T(0.1)), Vec3(T(0.3), T(0.7), T(-0.2)), T(0.5), T(0.9)), T(2));
+  }
+  SECTION("CappedTorusSDF")
+  {
+    // 90 degrees about +x: x from cos(45) (R - r) to R + r, z within (R + r) sin(45).
+    const T c = std::sqrt(T(0.5));
+
+    requireBox<T>(CappedTorusSDF<T>(Vec3::zeros(), T(1), T(0.25), T(90)).computeBoundingVolume(),
+                  Vec3(T(0.75) * c, T(-0.25), T(-1.25) * c),
+                  Vec3(T(1.25), T(0.25), T(1.25) * c));
+
+    // 270 degrees: past +-90, so z reaches R + r; x down to (R + r) cos(135).
+    requireBox<T>(CappedTorusSDF<T>(Vec3::zeros(), T(1), T(0.25), T(270)).computeBoundingVolume(),
+                  Vec3(T(-1.25) * c, T(-0.25), T(-1.25)),
+                  Vec3(T(1.25), T(0.25), T(1.25)));
+
+    for (const T angle : {T(60), T(180), T(270), T(360)}) {
+      requireSurfaceInsideBox<T>(CappedTorusSDF<T>(Vec3(T(0.1), T(0), T(-0.1)), T(1), T(0.3), angle), T(2));
+    }
+  }
+  SECTION("CutSphereSDF")
+  {
+    const T rim = std::sqrt(T(1.2) * T(1.2) - T(0.4) * T(0.4));
+
+    requireBox<T>(CutSphereSDF<T>(Vec3::zeros(), T(1.2), T(0.4)).computeBoundingVolume(),
+                  Vec3(-rim, T(0.4), -rim),
+                  Vec3(rim, T(1.2), rim));
+    requireBox<T>(CutSphereSDF<T>(Vec3::zeros(), T(1.2), T(-0.4)).computeBoundingVolume(),
+                  Vec3(T(-1.2), T(-0.4), T(-1.2)),
+                  Vec3(T(1.2), T(1.2), T(1.2)));
+    requireSurfaceInsideBox<T>(CutSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(0.4)), T(2));
+    requireSurfaceInsideBox<T>(CutSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(-0.5)), T(2));
+  }
+  SECTION("CutHollowSphereSDF")
+  {
+    requireBox<T>(CutHollowSphereSDF<T>(Vec3::zeros(), T(1), T(-0.5), T(0.2)).computeBoundingVolume(),
+                  Vec3(T(-1.1), T(-0.6), T(-1.1)),
+                  Vec3(T(1.1), T(1.1), T(1.1)));
+    requireSurfaceInsideBox<T>(CutHollowSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(0.4), T(0.2)), T(2));
+    requireSurfaceInsideBox<T>(CutHollowSphereSDF<T>(Vec3(T(0.1), T(-0.2), T(0.1)), T(1.2), T(-0.5), T(0.3)), T(2));
+  }
+  SECTION("WedgeSDF")
+  {
+    const WedgeSDF<T> shape(Vec3(T(0.1), T(0.3), T(-0.2)), T(50));
+
+    requireBox<T>(shape.computeBoundingVolume(), Vec3(-big, -big, -big), Vec3(big, T(0.3), big));
+    requireSurfaceInsideBox<T>(shape, T(2));
+  }
   SECTION("PlaneSDF and PerlinSDF fill all of space")
   {
     requireBox<T>(PlaneSDF<T>().computeBoundingVolume(), Vec3(-big, -big, -big), Vec3(big, big, big));
@@ -618,6 +1037,15 @@ TEMPLATE_TEST_CASE("Analytic shapes: distance quality", "[AnalyticSDF]", EBGEOME
   STATIC_REQUIRE(RoundedBoxSDF<T>::distanceQuality == Exact);
   STATIC_REQUIRE(RoundedCylinderSDF<T>::distanceQuality == Exact);
   STATIC_REQUIRE(PerlinSDF<T>::distanceQuality == DistanceQuality::NotADistance);
+  STATIC_REQUIRE(EllipsoidSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(CappedConeSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(RoundConeSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(PolygonPrismSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(TubeSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(CappedTorusSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(CutSphereSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(CutHollowSphereSDF<T>::distanceQuality == Exact);
+  STATIC_REQUIRE(WedgeSDF<T>::distanceQuality == Exact);
 
   STATIC_REQUIRE(FlatMeshSDF<T>::distanceQuality == Exact);
   STATIC_REQUIRE(MeshSDF<T, 4>::distanceQuality == Exact);
@@ -778,6 +1206,101 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
       (void)cylinder;
     },
     "RoundedCylinderSDF: twice the curvature (0.5) must be less than the height (1)"));
+  REQUIRE(abortsWith(
+    [] {
+      const EllipsoidSDF<T> e(Vec3(0, 0, 0), Vec3(1, 0, 1));
+
+      (void)e;
+    },
+    "EllipsoidSDF: the radii must be finite and positive (1, 0, 1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CappedConeSDF<T> c(Vec3(0, 0, 0), Vec3(0, 1, 0), T(0), T(0));
+
+      (void)c;
+    },
+    "CappedConeSDF: the radii must be finite, at least 0 and not both 0 (0, 0)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CappedConeSDF<T> c(Vec3(1, 2, 3), Vec3(1, 2, 3), T(1), T(0));
+
+      (void)c;
+    },
+    "CappedConeSDF: the two centers must differ, but both are (1, 2, 3)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const RoundConeSDF<T> c(Vec3(0, 0, 0), Vec3(0, 1, 0), T(2), T(0.5));
+
+      (void)c;
+    },
+    "RoundConeSDF: the difference of the radii (2, 0.5) must be less than the distance between the centers (1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const PolygonPrismSDF<T> p(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), 2U, Vec3(1, 0, 0));
+
+      (void)p;
+    },
+    "PolygonPrismSDF: the number of sides must be at least 3 (2)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const PolygonPrismSDF<T> p(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), 6U, Vec3(0, 2, 0));
+
+      (void)p;
+    },
+    "PolygonPrismSDF: the vertex direction (0, 2, 0) must have a part across the axis"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const TubeSDF<T> t(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), T(0.5));
+
+      (void)t;
+    },
+    "TubeSDF: the radii must satisfy 0 < inner (1) < outer (0.5)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CappedTorusSDF<T> t(Vec3(0, 0, 0), T(1), T(0.5), T(400));
+
+      (void)t;
+    },
+    "CappedTorusSDF: the angle must be in (0, 360] degrees (400)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CappedTorusSDF<T> t(Vec3(0, 0, 0), T(1), T(1), T(90));
+
+      (void)t;
+    },
+    "CappedTorusSDF: the radii must satisfy 0 < minor (1) < major (1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CutSphereSDF<T> c(Vec3(0, 0, 0), T(1), T(1));
+
+      (void)c;
+    },
+    "CutSphereSDF: the height (1) must be between minus and plus the radius (1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const CutHollowSphereSDF<T> c(Vec3(0, 0, 0), T(1), T(0), T(2));
+
+      (void)c;
+    },
+    "CutHollowSphereSDF: the thickness (2) must be positive and less than twice the radius (1)"));
+
+  REQUIRE(abortsWith(
+    [] {
+      const WedgeSDF<T> w(Vec3(0, 0, 0), T(180));
+
+      (void)w;
+    },
+    "WedgeSDF: the angle must be in (0, 180) degrees (180)"));
 }
 
 namespace {
@@ -838,6 +1361,15 @@ TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance matches the host",
   check(shapes.roundedBox, "RoundedBoxSDF");
   check(shapes.perlin, "PerlinSDF");
   check(shapes.roundedCylinder, "RoundedCylinderSDF");
+  check(shapes.ellipsoid, "EllipsoidSDF");
+  check(shapes.cappedCone, "CappedConeSDF");
+  check(shapes.roundCone, "RoundConeSDF");
+  check(shapes.polygonPrism, "PolygonPrismSDF");
+  check(shapes.tube, "TubeSDF");
+  check(shapes.cappedTorus, "CappedTorusSDF");
+  check(shapes.cutSphere, "CutSphereSDF");
+  check(shapes.cutHollowSphere, "CutHollowSphereSDF");
+  check(shapes.wedge, "WedgeSDF");
 }
 
 namespace {
@@ -895,4 +1427,13 @@ TEMPLATE_TEST_CASE("Analytic shapes: device computeBoundingVolume matches the ho
   check(shapes.roundedBox, "RoundedBoxSDF");
   check(shapes.perlin, "PerlinSDF");
   check(shapes.roundedCylinder, "RoundedCylinderSDF");
+  check(shapes.ellipsoid, "EllipsoidSDF");
+  check(shapes.cappedCone, "CappedConeSDF");
+  check(shapes.roundCone, "RoundConeSDF");
+  check(shapes.polygonPrism, "PolygonPrismSDF");
+  check(shapes.tube, "TubeSDF");
+  check(shapes.cappedTorus, "CappedTorusSDF");
+  check(shapes.cutSphere, "CutSphereSDF");
+  check(shapes.cutHollowSphere, "CutHollowSphereSDF");
+  check(shapes.wedge, "WedgeSDF");
 }
