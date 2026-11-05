@@ -113,7 +113,7 @@ SphereAoSoA<T, W>::rayIntervals(const Vec3T<T>& a_origin,
   const uint32_t numValid = m_centers.numValid();
 
   // The arithmetic of SphereSDF's ray form, lane by lane, so that a sphere in a cloud is crossed where the same
-  // sphere alone is: the discriminant is r^2 less the squared distance of the center from the line, |oc x d|^2 (not
+  // sphere alone is (to rounding: an optimized build may fuse multiply-adds differently in the two): the discriminant is r^2 less the squared distance of the center from the line, |oc x d|^2 (not
   // b^2 - c, which cancels for a small sphere far from the origin), and the nearer root is c / q.
   for (uint32_t j = 0; j < W; j++) {
     const Vec3T<T> oc   = a_origin - m_centers.getPosition(j);

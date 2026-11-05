@@ -1421,8 +1421,9 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: one sphere is crossed where a SphereSDF is, 
 
       REQUIRE(got.hit() == want.hit());
 
+      // The same arithmetic, to rounding: an optimized build may fuse multiply-adds differently in the two.
       if (want.hit()) {
-        CHECK(got.m_t == want.m_t);
+        CHECK_THAT(got.m_t, withinAbsT<T>(want.m_t, tightMargin<T>()));
         CHECK(got.m_entering == want.m_entering);
         CHECK(got.m_primitive == 0U);
 
@@ -1536,7 +1537,7 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: a tape holding a cloud evaluates it, traces 
 
     if (want.hit()) {
       CHECK(got.m_exact);
-      CHECK(got.m_t == want.m_t);
+      CHECK_THAT(got.m_t, withinAbsT<T>(want.m_t, tightMargin<T>()));
     }
   }
 
