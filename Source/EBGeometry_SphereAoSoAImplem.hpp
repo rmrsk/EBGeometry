@@ -129,13 +129,13 @@ SphereAoSoA<T, W>::rayIntervals(const Vec3T<T>& a_origin,
     else {
       const T root = std::sqrt(disc);
       const T q    = -b - ((b >= T(0)) ? root : -root);
-
-      // Both roots are zero: the ray starts on the surface, along it.
       const T c    = dot(oc, oc) - r * r;
-      const T near = (q == T(0)) ? T(0) : c / q;
 
-      a_entry[j] = Math::min(q, near);
-      a_exit[j]  = Math::max(q, near);
+      // With q = 0 both roots are zero: the ray starts on the surface, along it.
+      const T nearer = (q == T(0)) ? T(0) : c / q;
+
+      a_entry[j] = Math::min(q, nearer);
+      a_exit[j]  = Math::max(q, nearer);
     }
   }
 }

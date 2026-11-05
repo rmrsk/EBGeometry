@@ -156,8 +156,8 @@ template <class T>
 std::vector<std::pair<T, T>>
 bruteForceSpans(const std::vector<SphereCloud::Sphere<T>>& a_spheres, const RayT<T>& a_ray, bool& a_ambiguous)
 {
-  const T eps = std::numeric_limits<T>::epsilon();
-  const T far = T(10);
+  const T eps   = std::numeric_limits<T>::epsilon();
+  const T reach = T(10);
 
   std::vector<std::pair<T, T>> intervals;
 
@@ -191,7 +191,7 @@ bruteForceSpans(const std::vector<SphereCloud::Sphere<T>>& a_spheres, const RayT
   std::vector<std::pair<T, T>> merged;
 
   for (const auto& interval : intervals) {
-    if (!merged.empty() && std::abs(interval.first - merged.back().second) <= T(64) * eps * far) {
+    if (!merged.empty() && std::abs(interval.first - merged.back().second) <= T(64) * eps * reach) {
       a_ambiguous = true;
     }
 
@@ -1517,10 +1517,10 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: a tape holding a cloud evaluates it, traces 
 
   // A box with the particles cut out of it, and the particles beside a sphere far away.
   const BoxSDF<T>    box(Vec3(T(-0.1), T(-0.1), T(-0.1)), Vec3(T(1.1), T(1.1), T(1.1)));
-  const SphereSDF<T> far(Vec3(T(5), T(5), T(5)), T(0.5));
+  const SphereSDF<T> distant(Vec3(T(5), T(5), T(5)), T(0.5));
 
   const Tape<T, Cloud> cut(pool, Difference(Expr<T>(box), Expr<T>(cloud)));
-  const Tape<T, Cloud> beside(pool, Union(Expr<T>(cloud), Expr<T>(far)));
+  const Tape<T, Cloud> beside(pool, Union(Expr<T>(cloud), Expr<T>(distant)));
 
   for (const Vec3& point : makeQueries<T>(300, 41u)) {
     CHECK_THAT(
