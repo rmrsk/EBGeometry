@@ -13,6 +13,7 @@
 
 // Std includes
 #include <cmath>
+#include <type_traits>
 
 // Our includes
 #include "EBGeometry_AnalyticRayForms.hpp"
@@ -34,8 +35,9 @@ namespace RayDetail {
  * @param[in] a_tMin      Start of the interval.
  * @param[in] a_tMax      End of the interval.
  * @return The crossing, or a miss.
- * @details Always inlined on the host: every ray form of a convex shape calls it, and a tape instantiates them
- * all, so left to itself GCC keeps it out of line, and a fused composition's trace pays a call per leaf.
+ * @details Always inlined on the host, as are ballSpan() and tubeSpan(): several ray forms call each, and a tape
+ * instantiates them all, so left to itself GCC keeps them out of line, and a fused composition's trace pays a call
+ * per leaf.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -147,6 +149,7 @@ slab(const RayT<T>& a_ray,
  */
 template <class T>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline void
 ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_in, T& a_out) noexcept
 {
@@ -194,6 +197,7 @@ ballSpan(const RayT<T>& a_ray, const Vec3T<T>& a_center, const T a_radius, T& a_
  */
 template <class T>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE
 inline void
 tubeSpan(
   const RayT<T>& a_ray, const Vec3T<T>& a_point, const Vec3T<T>& a_axis, const T a_radius, T& a_in, T& a_out) noexcept
@@ -1011,6 +1015,45 @@ convexFirstHit(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a
 }
 
 /**
+ * @brief Where a ray is inside a convex shape, without the normals: its span's two ends.
+ * @details Internal helper; not part of the public API. A span list keeps no normals, so for a shape whose span
+ * computes its normals apart from its ends, the list takes the ends alone. Computed as a span and then dropped,
+ * the normals are left to the compiler to remove, which it does not where it keeps the normal's function out of
+ * line: a fused CSG solid of a box, a ball and three infinite cylinders then traced 20-35% slower on the host.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in]  a_shape The shape.
+ * @param[in]  a_ray   Ray.
+ * @param[out] a_in    Where the ray enters (or -infinity).
+ * @param[out] a_out   Where it leaves (or +infinity); below a_in for a ray that misses.
+ */
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline void
+convexInterval(const S& a_shape, const RayT<T>& a_ray, T& a_in, T& a_out) noexcept
+{
+  if constexpr (std::is_same_v<S, SphereSDF<T>>) {
+    RayDetail::ballSpan(a_ray, a_shape.getCenter(), a_shape.getRadius(), a_in, a_out);
+  }
+  else if constexpr (std::is_same_v<S, InfiniteCylinderSDF<T>>) {
+    Vec3T<T> axis = Vec3T<T>::zeros();
+
+    axis[a_shape.getAxis()] = T(1);
+
+    RayDetail::tubeSpan(a_ray, a_shape.getCenter(), axis, a_shape.getRadius(), a_in, a_out);
+  }
+  else if constexpr (std::is_same_v<S, CapsuleSDF<T>>) {
+    RayDetail::capsuleSpan(a_ray, a_shape.getCenter1(), a_shape.getCenter2(), a_shape.getRadius(), a_in, a_out);
+  }
+  else {
+    const ConvexSpan<T> span = RayDetail::convexSpan(a_shape, a_ray);
+
+    a_in  = span.m_in;
+    a_out = span.m_out;
+  }
+}
+
+/**
  * @brief A convex shape's list over an interval: its one span, cut to the interval.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
@@ -1026,10 +1069,13 @@ EBGEOMETRY_HOST_DEVICE
 inline void
 convexSpans(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a_tMax, RaySpansT<T>& a_spans) noexcept
 {
-  const ConvexSpan<T> span = RayDetail::convexSpan(a_shape, a_ray);
+  T in;
+  T out;
+
+  RayDetail::convexInterval(a_shape, a_ray, in, out);
 
   a_spans.reset(a_tMax);
-  a_spans.addClipped(span.m_in, span.m_out, a_tMin, a_tMax);
+  a_spans.addClipped(in, out, a_tMin, a_tMax);
 }
 
 } // namespace RayDetail
