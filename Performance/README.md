@@ -19,7 +19,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `PointCloudHashGridBuild/` | `PointCloudHashGrid`'s `build()` and `rebuild()` where its pool is: in place on the host, and in device memory |
 | `SphereCloudBVH/` | `SphereCloudBVH`: its build and rebuild (in place on the host, and in device memory), and the closest sphere |
 | `SphereContacts/` | `SphereCloudBVH::forEachContact()`: every particle's contacts and contact force, on the host and on a device |
-| `SphereCloudRays/` | `SphereCloudBVH`'s ray form: rays through the cloud, and through a tape cutting the cloud out of a box, on the host and on a device |
+| `SphereCloudRays/` | `SphereCloudBVH`'s ray form: rays through the cloud, and through a box with the cloud cut out of it, fused and in a tape, on the host and on a device |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
 | `MeshReconcile/` | Reconciling a moved DCEL mesh: `MeshT::reconcile()`, and `DCEL::reconcile()` where its pool is, in host loops and in device memory |
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |

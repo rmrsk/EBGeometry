@@ -4,8 +4,9 @@
 
 // Performance cases for SphereCloudBVH's ray form, over 500,000 spheres of differing radii (centers uniform in the
 // unit cube), in float and double: the first crossing of rays starting at random points in the cloud's box, in a
-// random direction, many of them inside a sphere. On the cloud alone ("polydisperse"), and on a tape holding it, a
-// box with the spheres cut out of it ("bed-in-box"), what a particle code's geometry is. A host build runs the host
+// random direction, many of them inside a sphere. On the cloud alone ("polydisperse"), and on a box with the spheres
+// cut out of it, what a particle code's geometry is: through a tape listing the cloud ("bed-in-box"), and fused
+// ("bed-in-box-fused"), which the tape cases name for their ratio. A host build runs the host
 // cases; a CUDA or HIP build runs host/device pairs in Morton and random order of the starts. The cases live apart
 // from Performance/SphereCloudBVH so that they cannot move the inlining of its cases. See ../README.md and
 // PerformanceTesting.rst.
@@ -144,10 +145,11 @@ record(Perf::Case& a_case, const std::vector<Crossing<T>>& a_results)
 }
 
 // One input, in one precision: the host case, and host/device pairs in each order. A_build(pool, cloud) builds the
-// shape the rays query, in the pool the cloud is in.
+// shape the rays query, in the pool the cloud is in. A case names the same case of a_fused, if given, for the ratio of
+// their times.
 template <class T, class Build>
 void
-addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build)
+addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build, const std::string& a_fused = "")
 {
   const std::string prefix = "SphereCloudRays/" + a_input;
   const std::string prec   = Perf::precisionName<T>();
@@ -176,29 +178,41 @@ addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build)
       c, FirstHit<T, S>{shape}, rays<T>(c.size(HostRays, SmokeRays), Perf::Order::Random), results);
     c.poolBytes(pool.usedBytes());
     record(c, results);
+
+    if (!a_fused.empty()) {
+      c.relativeTo(Perf::caseName({"SphereCloudRays/" + a_fused, "firstHit", prec, "host"}), "tape/fused");
+    }
   });
 
   for (const Perf::Order order : Perf::Orders) {
-    a_suite.add(Perf::caseName({prefix, std::string("firstHit-") + Perf::orderName(order), prec, "hostdevice"}),
-                [=](Perf::Case& c) {
-                  const auto       s = cloud(c);
-                  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-                  const Cloud<T>   bvh(pool, s, TargetLeafSize);
-                  const auto       shape = a_build(pool, bvh);
+    a_suite.add(
+      Perf::caseName({prefix, std::string("firstHit-") + Perf::orderName(order), prec, "hostdevice"}),
+      [=](Perf::Case& c) {
+        const auto       s = cloud(c);
+        EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+        const Cloud<T>   bvh(pool, s, TargetLeafSize);
+        const auto       shape = a_build(pool, bvh);
 
-                  using S = std::decay_t<decltype(shape)>;
+        using S = std::decay_t<decltype(shape)>;
 
-                  c.poolBytes(pool.usedBytes());
+        c.poolBytes(pool.usedBytes());
 
-                  const auto results = Perf::measureHostAndDevice<Crossing<T>>(
-                    c,
-                    pool,
-                    rays<T>(c.size(PairRays, SmokeRays), order),
-                    [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool)}; },
-                    agreeCrossing<T>);
+        const auto results = Perf::measureHostAndDevice<Crossing<T>>(
+          c,
+          pool,
+          rays<T>(c.size(PairRays, SmokeRays), order),
+          [&](const EBGeometry::Pool& a_pool) { return FirstHit<T, S>{shape.rebasedView(a_pool)}; },
+          agreeCrossing<T>);
 
-                  record(c, results);
-                });
+        record(c, results);
+
+        if (!a_fused.empty()) {
+          c.relativeTo(
+            Perf::caseName(
+              {"SphereCloudRays/" + a_fused, std::string("firstHit-") + Perf::orderName(order), prec, "hostdevice"}),
+            "tape/fused");
+        }
+      });
   }
 }
 
@@ -208,12 +222,21 @@ addCases(Perf::Suite& a_suite)
 {
   addInput<T>(a_suite, "polydisperse", [](EBGeometry::Pool&, const Cloud<T>& a_cloud) { return a_cloud; });
 
-  // The box around the cloud with the spheres cut out of it: a tape listing the cloud as a primitive.
-  addInput<T>(a_suite, "bed-in-box", [](EBGeometry::Pool& a_pool, const Cloud<T>& a_cloud) {
-    const EBGeometry::BoxSDF<T> box(Vec3<T>(T(-0.05), T(-0.05), T(-0.05)), Vec3<T>(T(1.05), T(1.05), T(1.05)));
+  // The box around the cloud with the spheres cut out of it: fused, and through a tape listing the cloud as a
+  // primitive.
+  const EBGeometry::BoxSDF<T> box(Vec3<T>(T(-0.05), T(-0.05), T(-0.05)), Vec3<T>(T(1.05), T(1.05), T(1.05)));
 
-    return CloudTape<T>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(box), EBGeometry::Expr<T>(a_cloud)));
+  addInput<T>(a_suite, "bed-in-box-fused", [box](EBGeometry::Pool&, const Cloud<T>& a_cloud) {
+    return EBGeometry::Fused::Difference(box, a_cloud);
   });
+
+  addInput<T>(
+    a_suite,
+    "bed-in-box",
+    [box](EBGeometry::Pool& a_pool, const Cloud<T>& a_cloud) {
+      return CloudTape<T>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(box), EBGeometry::Expr<T>(a_cloud)));
+    },
+    "bed-in-box-fused");
 }
 
 } // namespace

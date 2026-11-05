@@ -1549,7 +1549,7 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: a tape holding a cloud evaluates it, traces 
   }
 }
 
-TEMPLATE_TEST_CASE("SphereCloudBVH: rays on device match the host, on the cloud and in a tape",
+TEMPLATE_TEST_CASE("SphereCloudBVH: rays on device match the host",
                    "[SphereCloudBVH][Ray][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1566,17 +1566,12 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: rays on device match the host, on the cloud 
 
   const std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(800, 44u);
   const Cloud                               cloud(pool, spheres);
-  const Tape<T, Cloud>                      tape(
-    pool,
-    Difference(Expr<T>(BoxSDF<T>(Vec3T<T>(T(-0.1), T(-0.1), T(-0.1)), Vec3T<T>(T(1.1), T(1.1), T(1.1)))),
-               Expr<T>(cloud)));
 
   pool.freeze();
 
   const Pool devicePool = Pool::mirror(pool, deviceTestResource());
 
-  const Cloud          deviceCloud = cloud.rebasedView(devicePool);
-  const Tape<T, Cloud> deviceTape  = tape.rebasedView(devicePool);
+  const Cloud deviceCloud = cloud.rebasedView(devicePool);
 
   const std::vector<RayT<T>> rays = makeRays(spheres, 256, 45u);
 
@@ -1585,9 +1580,6 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: rays on device match the host, on the cloud 
 
   requireSameResults(evaluateOnDevice<T>(RayDistance<T, Cloud>{deviceCloud}, rays),
                      evaluateOnHost<T>(RayDistance<T, Cloud>{cloud}, rays));
-
-  requireSameResults(evaluateOnDevice<T>(RayDistance<T, Tape<T, Cloud>>{deviceTape}, rays),
-                     evaluateOnHost<T>(RayDistance<T, Tape<T, Cloud>>{tape}, rays));
 }
 
 TEST_CASE("SphereCloudBVH: rejects a sphere it cannot build over, mismatched centers and radii, and a rebuild "

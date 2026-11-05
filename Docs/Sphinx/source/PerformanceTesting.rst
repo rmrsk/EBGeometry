@@ -23,7 +23,7 @@ What is in Performance/
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      SphereCloudBVH/main.cpp  SphereCloudBVH: its build and rebuild, and the closest sphere
      SphereContacts/main.cpp  SphereCloudBVH's contacts between spheres
-     SphereCloudRays/main.cpp SphereCloudBVH's rays, alone and in a tape
+     SphereCloudRays/main.cpp SphereCloudBVH's rays, alone, fused and in a tape
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      MeshReconcile/main.cpp   reconciling a moved DCEL mesh where its pool is
      BVH/main.cpp             PackedBVH::traverse() itself
@@ -179,8 +179,9 @@ Family                                Build  Measures
 
 **SphereCloudRays** (``Performance/SphereCloudRays``): the same 500,000 spheres and BVH as ``SphereCloudBVH``. Each
 query is a ray from a random point in the unit cube, in a random direction (many start inside a sphere), and its
-first crossing (``firstHit``): of the union of the spheres (``polydisperse``), and of a tape holding the cloud, a box
-with the spheres cut out of it (``bed-in-box``).
+first crossing (``firstHit``): of the union of the spheres (``polydisperse``), and of a box with the spheres cut out
+of it, fused (``bed-in-box-fused``) and through a tape holding the cloud (``bed-in-box``, whose cases name the fused
+ones for the ratio of their times).
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
