@@ -217,12 +217,15 @@ the sphere crossed by its cloud index, in ``HitT::m_primitive``. Where spheres o
 surface of their union, and a ray starting inside a sphere leaves where no sphere holds it any more. The viewer
 traces the cloud the same way, on a device included.
 
-The cloud is a tape primitive, as a mesh SDF is (see :ref:`Chap:ImplemCSG`): list its type among the tape's
-primitives, build the tape in the cloud's pool, and the cloud takes part in CSG, traced exactly there too:
+The cloud takes part in CSG as a mesh SDF does (see :ref:`Chap:ImplemCSG`), traced exactly there too: as an
+operand of the fused operations, or as a tape primitive, its type listed among the tape's primitives and the tape
+built in the cloud's pool:
 
 .. code-block:: c++
 
-   const Tape<T, SphereCloudBVH<T>> block(pool, Difference(Expr<T>(box), Expr<T>(cloud)));
+   const auto porous = Fused::Difference(cylinder, cloud);
+
+   const Tape<T, SphereCloudBVH<T>> porousTape(pool, Difference(Expr<T>(cylinder), Expr<T>(cloud)));
 
 See the `SphereCloudBVH doxygen page <doxygen/html/classEBGeometry_1_1SphereCloudBVH.html>`__ for the full
 interface, and :ref:`Chap:ExampleSphereClouds` and :ref:`Chap:ExampleParticleContacts` for worked usage.

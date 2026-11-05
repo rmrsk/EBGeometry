@@ -1,9 +1,10 @@
 Examples/SphereClouds
 ---------------------
 
-2,000 particles of differing sizes in the unit cube, kept as a center and a radius each in arrays of the
-program's own, in a `SphereCloudBVH`: the signed distance to their union and the particle closest to a point, on
-the host and through `GPU::transform`; and the cloud in a tape, cut out of a block, with a ray through both.
+2,400 particles of differing sizes packed in an upright cylinder without overlapping, kept as a center and a radius
+each in arrays of the program's own, in a `SphereCloudBVH`: the signed distance to their union and the particle
+closest to a point, on the host and through `GPU::transform`; and the cylinder with the particles cut out of it,
+fused and in a tape, with a ray through both. The window shows the particles and the porous cylinder side by side.
 
 Building
 --------
@@ -66,4 +67,4 @@ Running
     ./SphereClouds.ex
 
 It prints the number of particles, the box, at a few points the signed distance and the closest particle, where
-a ray meets a particle and the block, and the closest particles from `GPU::transform`.
+a ray meets a particle and the porous cylinder, and the closest particles from `GPU::transform`.
