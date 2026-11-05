@@ -1379,12 +1379,15 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: spans() lists where a ray is inside the unio
       CHECK(span.m_in.crossing() == (expected[i].first > tMin));
       CHECK(span.m_out.crossing() == (expected[i].second < tMax));
 
-      for (const SpanEndT<T>& end : {span.m_in, span.m_out}) {
-        if (end.crossing()) {
-          REQUIRE(end.m_leaf < spheres.size());
-          CHECK_THAT(sphereDistance(spheres[end.m_leaf], ray.at(end.m_t)), withinAbsT<T>(T(0), looseMargin<T>()));
+      const auto onItsSphere = [&spheres, &ray](const SpanEndT<T>& a_end) {
+        if (a_end.crossing()) {
+          REQUIRE(a_end.m_leaf < spheres.size());
+          CHECK_THAT(sphereDistance(spheres[a_end.m_leaf], ray.at(a_end.m_t)), withinAbsT<T>(T(0), looseMargin<T>()));
         }
-      }
+      };
+
+      onItsSphere(span.m_in);
+      onItsSphere(span.m_out);
     }
 
     checked += list.m_count;
