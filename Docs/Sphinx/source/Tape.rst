@@ -177,7 +177,7 @@ type allows, whatever a particular tape needs, and a nested tape adds its own le
 Primitive types
 ~~~~~~~~~~~~~~~
 
-A tape can hold the twelve analytic shapes and the three mesh distance fields with their default
+A tape can hold every analytic shape and the three mesh distance fields with their default
 parameters without being told. Any other shape type (a BVH union, a mesh distance field with another
 branching factor, a fused composition, another tape, or a type of your own) must be listed in the
 tape's type, ``Tape<T, MyShape, BVHUnion<T, SphereSDF<T>, 4>>``, since the interpreter can only reach

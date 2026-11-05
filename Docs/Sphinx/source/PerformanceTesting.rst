@@ -29,6 +29,7 @@ What is in Performance/
      BVH/main.cpp             PackedBVH::traverse() itself
      BVHRefit/main.cpp        refitting a PackedBVH where its pool is
      BVHUnion/main.cpp        BVHUnion
+     Shapes/main.cpp          the analytic shapes EllipsoidSDF to WedgeSDF
      Tape/main.cpp            Tape's signed distance
      Fused/main.cpp           fused compositions (Fused::)
      Ray/main.cpp             ray queries on meshes and compositions
@@ -190,6 +191,22 @@ Family                                Build  Measures
 ``firstHit-morton``                   GPU    the same, one ray per thread, against the host on
 ``firstHit-random``                          every hardware thread but one; the starts in Morton
                                              and in random order
+====================================  =====  =====================================================
+
+**Shapes** (``Performance/Shapes``): the analytic shapes ``EllipsoidSDF`` to ``WedgeSDF``, one input each
+(``ellipsoid``, ``capped-cone``, ``round-cone``, ``polygon-prism``, ``tube``, ``capped-torus``, ``cut-sphere``,
+``cut-hollow-sphere``, ``wedge``), queried at random points in the shape's box grown by a quarter on every side; and
+``ray-forms``, a fused union of the six with closed-form ray forms side by side, with rays from random points in the
+scene's box in random directions.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``signedDistance``                    host   the shape's signed distance at every point
+``signedDistance``                    GPU    the same, one point per thread, against the host on
+                                             every hardware thread but one
+``firstHit``                          host   the first crossing of every ray (``ray-forms``)
+``firstHit``                          GPU    the same, one ray per thread
 ====================================  =====  =====================================================
 
 **Mesh** (``Performance/Mesh``): the armadillo, 99,976 triangles.

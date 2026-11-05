@@ -99,7 +99,8 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
 
    * - Shape
      - How
-   * - ``PlaneSDF``, ``SphereSDF``, ``BoxSDF``, ``CylinderSDF``, ``InfiniteCylinderSDF``, ``CapsuleSDF``
+   * - ``PlaneSDF``, ``SphereSDF``, ``BoxSDF``, ``CylinderSDF``, ``InfiniteCylinderSDF``, ``CapsuleSDF``,
+       ``EllipsoidSDF``, ``CappedConeSDF``, ``PolygonPrismSDF``, ``TubeSDF``, ``CutSphereSDF``, ``WedgeSDF``
      - In closed form (`EBGeometry_AnalyticRayForms.hpp
        <doxygen/html/EBGeometry__AnalyticRayForms_8hpp.html>`__).
    * - ``TriMeshSDF``, ``MeshSDF``

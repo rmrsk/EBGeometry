@@ -3,7 +3,9 @@ Examples/Shapes
 
 This folder shows how to construct a gallery of basic geometric shapes: a plane, a sphere, a
 box, a torus, finite and infinite cylinders, a capsule, finite and infinite cones, a rounded
-box, and a rounded cylinder.
+box, a rounded cylinder, an ellipsoid, a capped cone (a frustum), a round cone, a regular prism, a
+tube, a capped torus (a pipe elbow), a cut sphere (a dome), a cut hollow sphere (a shell) and a
+wedge, and how to round a shape's edges with `Offset`.
 
 Each of these shapes is represented as a *signed distance function*: given any point in space,
 it returns how far that point is from the shape's surface, with a sign that tells you which
@@ -90,11 +92,13 @@ Running
 
 The program constructs each shape and prints one row per shape: its signed distance at three
 points, its bounding box along x (`computeBoundingVolume()`, infinite where the shape is unbounded),
-and its `distanceQuality` (exact for every shape except the noise). Its last section evaluates the
+and its `distanceQuality` (exact for every shape except the noise, and a bound for the rounded prism). Its last section evaluates the
 torus along the x axis through `EBGeometry::GPU::transform`: in a kernel in a GPU build, in a host
 loop otherwise. Read `main.cpp` alongside this description to see how each shape is built, and adapt
 the parameters (center, radius, size, angles, ...) to your own geometry.
 
 The shapes share a few conventions: the constructor takes the shape's position before its sizes; a
-shape with a built-in axis (the torus, both cones, the rounded cylinder) has it along y; and a size
-is that of the finished shape, so a rounded box with outer size 1.2 fits a box of side 1.2 exactly.
+shape with a built-in axis (the torus, the cones, the rounded cylinder, the capped torus, the cut
+spheres, the wedge) has it along y, while the cylinder, capsule, capped and round cones, prism and tube
+take the centers of their two ends; and a size is that of the finished shape, so a rounded box with
+outer size 1.2 fits a box of side 1.2 exactly.

@@ -11,7 +11,7 @@ The source is at :file:`Examples/Shapes/main.cpp`.
    :width: 60%
    :align: center
 
-   The bounded shapes, as the viewer first shows them.
+   The bounded shapes, as the viewer first shows them; the hollow shell is turned over to show its inside.
 
 The code that runs on either side
 ---------------------------------
@@ -25,9 +25,13 @@ Construct the shapes
 
 Each shape is one constructor call, with the shape's position before its sizes:
 ``SphereSDF<T>(center, radius)``, ``BoxSDF<T>(lo, hi)``, ``TorusSDF<T>(center, majorRadius,
-minorRadius)``, and so on. A shape with a built-in axis (the torus, both cones, the rounded cylinder)
-has it along :math:`y`, and a size is that of the finished shape, so a rounded box of outer size 1.2
-fits a box of side 1.2 exactly. The parameters of every shape are documented in
+minorRadius)``, ``TubeSDF<T>(center1, center2, innerRadius, outerRadius)``, and so on. A shape with a
+built-in axis (the torus, the cones, the rounded cylinder, the capped torus, the cut spheres, the
+wedge) has it along :math:`y`; the cylinder, capsule, capped and round cones, prism and tube take the
+centers of their two ends, so they can point anywhere. A size is that of the finished shape, so a
+rounded box of outer size 1.2 fits a box of side 1.2 exactly. The shapes other than the rounded box and
+cylinder have sharp edges; the example rounds a hexagonal prism by taking ``Fused::Offset`` of a slightly
+smaller one. The parameters of every shape are documented in
 `EBGeometry_AnalyticDistanceFunctions.hpp <doxygen/html/EBGeometry__AnalyticDistanceFunctions_8hpp.html>`__.
 The example also constructs `PerlinSDF <doxygen/html/classEBGeometry_1_1PerlinSDF.html>`__, a fractal
 noise field: not the distance to any surface, but a common building block for perturbing one.
@@ -42,7 +46,8 @@ The program prints one row per shape, using the three calls every shape has:
   in which the shape is unbounded (the plane, the infinite cylinder and cone, the noise).
 * ``distanceQuality``: whether the value is the exact Euclidean distance, a lower bound on it, or
   only a sign (`DistanceQuality <doxygen/html/EBGeometry__DistanceQuality_8hpp.html>`__). Every
-  built-in shape is exact except the noise. Composition and BVH pruning depend on it; see
+  built-in shape is exact except the noise; the ellipsoid's exact distance comes from a short
+  iteration, so it costs more to evaluate than the others. Composition and BVH pruning depend on it; see
   :ref:`Chap:ExampleBasicCSG`.
 
 .. code-block:: text
@@ -65,7 +70,7 @@ the points has to reach the device. See :ref:`Chap:RunningOnGPU`.
 Looking at it
 -------------
 
-The example ends with a window on the bounded shapes side by side, compiled into one tape (see
+The example ends with a window on the sixteen bounded shapes side by side, compiled into one tape (see
 :ref:`Chap:ExampleBasicCSG`) with each moved to its place by ``Translate``.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see

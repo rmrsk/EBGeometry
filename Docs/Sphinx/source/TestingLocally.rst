@@ -264,14 +264,16 @@ Test coverage
      - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
        :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF`,
        :cpp:class:`RoundedCylinderSDF` distances; the y-axis orientation of the torus and both
-       cones, and the rounded box fitting its outer size; every exact shape (all but
+       cones, and the rounded box fitting its outer size; the ellipsoid against a sphere and a brute-force
+       distance, the capped and round cones against a cylinder, ``ConeSDF`` and a capsule, the square prism
+       against a box, and the tube, capped torus, cut spheres and wedge against distances worked by hand; every exact shape (all but
        :cpp:class:`PerlinSDF`) checked as a true signed distance function at random points (unit
        gradient, a step back along the gradient lands on the surface, 1-Lipschitz); every shape's
        ``computeBoundingVolume()`` against its worked-out box, and its surface inside that box at
        random points; the ``distanceQuality`` of every shape, mesh distance field and BVH union;
        the capsule's sphere limit and Perlin's defaults; every analytic shape is a trivially
        copyable, non-polymorphic value type; the device ``signedDistance()`` and
-       ``computeBoundingVolume()`` of all twelve shapes match the host.
+       ``computeBoundingVolume()`` of every shape match the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
@@ -427,7 +429,8 @@ Test coverage
        faces of a fine mesh far from the origin, aimed at its edges and corners;
        ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
        a sliver face not crossed beyond its ends; each analytic ray form against its crossing
-       worked by hand and against the march on random rays; span lists united, intersected and
+       worked by hand and against the march on random rays; a tube's two spans against its values along the
+       ray; a composition of the shapes with ray forms traced exactly, in a tape and fused; span lists united, intersected and
        complemented against the sets of points they cover; a fused and a taped composition traced (and
        marched on request) to crossings worked by hand, with the tape's deciding leaf; fused compositions
        and tapes (a BVH union, a difference, a complement, affine maps) against their values sampled
