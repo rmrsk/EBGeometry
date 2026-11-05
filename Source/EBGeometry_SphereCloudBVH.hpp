@@ -207,12 +207,13 @@ struct SpherePrimitive
 
 /**
  * @brief A BVH over spheres of differing radii (polydisperse particles), with the signed distance to their
- * union, the closest sphere, and the contacts between spheres.
+ * union, the closest sphere, the contacts between spheres, and exact rays.
  * @details A shape: signedDistance() and computeBoundingVolume(), negative inside a sphere. The distance is
  * min_i(|p - c_i| - r_i) over the spheres: exact outside their union, and inside it a bound in magnitude (where
  * spheres overlap, the union's surface can be farther than every sphere's own), as for a Union of the
- * spheres. Spheres of one radius need no SphereCloudBVH: the distance from a PointCloudBVH of the centers,
- * less the radius, is the same.
+ * spheres. Rays cross the union exactly (RayForm<SphereCloudBVH>, in EBGeometry_SphereCloudRayForm.hpp), and a
+ * tape takes the cloud as a primitive, stored as its Layout. Spheres of one radius need no SphereCloudBVH: the
+ * distance from a PointCloudBVH of the centers, less the radius, is the same.
  *
  * The build is PointCloudBVH's linear build (see there), over the centers: the Morton keys and cuts come
  * from the centers, and every box is grown by its spheres' radii. It runs where the pool's memory is, on a
@@ -222,7 +223,8 @@ struct SpherePrimitive
  * @note Device portability, as for PointCloudBVH: the packed BVH and the cloud's arrays are reserved from
  * one Pool and the class stores only offsets into it, so it is trivially copyable. Freeze and mirror the
  * pool, call rebasedView(), and pass the value into a kernel; signedDistance(), closestSphere(),
- * forEachContact() and computeBoundingVolume() are device-callable. The pool must outlive the BVH and every copy of it.
+ * forEachContact(), computeBoundingVolume() and the ray form are device-callable. The pool must outlive the BVH
+ * and every copy of it.
  *
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor. Defaults to BVH::DefaultBranchingRatio<T>().
@@ -256,6 +258,64 @@ public:
    * @brief Axis-aligned bounding box type.
    */
   using AABB = BoundingVolumes::AABBT<T>;
+
+  /**
+   * @brief The BVH's arrays as offsets into its pool, with no location (see PoolHandle).
+   * @details Everything the queries and deepCopy() read; not the scratch a rebuild() needs, so a BVH made from its
+   * layout has no room for one.
+   */
+  struct Layout
+  {
+    /**
+     * @brief The packed BVH over the sphere groups.
+     */
+    typename Packed::Layout m_bvh;
+
+    /**
+     * @brief The spheres, by cloud index.
+     */
+    PODVector<Sphere> m_spheres;
+
+    /**
+     * @brief Per-sphere offset of its own leaf's first group.
+     */
+    PODVector<uint32_t> m_leafOff;
+
+    /**
+     * @brief Per-sphere number of groups in its own leaf.
+     */
+    PODVector<uint32_t> m_leafCnt;
+
+    /**
+     * @brief Cloud indices in leaf (build) order.
+     */
+    PODVector<uint32_t> m_order;
+
+    /**
+     * @brief The tree's depth in node levels, which rebasedView() checks against a device's traversal stack.
+     */
+    uint32_t m_depth = 0;
+  };
+
+  /**
+   * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
+   * @details How a tape, a BVH union or a fused operation evaluates a cloud it stores as a layout. The handle answers
+   * every query; it has no room for a rebuild(), which is called on the BVH build() returned. @p a_location must
+   * belong to the pool the layout was reserved from, or to a mirror of it; nothing is checked, since a device has no
+   * pool to check against.
+   * @param[in] a_layout   The arrays.
+   * @param[in] a_location Where they live.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline SphereCloudBVH(const Layout& a_layout, const PoolLocation& a_location) noexcept;
+
+  /**
+   * @brief The BVH's arrays without its location, for storing it inside another pool-resident object.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Layout
+  layout() const noexcept;
 
   /**
    * @brief Build a BVH over spheres on the host: shorthand for build(a_pool, a_spheres, a_targetLeafSize).
@@ -493,8 +553,12 @@ private:
   using Base = PointCloudDetail::CloudBVH<T, K, W, PointCloudDetail::SpherePrimitive<T, W>>;
 
   using Base::m_bvhLayout;
+  using Base::m_depth;
   using Base::m_items;
+  using Base::m_leafCnt;
+  using Base::m_leafOff;
   using Base::m_maxItems;
+  using Base::m_order;
 
   /**
    * @brief An empty BVH, to be reserved and filled.
@@ -513,5 +577,9 @@ static_assert(std::is_trivially_copyable_v<SphereCloudBVH<double>>,
 } // namespace EBGeometry
 
 #include "EBGeometry_SphereCloudBVHImplem.hpp"
+
+// Every translation unit that sees SphereCloudBVH sees its ray form too, so firstHit() on it is the same function
+// everywhere.
+#include "EBGeometry_SphereCloudRayForm.hpp"
 
 #endif

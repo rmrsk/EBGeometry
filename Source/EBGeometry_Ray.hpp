@@ -15,7 +15,8 @@
  *
  * A shape with a ray form (see RayForm) is ray traced instead, which is exact and much faster: the plane,
  * sphere, box, cylinders and capsule in closed form (EBGeometry_AnalyticRayForms.hpp), the mesh SDFs
- * through their BVHs and faces (EBGeometry_MeshRayForms.hpp), and the compositions built from them, a
+ * through their BVHs and faces (EBGeometry_MeshRayForms.hpp), SphereCloudBVH through its BVH and spheres
+ * (EBGeometry_SphereCloudRayForm.hpp), and the compositions built from them, a
  * union, intersection, difference, complement or affine map of shapes with ray forms (the fused
  * operations and BVHUnion in EBGeometry_CSGRayForms.hpp, and Tape): those combine where the ray is
  * inside each operand (its spans, see RaySpansT), and march only the parts that have no ray form. An offset

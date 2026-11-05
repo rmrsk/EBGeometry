@@ -515,8 +515,11 @@ Test coverage
        against brute force (inside and outside the spheres), ties to the lower index, radius-0 spheres against
        ``PointCloudBVH``, an empty cloud, the box, the same tree from centers and radii kept apart, ``rebuild()``
        on a frozen pool (the tree of a fresh build, nothing reserved), ``rebasedView``/``deepCopy``, device
-       queries against the host, a device-memory build giving the host's tree, and rejection of a negative or
-       non-finite radius, a non-finite center, mismatched centers and radii, and a rebuild without room.
+       queries against the host, a device-memory build giving the host's tree, rays (``firstHit()`` and ``spans()``
+       against a brute-force union of the spheres' intervals, from outside and inside, one sphere against
+       ``SphereSDF``, on device against the host), the layout round trip, a tape holding a cloud, and rejection
+       of a negative or non-finite radius, a non-finite center, mismatched centers and radii, and a rebuild
+       without room.
    * - ``TestRandom``
      - ``Random::samplePoints``: count, unit-cube range, reproducibility, coordinate draw order, and
        an empty result for a zero count.

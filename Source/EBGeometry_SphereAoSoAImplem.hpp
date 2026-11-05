@@ -104,6 +104,45 @@ SphereAoSoA<T, W>::getSeparations(const Vec3T<T>& a_center, const T a_radius) co
 
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
+void
+SphereAoSoA<T, W>::rayIntervals(const Vec3T<T>& a_origin,
+                                const Vec3T<T>& a_direction,
+                                Array<T, W>&    a_entry,
+                                Array<T, W>&    a_exit) const noexcept
+{
+  const uint32_t numValid = m_centers.numValid();
+
+  // The arithmetic of SphereSDF's ray form, lane by lane, so that a sphere in a cloud is crossed where the same
+  // sphere alone is (to rounding: an optimized build may fuse multiply-adds differently in the two): the
+  // discriminant is r^2 less the squared distance of the center from the line, |oc x d|^2 (not b^2 - c, which
+  // cancels for a small sphere far from the origin), and the nearer root is c / q.
+  for (uint32_t j = 0; j < W; j++) {
+    const Vec3T<T> oc   = a_origin - m_centers.getPosition(j);
+    const Vec3T<T> l    = cross(oc, a_direction);
+    const T        b    = dot(oc, a_direction);
+    const T        r    = m_radii[j];
+    const T        disc = r * r - dot(l, l);
+
+    if (j >= numValid || disc < T(0)) {
+      a_entry[j] = Math::Limits<T>::infinity();
+      a_exit[j]  = -Math::Limits<T>::infinity();
+    }
+    else {
+      const T root = std::sqrt(disc);
+      const T q    = -b - ((b >= T(0)) ? root : -root);
+      const T c    = dot(oc, oc) - r * r;
+
+      // With q = 0 both roots are zero: the ray starts on the surface, along it.
+      const T nearer = (q == T(0)) ? T(0) : c / q;
+
+      a_entry[j] = Math::min(q, nearer);
+      a_exit[j]  = Math::max(q, nearer);
+    }
+  }
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
 uint32_t
 SphereAoSoA<T, W>::getSphereId(size_t a_lane) const noexcept
 {

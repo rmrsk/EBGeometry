@@ -23,6 +23,7 @@ What is in Performance/
      PointCloudHashGridBuild/ PointCloudHashGrid's build and rebuild where its pool is
      SphereCloudBVH/main.cpp  SphereCloudBVH: its build and rebuild, and the closest sphere
      SphereContacts/main.cpp  SphereCloudBVH's contacts between spheres
+     SphereCloudRays/main.cpp SphereCloudBVH's rays, alone, fused and in a tape
      Mesh/main.cpp            TriMeshSDF and MeshSDF
      MeshReconcile/main.cpp   reconciling a moved DCEL mesh where its pool is
      BVH/main.cpp             PackedBVH::traverse() itself
@@ -174,6 +175,21 @@ Family                                Build  Measures
 ``force-morton``                      host   every particle's contacts and contact force
 ``force-morton``                      GPU    the same, one particle per thread, against the host on
                                              every hardware thread but one
+====================================  =====  =====================================================
+
+**SphereCloudRays** (``Performance/SphereCloudRays``): the same 500,000 spheres and BVH as ``SphereCloudBVH``. Each
+query is a ray from a random point in the unit cube, in a random direction (many start inside a sphere), and its
+first crossing (``firstHit``): of the union of the spheres (``polydisperse``), and of a box with the spheres cut out
+of it, fused (``bed-in-box-fused``, whose cases name the tape's for the ratio of their times) and through a tape
+holding the cloud (``bed-in-box``).
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``firstHit``                          host   the first crossing of every ray
+``firstHit-morton``                   GPU    the same, one ray per thread, against the host on
+``firstHit-random``                          every hardware thread but one; the starts in Morton
+                                             and in random order
 ====================================  =====  =====================================================
 
 **Mesh** (``Performance/Mesh``): the armadillo, 99,976 triangles.

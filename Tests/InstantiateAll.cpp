@@ -341,6 +341,18 @@ instantiateFunctionTemplates()
       spheres[0], T(0), [&separations](const SphereCloud::Hit<T>& a_hit) { separations += a_hit.distance; });
     (void)separations;
 
+    // Its layout, which a tape stores it as, and its ray form, through the leaf group's ray intervals.
+    const SphereCloudBVH<T> fromLayout(spheresBVH.layout(), spheresBVH.location());
+    const RayT<T>           ray{points[0], Vec3T<T>(T(1), T(0), T(0))};
+
+    (void)firstHit(fromLayout, ray, T(0), T(1));
+    (void)firstCrossing(fromLayout, ray, T(0), T(1));
+
+    Array<T, 4> entry;
+    Array<T, 4> exit;
+
+    spheresBVH.getBVH().getPrimitives()[0].rayIntervals(ray.m_origin, ray.m_direction, entry, exit);
+
     std::vector<uint32_t> values(3, 1);
     std::vector<uint32_t> sums(GPU::exclusiveScanScratchSize(3));
 
