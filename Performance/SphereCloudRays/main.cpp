@@ -6,7 +6,7 @@
 // unit cube), in float and double: the first crossing of rays starting at random points in the cloud's box, in a
 // random direction, many of them inside a sphere. On the cloud alone ("polydisperse"), and on a box with the spheres
 // cut out of it, what a particle code's geometry is: through a tape listing the cloud ("bed-in-box"), and fused
-// ("bed-in-box-fused"), which the tape cases name for their ratio. A host build runs the host
+// ("bed-in-box-fused"), whose cases name the tape's for the ratio of their times. A host build runs the host
 // cases; a CUDA or HIP build runs host/device pairs in Morton and random order of the starts. The cases live apart
 // from Performance/SphereCloudBVH so that they cannot move the inlining of its cases. See ../README.md and
 // PerformanceTesting.rst.
@@ -145,11 +145,11 @@ record(Perf::Case& a_case, const std::vector<Crossing<T>>& a_results)
 }
 
 // One input, in one precision: the host case, and host/device pairs in each order. A_build(pool, cloud) builds the
-// shape the rays query, in the pool the cloud is in. A case names the same case of a_fused, if given, for the ratio of
-// their times.
+// shape the rays query, in the pool the cloud is in. A case names the same case of a_tape, if given, for the ratio of
+// their times (the tape's over this one's).
 template <class T, class Build>
 void
-addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build, const std::string& a_fused = "")
+addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build, const std::string& a_tape = "")
 {
   const std::string prefix = "SphereCloudRays/" + a_input;
   const std::string prec   = Perf::precisionName<T>();
@@ -179,8 +179,8 @@ addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build, const 
     c.poolBytes(pool.usedBytes());
     record(c, results);
 
-    if (!a_fused.empty()) {
-      c.relativeTo(Perf::caseName({"SphereCloudRays/" + a_fused, "firstHit", prec, "host"}), "tape/fused");
+    if (!a_tape.empty()) {
+      c.relativeTo(Perf::caseName({"SphereCloudRays/" + a_tape, "firstHit", prec, "host"}), "tape/fused");
     }
   });
 
@@ -206,10 +206,10 @@ addInput(Perf::Suite& a_suite, const std::string& a_input, Build a_build, const 
 
         record(c, results);
 
-        if (!a_fused.empty()) {
+        if (!a_tape.empty()) {
           c.relativeTo(
             Perf::caseName(
-              {"SphereCloudRays/" + a_fused, std::string("firstHit-") + Perf::orderName(order), prec, "hostdevice"}),
+              {"SphereCloudRays/" + a_tape, std::string("firstHit-") + Perf::orderName(order), prec, "hostdevice"}),
             "tape/fused");
         }
       });
@@ -226,17 +226,15 @@ addCases(Perf::Suite& a_suite)
   // primitive.
   const EBGeometry::BoxSDF<T> box(Vec3<T>(T(-0.05), T(-0.05), T(-0.05)), Vec3<T>(T(1.05), T(1.05), T(1.05)));
 
-  addInput<T>(a_suite, "bed-in-box-fused", [box](EBGeometry::Pool&, const Cloud<T>& a_cloud) {
-    return EBGeometry::Fused::Difference(box, a_cloud);
-  });
-
   addInput<T>(
     a_suite,
-    "bed-in-box",
-    [box](EBGeometry::Pool& a_pool, const Cloud<T>& a_cloud) {
-      return CloudTape<T>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(box), EBGeometry::Expr<T>(a_cloud)));
-    },
-    "bed-in-box-fused");
+    "bed-in-box-fused",
+    [box](EBGeometry::Pool&, const Cloud<T>& a_cloud) { return EBGeometry::Fused::Difference(box, a_cloud); },
+    "bed-in-box");
+
+  addInput<T>(a_suite, "bed-in-box", [box](EBGeometry::Pool& a_pool, const Cloud<T>& a_cloud) {
+    return CloudTape<T>(a_pool, EBGeometry::Difference(EBGeometry::Expr<T>(box), EBGeometry::Expr<T>(a_cloud)));
+  });
 }
 
 } // namespace

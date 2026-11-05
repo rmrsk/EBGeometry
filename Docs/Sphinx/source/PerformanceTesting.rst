@@ -180,8 +180,8 @@ Family                                Build  Measures
 **SphereCloudRays** (``Performance/SphereCloudRays``): the same 500,000 spheres and BVH as ``SphereCloudBVH``. Each
 query is a ray from a random point in the unit cube, in a random direction (many start inside a sphere), and its
 first crossing (``firstHit``): of the union of the spheres (``polydisperse``), and of a box with the spheres cut out
-of it, fused (``bed-in-box-fused``) and through a tape holding the cloud (``bed-in-box``, whose cases name the fused
-ones for the ratio of their times).
+of it, fused (``bed-in-box-fused``, whose cases name the tape's for the ratio of their times) and through a tape
+holding the cloud (``bed-in-box``).
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
