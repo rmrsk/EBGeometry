@@ -4,9 +4,9 @@
 
 // Particles of differing sizes packed in a cylinder, and their contacts: for each particle, the particles that come
 // within a gap of it, through SphereCloudBVH::forEachContact(). Particles seeded at random overlap, so they are first
-// pushed apart, a round at a time, rebuilding the cloud after each round, until none overlap. Their contacts are then listed per
-// particle on the host, in arrays of the program's own, and a near-contact force is summed per particle on a GPU.
-// See README.md.
+// pushed apart, a round at a time, rebuilding the cloud after each round, until none overlap. Their contacts are then
+// listed per particle on the host, in arrays of the program's own, and a near-contact force is summed per particle on
+// a GPU. See README.md.
 
 #include <algorithm>
 #include <cmath>
@@ -24,10 +24,10 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using T      = EBGEOMETRY_PRECISION;
-using Vec3   = EBGeometry::Vec3T<T>;
-using Cloud  = EBGeometry::SphereCloudBVH<T>;
-using Source = EBGeometry::SphereCloud::
+using T       = EBGEOMETRY_PRECISION;
+using Vec3    = EBGeometry::Vec3T<T>;
+using Cloud   = EBGeometry::SphereCloudBVH<T>;
+using Spheres = EBGeometry::SphereCloud::
   FromCentersAndRadii<T, EBGeometry::PointCloud::FromArray<T>, EBGeometry::SphereCloud::FromRadii<T>>;
 
 // What forEachContact() reports for each contact: the other particle's index, and the separation of the two
@@ -37,7 +37,7 @@ using Hit = EBGeometry::SphereCloud::Hit<T>;
 // The particles: numParticles seeded in an upright cylinder (along y), with radii between minRadius and maxRadius. Two
 // particles are in contact when their surfaces are less than gap apart. Overlapping particles are pushed until they
 // are about skin apart, in at most maxRounds rounds.
-constexpr std::size_t   numParticles = 3000;
+constexpr std::uint32_t numParticles = 3000;
 constexpr T             cylRadius    = T(0.4);
 constexpr T             cylHeight    = T(1.3);
 constexpr T             twoPi        = T(6.283185307179586);
@@ -101,7 +101,7 @@ main(int argc, char* argv[])
   // ── Build the cloud, with room to rebuild ──────────────────────────────────────────────────────────
   //
   // Centers uniform in the cylinder, from uniform draws in the unit cube. The cloud reads the program's own centers
-  // and radii through Source; a particle is known by its index in them. The last argument of build() reserves room
+  // and radii through Spheres; a particle is known by its index in them. The last argument of build() reserves room
   // for rebuilds of up to that many particles.
   std::vector<Vec3>       centers = EBGeometry::Random::samplePoints<T>(numParticles, centerSeed);
   const std::vector<Vec3> draws   = EBGeometry::Random::samplePoints<T>(numParticles, radiusSeed);
@@ -120,10 +120,10 @@ main(int argc, char* argv[])
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const Source source{EBGeometry::PointCloud::FromArray<T>{centers.data()},
-                      EBGeometry::SphereCloud::FromRadii<T>{radii.data()}};
+  const Spheres spheres{EBGeometry::PointCloud::FromArray<T>{centers.data()},
+                        EBGeometry::SphereCloud::FromRadii<T>{radii.data()}};
 
-  Cloud cloud = Cloud::build(pool, source, numParticles, leafSize, numParticles);
+  Cloud cloud = Cloud::build(pool, spheres, numParticles, leafSize, numParticles);
 
   // ── Push the particles apart ───────────────────────────────────────────────────────────────────────
   //
@@ -159,7 +159,7 @@ main(int argc, char* argv[])
       keepInside(centers[i], radii[i]);
     }
 
-    cloud.rebuild(source, numParticles);
+    cloud.rebuild(spheres, numParticles);
   }
 
   // ── One particle's contacts ────────────────────────────────────────────────────────────────────────
