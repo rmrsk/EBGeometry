@@ -63,6 +63,7 @@
 #include "Source/EBGeometry_SphereAoSoA.hpp"
 #include "Source/EBGeometry_SphereCloud.hpp"
 #include "Source/EBGeometry_SphereCloudBVH.hpp"
+#include "Source/EBGeometry_SphereCloudRayForm.hpp"
 #include "Source/EBGeometry_StreamOperators.hpp"
 #include "Source/EBGeometry_Tape.hpp"
 #include "Source/EBGeometry_TreeBVH.hpp"

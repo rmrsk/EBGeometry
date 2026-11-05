@@ -301,6 +301,28 @@ SphereCloudBVH<T, K, W>::computeBoundingVolume() const noexcept
 
 template <class T, size_t K, size_t W>
 EBGEOMETRY_HOST_DEVICE
+inline SphereCloudBVH<T, K, W>::SphereCloudBVH(const Layout& a_layout, const PoolLocation& a_location) noexcept
+{
+  m_bvhLayout = a_layout.m_bvh;
+  m_items     = a_layout.m_spheres;
+  m_leafOff   = a_layout.m_leafOff;
+  m_leafCnt   = a_layout.m_leafCnt;
+  m_order     = a_layout.m_order;
+  m_depth     = a_layout.m_depth;
+
+  this->setLocation(a_location);
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline typename SphereCloudBVH<T, K, W>::Layout
+SphereCloudBVH<T, K, W>::layout() const noexcept
+{
+  return Layout{m_bvhLayout, m_items, m_leafOff, m_leafCnt, m_order, m_depth};
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 SphereCloudBVH<T, K, W>::numSpheres() const noexcept
 {
