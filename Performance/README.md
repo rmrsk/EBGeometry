@@ -38,7 +38,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `ClosestPrimitive/` | A tape's `closestPrimitive()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `LaunchTuning/` | `GPU::transform()`'s launch settings (block size, minimum resident threads) on a mesh distance, a tape's rays and a point cloud; device only |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
-| `Tools/`      | `PerfCompare`, which compares two sets of results               |
+| `Tools/`      | `PerfCompare`, which compares two sets of results; `BuildCost`, the compiler launcher that records what each compile costs, and `BuildCompare`, which compares two builds' costs |
 
 Each probe holds many cases, named `component/input/operation/precision/side`. A host build runs the
 `host` cases, on one core; a CUDA or HIP build runs only the `hostdevice` pairs: every device query with

@@ -32,6 +32,11 @@
 #                           no --smoke, no GLOB)
 #   --core <n> | --no-pin   the core to pin to with taskset (default 2), or no pinning; host runs only:
 #                           a --gpu run is never pinned, since its host side uses every core
+#   --jobs <n>              compare: parallel compiles per build (default: the hardware threads, capped
+#                           by memory)
+#   --test-builds           compare: also build the heaviest test targets (TestRay, TestTape, TestRender)
+#                           in Debug with assertions on both sides, and report what they cost; for changes
+#                           to the tape or the rays (several minutes more)
 #   --help
 #
 # A host build runs the host cases, on one core; a GPU build runs the host/device pairs, the host side on
@@ -74,6 +79,8 @@ set(rounds 2)
 set(smoke OFF)
 set(record OFF)
 set(core "")
+set(jobs "")
+set(test_builds OFF)
 
 list(LENGTH args nargs)
 set(i 0)
@@ -93,7 +100,9 @@ while(i LESS nargs)
     set(record ON)
   elseif(a STREQUAL "--no-pin")
     set(core OFF)
-  elseif(a MATCHES "^--(gpu|gpu-arch|cuda-compiler|hip-compiler|reps|rounds|core)$")
+  elseif(a STREQUAL "--test-builds")
+    set(test_builds ON)
+  elseif(a MATCHES "^--(gpu|gpu-arch|cuda-compiler|hip-compiler|reps|rounds|core|jobs)$")
     if(next GREATER_EQUAL nargs)
       message(FATAL_ERROR "run-performance: ${a} needs a value (see --help)")
     endif()
@@ -178,6 +187,15 @@ if(command STREQUAL "compare")
   set(REPS ${reps})
   set(ROUNDS ${rounds})
   set(CORE ${core})
+  set(TEST_BUILDS ${test_builds})
+
+  if(NOT jobs STREQUAL "")
+    if(NOT jobs MATCHES "^[1-9][0-9]*$")
+      message(FATAL_ERROR "run-performance: --jobs must be a positive integer (got '${jobs}')")
+    endif()
+
+    set(JOBS ${jobs})
+  endif()
 
   if(gpu_arch)
     set(GPU_ARCH ${gpu_arch})
