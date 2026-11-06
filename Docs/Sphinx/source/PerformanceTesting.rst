@@ -676,9 +676,8 @@ changes an API the probes use updates the probes and is still compared case by c
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Both sides are built with the candidate's function alignment, so that code
 added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line.
-A probe that compiles to the same code on both sides (its binaries, stripped of their symbol tables, are
-equal byte for byte) can only measure noise, so its cases are not run, and the report lists the probe as
-not run; a pull request that changes one component then runs only the probes that component reaches.
+A probe that compiles to the same code on both sides can only measure noise, so its cases are not run,
+and the report lists the probe as not run; a pull request that changes one component then runs only the probes that component reaches.
 ``--no-skip`` runs them anyway, and a smoke comparison always runs every case. When no probe changed,
 nothing runs and the verdict is green.
 Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
