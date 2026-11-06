@@ -444,6 +444,50 @@ TEMPLATE_TEST_CASE("EllipsoidSDF: a sphere when the radii agree, and the brute-f
   }
 }
 
+TEMPLATE_TEST_CASE("EllipsoidSDF: a very flat and a very long ellipsoid converge to their distances",
+                   "[EllipsoidSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Aspect ratios of 1000: a disc of radius 1 and half-thickness 1e-3, and a needle of half-length 1.
+  const EllipsoidSDF<T> disc(Vec3::zeros(), Vec3(T(1), T(1e-3), T(1)));
+  const EllipsoidSDF<T> needle(Vec3::zeros(), Vec3(T(1), T(1e-3), T(1e-3)));
+
+  REQUIRE_THAT(disc.signedDistance(Vec3::zeros()), WithinRel(T(-1e-3), T(1e-4)));
+  REQUIRE_THAT(disc.signedDistance(T(0.5) * Vec3::unit(1)), WithinRel(T(0.499), T(1e-4)));
+  REQUIRE_THAT(disc.signedDistance(T(2) * Vec3::unit(0)), WithinRel(T(1), T(1e-4)));
+  REQUIRE_THAT(needle.signedDistance(T(3) * Vec3::unit(0)), WithinRel(T(2), T(1e-4)));
+  REQUIRE_THAT(needle.signedDistance(Vec3::unit(2)), WithinRel(T(1) - T(1e-3), T(1e-4)));
+
+  // At random points: finite, of the sign of the implicit function, and 1-Lipschitz between neighbors.
+  for (const auto* shape : {&disc, &needle}) {
+    const Vec3 radii = shape->getRadii();
+    Vec3       previous;
+    T          previousValue = T(0);
+
+    int i = 0;
+
+    for (const auto& p : randomPoints<T>(T(2), 400)) {
+      const T d = shape->signedDistance(p);
+      const T g = (p[0] / radii[0]) * (p[0] / radii[0]) + (p[1] / radii[1]) * (p[1] / radii[1]) +
+                  (p[2] / radii[2]) * (p[2] / radii[2]) - T(1);
+
+      INFO("p = " << p << ", d = " << d);
+      REQUIRE(std::isfinite(d));
+      REQUIRE((d < T(0)) == (g < T(0)));
+
+      if (i++ > 0) {
+        REQUIRE(std::abs(d - previousValue) <= (p - previous).length() * (T(1) + T(1e-3)) + T(1e-5));
+      }
+
+      previous      = p;
+      previousValue = d;
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("CappedConeSDF: a cylinder for equal radii, and ConeSDF for a zero radius",
                    "[CappedConeSDF]",
                    EBGEOMETRY_TEST_PRECISIONS)
