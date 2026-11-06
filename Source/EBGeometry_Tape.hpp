@@ -581,9 +581,13 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 }
 
 /**
- * @brief The tape's primitive types: the twelve analytic shapes, the three mesh SDFs with the default
- * branching factor and SIMD width, then the user's types (its template arguments that are not features).
- * @details Internal helper; not part of the public API.
+ * @brief The tape's primitive types: twelve analytic shapes (PlaneSDF to PerlinSDF), the three mesh SDFs with the
+ * default branching factor and SIMD width, the user's types (its template arguments that are not features), then
+ * nine more analytic shapes (EllipsoidSDF to WedgeSDF).
+ * @details Internal helper; not part of the public API. The evaluator finds a primitive's type by testing the
+ * types in this order, so a type further down costs a test more; on the host, every type from Tape::DispatchSplit
+ * on is dispatched out of line. The user's types come before the last nine shapes, so that a tape of user types
+ * (a BVH union, a mesh with another branching factor, a fused part) reaches them right after the first fifteen.
  * @tparam T            Floating-point precision.
  * @tparam UserPrimitives User primitive types and features.
  */
@@ -604,7 +608,16 @@ using Primitives =
                            FlatMeshSDF<T>,
                            MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
                            TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
-                  UserTypesOf<UserPrimitives...>>::type;
+                  UserTypesOf<UserPrimitives...>,
+                  TypeList<EllipsoidSDF<T>,
+                           CappedConeSDF<T>,
+                           RoundConeSDF<T>,
+                           PolygonPrismSDF<T>,
+                           TubeSDF<T>,
+                           CappedTorusSDF<T>,
+                           CutSphereSDF<T>,
+                           CutHollowSphereSDF<T>,
+                           WedgeSDF<T>>>::type;
 
 /**
  * @brief Whether a tape's user primitive types are shapes of its precision.

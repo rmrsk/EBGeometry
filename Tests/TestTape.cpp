@@ -118,6 +118,15 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates exactly like the sha
   const RoundedBoxSDF<T>       roundedBox(Vec3(T(0.1), T(0), T(0)), Vec3(T(1.2), T(1), T(0.8)), T(0.1));
   const RoundedCylinderSDF<T>  roundedCylinder(Vec3(T(0), T(0.1), T(0)), T(0.5), T(0.1), T(1));
   const PerlinSDF<T>           perlin(T(0.5), T(2) * Vec3::ones(), T(0.5), 4);
+  const EllipsoidSDF<T>        ellipsoid(Vec3(T(0.1), T(0), T(0.2)), Vec3(T(1), T(0.5), T(0.7)));
+  const CappedConeSDF<T>       cappedCone(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.6), T(0.2));
+  const RoundConeSDF<T>        roundCone(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.5), T(0.2));
+  const PolygonPrismSDF<T> polygonPrism(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.6), 6U, Vec3::unit(2));
+  const TubeSDF<T>         tube(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.3), T(0.6));
+  const CappedTorusSDF<T>  cappedTorus(Vec3(T(0.1), T(0), T(-0.2)), T(1), T(0.25), T(135));
+  const CutSphereSDF<T>    cutSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3));
+  const CutHollowSphereSDF<T> cutHollowSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3), T(0.1));
+  const WedgeSDF<T>           wedge(Vec3(T(0), T(1), T(0)), T(60));
 
   const auto check = [](const auto& a_shape) {
     const TestUtils::Compiled<T> tape(a_shape);
@@ -141,6 +150,15 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates exactly like the sha
   check(roundedBox);
   check(roundedCylinder);
   check(perlin);
+  check(ellipsoid);
+  check(cappedCone);
+  check(roundCone);
+  check(polygonPrism);
+  check(tube);
+  check(cappedTorus);
+  check(cutSphere);
+  check(cutHollowSphere);
+  check(wedge);
 }
 
 TEMPLATE_TEST_CASE("Tape: a union of a mesh SDF and a sphere is the smaller of the two distances everywhere",
@@ -566,7 +584,7 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
 
   Pool pool(hostMemoryResource());
 
-  // Every built-in primitive type: the twelve analytic shapes and the three mesh SDFs.
+  // Every built-in primitive type: the analytic shapes and the three mesh SDFs.
   const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
 
   const FlatMeshSDF<T>      flat(mesh, pool);
@@ -585,6 +603,15 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
   const RoundedBoxSDF<T>       roundedBox(Vec3(T(0.1), T(0), T(0)), Vec3(T(1.2), T(1), T(0.8)), T(0.1));
   const RoundedCylinderSDF<T>  roundedCylinder(Vec3(T(0), T(0.1), T(0)), T(0.5), T(0.1), T(1));
   const PerlinSDF<T>           perlin(T(0.5), T(2) * Vec3::ones(), T(0.5), 4);
+  const EllipsoidSDF<T>        ellipsoid(Vec3(T(0.1), T(0), T(0.2)), Vec3(T(1), T(0.5), T(0.7)));
+  const CappedConeSDF<T>       cappedCone(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.6), T(0.2));
+  const RoundConeSDF<T>        roundCone(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.5), T(0.2));
+  const PolygonPrismSDF<T> polygonPrism(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.6), 6U, Vec3::unit(2));
+  const TubeSDF<T>         tube(Vec3(T(-1), T(0), T(0)), Vec3(T(1), T(0.5), T(0)), T(0.3), T(0.6));
+  const CappedTorusSDF<T>  cappedTorus(Vec3(T(0.1), T(0), T(-0.2)), T(1), T(0.25), T(135));
+  const CutSphereSDF<T>    cutSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3));
+  const CutHollowSphereSDF<T> cutHollowSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3), T(0.1));
+  const WedgeSDF<T>           wedge(Vec3(T(0), T(1), T(0)), T(60));
 
   std::vector<Expr<T>> primitives{plane,
                                   sphere,
@@ -597,6 +624,15 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
                                   cone,
                                   roundedBox,
                                   roundedCylinder,
+                                  ellipsoid,
+                                  cappedCone,
+                                  roundCone,
+                                  polygonPrism,
+                                  tube,
+                                  cappedTorus,
+                                  cutSphere,
+                                  cutHollowSphere,
+                                  Intersection(wedge, box),
                                   Translate(flat, Vec3(T(3), T(0), T(0))),
                                   Translate(bvhMesh, Vec3(T(-3), T(0), T(0))),
                                   Translate(triMesh, Vec3(T(0), T(3), T(0)))};

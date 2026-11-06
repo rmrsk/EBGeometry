@@ -950,8 +950,17 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms agree with the march on random r
       const HitT<T> exact = firstHit(a_shape, ray, T(0), T(10));
       const HitT<T> march = firstHit(marched, ray, T(0), T(10));
 
-      // A grazing ray is where marching is slow and its crossing ill-conditioned; compare the rest.
+      // A grazing ray is where marching is slow and its crossing ill-conditioned; compare the rest. A ray that
+      // passes just outside an edge, within the march's tolerance, is a hit to the march and a miss to the ray form.
       if (exact.hit() && std::abs(dot(exact.m_normal, direction)) < T(0.2)) {
+        continue;
+      }
+      if (!exact.hit() && march.hit() && a_shape.signedDistance(march.m_point) > T(0)) {
+        continue;
+      }
+
+      // A march that runs out of steps (along a grazing ray) has not decided; there is nothing to compare.
+      if (march.m_status == HitStatus::Unresolved) {
         continue;
       }
 
@@ -963,7 +972,14 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms agree with the march on random r
         REQUIRE_FALSE(march.m_exact);
         REQUIRE(march.m_entering == exact.m_entering);
         REQUIRE_THAT(march.m_t, withinAbsT(exact.m_t, 0.01));
-        REQUIRE_THAT(dot(march.m_normal, exact.m_normal), withinAbsT(T(1), 0.01));
+
+        // At an edge the march's normal blends the faces' normals; the exact one is then a face's, and a step along
+        // it leaves the surface by that step.
+        const T step = T(1e-2);
+
+        if (std::abs(dot(march.m_normal, exact.m_normal) - T(1)) > T(0.01)) {
+          REQUIRE_THAT(a_shape.signedDistance(exact.m_point + step * exact.m_normal), withinAbsT(step, 1e-3));
+        }
       }
 
       compared++;
@@ -976,6 +992,130 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms agree with the march on random r
   compare(BoxSDF<T>(Vec3(-T(0.7), -T(0.5), -T(0.9)), Vec3(T(0.6), T(0.8), T(0.4))));
   compare(CylinderSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.45)));
   compare(CapsuleSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.45)));
+  compare(EllipsoidSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), Vec3(T(0.9), T(0.4), T(0.6))));
+  compare(CappedConeSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.6), T(0.2)));
+  compare(CappedConeSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0), T(0.7)));
+  compare(PolygonPrismSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.6), 5U, Vec3::ones()));
+  compare(TubeSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.3), T(0.6)));
+  compare(CutSphereSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), T(0.8), T(0.3)));
+  compare(CutSphereSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), T(0.8), -T(0.4)));
+  compare(WedgeSDF<T>(Vec3(T(0.1), T(0.2), T(0)), T(70)));
+}
+
+TEMPLATE_TEST_CASE("Ray: a tube's spans are its wall before and after the hollow, as its values along the ray say",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const TubeSDF<T> tube(Vec3(T(0), T(0), -T(1)), Vec3(T(0), T(0), T(1)), T(0.5), T(1));
+
+  // Across the axis: the near wall from 1 to 1.5, the far wall from 2.5 to 3.
+  const RayT<T> across{Vec3(-T(2), T(0), T(0)), Vec3::unit(0)};
+
+  RaySpansT<T> spans;
+
+  RayForm<TubeSDF<T>>::spans(tube, across, T(0), T(10), RayOptions<T>(), false, spans);
+
+  REQUIRE(spans.m_count == 2);
+  REQUIRE_THAT(spans.m_spans[0].m_in.m_t, withinAbsT(T(1), looseMargin<T>()));
+  REQUIRE_THAT(spans.m_spans[0].m_out.m_t, withinAbsT(T(1.5), looseMargin<T>()));
+  REQUIRE_THAT(spans.m_spans[1].m_in.m_t, withinAbsT(T(2.5), looseMargin<T>()));
+  REQUIRE_THAT(spans.m_spans[1].m_out.m_t, withinAbsT(T(3), looseMargin<T>()));
+
+  // From inside the hollow, the first crossing enters the wall from the hollow, its normal toward the axis.
+  const HitT<T> fromHollow = firstHit(tube, RayT<T>{Vec3::zeros(), Vec3::unit(1)}, T(0), T(10));
+
+  REQUIRE(fromHollow.hit());
+  REQUIRE(fromHollow.m_entering);
+  REQUIRE_THAT(fromHollow.m_t, withinAbsT(T(0.5), looseMargin<T>()));
+  REQUIRE_THAT(fromHollow.m_normal[1], withinAbsT(-T(1), looseMargin<T>()));
+
+  // Along the axis inside the hollow, nothing is crossed; along the wall, the end face is.
+  REQUIRE_FALSE(firstHit(tube, RayT<T>{Vec3(T(0), T(0), -T(3)), Vec3::unit(2)}, T(0), T(10)).hit());
+  REQUIRE_THAT(firstHit(tube, RayT<T>{Vec3(T(0.75), T(0), -T(3)), Vec3::unit(2)}, T(0), T(10)).m_t,
+               withinAbsT(T(2), looseMargin<T>()));
+
+  // On random rays, a point is in a span exactly where the tube's value is negative.
+  std::mt19937                      rng(9);
+  std::uniform_real_distribution<T> uniform(-T(1), T(1));
+
+  for (int i = 0; i < 200; i++) {
+    const Vec3    origin = T(3) * normalized(Vec3(uniform(rng), uniform(rng), uniform(rng)));
+    const Vec3    target = T(0.5) * Vec3(uniform(rng), uniform(rng), uniform(rng));
+    const RayT<T> ray{origin, normalized(target - origin)};
+
+    RayForm<TubeSDF<T>>::spans(tube, ray, T(0), T(6), RayOptions<T>(), false, spans);
+
+    for (int k = 0; k <= 600; k++) {
+      const T t     = T(0.01) * T(k);
+      const T value = tube.signedDistance(ray.at(t));
+
+      // Close to the surface the two may disagree by rounding.
+      if (std::abs(value) < T(1e-3)) {
+        continue;
+      }
+
+      bool inside = false;
+
+      for (uint32_t j = 0; j < spans.m_count; j++) {
+        inside = inside || (t >= spans.m_spans[j].m_in.m_t && t <= spans.m_spans[j].m_out.m_t);
+      }
+
+      INFO("ray " << i << ", t = " << t << ", value " << value);
+      REQUIRE(inside == (value < T(0)));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Ray: compositions of the shapes with exact ray forms are traced exactly, in a tape and fused",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const EllipsoidSDF<T>    ellipsoid(Vec3(T(0.1), T(0), -T(0.2)), Vec3(T(0.5), T(0.3), T(0.4)));
+  const CappedConeSDF<T>   cone(Vec3(-T(0.8), -T(0.5), T(0)), Vec3(-T(0.2), T(0.6), T(0.1)), T(0.5), T(0.1));
+  const PolygonPrismSDF<T> prism(Vec3(T(0.2), -T(0.8), T(0)), Vec3(T(0.3), T(0.8), T(0.2)), T(0.4), 6U, Vec3::unit(0));
+  const TubeSDF<T>         tube(Vec3(-T(0.9), T(0), -T(0.6)), Vec3(T(0.9), T(0), -T(0.5)), T(0.15), T(0.3));
+  const CutSphereSDF<T>    dome(Vec3(T(0), T(0.4), T(0.5)), T(0.5), T(0.1));
+  const WedgeSDF<T>        wedge(Vec3(T(0), T(0.9), T(0)), T(100));
+
+  const auto fused = Fused::Intersection(Fused::Difference(Fused::Union(cone, prism, tube, dome), ellipsoid), wedge);
+
+  Pool          pool(hostMemoryResource());
+  const Tape<T> tape(pool,
+                     Intersection(Difference(Union(std::vector<Expr<T>>{cone, prism, tube, dome}), ellipsoid), wedge));
+
+  std::mt19937                      rng(17);
+  std::uniform_real_distribution<T> uniform(-T(1), T(1));
+
+  int hits = 0;
+
+  for (int i = 0; i < 400; i++) {
+    const Vec3    origin = T(3) * normalized(Vec3(uniform(rng), uniform(rng), uniform(rng)));
+    const Vec3    target = T(0.6) * Vec3(uniform(rng), uniform(rng), uniform(rng));
+    const RayT<T> ray{origin, normalized(target - origin)};
+
+    const HitT<T> viaFused = firstHit(fused, ray, T(0), T(10));
+    const HitT<T> viaTape  = tape.firstHit(ray, T(0), T(10));
+
+    INFO("ray " << i << " from " << origin);
+    REQUIRE(viaTape.m_status == viaFused.m_status);
+
+    if (viaFused.hit()) {
+      REQUIRE(viaFused.m_exact);
+      REQUIRE(viaTape.m_exact);
+      REQUIRE_THAT(viaTape.m_t, withinAbsT(viaFused.m_t, looseMargin<T>()));
+      REQUIRE_THAT(std::abs(fused.signedDistance(viaFused.m_point)), withinAbsT(T(0), 1e-3));
+
+      hits++;
+    }
+  }
+
+  REQUIRE(hits > 50);
 }
 
 TEMPLATE_TEST_CASE("Ray: fused and taped compositions are traced to the closed-form crossings, and marched on request",
@@ -2233,6 +2373,21 @@ TEMPLATE_TEST_CASE("Ray: device ray queries match the host", "[Ray][gpu]", EBGEO
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, Marched<T, SphereSDF<T>>>{{sphere}}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, Marched<T, SphereSDF<T>>>{{sphere}}, rays),
                      T(1e-3));
+
+  // The ray forms of the other shapes with closed-form crossings.
+  const auto checkShape = [&rays](const auto& a_shape) {
+    using S = std::decay_t<decltype(a_shape)>;
+
+    requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, S>{a_shape}, rays),
+                       evaluateOnHost<T>(FirstCrossing<T, S>{a_shape}, rays));
+  };
+
+  checkShape(EllipsoidSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), Vec3(T(0.9), T(0.4), T(0.6))));
+  checkShape(CappedConeSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.6), T(0.2)));
+  checkShape(PolygonPrismSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.6), 5U, Vec3::ones()));
+  checkShape(TubeSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.3), T(0.6)));
+  checkShape(CutSphereSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), T(0.8), T(0.3)));
+  checkShape(WedgeSDF<T>(Vec3(T(0.1), T(0.2), T(0)), T(70)));
 
   // A fused composition, traced from its operands' spans.
   const Part<T> part;

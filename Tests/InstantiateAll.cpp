@@ -37,6 +37,15 @@ namespace EBGeometry {
   template class RoundedBoxSDF<PREC>;                                        \
   template class RoundedCylinderSDF<PREC>;                                   \
   template class PerlinSDF<PREC>;                                            \
+  template class EllipsoidSDF<PREC>;                                         \
+  template class CappedConeSDF<PREC>;                                        \
+  template class RoundConeSDF<PREC>;                                         \
+  template class PolygonPrismSDF<PREC>;                                      \
+  template class TubeSDF<PREC>;                                              \
+  template class CappedTorusSDF<PREC>;                                       \
+  template class CutSphereSDF<PREC>;                                         \
+  template class CutHollowSphereSDF<PREC>;                                   \
+  template class WedgeSDF<PREC>;                                             \
                                                                                \
   /* -- CSG: blends, BVH unions, expressions and tapes ----------------------*/ \
   template struct SmoothMinOp<PREC>;                                         \

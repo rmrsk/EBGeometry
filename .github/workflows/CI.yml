@@ -538,7 +538,9 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: GPU CUDA compile
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Every tape kernel compiles each built-in shape at every level of the evaluator; with the full set of
+    # analytic shapes this takes over 30 minutes.
+    timeout-minutes: 60
     if: ${{ !github.event.pull_request.draft }}
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
@@ -572,7 +574,9 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: GPU HIP compile
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Every tape kernel compiles each built-in shape at every level of the evaluator; with the full set of
+    # analytic shapes this takes over 30 minutes.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
       - name: Install HIP toolchain

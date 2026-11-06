@@ -54,7 +54,7 @@ units of distance.
 Analytic shapes
 ----------------
 
-:file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` declares twelve closed-form shapes:
+:file:`Source/EBGeometry_AnalyticDistanceFunctions.hpp` declares these closed-form shapes:
 
 .. list-table::
    :header-rows: 1
@@ -80,6 +80,22 @@ Analytic shapes
      - An axis-aligned box and a cylinder along y, with rounded edges
    * - ``PerlinSDF``
      - Perlin noise (not a distance function, only its sign means anything)
+   * - ``EllipsoidSDF``
+     - An ellipsoid with its semi-axes along x, y and z
+   * - ``CappedConeSDF``
+     - A cone cut flat at both ends (a frustum) between two points, with a radius at each; one may be 0
+   * - ``RoundConeSDF``
+     - Two spheres of different radii and the cone tangent to both
+   * - ``PolygonPrismSDF``
+     - A regular prism of n sides between two points, with one vertex in a given direction
+   * - ``TubeSDF``
+     - A pipe between two points, with an inner and an outer radius and flat ends
+   * - ``CappedTorusSDF``
+     - An arc of a torus with flat ends, such as a pipe elbow, symmetric about +x
+   * - ``CutSphereSDF``, ``CutHollowSphereSDF``
+     - The part of a sphere, or of a spherical shell, above a horizontal cut: a dome
+   * - ``WedgeSDF``
+     - An infinite wedge along z, pointing toward +y
 
 Each is a plain, trivially copyable value type with no base class and no virtual functions, in
 the same way as the mesh distance fields. Its ``signedDistance()`` and accessors are callable on
@@ -90,12 +106,15 @@ The shapes share a few conventions:
 
 * **Placement first.** Each constructor takes where the shape is (a center, a corner, a tip or a
   point on it) before its sizes.
-* **One axis.** A shape with a built-in axis has it along y: the torus, both cones and the rounded
-  cylinder, and also the default-constructed cylinder, infinite cylinder, capsule and plane.
-  ``CylinderSDF`` and ``CapsuleSDF`` take two end points and ``InfiniteCylinderSDF`` an axis index,
-  so they can point anywhere.
+* **One axis.** A shape with a built-in axis has it along y: the torus, both cones, the rounded
+  cylinder, the capped torus, the cut spheres and the wedge, and also the default-constructed
+  versions of the others; ``Rotate`` turns them. ``CylinderSDF``, ``CapsuleSDF``, ``CappedConeSDF``,
+  ``RoundConeSDF``, ``PolygonPrismSDF`` and ``TubeSDF`` take two end points and ``InfiniteCylinderSDF``
+  an axis index, so they can point anywhere. Angles are in degrees.
 * **Outer sizes.** A size is the size of the finished shape, rounding included: ``RoundedBoxSDF``
-  takes the box it fits exactly, and its rounding radius must be less than half of every side.
+  takes the box it fits exactly, and its rounding radius must be less than half of every side. The
+  other shapes have sharp edges; to round them, take ``Offset`` of a slightly smaller shape (the
+  :ref:`Chap:ExampleShapes` example rounds a prism this way).
 * **A bounding box.** ``computeBoundingVolume()`` returns the shape's axis-aligned bounding box, on
   the host and on a GPU, ready to pass to a BVH union. Along a direction in which a shape is
   unbounded, the box extends to plus or minus the largest finite value of ``T`` (not infinity, so
@@ -106,7 +125,8 @@ The shapes share a few conventions:
   `DistanceQuality <doxygen/html/namespaceEBGeometry.html#aba480dba46b4ac1b2393b5f2872cdad5>`__ levels:
   ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
   never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
-  except ``PerlinSDF``, which is ``NotADistance``. The mesh distance fields are ``Exact``. A BVH
+  except ``PerlinSDF``, which is ``NotADistance``. The ellipsoid's exact distance has no closed form
+  and is found by a short iteration, so it costs more to evaluate than the other shapes. The mesh distance fields are ``Exact``. A BVH
   union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
   member, and treats a type without one as ``Bound``.
 
@@ -231,7 +251,7 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
 ``Reflect`` and ``Scale`` is folded into one affine map
 (`Affine3T <doxygen/html/structEBGeometry_1_1Affine3T.html>`__) when the ``Expr`` is built.
 
-* **Primitive types.** The twelve analytic shapes and the three mesh distance fields
+* **Primitive types.** The analytic shapes above and the three mesh distance fields
   (``FlatMeshSDF``, and ``MeshSDF`` and ``TriMeshSDF`` with the default branching factor and SIMD
   width) are built in. Any other shape type -- a BVH union, a mesh distance field with another
   branching factor, another tape, or a type of your own -- is listed after ``T``:
