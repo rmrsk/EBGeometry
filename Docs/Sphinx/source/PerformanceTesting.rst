@@ -788,8 +788,8 @@ on the core it runs on. So on Linux the compiles run on one hardware thread of e
 agree closely. As many compiles run at once as there are such cores, but no more than the memory holds
 (``--jobs`` sets the number). The section's first line names the machine and how it compiled.
 
-With ``--test-builds``, a comparison also builds the heaviest test targets (``TestRay``, ``TestTape``,
-``TestRender``, and the files split from them) in Debug with assertions on, as a developer and CI's device
+With ``--test-builds``, a comparison also builds the heaviest test targets (``TestRay*``, ``TestTape*`` and
+``TestRender*``) in Debug with assertions on, as a developer and CI's device
 lanes build them, and reports their costs in a second section. It takes several minutes more; run it for a
 pull request that changes the tape or the rays.
 

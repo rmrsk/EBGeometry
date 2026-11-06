@@ -305,9 +305,9 @@ jobs:
           echo "Examples that open the viewer: $viewers"
           echo "VIEWER_EXAMPLES=$viewers" >> "$GITHUB_ENV"
       - name: Build the renderer's tests and the examples that open the viewer
-        run: cmake --build --preset debug --parallel $(nproc) --target TestRender $VIEWER_EXAMPLES
+        run: cmake --build --preset debug --parallel $(nproc) --target TestRender TestRenderDevice $VIEWER_EXAMPLES
       - name: Run the renderer's tests
-        run: ./build/debug/Tests/TestRender
+        run: ./build/debug/Tests/TestRender && ./build/debug/Tests/TestRenderDevice
       - name: Run the examples that open the viewer (no display)
         run: env -u DISPLAY -u WAYLAND_DISPLAY ctest --preset examples --parallel $(nproc) -R "^($(echo $VIEWER_EXAMPLES | tr ' ' '|'))$"
       - name: Build the examples that open the viewer with GNU make
