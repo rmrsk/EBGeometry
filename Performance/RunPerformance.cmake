@@ -190,6 +190,10 @@ if(command STREQUAL "compare")
   set(TEST_BUILDS ${test_builds})
 
   if(NOT jobs STREQUAL "")
+    if(NOT jobs MATCHES "^[1-9][0-9]*$")
+      message(FATAL_ERROR "run-performance: --jobs must be a positive integer (got '${jobs}')")
+    endif()
+
     set(JOBS ${jobs})
   endif()
 

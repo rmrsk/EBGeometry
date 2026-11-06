@@ -240,6 +240,36 @@ if(TASKSET AND EXISTS "/sys/devices/system/cpu/cpu0/topology/thread_siblings_lis
     endif()
   endforeach()
 
+  # Only the CPUs this process may run on (a container's cpuset, or a taskset around the whole run).
+  file(STRINGS "/proc/self/status" allowed_line REGEX "^Cpus_allowed_list:")
+
+  if(allowed_line MATCHES "^Cpus_allowed_list:[ \t]*(.*)$")
+    string(REPLACE "," ";" allowed_ranges "${CMAKE_MATCH_1}")
+    set(allowed "")
+
+    foreach(range IN LISTS allowed_ranges)
+      if(range MATCHES "^([0-9]+)-([0-9]+)$")
+        foreach(cpu RANGE ${CMAKE_MATCH_1} ${CMAKE_MATCH_2})
+          list(APPEND allowed ${cpu})
+        endforeach()
+      elseif(range MATCHES "^[0-9]+$")
+        list(APPEND allowed ${range})
+      endif()
+    endforeach()
+
+    if(allowed)
+      set(kept "")
+
+      foreach(cpu IN LISTS candidates)
+        if(cpu IN_LIST allowed)
+          list(APPEND kept ${cpu})
+        endif()
+      endforeach()
+
+      set(candidates ${kept})
+    endif()
+  endif()
+
   # One hardware thread per core: the first of its siblings.
   foreach(cpu IN LISTS candidates)
     file(STRINGS "/sys/devices/system/cpu/cpu${cpu}/topology/thread_siblings_list" siblings LIMIT_COUNT 1)
@@ -251,7 +281,30 @@ if(TASKSET AND EXISTS "/sys/devices/system/cpu/cpu0/topology/thread_siblings_lis
   endforeach()
 endif()
 
+# If pinning to them fails anyway, the builds run unpinned rather than not at all.
+if(build_cpus)
+  string(REPLACE ";" "," cpu_text "${build_cpus}")
+  execute_process(COMMAND ${TASKSET} -c ${cpu_text} true RESULT_VARIABLE pin_rc OUTPUT_QUIET ERROR_QUIET)
+
+  if(NOT pin_rc EQUAL 0)
+    set(build_cpus "")
+  endif()
+endif()
+
 list(LENGTH build_cpus nbuild_cpus)
+
+# The memory: the machine's, or a container's limit if lower.
+if(EXISTS "/sys/fs/cgroup/memory.max")
+  file(STRINGS "/sys/fs/cgroup/memory.max" cgroup_max LIMIT_COUNT 1)
+
+  if(cgroup_max MATCHES "^[0-9]+$")
+    math(EXPR cgroup_mib "${cgroup_max} / 1048576")
+
+    if(cgroup_mib LESS machine_mib)
+      set(machine_mib ${cgroup_mib})
+    endif()
+  endif()
+endif()
 
 if(NOT DEFINED JOBS OR "${JOBS}" STREQUAL "")
   if(nbuild_cpus GREATER 0)
@@ -345,8 +398,17 @@ if(TEST_BUILDS)
               -DCMAKE_BUILD_TYPE=Debug -DEBGEOMETRY_ENABLE_ASSERTIONS=ON -DEBGEOMETRY_BUILD_TESTS=ON
               -DEBGEOMETRY_BUILD_EXAMPLES=OFF -DFETCHCONTENT_BASE_DIR=${WORK_DIR}/deps ${test_gpu_args}
     )
+    # The target list: "... Name" lines (Makefiles) or "Name: phony" lines (Ninja).
     execute_process(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-tests" --target help OUTPUT_VARIABLE targets)
-    string(REGEX MATCHALL "Test(Ray|Tape|Render)[A-Za-z0-9]*" test_targets "${targets}")
+    string(REPLACE "\n" ";" target_lines "${targets}")
+    set(test_targets "")
+
+    foreach(line IN LISTS target_lines)
+      if(line MATCHES "^(\\.\\.\\. )?(Test(Ray|Tape|Render)[A-Za-z0-9]*)(: phony.*)?$")
+        list(APPEND test_targets ${CMAKE_MATCH_2})
+      endif()
+    endforeach()
+
     list(REMOVE_DUPLICATES test_targets)
 
     if(test_targets)

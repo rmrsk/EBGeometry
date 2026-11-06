@@ -13,7 +13,7 @@
 // than a floor, 2 s or 100 MB, so that small units do not flag on noise). Per device kernel: registers,
 // cumulative stack and spill bytes, every change listed, flagged when registers change, spills grow, or the
 // stack grows by more than 10% and 256 bytes. The section reports; it does not judge: the exit status is 0
-// whatever it finds (3 when a record cannot be read).
+// whatever it finds (3 for a usage error). A missing record is an empty build.
 
 #include <algorithm>
 #include <cmath>
@@ -131,41 +131,45 @@ struct Build
   std::map<std::pair<std::string, std::string>, Kernel> kernels;
 };
 
-// A translation unit's name from its source: the probe for Performance/<Probe>/main.cpp, the file's stem
-// otherwise. Empty for what is not measured: the harness's own tools and fetched dependencies.
+// A translation unit's name from its source: the probe for .../Performance/<Probe>/main.cpp, the file's stem
+// for .../Tests/<File>.cpp. Empty for anything else (the harness's own tools, fetched dependencies), which is
+// not measured. Only the part after the last Performance/ or Tests/ counts, so a checkout under a folder
+// named Tools/ or Tests/ is measured as any other.
 std::string
 unitName(const std::string& a_source)
 {
-  if (a_source.empty() || a_source.find("/Tools/") != std::string::npos ||
-      a_source.find("/_deps/") != std::string::npos) {
-    return "";
-  }
-
   const auto perf = a_source.rfind("/Performance/");
 
   if (perf != std::string::npos) {
-    const auto start = perf + 13;
-    const auto slash = a_source.find('/', start);
+    const std::string rest  = a_source.substr(perf + 13);
+    const auto        slash = rest.find('/');
 
-    if (slash != std::string::npos && a_source.compare(slash, std::string::npos, "/main.cpp") == 0) {
-      return a_source.substr(start, slash - start);
+    if (slash != std::string::npos && rest.substr(slash) == "/main.cpp" && rest.substr(0, slash) != "Tools") {
+      return rest.substr(0, slash);
+    }
+
+    return "";
+  }
+
+  const auto tests = a_source.rfind("/Tests/");
+
+  if (tests != std::string::npos) {
+    const std::string rest = a_source.substr(tests + 7);
+
+    if (rest.find('/') == std::string::npos && rest.size() > 4 && rest.compare(rest.size() - 4, 4, ".cpp") == 0) {
+      return rest.substr(0, rest.size() - 4);
     }
   }
 
-  const auto slash = a_source.find_last_of('/');
-  const auto name  = a_source.substr(slash == std::string::npos ? 0 : slash + 1);
-
-  return name.substr(0, name.find('.'));
+  return "";
 }
 
-bool
+// A side's record; a missing one is an empty build (nothing compiled, every unit of the other side new),
+// which the section then shows as such.
+void
 read(const std::string& a_path, Build& a_build)
 {
   std::ifstream in(a_path);
-
-  if (!in) {
-    return false;
-  }
 
   std::string line;
 
@@ -198,8 +202,6 @@ read(const std::string& a_path, Build& a_build)
       k.loads     = std::atol(f["spill_loads"].c_str());
     }
   }
-
-  return true;
 }
 
 std::string
@@ -310,11 +312,14 @@ main(int argc, char** argv)
   Build base;
   Build head;
 
-  if (basePath.empty() || headPath.empty() || !read(basePath, base) || !read(headPath, head)) {
-    std::cerr << "BuildCompare: cannot read the records (--base " << basePath << " --head " << headPath << ")\n";
+  if (basePath.empty() || headPath.empty()) {
+    std::cerr << "BuildCompare: --base and --head are required\n";
 
     return 3;
   }
+
+  read(basePath, base);
+  read(headPath, head);
 
   std::set<std::string> names;
 

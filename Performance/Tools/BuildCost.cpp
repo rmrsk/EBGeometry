@@ -104,18 +104,23 @@ endsWith(const std::string& a_text, const std::string& a_suffix)
          a_text.compare(a_text.size() - a_suffix.size(), a_suffix.size(), a_suffix) == 0;
 }
 
-// The kernels in ptxas's -v output: each "Compiling entry function 'K'" is followed by K's properties
-// (stack frame and spills) and its "Used N registers, ... B bytes cumulative stack size" line.
+// The kernels in ptxas's -v output: each "Compiling entry function 'K' for 'sm_XX'" is followed by K's
+// "Function properties for K" (its stack frame and spills; other functions' properties may come between, and
+// are not K's) and its "Used N registers, ... B bytes cumulative stack size" line. A kernel compiled for
+// several architectures is recorded once per architecture, its name carrying it.
 std::string
 kernelRecords(const std::string& a_output, const std::string& a_source)
 {
-  static const std::regex entry(R"(Compiling entry function '([^']+)')");
+  static const std::regex entry(R"(Compiling entry function '([^']+)'(?: for '([^']+)')?)");
+  static const std::regex properties(R"(Function properties for (\S+))");
   static const std::regex spills(R"((\d+) bytes spill stores, (\d+) bytes spill loads)");
   static const std::regex used(R"(Used (\d+) registers.*?(\d+) bytes cumulative stack)");
 
   std::istringstream lines(a_output);
   std::string        line;
   std::string        kernel;
+  std::string        arch;
+  std::string        described;
   std::string        stores = "0";
   std::string        loads  = "0";
   std::string        records;
@@ -124,15 +129,22 @@ kernelRecords(const std::string& a_output, const std::string& a_source)
   while (std::getline(lines, line)) {
     if (std::regex_search(line, m, entry)) {
       kernel = m[1];
+      arch   = m[2];
       stores = "0";
       loads  = "0";
+      described.clear();
     }
-    else if (!kernel.empty() && std::regex_search(line, m, spills)) {
+    else if (std::regex_search(line, m, properties)) {
+      described = m[1];
+    }
+    else if (!kernel.empty() && described == kernel && std::regex_search(line, m, spills)) {
       stores = m[1];
       loads  = m[2];
     }
     else if (!kernel.empty() && std::regex_search(line, m, used)) {
-      records += "{\"type\":\"kernel\",\"source\":" + quoted(a_source) + ",\"name\":" + quoted(demangled(kernel)) +
+      const std::string name = demangled(kernel) + (arch.empty() ? "" : " [" + arch + "]");
+
+      records += "{\"type\":\"kernel\",\"source\":" + quoted(a_source) + ",\"name\":" + quoted(name) +
                  ",\"registers\":" + std::string(m[1]) + ",\"stack\":" + std::string(m[2]) +
                  ",\"spill_stores\":" + stores + ",\"spill_loads\":" + loads + "}\n";
       kernel.clear();
@@ -197,6 +209,8 @@ main(int argc, char** argv)
 
   if (pid < 0) {
     std::perror("BuildCost: fork");
+    close(channel[0]);
+    close(channel[1]);
 
     return 3;
   }

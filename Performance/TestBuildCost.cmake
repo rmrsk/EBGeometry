@@ -6,7 +6,7 @@
 #   cmake -DBUILD_COST=<BuildCost.ex> -DBUILD_COMPARE=<BuildCompare.ex> -DDIR=<an empty directory> -P TestBuildCost.cmake
 # BuildCost must record a compile (and pass the command's exit status on); BuildCompare must compare two
 # records per unit and per kernel, and flag what grew.
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 
 foreach(var BUILD_COST BUILD_COMPARE DIR)
   if(NOT ${var})
@@ -15,7 +15,7 @@ foreach(var BUILD_COST BUILD_COMPARE DIR)
 endforeach()
 
 file(REMOVE_RECURSE "${DIR}")
-file(MAKE_DIRECTORY "${DIR}")
+file(MAKE_DIRECTORY "${DIR}/fake")
 
 # A "compile" that is cmake -E echo: BuildCost records it, with its source and object, and exits as it did.
 execute_process(COMMAND "${BUILD_COST}" --record=${DIR}/record.jsonl ${CMAKE_COMMAND} -E echo -c
@@ -41,6 +41,57 @@ execute_process(COMMAND "${BUILD_COST}" --record=${DIR}/record.jsonl ${CMAKE_COM
 
 if(rc EQUAL 0)
   message(FATAL_ERROR "TestBuildCost.cmake: BuildCost exited with 0 for a command that failed")
+endif()
+
+# ptxas's statistics, from a fake nvcc that prints them as ptxas -v does: a callee's properties come
+# between a kernel's and must not be taken for its spills, and the kernel is built for two architectures.
+file(WRITE "${DIR}/fake/nvcc" [[#!/bin/sh
+cat >&2 <<'OUT'
+ptxas info    : 0 bytes gmem
+ptxas info    : Compiling entry function '_Z6kernelPi' for 'sm_86'
+ptxas info    : Function properties for _Z6calleev
+    8 bytes stack frame, 20 bytes spill stores, 24 bytes spill loads
+ptxas info    : Function properties for _Z6kernelPi
+    0 bytes stack frame, 4 bytes spill stores, 8 bytes spill loads
+ptxas info    : Used 40 registers, used 0 barriers, 96 bytes cumulative stack size, 360 bytes cmem[0]
+ptxas info    : Compiling entry function '_Z6kernelPi' for 'sm_70'
+ptxas info    : Function properties for _Z6kernelPi
+    0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 32 registers, used 0 barriers, 64 bytes cumulative stack size, 360 bytes cmem[0]
+warning: a real warning stays visible
+OUT
+exit 0
+]])
+file(CHMOD "${DIR}/fake/nvcc" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+execute_process(COMMAND "${BUILD_COST}" --record=${DIR}/kernels.jsonl "${DIR}/fake/nvcc" -c
+                        /home/u/Tools/Tests/x/Performance/Ray/main.cpp -o ray.o
+                RESULT_VARIABLE rc ERROR_VARIABLE shown)
+file(READ "${DIR}/kernels.jsonl" kernels)
+
+foreach(expected [["name":"kernel(int*) [sm_86]","registers":40,"stack":96,"spill_stores":4,"spill_loads":8]]
+                 [["name":"kernel(int*) [sm_70]","registers":32,"stack":64,"spill_stores":0,"spill_loads":0]])
+  string(FIND "${kernels}" "${expected}" at)
+
+  if(at EQUAL -1)
+    message(FATAL_ERROR "TestBuildCost.cmake: the kernel records lack ${expected}:\n${kernels}")
+  endif()
+endforeach()
+
+string(FIND "${shown}" "ptxas info" at_stats)
+string(FIND "${shown}" "a real warning stays visible" at_warning)
+
+if(NOT rc EQUAL 0 OR NOT at_stats EQUAL -1 OR at_warning EQUAL -1)
+  message(FATAL_ERROR "TestBuildCost.cmake: nvcc's statistics must be recorded, not shown, and its warnings shown "
+                      "(exit ${rc}):\n${shown}")
+endif()
+
+# A checkout under folders named Tools/ and Tests/ is measured like any other.
+execute_process(COMMAND "${BUILD_COMPARE}" --base "${DIR}/kernels.jsonl" --head "${DIR}/kernels.jsonl" --title "Paths"
+                OUTPUT_VARIABLE paths)
+string(FIND "${paths}" "| `Ray` |" at)
+
+if(at EQUAL -1)
+  message(FATAL_ERROR "TestBuildCost.cmake: a probe under a folder named Tools/ was not reported:\n${paths}")
 endif()
 
 # Two records: one unit grows by 50% in CPU time (MAJOR), one stays; a kernel gains spills and registers.
@@ -73,6 +124,15 @@ foreach(expected "### Probe builds" "| `Ray` | 10.0 s | 15.0 s | +50.0% |" "**MA
     message(FATAL_ERROR "TestBuildCost.cmake: the report lacks '${expected}':\n${report}")
   endif()
 endforeach()
+
+# A missing record is an empty build: every unit of the other side is new.
+execute_process(COMMAND "${BUILD_COMPARE}" --base "${DIR}/none.jsonl" --head "${DIR}/head.jsonl" --title "New"
+                OUTPUT_VARIABLE fresh RESULT_VARIABLE rc)
+string(FIND "${fresh}" "| new |" at)
+
+if(NOT rc EQUAL 0 OR at EQUAL -1)
+  message(FATAL_ERROR "TestBuildCost.cmake: a missing record must read as an empty build (exit ${rc}):\n${fresh}")
+endif()
 
 string(FIND "${report}" "PerfCompare" at)
 
