@@ -206,4 +206,11 @@ add_executable(PerfCompare Tools/PerfCompare.cpp)
 target_compile_features(PerfCompare PRIVATE cxx_std_17)
 set_target_properties(PerfCompare PROPERTIES SUFFIX ".ex" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 
-add_custom_target(EBGeometry_Performance DEPENDS ${EBGEOMETRY_PERF_PROBES} PerfCompare)
+# The build-cost tools (Compare.cmake builds them on their own, before the probes) and their check.
+add_subdirectory(Tools)
+add_test(NAME PerfBuildCost
+         COMMAND ${CMAKE_COMMAND} -DBUILD_COST=$<TARGET_FILE:BuildCost> -DBUILD_COMPARE=$<TARGET_FILE:BuildCompare>
+                 -DDIR=${CMAKE_CURRENT_BINARY_DIR}/build-cost-test -P ${CMAKE_CURRENT_SOURCE_DIR}/TestBuildCost.cmake)
+set_tests_properties(PerfBuildCost PROPERTIES TIMEOUT 60 LABELS "performance")
+
+add_custom_target(EBGeometry_Performance DEPENDS ${EBGEOMETRY_PERF_PROBES} PerfCompare BuildCost BuildCompare)

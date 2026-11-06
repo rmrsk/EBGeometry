@@ -33,6 +33,12 @@
 #              agreement, and no timing verdicts                   default: OFF
 #   WORK_DIR   where the trees, builds and results go             default: build/performance/compare
 #   FAIL_ON_MAJOR  exit non-zero on a major regression            default: ON
+#   JOBS       parallel compiles per build                        default: the hardware threads, capped by
+#              memory (2 GB per compile, 6 GB with GPU)
+#   TEST_BUILDS  ON: also build the heaviest test targets (TestRay*, TestTape*, TestRender*) in Debug
+#              with assertions on both sides, and report what they cost (several minutes)   default: OFF
+#   BUILD_MINOR / BUILD_MAJOR  percent more compile CPU time or memory that is flagged in the build
+#              costs (reported, not judged)                           default: 10 / 25
 #   RECORD     ON: write the result as this comparison's section of     default: OFF
 #              the performance receipt, Performance/receipt.md (see Receipt.cmake), to commit with the pull
 #              request; CI checks it. Only for a full comparison of committed code: not with SMOKE or
@@ -43,7 +49,8 @@ cmake_minimum_required(VERSION 3.16)
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 foreach(pair "BASE;origin/main" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
-             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF")
+             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF" "TEST_BUILDS;OFF"
+             "BUILD_MINOR;10" "BUILD_MAJOR;25")
   list(GET pair 0 var)
   list(GET pair 1 default)
 
@@ -122,7 +129,8 @@ function(run_or_die)
 endfunction()
 
 # ── Export and build each side ────────────────────────────────────────────────────────────────────────
-file(REMOVE_RECURSE "${WORK_DIR}/base" "${WORK_DIR}/head" "${WORK_DIR}/base-build" "${WORK_DIR}/head-build")
+file(REMOVE_RECURSE "${WORK_DIR}/base" "${WORK_DIR}/head" "${WORK_DIR}/base-build" "${WORK_DIR}/head-build"
+     "${WORK_DIR}/base-tests" "${WORK_DIR}/head-tests" "${WORK_DIR}/tools-build")
 file(MAKE_DIRECTORY "${WORK_DIR}")
 
 set(borrowed "")
@@ -190,18 +198,168 @@ if(NOT GPU STREQUAL "OFF" AND DEFINED CMAKE_${GPU}_COMPILER)
   list(APPEND gpu_args -DCMAKE_${GPU}_COMPILER=${CMAKE_${GPU}_COMPILER})
 endif()
 
+# The build-cost tools, from the candidate (a baseline may predate them): BuildCost, the compiler launcher
+# that records each compile's CPU time, peak memory and, for nvcc, its kernels' registers, stack and spills;
+# BuildCompare, which compares the two sides' records (Tools/).
+run_or_die(COMMAND ${CMAKE_COMMAND} -S "${head_src}/Performance/Tools" -B "${WORK_DIR}/tools-build"
+                   -DCMAKE_BUILD_TYPE=Release)
+run_or_die(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/tools-build" --parallel)
+set(build_cost "${WORK_DIR}/tools-build/bin/BuildCost.ex")
+
+# Where the builds run. A compile's CPU time depends on the core it runs on: on a CPU with fast and slow cores
+# (Intel's P- and E-cores), and with the other hardware thread of its core busy, two builds of the same code
+# differed by up to 48% per probe. So on Linux the compiles run on one hardware thread of each fast core
+# (the cores in /sys/devices/cpu_core/cpus on such a CPU, every core otherwise), pinned with taskset: two
+# builds of the same code then agree within about 3% per probe. As many compiles run at once as those
+# threads, but no more than the memory holds (2 GB per compile, 6 GB for a device compile).
+cmake_host_system_information(RESULT machine_cores QUERY NUMBER_OF_PHYSICAL_CORES)
+cmake_host_system_information(RESULT machine_threads QUERY NUMBER_OF_LOGICAL_CORES)
+cmake_host_system_information(RESULT machine_mib QUERY TOTAL_PHYSICAL_MEMORY)
+
+set(build_cpus "")
+find_program(TASKSET taskset)
+
+if(TASKSET AND EXISTS "/sys/devices/system/cpu/cpu0/topology/thread_siblings_list")
+  set(candidates "")
+
+  if(EXISTS "/sys/devices/cpu_core/cpus")
+    file(STRINGS "/sys/devices/cpu_core/cpus" ranges LIMIT_COUNT 1)
+  else()
+    file(STRINGS "/sys/devices/system/cpu/online" ranges LIMIT_COUNT 1)
+  endif()
+
+  string(REPLACE "," ";" ranges "${ranges}")
+
+  foreach(range IN LISTS ranges)
+    if(range MATCHES "^([0-9]+)-([0-9]+)$")
+      foreach(cpu RANGE ${CMAKE_MATCH_1} ${CMAKE_MATCH_2})
+        list(APPEND candidates ${cpu})
+      endforeach()
+    elseif(range MATCHES "^[0-9]+$")
+      list(APPEND candidates ${range})
+    endif()
+  endforeach()
+
+  # One hardware thread per core: the first of its siblings.
+  foreach(cpu IN LISTS candidates)
+    file(STRINGS "/sys/devices/system/cpu/cpu${cpu}/topology/thread_siblings_list" siblings LIMIT_COUNT 1)
+    string(REGEX MATCH "^[0-9]+" first "${siblings}")
+
+    if(first STREQUAL "${cpu}")
+      list(APPEND build_cpus ${cpu})
+    endif()
+  endforeach()
+endif()
+
+list(LENGTH build_cpus nbuild_cpus)
+
+if(NOT DEFINED JOBS OR "${JOBS}" STREQUAL "")
+  if(nbuild_cpus GREATER 0)
+    set(JOBS ${nbuild_cpus})
+  else()
+    set(JOBS ${machine_cores})
+  endif()
+
+  if(GPU STREQUAL "OFF")
+    math(EXPR by_memory "${machine_mib} / 2048")
+  else()
+    math(EXPR by_memory "${machine_mib} / 6144")
+  endif()
+
+  if(JOBS GREATER by_memory)
+    set(JOBS ${by_memory})
+  endif()
+
+  if(JOBS LESS 1)
+    set(JOBS 1)
+  endif()
+endif()
+
+set(build_pin "")
+
+if(nbuild_cpus GREATER 0)
+  string(REPLACE ";" "," cpu_text "${build_cpus}")
+  set(build_pin ${TASKSET} -c ${cpu_text})
+  if(EXISTS "/sys/devices/cpu_core/cpus")
+    set(where_text "on hardware threads ${cpu_text} (one per fast core)")
+  else()
+    set(where_text "on hardware threads ${cpu_text} (one per core)")
+  endif()
+else()
+  set(where_text "unpinned")
+endif()
+
+math(EXPR machine_gb "(${machine_mib} + 512) / 1024")
+set(machine_text "Machine: ${machine_cores} cores, ${machine_threads} hardware threads, ${machine_gb} GB. Compiled ${where_text}, ${JOBS} at a time.")
+
+# Every compile goes through BuildCost, which appends to the side's record (an initial cache, since a
+# launcher with arguments is a list).
+function(cost_cache a_file a_record)
+  file(WRITE "${a_file}" "")
+
+  foreach(lang CXX CUDA HIP)
+    file(APPEND "${a_file}" "set(CMAKE_${lang}_COMPILER_LAUNCHER \"${build_cost};--record=${a_record}\" CACHE STRING \"\")\n")
+  endforeach()
+
+  file(REMOVE "${a_record}")
+endfunction()
+
 # Both sides are built with the candidate's function alignment (AlignFunctions.cmake), injected into each
 # configure so that it holds for a baseline whose own probes predate it.
 foreach(side base head)
   message(STATUS "Building ${side} (${${side}_sha}) ...")
+  cost_cache("${WORK_DIR}/${side}-cost.cmake" "${WORK_DIR}/${side}-build-costs.jsonl")
   run_or_die(
-    COMMAND ${CMAKE_COMMAND} -S "${${side}_src}/Performance" -B "${WORK_DIR}/${side}-build" -DCMAKE_BUILD_TYPE=Release
-            -DEBGEOMETRY_PERF_GIT_SHA=${${side}_sha} -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data
+    COMMAND ${CMAKE_COMMAND} -C "${WORK_DIR}/${side}-cost.cmake" -S "${${side}_src}/Performance"
+            -B "${WORK_DIR}/${side}-build" -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_PERF_GIT_SHA=${${side}_sha}
+            -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data
             -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${${side}_src}/Tests/data
             -DCMAKE_PROJECT_INCLUDE=${head_src}/Performance/AlignFunctions.cmake ${gpu_args}
   )
-  run_or_die(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel)
+  run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel ${JOBS})
 endforeach()
+
+# The heaviest test targets, in Debug with assertions, as a developer and CI's device lanes build them:
+# what they cost, not their results. The targets are found by name on each side, so a split test file
+# (TestRayMesh, ...) is still compared with the file it came from, in the total.
+if(TEST_BUILDS)
+  set(test_gpu_args "")
+
+  if(NOT GPU STREQUAL "OFF")
+    list(APPEND test_gpu_args -DEBGEOMETRY_ENABLE_${GPU}=ON)
+
+    if(DEFINED GPU_ARCH)
+      list(APPEND test_gpu_args -DCMAKE_${GPU}_ARCHITECTURES=${GPU_ARCH})
+    endif()
+
+    if(DEFINED CMAKE_${GPU}_COMPILER)
+      list(APPEND test_gpu_args -DCMAKE_${GPU}_COMPILER=${CMAKE_${GPU}_COMPILER})
+    endif()
+  endif()
+
+  foreach(side base head)
+    message(STATUS "Building ${side}'s heaviest tests in Debug ...")
+    cost_cache("${WORK_DIR}/${side}-test-cost.cmake" "${WORK_DIR}/${side}-test-costs.jsonl")
+    run_or_die(
+      COMMAND ${CMAKE_COMMAND} -C "${WORK_DIR}/${side}-test-cost.cmake" -S "${${side}_src}" -B "${WORK_DIR}/${side}-tests"
+              -DCMAKE_BUILD_TYPE=Debug -DEBGEOMETRY_ENABLE_ASSERTIONS=ON -DEBGEOMETRY_BUILD_TESTS=ON
+              -DEBGEOMETRY_BUILD_EXAMPLES=OFF -DFETCHCONTENT_BASE_DIR=${WORK_DIR}/deps ${test_gpu_args}
+    )
+    execute_process(COMMAND ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-tests" --target help OUTPUT_VARIABLE targets)
+    string(REGEX MATCHALL "Test(Ray|Tape|Render)[A-Za-z0-9]*" test_targets "${targets}")
+    list(REMOVE_DUPLICATES test_targets)
+
+    if(test_targets)
+      set(target_args "")
+
+      foreach(t IN LISTS test_targets)
+        list(APPEND target_args --target ${t})
+      endforeach()
+
+      run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-tests" --parallel ${JOBS} ${target_args})
+    endif()
+  endforeach()
+endif()
 
 # What changed in the probes themselves (each probe, and the harness in Common/), so that a reader knows
 # when the measurement changed too.
@@ -322,6 +480,38 @@ if(EXISTS "${WORK_DIR}/report.md")
   file(READ "${WORK_DIR}/report.md" report_text)
 endif()
 
+# What the builds cost (BuildCompare): reported with the comparison, and carried by the receipt, but not part
+# of its verdict.
+set(build_sections "")
+set(build_parts "build-costs|Probe builds (Release)")
+
+if(TEST_BUILDS)
+  list(APPEND build_parts "test-costs|Heaviest test builds (Debug, assertions)")
+endif()
+
+foreach(part IN LISTS build_parts)
+  string(REPLACE "|" ";" part "${part}")
+  list(GET part 0 stem)
+  list(GET part 1 title)
+
+  execute_process(
+    COMMAND "${WORK_DIR}/tools-build/bin/BuildCompare.ex" --base "${WORK_DIR}/base-${stem}.jsonl"
+            --head "${WORK_DIR}/head-${stem}.jsonl" --title "Build costs: ${title}" --machine "${machine_text}"
+            --minor ${BUILD_MINOR} --major ${BUILD_MAJOR} --markdown "${WORK_DIR}/${stem}.md"
+    OUTPUT_QUIET RESULT_VARIABLE build_rc)
+
+  if(build_rc EQUAL 0 AND EXISTS "${WORK_DIR}/${stem}.md")
+    file(READ "${WORK_DIR}/${stem}.md" section)
+    string(APPEND build_sections "${section}")
+  else()
+    string(APPEND build_sections "\n### Build costs: ${title}\n\nNot reported: BuildCompare could not read the records.\n")
+  endif()
+endforeach()
+
+string(APPEND report_text "${build_sections}")
+file(APPEND "${WORK_DIR}/report.md" "${build_sections}")
+message("${build_sections}")
+
 set(notes "")
 
 if(borrowed)
@@ -389,6 +579,10 @@ endif()
 
 if(RECORD)
   string(APPEND again " --record")
+endif()
+
+if(TEST_BUILDS)
+  string(APPEND again " --test-builds")
 endif()
 
 if(SMOKE)

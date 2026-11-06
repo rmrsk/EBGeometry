@@ -53,11 +53,14 @@ What is in Performance/
        Device.hpp               device timing and the host/device pairs
        Probe.hpp                what the probes share: queries, checksums, agreement, timing helpers
      Tools/PerfCompare.cpp    compares two sets of results
+     Tools/BuildCost.cpp      the compiler launcher that records what each compile costs
+     Tools/BuildCompare.cpp   compares two builds' costs
      RunPerformance.cmake     the logic of Scripts/run-performance.sh
      Compare.cmake            builds two commits, runs both, reports
      Receipt.cmake            writes the performance receipt
      CheckReceipt.cmake       CI's check of the receipt
      TestReceipt.cmake        checks that the receipt writer keeps a report whole
+     TestBuildCost.cmake      checks the build-cost tools
      receipt.md               the performance receipt
      CMakeLists.txt
 
@@ -662,6 +665,7 @@ Comparing two commits
    Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1  # times only, while developing
    Scripts/run-performance.sh compare origin/<base> --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
    Scripts/run-performance.sh compare origin/<base> --smoke                   # a quick check, about a minute
+   Scripts/run-performance.sh compare origin/<base> --gpu cuda --test-builds  # also the heaviest tests' builds
 
 Here ``<base>`` is the branch the pull request targets. The first two arguments that git resolves to
 commits are the baseline (by default, the branch pull requests merge into) and the
@@ -757,6 +761,37 @@ by 3% or more. A case that names another with ``Case::relativeTo()`` (the same a
 way, in any probe) shows that case's time over its own, for example ``tape/fused 2.78x``, with the
 baseline's beside it when the two differ by 3% or more; it is noted, never judged. Flagged cases are
 listed again under the table.
+
+Build costs
+^^^^^^^^^^^
+
+A comparison also reports what each side cost to build, after the timings: a section *Build costs*, in the
+report and in the receipt. It reports and does not judge: its flags do not enter the verdict, and CI does not
+check them.
+
+Every compile goes through ``Performance/Tools/BuildCost.cpp``, set as CMake's compiler launcher. It records
+each compile's CPU time (user and system time of the compiler and every process it ran) and peak memory,
+and, for nvcc, the statistics ptxas prints for every kernel (``-Xptxas -v``, which changes no code):
+registers, cumulative stack, and the bytes spilled to local memory. ``Performance/Tools/BuildCompare.cpp``
+then compares the two sides:
+
+* **Per translation unit** (a probe, or a test file): CPU time and peak memory, base against head, flagged
+  ``minor`` at 10% more and ``MAJOR`` at 25% more (``BUILD_MINOR`` and ``BUILD_MAJOR`` in ``Compare.cmake``),
+  if the growth is also at least 2 s or 100 MB, so that small units do not flag on noise; and the total.
+* **Per device kernel**: every kernel whose registers, stack or spills differ, flagged when its registers
+  change, its spills grow, or its stack grows by more than 10% and 256 bytes. More registers can cost
+  occupancy, spills cost local-memory traffic, and a larger stack more local memory per thread.
+
+CPU time rather than wall time, because the builds run in parallel; but a compile's CPU time still depends
+on the core it runs on. So on Linux the compiles run on one hardware thread of each core, pinned with
+``taskset`` (of each fast core, on a CPU with fast and slow cores), and two builds of the same code then
+agree closely. As many compiles run at once as there are such cores, but no more than the memory holds
+(``--jobs`` sets the number). The section's first line names the machine and how it compiled.
+
+With ``--test-builds``, a comparison also builds the heaviest test targets (``TestRay``, ``TestTape``,
+``TestRender``, and the files split from them) in Debug with assertions on, as a developer and CI's device
+lanes build them, and reports their costs in a second section. It takes several minutes more; run it for a
+pull request that changes the tape or the rays.
 
 The performance receipt
 -----------------------

@@ -409,7 +409,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    ```
 
    Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
-   functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). It compares the
+   functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). Add `--test-builds` to the
+   device run when the PR touches the tape, the rays or the renderer: it also builds `TestRay`, `TestTape`
+   and `TestRender` in Debug with assertions on both sides, where compile-time regressions show first. It compares the
    `hostdevice` pairs, which also report the host's time on every hardware thread but one, the device's speedup and
    whether the host and device answers agree. Nothing else should be running on the machine; each
    case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command
@@ -436,6 +438,10 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      are flagged whatever the timing says: the sides computed different answers.
    - A **lost** case (ran on the base, skipped or missing on the PR) is red: find out why it no longer
      runs before reading the timings.
+   - **Build costs** (the report's last section: each probe's compile CPU time and peak memory, and every
+     device kernel whose registers, stack or spills changed) are reported, not judged: they do not enter
+     the verdict or CI. Report any flag to the user like a minor regression, with the kernels behind it,
+     and say whether it is expected (new code) or not.
    - Before calling something a regression, repeat the flagged cases by hand with more rounds
      (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
      rerun until a noisy result passes.
