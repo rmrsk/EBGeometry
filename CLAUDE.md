@@ -232,11 +232,11 @@ without citing any file -- do not fall back to citing a test. (Pointing to `Test
 in genuinely contribution/testing-oriented docs like `ContributionGuidelines.rst`/
 `TestingLocally.rst`, which are about the tests themselves, not about demonstrating a feature.)
 
-**Claude must begin auditing the `.rst` docs as soon as a PR is marked ready for review (i.e. no
-longer a draft), not only when explicitly asked.** Check the PR's draft status (e.g.
-`gh pr view <number> --json isDraft`); once it is out of draft, treat a documentation audit of
-that PR's changes as part of finishing the work, following the steps below, even if the user
-hasn't separately requested a docs pass.
+**Claude audits the `.rst` docs of every PR before promoting it out of draft (see "Promote once"
+below), not only when explicitly asked.** Treat a documentation audit of the PR's changes as part of
+finishing the work, following the steps below, even if the user hasn't separately requested a docs
+pass; a PR that is already out of draft (`gh pr view <number> --json isDraft`) and changes again is
+audited again.
 
 Before treating a code change as finished, look at what you actually staged/changed
 (`git diff --staged --name-only`, or `git diff HEAD --name-only` if not yet staged) and, for each
@@ -388,21 +388,22 @@ The coverage rules are in "Vetting every pull request for performance" below. Me
 a draft, after a change to the library or the probes, it runs a quick look: one round, only the probes
 the change can affect (picked by glob), no receipt, reported in a line or two; for example
 `Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1` (a few minutes; one round
-shows times and judges none). Once the PR is ready for review (`gh pr view <n> --json isDraft`), and again
-after any later push that changes the library or the probes, it runs the full comparison and records the
-receipt, as below. No hardening in between: no extra rounds, no repeated full runs while the code still
+shows times and judges none). Once the code is final, while the PR is still a draft and before it is promoted
+(see "Promote once" below), and again after any later push that changes the library or the probes, it runs
+the full comparison and records the receipt, as below. No hardening in between: no extra rounds, no repeated full runs while the code still
 moves. `Performance/` holds the
 probes (one program per component, many named cases, `component/input/operation/precision/side`);
 `Scripts/run-performance.sh` is the one way in (its logic is `Performance/RunPerformance.cmake` and
 `Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
 full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
-1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the PR is
-   ready for review (`--smoke` first gives a one-minute check that both sides build and every case runs
+1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the code is
+   final and before the PR is promoted (`--smoke` first gives a one-minute check that both sides build and every case runs
    with the same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict,
    and take about eight minutes for every case, builds included; a probe that compiled to the same code on
    both sides is not run (listed as such in the report), so a PR touching one component runs only the probes
-   it reaches (`--no-skip` runs them all):
+   it reaches (`--no-skip` runs them all), and a side built before with the same code and settings is reused
+   from `build/performance/cache` (`--no-cache` builds afresh):
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
@@ -444,9 +445,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      device kernel whose registers, stack or spills changed) are reported, not judged: they do not enter
      the verdict or CI. Report any flag to the user like a minor regression, with the kernels behind it,
      and say whether it is expected (new code) or not.
-   - Before calling something a regression, repeat the flagged cases by hand with more rounds
-     (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
-     rerun until a noisy result passes.
+   - A flagged case is already confirmed: the comparison reruns every case flagged after its two rounds
+     with 8 more (`--confirm-rounds`) and judges it on all ten, so a flag in the verdict is not one noisy
+     round. Do not rerun until a result passes.
 4. **CI times nothing; it checks the receipt** (`Performance-receipt` in `.github/workflows/CI.yml`,
    `Performance/CheckReceipt.cmake`, required by `CI-passed`), on a PR that is ready for review (a
    draft only gets a notice). It fails when the PR changes the library
@@ -568,6 +569,12 @@ A pull request is handed to the maintainer for review when all of these hold:
   answered.
 - **The docs agree with the code** (the audit and the rules above), and **the PR body describes the final
   state**, with the performance report and the *Where to look* section.
+
+**Promote once.** A PR's full CI matrix runs when it leaves draft, and again on every push after that, so
+a push after promotion costs a whole run. Claude therefore finishes everything while the PR is a draft
+(where each push runs only the fast tier): the code, the docs audit, the receipt, and the `@claude review`
+rounds with their fixes. It promotes the PR once, at the end, and the full matrix runs once. A fix that is
+still needed after promotion (a CI failure, a reviewer's comment) goes in one push, never several.
 
 **Marking it ready.** Claude marks a PR ready for review (`gh pr ready`) only when the maintainer asks for
 it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other

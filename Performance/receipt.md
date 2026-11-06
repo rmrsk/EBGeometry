@@ -16,10 +16,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 version: 3
 side: host
 verdict: green
-base: 160782e
-base-fingerprint: 2672bc09d5a6f2f5401c396931a62fe9caac005d
-head: bd6a8b8
-head-fingerprint: 40cd8db2cb69b0f5842ba3be13aa26f18553b4a9
+base: 0075a47
+base-fingerprint: 40cd8db2cb69b0f5842ba3be13aa26f18553b4a9
+head: da8d6ba
+head-fingerprint: b3d98b4c4254e9729fc5d48c3cb8238021bad874
 cases: 0
 rounds: 2
 reps: 3
@@ -30,7 +30,7 @@ date: 2026-11-06
 
 **Accepted:** -
 
-`bd6a8b8` against `160782e` (origin/main), 2026-11-06.
+`da8d6ba` against `0075a47` (origin/main), 2026-11-06.
 
 ### Performance comparison
 
@@ -40,34 +40,34 @@ Every probe compiled to the same code on both sides; no case was run.
 
 Machine: 16 cores, 24 hardware threads, 63 GB. Compiled on hardware threads 0,2,4,6,8,10,12,14 (one per fast core), 8 at a time.
 
-Reported, not judged: these flags do not enter the verdict. CPU time of each compile (user and system, every process the compiler ran) and its peak memory; minor at 10% more, MAJOR at 25% (and at least 2 s or 100 MB). Total CPU 439.5 s → 444.8 s (+1.2%), the largest peak 1264 MB → 1264 MB; 0 unit(s) flagged.
+Reported, not judged: these flags do not enter the verdict. CPU time of each compile (user and system, every process the compiler ran) and its peak memory; minor at 10% more, MAJOR at 25% (and at least 2 s or 100 MB). Total CPU 511.8 s → 509.2 s (-0.5%), the largest peak 1263 MB → 1263 MB; 0 unit(s) flagged.
 
 | unit | CPU base | CPU head | change | peak base | peak head | change | flag |
 |---|---:|---:|---:|---:|---:|---:|---|
-| `BVH` | 8.7 s | 8.9 s | +1.9% | 558 MB | 557 MB | -0.1% | ~ |
-| `BVHRefit` | 3.8 s | 3.8 s | +0.5% | 454 MB | 454 MB | +0.0% | ~ |
-| `BVHUnion` | 14.5 s | 14.8 s | +2.0% | 815 MB | 815 MB | -0.0% | ~ |
-| `ClosestPrimitive` | 25.5 s | 26.3 s | +3.3% | 1166 MB | 1166 MB | -0.0% | ~ |
-| `Fused` | 20.4 s | 20.8 s | +2.1% | 988 MB | 988 MB | -0.0% | ~ |
-| `LaunchTuning` | 32.7 s | 33.1 s | +1.3% | 1108 MB | 1108 MB | +0.0% | ~ |
-| `Mesh` | 14.0 s | 14.2 s | +1.4% | 774 MB | 775 MB | +0.2% | ~ |
-| `MeshCSG` | 34.0 s | 34.9 s | +2.7% | 1153 MB | 1153 MB | -0.0% | ~ |
-| `MeshReconcile` | 6.1 s | 6.3 s | +3.6% | 532 MB | 532 MB | +0.0% | ~ |
-| `PointCloud` | 6.9 s | 7.2 s | +4.1% | 558 MB | 557 MB | -0.1% | ~ |
-| `PointCloudBVHBuild` | 3.4 s | 3.6 s | +4.6% | 406 MB | 406 MB | -0.0% | ~ |
-| `PointCloudHashGridBuild` | 3.0 s | 3.1 s | +2.5% | 403 MB | 403 MB | +0.0% | ~ |
-| `Ray` | 32.0 s | 32.2 s | +0.5% | 1147 MB | 1147 MB | -0.0% | ~ |
-| `RayCSG` | 29.1 s | 29.5 s | +1.3% | 962 MB | 962 MB | -0.1% | ~ |
-| `RayCrossing` | 40.8 s | 41.3 s | +1.4% | 1264 MB | 1264 MB | -0.0% | ~ |
-| `RayParticles` | 43.6 s | 43.5 s | -0.3% | 1261 MB | 1261 MB | -0.0% | ~ |
-| `RayShell` | 33.4 s | 33.1 s | -0.7% | 1056 MB | 1056 MB | +0.0% | ~ |
-| `Render` | 31.8 s | 31.9 s | +0.4% | 1054 MB | 1053 MB | -0.0% | ~ |
-| `Shapes` | 8.8 s | 8.9 s | +0.9% | 552 MB | 552 MB | +0.1% | ~ |
-| `SphereCloudBVH` | 4.5 s | 4.6 s | +2.5% | 476 MB | 476 MB | -0.0% | ~ |
-| `SphereCloudRays` | 24.5 s | 24.7 s | +0.8% | 963 MB | 963 MB | -0.0% | ~ |
-| `SphereContacts` | 4.1 s | 4.1 s | -0.6% | 424 MB | 424 MB | -0.0% | ~ |
-| `Tape` | 14.0 s | 14.0 s | +0.2% | 825 MB | 826 MB | +0.2% | ~ |
-| **all, in both** | 439.5 s | 444.8 s | +1.2% | 1264 MB | 1264 MB | -0.0% | ~ |
+| `BVH` | 10.4 s | 10.2 s | -2.3% | 556 MB | 556 MB | +0.0% | ~ |
+| `BVHRefit` | 4.2 s | 4.2 s | -0.4% | 453 MB | 453 MB | -0.0% | ~ |
+| `BVHUnion` | 17.1 s | 16.7 s | -2.3% | 814 MB | 814 MB | -0.0% | ~ |
+| `ClosestPrimitive` | 30.0 s | 29.8 s | -0.8% | 1165 MB | 1166 MB | +0.0% | ~ |
+| `Fused` | 24.0 s | 23.7 s | -0.9% | 987 MB | 988 MB | +0.0% | ~ |
+| `LaunchTuning` | 38.5 s | 38.2 s | -1.0% | 1106 MB | 1107 MB | +0.1% | ~ |
+| `Mesh` | 16.6 s | 16.2 s | -2.2% | 774 MB | 774 MB | -0.1% | ~ |
+| `MeshCSG` | 39.9 s | 39.5 s | -1.0% | 1152 MB | 1152 MB | +0.0% | ~ |
+| `MeshReconcile` | 7.2 s | 7.1 s | -1.8% | 532 MB | 531 MB | -0.1% | ~ |
+| `PointCloud` | 8.3 s | 8.0 s | -2.9% | 556 MB | 556 MB | -0.1% | ~ |
+| `PointCloudBVHBuild` | 4.1 s | 3.9 s | -3.7% | 405 MB | 405 MB | -0.0% | ~ |
+| `PointCloudHashGridBuild` | 3.5 s | 3.4 s | -1.2% | 402 MB | 402 MB | -0.0% | ~ |
+| `Ray` | 37.1 s | 37.1 s | -0.1% | 1146 MB | 1146 MB | +0.0% | ~ |
+| `RayCSG` | 33.7 s | 33.7 s | -0.0% | 961 MB | 962 MB | +0.1% | ~ |
+| `RayCrossing` | 47.6 s | 47.7 s | +0.3% | 1263 MB | 1263 MB | +0.0% | ~ |
+| `RayParticles` | 50.5 s | 50.3 s | -0.3% | 1260 MB | 1260 MB | +0.0% | ~ |
+| `RayShell` | 38.2 s | 38.2 s | -0.2% | 1054 MB | 1055 MB | +0.1% | ~ |
+| `Render` | 36.3 s | 36.5 s | +0.6% | 1052 MB | 1053 MB | +0.0% | ~ |
+| `Shapes` | 10.2 s | 10.1 s | -0.9% | 551 MB | 551 MB | +0.1% | ~ |
+| `SphereCloudBVH` | 5.0 s | 5.1 s | +1.1% | 475 MB | 475 MB | -0.0% | ~ |
+| `SphereCloudRays` | 29.0 s | 29.0 s | -0.2% | 961 MB | 962 MB | +0.0% | ~ |
+| `SphereContacts` | 4.6 s | 4.5 s | -0.3% | 424 MB | 424 MB | +0.1% | ~ |
+| `Tape` | 15.9 s | 16.2 s | +1.8% | 825 MB | 824 MB | -0.1% | ~ |
+| **all, in both** | 511.8 s | 509.2 s | -0.5% | 1263 MB | 1263 MB | +0.0% | ~ |
 
 
 These probes compiled to the same code on both sides and were not run (224 cases): BVH (6), BVHRefit (2), BVHUnion (12), ClosestPrimitive (6), Fused (10), Mesh (12), MeshCSG (12), MeshReconcile (4), PointCloud (40), PointCloudBVHBuild (2), PointCloudHashGridBuild (2), Ray (14), RayCSG (10), RayCrossing (16), RayParticles (10), RayShell (6), Render (6), Shapes (20), SphereCloudBVH (6), SphereCloudRays (6), SphereContacts (2), Tape (20)
