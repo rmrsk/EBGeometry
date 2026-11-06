@@ -23,10 +23,6 @@
  *   which the shape is unbounded, the box extends to plus or minus Math::Limits<T>::max().
  * - distanceQuality says how far signedDistance() can be trusted as a distance (DistanceQuality).
  *   Every shape is Exact except PerlinSDF, which is NotADistance.
- * - On a device, signedDistance() of EllipsoidSDF to WedgeSDF is out of line (EBGEOMETRY_DEVICE_NOINLINE). A tape
- *   inlines an analytic shape's distance into every level of its evaluator and ray program that reads it, for each
- *   built-in type; inlined, these nine made a Debug CUDA build of TestRay four times as long (1800 s against
- *   460 s, 9 GB against 5.6 GB). The twelve cheaper shapes stay inlined.
  * @author Robert Marskar
  */
 
@@ -2536,7 +2532,6 @@ public:
    * @return Signed distance from a_point to the ellipsoid surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -2731,7 +2726,6 @@ public:
    * @return Signed distance from a_point to the frustum surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -2959,7 +2953,6 @@ public:
    * @return Signed distance from a_point to the round cone surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -3238,7 +3231,6 @@ public:
    * @return Signed distance from a_point to the prism surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -3450,7 +3442,6 @@ public:
    * @return Signed distance from a_point to the tube surface; negative inside the wall.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -3648,7 +3639,6 @@ public:
    * @return Signed distance from a_point to the surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -3860,7 +3850,6 @@ public:
    * @return Signed distance from a_point to the surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -4059,7 +4048,6 @@ public:
    * @return Signed distance from a_point to the surface; negative inside the shell.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -4229,7 +4217,6 @@ public:
    * @return Signed distance from a_point to the surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
