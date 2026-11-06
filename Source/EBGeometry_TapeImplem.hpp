@@ -1767,7 +1767,20 @@ Tape<T, UserPrimitives...>::evaluateHandle(const uint32_t      a_type,
 }
 
 template <class T, class... UserPrimitives>
-template <size_t I, bool Handles>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::evaluateRare(const uint32_t      a_type,
+                                         const uint32_t      a_index,
+                                         const Vec3T<T>&     a_point,
+                                         const void*         a_base,
+                                         const PoolLocation& a_location) const noexcept
+{
+  return this->template dispatchPrimitive<0, true, true>(a_type, a_index, a_point, a_base, a_location);
+}
+
+template <class T, class... UserPrimitives>
+template <size_t I, bool Handles, bool Rare>
 EBGEOMETRY_HOST_DEVICE
 inline T
 Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
@@ -1783,11 +1796,24 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
       // A pool-resident primitive (a mesh SDF, a BVH union, a tape) is stored as its layout and resolves
       // against the tape's own location. It is evaluated out of line (evaluateHandle()), so that its
       // traversal stack is not part of the frame every analytic shape is evaluated in place in.
-      if constexpr (isPoolHandle<P>) {
+      if constexpr (isOutOfLine<P>) {
         if constexpr (Handles) {
           const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index);
 
-          return P(stored, a_location).signedDistance(a_point);
+          if constexpr (isPoolHandle<P> && Rare) {
+            EBGEOMETRY_EXPECT(false);
+
+            return T(0);
+          }
+          else if constexpr (isPoolHandle<P>) {
+            return P(stored, a_location).signedDistance(a_point);
+          }
+          else if constexpr (Rare) {
+            return stored.signedDistance(a_point);
+          }
+          else {
+            return this->evaluateRare(a_type, a_index, a_point, a_base, a_location);
+          }
         }
         else {
           return this->evaluateHandle(a_type, a_index, a_point, a_base, a_location);
@@ -1802,7 +1828,7 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
       return this->dispatchRest(a_type, a_index, a_point, a_base, a_location);
     }
     else {
-      return this->template dispatchPrimitive<I + 1, Handles>(a_type, a_index, a_point, a_base, a_location);
+      return this->template dispatchPrimitive<I + 1, Handles, Rare>(a_type, a_index, a_point, a_base, a_location);
     }
   }
   else {

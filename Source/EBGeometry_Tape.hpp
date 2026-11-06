@@ -1568,7 +1568,7 @@ private:
    * @param[in] a_location The pool location.
    * @return The value.
    */
-  template <size_t I, bool Handles>
+  template <size_t I, bool Handles, bool Rare = false>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
   dispatchPrimitive(const uint32_t      a_type,
@@ -1639,6 +1639,16 @@ private:
                  const Vec3T<T>&     a_point,
                  const void*         a_base,
                  const PoolLocation& a_location) const noexcept;
+
+  // PROTOTYPE (#302): the rare analytic shapes, out of line below evaluateHandle().
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  evaluateRare(const uint32_t      a_type,
+               const uint32_t      a_index,
+               const Vec3T<T>&     a_point,
+               const void*         a_base,
+               const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Evaluate a Blur clause: the weighted average of its sub-program at 27 taps around the point.

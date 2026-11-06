@@ -650,6 +650,14 @@ private:
 template <class P>
 inline constexpr bool isPoolHandle = std::is_base_of_v<PoolHandle, P>;
 
+// PROTOTYPE (#302): shapes the tape dispatches out of line, with the pool handles.
+template <class P>
+struct IsRareShape : std::false_type
+{};
+
+template <class P>
+inline constexpr bool isOutOfLine = isPoolHandle<P> || IsRareShape<P>::value;
+
 } // namespace EBGeometry
 
 #include "EBGeometry_PoolImplem.hpp"
