@@ -410,8 +410,8 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 
    Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
    functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). Add `--test-builds` to the
-   device run when the PR touches the tape, the rays or the renderer: it also builds `TestRay`, `TestTape`
-   and `TestRender` in Debug with assertions on both sides, where compile-time regressions show first. It compares the
+   device run when the PR touches the tape, the rays or the renderer: it also builds `TestRay*`, `TestTape*`
+   and `TestRender*` in Debug with assertions on both sides, where compile-time regressions show first. It compares the
    `hostdevice` pairs, which also report the host's time on every hardware thread but one, the device's speedup and
    whether the host and device answers agree. Nothing else should be running on the machine; each
    case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command

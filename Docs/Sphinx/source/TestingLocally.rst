@@ -406,11 +406,13 @@ Test coverage
        with and without unbounded operands, calls nested to the limit, full value and point stacks,
        user primitive types and a tape inside a tape, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
-       managed memory evaluated on the device through its own pool; ``closestPrimitive()``'s deciding
-       leaf for a difference, a union (through the BVH and operand by operand) and an intersection
-       against the brute-force choice, followed through smooth blends, blurs, maps and repetitions to
-       the leaf and its local point, each occurrence of a shared shape numbered, a mesh leaf returned as
-       a handle, a fused part as one leaf of a scene, and the device against the host.
+       managed memory evaluated on the device through its own pool.
+   * - ``TestTapeClosest``
+     - ``closestPrimitive()``'s deciding leaf for a difference, a union (through the BVH and operand by
+       operand) and an intersection against the brute-force choice, followed through smooth blends,
+       blurs, maps and repetitions to the leaf and its local point, each occurrence of a shared shape
+       numbered, a mesh leaf returned as a handle, a fused part as one leaf of a scene, and the device
+       against the host.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
@@ -421,31 +423,43 @@ Test coverage
        rebuilt from its layout; a fused shape as a tape primitive and as a BVH union's primitive; on
        a device, an analytic composition and a drilled mesh against the host; and every rejected
        argument, operands from different pools included.
-   * - ``TestRay``
-     - The ray queries: the unit cube as a ``TriMeshSDF``, a ``MeshSDF`` and a ``FlatMeshSDF`` against a slab test (axis-aligned and diagonal
-       rays, rays through a face diagonal, an edge and a corner, from inside, in a face's plane, misses,
-       an interval stopping short, a crossing at ``t = 0`` and stepping off it), with the face and
-       normal, and on 2,000 random rays (the triangles at two leaf widths); no ray slipping between the
-       faces of a fine mesh far from the origin, aimed at its edges and corners;
-       ``intersects()`` agreeing with ``firstHit()`` on unbounded rays that enter a tetrahedron's leaf boxes and miss;
-       a sliver face not crossed beyond its ends; each analytic ray form against its crossing
-       worked by hand and against the march on random rays; a tube's two spans against its values along the
-       ray; a composition of the shapes with ray forms traced exactly, in a tape and fused; span lists united, intersected and
-       complemented against the sets of points they cover; a fused and a taped composition traced (and
-       marched on request) to crossings worked by hand, with the tape's deciding leaf; fused compositions
-       and tapes (a BVH union, a difference, a complement, affine maps) against their values sampled
-       along rays from outside and inside, through a deep copy and a view; a row of balls with more
-       spans than a list holds, from starts along it; the three mesh SDFs, a shape with only
-       ``firstHit()`` and a marched offset inside differences, and a mesh in a tape; a marched ball in
-       differences, fused and in a tape, evaluated only where the box leaves the difference open and only up
-       to its first crossing; offsets and annuli of a sphere, box, capsule, plane, infinite cylinder and a
-       scaled ball, fused and in a tape, and of the three mesh SDFs (the unit cube grown, shrunk and as a wall,
-       from outside, from inside it and towards a corner), against crossings and normals worked by hand, and a
-       shell of a shell marched; segments (zero length, a crossing at
-       the start, the sign shortcut, and an open mesh left through its hole, which crosses nothing); a march out of steps reported as unresolved; and on a device, a
-       ray form, the march, a fused composition, the three mesh SDFs, two tapes (one with a BVH union
-       and a difference), a mesh in a fused difference, and offsets and annuli of the meshes and of a scaled
-       box, fused and in tapes, against the host.
+   * - ``TestRayAnalytic``
+     - The ray queries of analytic shapes: each analytic ray form against its crossing worked by hand
+       and against the march on random rays, a small ball and a thin cylinder far from the ray's start;
+       a tube's two spans against its values along the ray; segments (zero length, a crossing at the
+       start, the sign shortcut); a march out of steps reported as unresolved; and on a device, the ray
+       forms, the march and the crossings without normals against the host.
+   * - ``TestRayMesh``
+     - The ray queries of mesh SDFs: the unit cube as a ``TriMeshSDF``, a ``MeshSDF`` and a
+       ``FlatMeshSDF`` against a slab test (axis-aligned and diagonal rays, rays through a face
+       diagonal, an edge and a corner, from inside, in a face's plane, misses, an interval stopping
+       short, a crossing at ``t = 0`` and stepping off it), with the face and normal, and on 2,000
+       random rays (the triangles at two leaf widths); ``intersects()`` agreeing with ``firstHit()`` on
+       unbounded rays that enter a tetrahedron's leaf boxes and miss; a sliver face not crossed beyond
+       its ends; no ray slipping between the faces of a fine mesh far from the origin, aimed at its
+       edges and corners; a segment leaving an open mesh through its hole crossing nothing; and on a
+       device, the three mesh SDFs against the host.
+   * - ``TestRayCSG``
+     - The ray queries of compositions: the ray-form traits; a composition of the shapes with ray forms
+       traced exactly, in a tape and fused; a fused and a taped composition traced (and marched on
+       request) to crossings worked by hand, with the tape's deciding leaf; a marched ball in
+       differences, fused and in a tape, evaluated only where the box leaves the difference open and
+       only up to its first crossing; span lists united, intersected and complemented against the sets
+       of points they cover; fused compositions and tapes (a BVH union, a difference, a complement,
+       affine maps) against their values sampled along rays from outside and inside, through a deep copy
+       and a view; smooth unions and intersections; a row of balls with more spans than a list holds,
+       from starts along it; sibling BVH unions naming the leaf each ray hits; the three mesh SDFs, a
+       shape with only ``firstHit()`` and a marched offset inside differences, and a mesh in a tape;
+       ``firstCrossing()`` on every kind of shape; an operand that never decides reported as
+       unresolved; a BVH union's hit naming its member; and on a device, a fused composition, two tapes
+       (one with a BVH union and a difference), a mesh in a fused difference, a marched shell and a
+       smooth union against the host.
+   * - ``TestRayOffsets``
+     - The ray queries of offsets and annuli: of a sphere, box, capsule, plane, infinite cylinder and a
+       scaled ball, fused and in a tape, and of the three mesh SDFs (the unit cube grown, shrunk and as
+       a wall, from outside, from inside it and towards a corner), against crossings and normals worked
+       by hand, and a shell of a shell marched; and on a device, offsets and annuli of the meshes and of
+       a scaled box, fused and in tapes, against the host.
    * - ``TestIncludeFused``, ``TestIncludeBVHUnion``
      - A file that includes only the shapes and ``EBGeometry_Fused.hpp`` (or ``EBGeometry_BVHUnion.hpp``)
        sees the ray forms of the fused compositions, the BVH unions and the offsets, so ``firstHit()`` traces
@@ -455,7 +469,7 @@ Test coverage
        pixels whose rays meet it (against the closed form); a hole seen from inside tinted and the
        camera reported inside; coloring by primitive telling two leaves apart; the section plane
        removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
-       closed-form box is; a canceled render stopping before any row, on the host and the device;
+       closed-form box is; a canceled render stopping before any row;
        faces lying on the bounding box seen from outside; a table color replacing the palette's for its
        primitive only; coloring by normal; the light, ambient, highlight and background settings (an
        unlit surface black, a background of the color set); the floor's checkerboard off and resized;
@@ -463,8 +477,12 @@ Test coverage
        from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
        section plane's contour, sheet and lines of equal distance, within the box only; ``writeImage()``
        writing a binary PPM;
-       ``view()`` returning at once with ``--no-view``, the pool left unfrozen; the rejected settings and
-       cameras; and device renders against the host's, with and without the new camera and colors.
+       ``view()`` returning at once with ``--no-view``, the pool left unfrozen; and the rejected
+       settings and cameras.
+   * - ``TestRenderDevice``
+     - Device renders of a tape against the host's: shaded, with an orthographic camera, a near clip
+       and colors set, in the depth and x-ray views and with a hidden primitive; the cost view; and a
+       canceled device render skipping its pixels' work.
    * - ``TestFunctionQueries``
      - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
