@@ -667,15 +667,19 @@ requireExactSDF(const Shape& a_shape, const T a_extent)
 
     previous = p;
 
+    // The gradient by central differences with the step h and with half of it: where they differ, the wider
+    // step straddles a ridge, even if the gradient it gives is close to unit length.
     Vec3 grad;
+    Vec3 half;
 
     for (size_t d = 0; d < 3; d++) {
       const Vec3 e = h * Vec3::unit(d);
 
       grad[d] = (a_shape.signedDistance(p + e) - a_shape.signedDistance(p - e)) / (T(2) * h);
+      half[d] = (a_shape.signedDistance(p + T(0.5) * e) - a_shape.signedDistance(p - T(0.5) * e)) / h;
     }
 
-    if (std::abs(grad.length() - T(1)) > tol) {
+    if (std::abs(grad.length() - T(1)) > tol || (grad - half).length() > tol) {
       ridgePoints++;
 
       continue;

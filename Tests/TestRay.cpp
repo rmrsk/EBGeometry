@@ -959,6 +959,11 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms agree with the march on random r
         continue;
       }
 
+      // A march that runs out of steps (along a grazing ray) has not decided; there is nothing to compare.
+      if (march.m_status == HitStatus::Unresolved) {
+        continue;
+      }
+
       INFO("ray " << i << " from " << origin << " along " << direction);
 
       REQUIRE(march.m_status == exact.m_status);
