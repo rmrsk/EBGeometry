@@ -142,13 +142,31 @@ foreach(side base head)
   string(TOUPPER ${side} SIDE_VAR)
   set(ref "${${SIDE_VAR}}")
 
+  set(src "${WORK_DIR}/${side}")
+
+  # The working tree as it is: its files, tracked or not (but not ignored), uncommitted changes included,
+  # copied out like an exported commit, so that it is built from the same path as the baseline (below).
   if(side STREQUAL "head" AND ref STREQUAL "WORKTREE")
-    set(src "${REPO}")
     execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE sha
                     OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(sha "${sha}+worktree")
+    execute_process(COMMAND git ls-files --cached --others --exclude-standard WORKING_DIRECTORY "${REPO}"
+                    OUTPUT_VARIABLE files RESULT_VARIABLE rc)
+
+    if(NOT rc EQUAL 0)
+      message(FATAL_ERROR "Compare.cmake: cannot list the files of the working tree ${REPO}")
+    endif()
+
+    string(REPLACE "\n" ";" files "${files}")
+
+    foreach(f IN LISTS files)
+      # A deleted file is still listed until the deletion is staged; a submodule is a directory.
+      if(NOT f STREQUAL "" AND NOT IS_DIRECTORY "${REPO}/${f}" AND EXISTS "${REPO}/${f}")
+        get_filename_component(dir "${src}/${f}" DIRECTORY)
+        file(COPY "${REPO}/${f}" DESTINATION "${dir}")
+      endif()
+    endforeach()
   else()
-    set(src "${WORK_DIR}/${side}")
     execute_process(COMMAND git rev-parse --short "${ref}" WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE sha
                     OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE rc)
 
@@ -371,19 +389,14 @@ configure_file("${head_src}/Performance/AlignFunctions.cmake" "${WORK_DIR}/Align
 # two sides then compile the same code to the same bytes, and a probe whose code did not change need not run
 # (below). For the same reason the commit is passed at run time (EBGEOMETRY_PERF_GIT_SHA in the environment),
 # not compiled in, and the smoke meshes' path is the shared one, read only by a smoke run, which builds each
-# side with its own. A working tree measured as it is (HEAD=WORKTREE) is built where it is.
+# side with its own.
 foreach(side base head)
   message(STATUS "Building ${side} (${${side}_sha}) ...")
   cost_cache("${WORK_DIR}/${side}-cost.cmake" "${WORK_DIR}/${side}-build-costs.jsonl")
 
-  if("${${side}_src}" STREQUAL "${REPO}")
-    set(build_src "${REPO}")
-    set(build_dir "${WORK_DIR}/${side}-build")
-  else()
-    file(RENAME "${${side}_src}" "${WORK_DIR}/src")
-    set(build_src "${WORK_DIR}/src")
-    set(build_dir "${WORK_DIR}/build")
-  endif()
+  file(RENAME "${${side}_src}" "${WORK_DIR}/src")
+  set(build_src "${WORK_DIR}/src")
+  set(build_dir "${WORK_DIR}/build")
 
   if(SMOKE)
     set(smoke_dir "${${side}_src}/Tests/data")
@@ -399,10 +412,8 @@ foreach(side base head)
   )
   run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${build_dir}" --parallel ${JOBS})
 
-  if(NOT build_src STREQUAL REPO)
-    file(RENAME "${WORK_DIR}/build" "${WORK_DIR}/${side}-build")
-    file(RENAME "${WORK_DIR}/src" "${${side}_src}")
-  endif()
+  file(RENAME "${WORK_DIR}/build" "${WORK_DIR}/${side}-build")
+  file(RENAME "${WORK_DIR}/src" "${${side}_src}")
 endforeach()
 
 # The heaviest test targets, in Debug with assertions, as a developer and CI's device lanes build them:
