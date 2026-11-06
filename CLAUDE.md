@@ -402,7 +402,8 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
    with the same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict,
    and take about eight minutes for every case, builds included; a probe that compiled to the same code on
    both sides is not run (listed as such in the report), so a PR touching one component runs only the probes
-   it reaches (`--no-skip` runs them all):
+   it reaches (`--no-skip` runs them all), and a side built before with the same code and settings is reused
+   from `build/performance/cache` (`--no-cache` builds afresh):
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt

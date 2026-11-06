@@ -36,6 +36,9 @@
 #                           by memory)
 #   --no-skip               compare: also run the probes that compiled to the same code on both sides
 #                           (by default they are not run, and the report lists them)
+#   --no-cache              compare: build both sides afresh (by default a side whose code, compilers and
+#                           settings match a recent comparison's reuses that build, from
+#                           build/performance/cache)
 #   --test-builds           compare: also build the heaviest test targets (TestRay*, TestTape*, TestRender*)
 #                           in Debug with assertions on both sides, and report what they cost; for changes
 #                           to the tape or the rays (several minutes more)
@@ -84,6 +87,7 @@ set(core "")
 set(jobs "")
 set(test_builds OFF)
 set(no_skip OFF)
+set(no_cache OFF)
 
 list(LENGTH args nargs)
 set(i 0)
@@ -107,6 +111,8 @@ while(i LESS nargs)
     set(test_builds ON)
   elseif(a STREQUAL "--no-skip")
     set(no_skip ON)
+  elseif(a STREQUAL "--no-cache")
+    set(no_cache ON)
   elseif(a MATCHES "^--(gpu|gpu-arch|cuda-compiler|hip-compiler|reps|rounds|core|jobs)$")
     if(next GREATER_EQUAL nargs)
       message(FATAL_ERROR "run-performance: ${a} needs a value (see --help)")
@@ -194,6 +200,7 @@ if(command STREQUAL "compare")
   set(CORE ${core})
   set(TEST_BUILDS ${test_builds})
   set(NO_SKIP ${no_skip})
+  set(NO_CACHE ${no_cache})
 
   if(NOT jobs STREQUAL "")
     if(NOT jobs MATCHES "^[1-9][0-9]*$")

@@ -71,7 +71,8 @@ A run prints a table per probe and saves the results to `build/performance/resul
 builds both sides from their own `Performance/`, runs every case in a fresh process, alternating between
 the sides, and prints the comparison (also written to `build/performance/compare/report.md`) with the
 command to repeat it. A probe that compiled to the same code on both sides is not run (`--no-skip` runs
-it). A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
+it), and a side built before with the same code and settings is taken from `build/performance/cache`
+(`--no-cache` builds it again). A case is **minor** at 3% slower and **MAJOR** at 10% slower, in both cases only
 outside the 95% confidence interval over the runs (fresh processes; at least two per side). The defaults,
 2 rounds of 3 repetitions, are the least that gives a verdict; `--rounds 1` shows times without one,
 and `--rounds 10` on a few cases confirms or rules out a flagged change.

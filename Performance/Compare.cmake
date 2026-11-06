@@ -39,6 +39,10 @@
 #              with assertions on both sides, and report what they cost (several minutes)   default: OFF
 #   NO_SKIP    ON: run every case, also those of probes that compiled to the same code on both
 #              sides (skipped by default, and listed as not run)            default: OFF
+#   NO_CACHE   ON: build both sides afresh, rather than reusing a cached build of the same code with the
+#              same compilers and settings                                  default: OFF
+#   CACHE_DIR  where the builds are cached (the last CACHE_KEEP)            default: build/performance/cache
+#   CACHE_KEEP how many cached builds are kept                              default: 6
 #   BUILD_MINOR / BUILD_MAJOR  percent more compile CPU time or memory that is flagged in the build
 #              costs (reported, not judged)                           default: 10 / 25
 #   RECORD     ON: write the result as this comparison's section of     default: OFF
@@ -52,6 +56,7 @@ get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 foreach(pair "BASE;origin/main" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
              "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF" "TEST_BUILDS;OFF" "NO_SKIP;OFF"
+             "NO_CACHE;OFF" "CACHE_DIR;${REPO}/build/performance/cache" "CACHE_KEEP;6"
              "BUILD_MINOR;10" "BUILD_MAJOR;25")
   list(GET pair 0 var)
   list(GET pair 1 default)
@@ -369,6 +374,73 @@ set(machine_text "Machine: ${machine_cores} cores, ${machine_threads} hardware t
 
 # Every compile goes through BuildCost, which appends to the side's record (an initial cache, since a
 # launcher with arguments is a list).
+# build_key(<source> <build dir> <configure arguments> <var>): the cache key of a configured side (see the build
+# loop below), a hash of its code and of how it is built.
+function(build_key a_src a_build a_args a_var)
+  set(text "cmake ${CMAKE_VERSION}\nargs ${a_args}\n")
+
+  # The compilers the configure found, and their versions.
+  file(STRINGS "${a_build}/CMakeCache.txt" compilers REGEX "^CMAKE_(CXX|CUDA|HIP)_COMPILER:")
+
+  foreach(line IN LISTS compilers)
+    string(REGEX REPLACE "^[^=]*=" "" compiler "${line}")
+
+    if(EXISTS "${compiler}")
+      execute_process(COMMAND "${compiler}" --version OUTPUT_VARIABLE version ERROR_QUIET)
+      string(APPEND text "compiler ${compiler}\n${version}\n")
+    endif()
+  endforeach()
+
+  # The CPU, since the probes are built for the host's instruction set.
+  if(EXISTS "/proc/cpuinfo")
+    file(STRINGS "/proc/cpuinfo" cpu REGEX "^(model name|flags)" LIMIT_COUNT 2)
+    string(APPEND text "cpu ${cpu}\n")
+  endif()
+
+  # The code: every file of the library and the probes, but their Markdown (the receipt, the README).
+  file(GLOB_RECURSE files RELATIVE "${a_src}" "${a_src}/Source/*" "${a_src}/Performance/*")
+  list(APPEND files EBGeometry.hpp "${WORK_DIR}/AlignFunctions.cmake")
+  list(FILTER files EXCLUDE REGEX "[.]md$")
+  list(SORT files)
+
+  foreach(f IN LISTS files)
+    if(IS_ABSOLUTE "${f}")
+      file(SHA1 "${f}" hash)
+    else()
+      file(SHA1 "${a_src}/${f}" hash)
+    endif()
+
+    string(APPEND text "${f} ${hash}\n")
+  endforeach()
+
+  string(SHA1 key "${text}")
+  set(${a_var} "${key}" PARENT_SCOPE)
+endfunction()
+
+# prune_cache(): keep the CACHE_KEEP most recently used cached builds.
+function(prune_cache)
+  file(GLOB entries LIST_DIRECTORIES true "${CACHE_DIR}/*/complete")
+  set(stamped "")
+
+  foreach(e IN LISTS entries)
+    file(STRINGS "${e}" when LIMIT_COUNT 1)
+    get_filename_component(dir "${e}" DIRECTORY)
+    list(APPEND stamped "${when}|${dir}")
+  endforeach()
+
+  list(SORT stamped COMPARE NATURAL ORDER DESCENDING)
+  set(i 0)
+
+  foreach(item IN LISTS stamped)
+    if(i GREATER_EQUAL CACHE_KEEP)
+      string(REGEX REPLACE "^[^|]*[|]" "" dir "${item}")
+      file(REMOVE_RECURSE "${dir}")
+    endif()
+
+    math(EXPR i "${i} + 1")
+  endforeach()
+endfunction()
+
 function(cost_cache a_file a_record)
   file(WRITE "${a_file}" "")
 
@@ -390,6 +462,13 @@ configure_file("${head_src}/Performance/AlignFunctions.cmake" "${WORK_DIR}/Align
 # (below). For the same reason the commit is passed at run time (EBGEOMETRY_PERF_GIT_SHA in the environment),
 # not compiled in, and the smoke meshes' path is the shared one, read only by a smoke run, which builds each
 # side with its own.
+# A side's build is cached under CACHE_DIR, keyed by what decides its bytes: the code it is built from (the
+# library and the probes, the Markdown files aside), the configure arguments, the compilers' versions, CMake's
+# version and the CPU (the probes are built for the host's instruction set). A later comparison of the same code
+# with the same settings, the baseline until main's code moves on or a receipt rerun after a docs-only commit,
+# copies the cached programs and their build costs instead of building them again.
+get_filename_component(CACHE_DIR "${CACHE_DIR}" ABSOLUTE BASE_DIR "${REPO}")
+
 foreach(side base head)
   message(STATUS "Building ${side} (${${side}_sha}) ...")
   cost_cache("${WORK_DIR}/${side}-cost.cmake" "${WORK_DIR}/${side}-build-costs.jsonl")
@@ -404,15 +483,43 @@ foreach(side base head)
     set(smoke_dir "${build_src}/Tests/data")
   endif()
 
-  run_or_die(
-    COMMAND ${CMAKE_COMMAND} -C "${WORK_DIR}/${side}-cost.cmake" -S "${build_src}/Performance" -B "${build_dir}"
-            -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_PERF_GIT_SHA=compare
-            -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${smoke_dir}
-            -DCMAKE_PROJECT_INCLUDE=${WORK_DIR}/AlignFunctions.cmake ${gpu_args}
-  )
-  run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${build_dir}" --parallel ${JOBS})
+  set(configure_args
+      -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_PERF_GIT_SHA=compare
+      -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${smoke_dir}
+      -DCMAKE_PROJECT_INCLUDE=${WORK_DIR}/AlignFunctions.cmake ${gpu_args})
+  run_or_die(COMMAND ${CMAKE_COMMAND} -C "${WORK_DIR}/${side}-cost.cmake" -S "${build_src}/Performance" -B "${build_dir}"
+                     ${configure_args})
 
-  file(RENAME "${WORK_DIR}/build" "${WORK_DIR}/${side}-build")
+  build_key("${build_src}" "${build_dir}" "${configure_args}" key)
+  set(entry "${CACHE_DIR}/${key}")
+  set(${side}_cached OFF)
+
+  if(NOT NO_CACHE AND EXISTS "${entry}/complete")
+    message(STATUS "Reusing the cached build of ${side}: ${entry}")
+    file(REMOVE_RECURSE "${build_dir}")
+    file(MAKE_DIRECTORY "${WORK_DIR}/${side}-build")
+    file(COPY "${entry}/bin" DESTINATION "${WORK_DIR}/${side}-build")
+    configure_file("${entry}/build-costs.jsonl" "${WORK_DIR}/${side}-build-costs.jsonl" COPYONLY)
+    string(TIMESTAMP now "%s" UTC)
+    file(WRITE "${entry}/complete" "${now}\n")
+    set(${side}_cached ON)
+  else()
+    run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${build_dir}" --parallel ${JOBS})
+    file(RENAME "${build_dir}" "${WORK_DIR}/${side}-build")
+
+    # Into the cache: written beside it and moved in whole, so that an interrupted copy is never reused.
+    if(NOT NO_CACHE)
+      file(REMOVE_RECURSE "${entry}" "${entry}.partial")
+      file(MAKE_DIRECTORY "${entry}.partial")
+      file(COPY "${WORK_DIR}/${side}-build/bin" DESTINATION "${entry}.partial")
+      configure_file("${WORK_DIR}/${side}-build-costs.jsonl" "${entry}.partial/build-costs.jsonl" COPYONLY)
+      string(TIMESTAMP now "%s" UTC)
+      file(WRITE "${entry}.partial/complete" "${now}\n")
+      file(RENAME "${entry}.partial" "${entry}")
+      prune_cache()
+    endif()
+  endif()
+
   file(RENAME "${WORK_DIR}/src" "${${side}_src}")
 endforeach()
 
@@ -720,6 +827,13 @@ if(failed)
   string(APPEND notes "\nThese runs failed (crashed or exited with an error):\n  ${failed_text}\n")
 endif()
 
+foreach(side base head)
+  if(${side}_cached)
+    string(APPEND notes "\nThe ${side}'s build was reused from the cache (the same code, compilers and settings); its build "
+                        "costs are those recorded when it was built.\n")
+  endif()
+endforeach()
+
 if(not_run)
   string(REPLACE ";" ", " not_run_text "${not_run}")
   string(APPEND notes "\nThese probes compiled to the same code on both sides and were not run (${nnot_run} cases): "
@@ -790,6 +904,10 @@ endif()
 
 if(NO_SKIP)
   string(APPEND again " --no-skip")
+endif()
+
+if(NO_CACHE)
+  string(APPEND again " --no-cache")
 endif()
 
 if(SMOKE)

@@ -667,6 +667,7 @@ Comparing two commits
    Scripts/run-performance.sh compare origin/<base> --smoke                   # a quick check, about a minute
    Scripts/run-performance.sh compare origin/<base> --gpu cuda --test-builds  # also the heaviest tests' builds
    Scripts/run-performance.sh compare origin/<base> --no-skip                 # also probes whose code is unchanged
+   Scripts/run-performance.sh compare origin/<base> --no-cache                # build both sides afresh
 
 Here ``<base>`` is the branch the pull request targets. The first two arguments that git resolves to
 commits are the baseline (by default, the branch pull requests merge into) and the
@@ -679,7 +680,11 @@ added anywhere in a probe cannot change the time of unchanged code by moving it 
 A probe that compiles to the same code on both sides can only measure noise, so its cases are not run,
 and the report lists the probe as not run; a pull request that changes one component then runs only the
 probes that component reaches. ``--no-skip`` runs them anyway, and a smoke comparison always runs every
-case. When no probe changed, nothing runs and the verdict is green.
+case. When no probe changed, nothing runs and the verdict is green. A side whose code, compilers and
+settings match one of the last few comparisons' is not built again: its programs and build costs are
+taken from ``build/performance/cache`` (the baseline, until the base branch's code moves on, and both
+sides when a receipt is recorded again after a change to the documentation only). ``--no-cache`` builds
+both sides afresh.
 Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
 that favors the next, alternating between the two sides for ``--rounds``
 rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
