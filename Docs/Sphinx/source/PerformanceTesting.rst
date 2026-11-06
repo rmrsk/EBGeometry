@@ -750,7 +750,8 @@ judged with at least two runs on each side. With the default two rounds, that me
 flagged only when both of the candidate's runs are slower than both of the baseline's: a coarse
 screen. So every case flagged minor or MAJOR after them runs ``--confirm-rounds`` more rounds (default
 8), and is judged on all of them; the report lists the cases confirmed this way. A flag from one noisy
-round then rarely survives, and one that does is a change. ``--confirm-rounds 0`` judges the first
+round then rarely survives, and one that does is a change. (The first rounds still decide which cases
+get the second look: a change they miss is not looked at again.) ``--confirm-rounds 0`` judges the first
 rounds as they are. With one round, every time is shown and none is judged, and the verdict says so.
 
 ==========  =========================================================================================

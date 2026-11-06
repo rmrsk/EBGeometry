@@ -381,7 +381,10 @@ set(machine_text "Machine: ${machine_cores} cores, ${machine_threads} hardware t
 function(build_key a_src a_build a_args a_var)
   set(text "cmake ${CMAKE_VERSION}\nargs ${a_args}\n")
 
-  # The compilers the configure found, and their versions.
+  # The compilers the configure found, and their versions; and the flags it took from the environment
+  # (CXXFLAGS, CUDAFLAGS, HIPFLAGS seed them).
+  file(STRINGS "${a_build}/CMakeCache.txt" flags REGEX "^CMAKE_(CXX|CUDA|HIP)_FLAGS[A-Z_]*:")
+  string(APPEND text "flags ${flags}\n")
   file(STRINGS "${a_build}/CMakeCache.txt" compilers REGEX "^CMAKE_(CXX|CUDA|HIP)_COMPILER:")
 
   foreach(line IN LISTS compilers)
@@ -419,8 +422,15 @@ function(build_key a_src a_build a_args a_var)
   set(${a_var} "${key}" PARENT_SCOPE)
 endfunction()
 
-# prune_cache(): keep the CACHE_KEEP most recently used cached builds.
+# prune_cache(): keep the CACHE_KEEP most recently used cached builds, and remove any left half-written by
+# an interrupted run.
 function(prune_cache)
+  file(GLOB partial LIST_DIRECTORIES true "${CACHE_DIR}/*.partial")
+
+  if(partial)
+    file(REMOVE_RECURSE ${partial})
+  endif()
+
   file(GLOB entries LIST_DIRECTORIES true "${CACHE_DIR}/*/complete")
   set(stamped "")
 
@@ -511,6 +521,7 @@ foreach(side base head)
 
     # Into the cache: written beside it and moved in whole, so that an interrupted copy is never reused.
     if(NOT NO_CACHE)
+      prune_cache()
       file(REMOVE_RECURSE "${entry}" "${entry}.partial")
       file(MAKE_DIRECTORY "${entry}.partial")
       file(COPY "${WORK_DIR}/${side}-build/bin" DESTINATION "${entry}.partial")
