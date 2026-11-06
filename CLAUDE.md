@@ -400,7 +400,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
 1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the PR is
    ready for review (`--smoke` first gives a one-minute check that both sides build and every case runs
    with the same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict,
-   and take about eight minutes for every case, builds included:
+   and take about eight minutes for every case, builds included; a probe that compiled to the same code on
+   both sides is not run (listed as such in the report), so a PR touching one component runs only the probes
+   it reaches (`--no-skip` runs them all):
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt

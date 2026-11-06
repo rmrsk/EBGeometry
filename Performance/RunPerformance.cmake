@@ -34,7 +34,9 @@
 #                           a --gpu run is never pinned, since its host side uses every core
 #   --jobs <n>              compare: parallel compiles per build (default: the hardware threads, capped
 #                           by memory)
-#   --test-builds           compare: also build the heaviest test targets (TestRay, TestTape, TestRender)
+#   --no-skip               compare: also run the probes that compiled to the same code on both sides
+#                           (by default they are not run, and the report lists them)
+#   --test-builds           compare: also build the heaviest test targets (TestRay*, TestTape*, TestRender*)
 #                           in Debug with assertions on both sides, and report what they cost; for changes
 #                           to the tape or the rays (several minutes more)
 #   --help
@@ -81,6 +83,7 @@ set(record OFF)
 set(core "")
 set(jobs "")
 set(test_builds OFF)
+set(no_skip OFF)
 
 list(LENGTH args nargs)
 set(i 0)
@@ -102,6 +105,8 @@ while(i LESS nargs)
     set(core OFF)
   elseif(a STREQUAL "--test-builds")
     set(test_builds ON)
+  elseif(a STREQUAL "--no-skip")
+    set(no_skip ON)
   elseif(a MATCHES "^--(gpu|gpu-arch|cuda-compiler|hip-compiler|reps|rounds|core|jobs)$")
     if(next GREATER_EQUAL nargs)
       message(FATAL_ERROR "run-performance: ${a} needs a value (see --help)")
@@ -188,6 +193,7 @@ if(command STREQUAL "compare")
   set(ROUNDS ${rounds})
   set(CORE ${core})
   set(TEST_BUILDS ${test_builds})
+  set(NO_SKIP ${no_skip})
 
   if(NOT jobs STREQUAL "")
     if(NOT jobs MATCHES "^[1-9][0-9]*$")

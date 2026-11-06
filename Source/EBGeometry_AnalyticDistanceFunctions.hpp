@@ -2255,6 +2255,8 @@ ellipsoidRoot(const T (&a_r)[N], const T (&a_n)[N], const T a_lo, const T a_hi) 
 
   const T eps = Math::Limits<T>::epsilon();
 
+  // Only s moves: hi stays a_hi, a fixed safeguard for a step that rounding pushes past the root, not a
+  // bracket that shrinks.
   T s  = a_lo;
   T hi = a_hi;
 
