@@ -37,6 +37,8 @@
 #              memory (2 GB per compile, 6 GB with GPU)
 #   TEST_BUILDS  ON: also build the heaviest test targets (TestRay*, TestTape*, TestRender*) in Debug
 #              with assertions on both sides, and report what they cost (several minutes)   default: OFF
+#   NO_SKIP    ON: run every case, also those of probes that compiled to the same code on both
+#              sides (skipped by default, and listed as not run)            default: OFF
 #   BUILD_MINOR / BUILD_MAJOR  percent more compile CPU time or memory that is flagged in the build
 #              costs (reported, not judged)                           default: 10 / 25
 #   RECORD     ON: write the result as this comparison's section of     default: OFF
@@ -49,7 +51,7 @@ cmake_minimum_required(VERSION 3.16)
 get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 foreach(pair "BASE;origin/main" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
-             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF" "TEST_BUILDS;OFF"
+             "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF" "TEST_BUILDS;OFF" "NO_SKIP;OFF"
              "BUILD_MINOR;10" "BUILD_MAJOR;25")
   list(GET pair 0 var)
   list(GET pair 1 default)
@@ -130,6 +132,7 @@ endfunction()
 
 # ── Export and build each side ────────────────────────────────────────────────────────────────────────
 file(REMOVE_RECURSE "${WORK_DIR}/base" "${WORK_DIR}/head" "${WORK_DIR}/base-build" "${WORK_DIR}/head-build"
+     "${WORK_DIR}/src" "${WORK_DIR}/build" "${WORK_DIR}/stripped"
      "${WORK_DIR}/base-tests" "${WORK_DIR}/head-tests" "${WORK_DIR}/tools-build")
 file(MAKE_DIRECTORY "${WORK_DIR}")
 
@@ -293,7 +296,8 @@ endif()
 
 list(LENGTH build_cpus nbuild_cpus)
 
-# The memory: the machine's, or a container's limit if lower.
+# The memory: the machine's, or a container's limit if lower (cgroup v2's memory.max; on a cgroup v1 host
+# the machine's memory is used).
 if(EXISTS "/sys/fs/cgroup/memory.max")
   file(STRINGS "/sys/fs/cgroup/memory.max" cgroup_max LIMIT_COUNT 1)
 
@@ -358,18 +362,47 @@ function(cost_cache a_file a_record)
 endfunction()
 
 # Both sides are built with the candidate's function alignment (AlignFunctions.cmake), injected into each
-# configure so that it holds for a baseline whose own probes predate it.
+# configure so that it holds for a baseline whose own probes predate it (a copy, since the candidate's tree
+# moves while it is built).
+configure_file("${head_src}/Performance/AlignFunctions.cmake" "${WORK_DIR}/AlignFunctions.cmake" COPYONLY)
+
+# Each side is built from the same path, ${WORK_DIR}/src, into ${WORK_DIR}/build, and then moved to its own:
+# paths enter the binaries (__FILE__ in the library's checks, nvcc's names for anonymous namespaces), so the
+# two sides then compile the same code to the same bytes, and a probe whose code did not change need not run
+# (below). For the same reason the commit is passed at run time (EBGEOMETRY_PERF_GIT_SHA in the environment),
+# not compiled in, and the smoke meshes' path is the shared one, read only by a smoke run, which builds each
+# side with its own. A working tree measured as it is (HEAD=WORKTREE) is built where it is.
 foreach(side base head)
   message(STATUS "Building ${side} (${${side}_sha}) ...")
   cost_cache("${WORK_DIR}/${side}-cost.cmake" "${WORK_DIR}/${side}-build-costs.jsonl")
+
+  if("${${side}_src}" STREQUAL "${REPO}")
+    set(build_src "${REPO}")
+    set(build_dir "${WORK_DIR}/${side}-build")
+  else()
+    file(RENAME "${${side}_src}" "${WORK_DIR}/src")
+    set(build_src "${WORK_DIR}/src")
+    set(build_dir "${WORK_DIR}/build")
+  endif()
+
+  if(SMOKE)
+    set(smoke_dir "${${side}_src}/Tests/data")
+  else()
+    set(smoke_dir "${build_src}/Tests/data")
+  endif()
+
   run_or_die(
-    COMMAND ${CMAKE_COMMAND} -C "${WORK_DIR}/${side}-cost.cmake" -S "${${side}_src}/Performance"
-            -B "${WORK_DIR}/${side}-build" -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_PERF_GIT_SHA=${${side}_sha}
-            -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data
-            -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${${side}_src}/Tests/data
-            -DCMAKE_PROJECT_INCLUDE=${head_src}/Performance/AlignFunctions.cmake ${gpu_args}
+    COMMAND ${CMAKE_COMMAND} -C "${WORK_DIR}/${side}-cost.cmake" -S "${build_src}/Performance" -B "${build_dir}"
+            -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_PERF_GIT_SHA=compare
+            -DEBGEOMETRY_PERF_MESH_DIR=${REPO}/common-3d-test-models/data -DEBGEOMETRY_PERF_SMOKE_MESH_DIR=${smoke_dir}
+            -DCMAKE_PROJECT_INCLUDE=${WORK_DIR}/AlignFunctions.cmake ${gpu_args}
   )
-  run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-build" --parallel ${JOBS})
+  run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${build_dir}" --parallel ${JOBS})
+
+  if(NOT build_src STREQUAL REPO)
+    file(RENAME "${WORK_DIR}/build" "${WORK_DIR}/${side}-build")
+    file(RENAME "${WORK_DIR}/src" "${${side}_src}")
+  endif()
 endforeach()
 
 # The heaviest test targets, in Debug with assertions, as a developer and CI's device lanes build them:
@@ -411,14 +444,32 @@ if(TEST_BUILDS)
 
     list(REMOVE_DUPLICATES test_targets)
 
+    # Built together, in parallel. With Makefiles, "cmake --build --target A --target B" builds the targets one
+    # after another (the top-level Makefile is .NOTPARALLEL), so their per-target goals are made directly from
+    # CMakeFiles/Makefile2 (the build system was just generated); other generators build several
+    # targets in parallel themselves.
     if(test_targets)
-      set(target_args "")
+      set(test_dir "${WORK_DIR}/${side}-tests")
+      file(STRINGS "${test_dir}/CMakeCache.txt" make_line REGEX "^CMAKE_MAKE_PROGRAM:")
+      string(REGEX REPLACE "^[^=]*=" "" make_program "${make_line}")
 
-      foreach(t IN LISTS test_targets)
-        list(APPEND target_args --target ${t})
-      endforeach()
+      if(EXISTS "${test_dir}/CMakeFiles/Makefile2" AND EXISTS "${make_program}")
+        set(goals "")
 
-      run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${WORK_DIR}/${side}-tests" --parallel ${JOBS} ${target_args})
+        foreach(t IN LISTS test_targets)
+          list(APPEND goals Tests/CMakeFiles/${t}.dir/all)
+        endforeach()
+
+        run_or_die(COMMAND ${build_pin} ${make_program} -C "${test_dir}" -f CMakeFiles/Makefile2 -j${JOBS} ${goals})
+      else()
+        set(target_args "")
+
+        foreach(t IN LISTS test_targets)
+          list(APPEND target_args --target ${t})
+        endforeach()
+
+        run_or_die(COMMAND ${build_pin} ${CMAKE_COMMAND} --build "${test_dir}" --parallel ${JOBS} ${target_args})
+      endif()
     endif()
   endforeach()
 endif()
@@ -442,6 +493,55 @@ foreach(p IN LISTS head_probes head_harness)
   endif()
 endforeach()
 
+# The probes that compiled to the same code on both sides: their stripped binaries are equal byte for byte
+# (strip removes the symbol tables, where nvcc leaves a temporary file's name). Such a probe runs the same
+# instructions on the same inputs on both sides (the meshes are the repository's, shared), so it can only
+# measure noise, and is not run. Not in a smoke run, which checks that every case runs; not with NO_SKIP.
+set(identical "")
+
+if(NOT SMOKE AND NOT NO_SKIP)
+  find_program(STRIP strip)
+
+  if(STRIP)
+    file(MAKE_DIRECTORY "${WORK_DIR}/stripped")
+
+    foreach(p IN LISTS head_probes)
+      get_filename_component(probe "${p}" DIRECTORY)
+      set(same OFF)
+
+      foreach(side base head)
+        set(exe "${WORK_DIR}/${side}-build/bin/${probe}.ex")
+
+        if(NOT EXISTS "${exe}")
+          set(same "")
+          break()
+        endif()
+
+        execute_process(COMMAND ${STRIP} -o "${WORK_DIR}/stripped/${side}-${probe}.ex" "${exe}" RESULT_VARIABLE rc
+                        OUTPUT_QUIET ERROR_QUIET)
+
+        if(NOT rc EQUAL 0)
+          set(same "")
+          break()
+        endif()
+      endforeach()
+
+      if(NOT same STREQUAL "")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E compare_files "${WORK_DIR}/stripped/base-${probe}.ex"
+                                "${WORK_DIR}/stripped/head-${probe}.ex" RESULT_VARIABLE differs)
+
+        if(differs EQUAL 0)
+          list(APPEND identical "${probe}")
+        endif()
+      endif()
+    endforeach()
+
+    file(REMOVE_RECURSE "${WORK_DIR}/stripped")
+  else()
+    message(STATUS "No strip program found: every probe runs")
+  endif()
+endif()
+
 # ── Run ───────────────────────────────────────────────────────────────────────────────────────────────
 find_program(TASKSET taskset)
 set(pin "")
@@ -452,6 +552,8 @@ endif()
 
 set(jobs "")
 set(case_args "")
+set(not_run "")
+set(nnot_run 0)
 
 # CASES may hold several globs (a CMake list).
 foreach(glob IN LISTS CASES)
@@ -464,16 +566,27 @@ foreach(p IN LISTS head_probes)
                   OUTPUT_VARIABLE names OUTPUT_STRIP_TRAILING_WHITESPACE)
   string(REPLACE "\n" ";" names "${names}")
 
+  list(FILTER names EXCLUDE REGEX "^$")
+  list(LENGTH names ncases)
+
+  if(ncases EQUAL 0)
+    continue()
+  endif()
+
+  if(probe IN_LIST identical)
+    list(APPEND not_run "${probe} (${ncases})")
+    math(EXPR nnot_run "${nnot_run} + ${ncases}")
+    continue()
+  endif()
+
   foreach(case_name IN LISTS names)
-    if(NOT case_name STREQUAL "")
-      list(APPEND jobs "${probe}|${case_name}")
-    endif()
+    list(APPEND jobs "${probe}|${case_name}")
   endforeach()
 endforeach()
 
 list(LENGTH jobs njobs)
 
-if(njobs EQUAL 0)
+if(njobs EQUAL 0 AND nnot_run EQUAL 0)
   message(FATAL_ERROR "Compare.cmake: no case matches CASES=${CASES}")
 endif()
 
@@ -512,7 +625,8 @@ foreach(round RANGE 1 ${ROUNDS})
         continue()
       endif()
 
-      execute_process(COMMAND ${pin} "${exe}" --case "${name}" --reps ${REPS} --json ${smoke_arg}
+      execute_process(COMMAND ${CMAKE_COMMAND} -E env EBGEOMETRY_PERF_GIT_SHA=${${side}_sha} ${pin} "${exe}" --case
+                              "${name}" --reps ${REPS} --json ${smoke_arg}
                       OUTPUT_VARIABLE out RESULT_VARIABLE rc)
 
       if(NOT rc EQUAL 0)
@@ -528,11 +642,21 @@ endforeach()
 list(LENGTH failed nfailed)
 
 # ── Report ────────────────────────────────────────────────────────────────────────────────────────────
-execute_process(
-  COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
-          --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md" ${smoke_arg} --no-verdict
-          --failed-runs ${nfailed} --level-file "${WORK_DIR}/level.txt"
-  RESULT_VARIABLE verdict)
+# When every probe compiled to the same code on both sides, nothing ran, and there is nothing to judge: the
+# verdict is green.
+if(njobs EQUAL 0)
+  file(WRITE "${WORK_DIR}/report.md"
+       "### Performance comparison\n\nEvery probe compiled to the same code on both sides; no case was run.\n")
+  file(WRITE "${WORK_DIR}/level.txt" "0\n")
+  set(verdict 0)
+  message("Every probe compiled to the same code on both sides; no case was run.")
+else()
+  execute_process(
+    COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
+            --minor ${MINOR} --major ${MAJOR} --markdown "${WORK_DIR}/report.md" ${smoke_arg} --no-verdict
+            --failed-runs ${nfailed} --level-file "${WORK_DIR}/level.txt"
+    RESULT_VARIABLE verdict)
+endif()
 
 # The report as PerfCompare wrote it, before the commands to repeat it (local paths) are added: a receipt
 # carries this.
@@ -583,6 +707,12 @@ endif()
 if(failed)
   string(REPLACE ";" "\n  " failed_text "${failed}")
   string(APPEND notes "\nThese runs failed (crashed or exited with an error):\n  ${failed_text}\n")
+endif()
+
+if(not_run)
+  string(REPLACE ";" ", " not_run_text "${not_run}")
+  string(APPEND notes "\nThese probes compiled to the same code on both sides and were not run (${nnot_run} cases): "
+                      "${not_run_text}\n")
 endif()
 
 if(changed_probes)
@@ -647,6 +777,10 @@ if(TEST_BUILDS)
   string(APPEND again " --test-builds")
 endif()
 
+if(NO_SKIP)
+  string(APPEND again " --no-skip")
+endif()
+
 if(SMOKE)
   string(APPEND again " --smoke")
 else()
@@ -689,10 +823,15 @@ message("${notes}${manual}")
 file(APPEND "${WORK_DIR}/report.md" "${notes}\n<details><summary>Run it manually</summary>\n\n```${manual}```\n</details>\n")
 
 # The verdict, last, so it is the line a reader sees when the run ends.
-execute_process(
-  COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
-          --minor ${MINOR} --major ${MAJOR} ${smoke_arg} --verdict-only --failed-runs ${nfailed}
-  RESULT_VARIABLE verdict_again)
+if(njobs EQUAL 0)
+  message("VERDICT: green (no case was run)")
+  set(verdict_again 0)
+else()
+  execute_process(
+    COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
+            --minor ${MINOR} --major ${MAJOR} ${smoke_arg} --verdict-only --failed-runs ${nfailed}
+    RESULT_VARIABLE verdict_again)
+endif()
 
 # PerfCompare exits 0 (green or yellow) or 2 (red). Anything else means there is no verdict (3: it could
 # not judge, a usage error or an unreadable file; a signal's name: it crashed), which must never pass.

@@ -666,6 +666,7 @@ Comparing two commits
    Scripts/run-performance.sh compare origin/<base> --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
    Scripts/run-performance.sh compare origin/<base> --smoke                   # a quick check, about a minute
    Scripts/run-performance.sh compare origin/<base> --gpu cuda --test-builds  # also the heaviest tests' builds
+   Scripts/run-performance.sh compare origin/<base> --no-skip                 # also probes whose code is unchanged
 
 Here ``<base>`` is the branch the pull request targets. The first two arguments that git resolves to
 commits are the baseline (by default, the branch pull requests merge into) and the
@@ -675,6 +676,12 @@ changes an API the probes use updates the probes and is still compared case by c
 any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
 with the candidate's probes.) Both sides are built with the candidate's function alignment, so that code
 added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line.
+A probe that compiles to the same code on both sides (its binaries, stripped of their symbol tables, are
+equal byte for byte) can only measure noise, so its cases are not run, and the report lists the probe as
+not run; a pull request that changes one component then runs only the probes that component reaches.
+(Both sides are built from the same path in turn, and the commit is passed to the probes at run time, so
+that unchanged code builds to the same bytes.) ``--no-skip`` runs them anyway, and a smoke comparison
+always runs every case. When no probe changed, nothing runs and the verdict is green.
 Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
 that favors the next, alternating between the two sides for ``--rounds``
 rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
