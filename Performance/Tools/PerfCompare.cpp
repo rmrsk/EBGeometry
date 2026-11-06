@@ -7,7 +7,7 @@
 //
 //   PerfCompare.ex --base base.jsonl --head head.jsonl [--minor <percent>] [--major <percent>]
 //                  [--markdown <file>] [--smoke] [--verdict-only | --no-verdict] [--failed-runs <n>]
-//                  [--level-file <file>]
+//                  [--level-file <file>] [--flagged-file <file>]
 //
 // Each JSON line of a case is one run: a fresh process, timing several repetitions. Repetitions in one
 // process share its luck (memory placement, clock speed, neighbors on the machine), so they are not
@@ -41,7 +41,8 @@
 // --verdict-only prints only the line (Compare.cmake ends a run with it); --no-verdict leaves it out;
 // --failed-runs is the number of runs that crashed, which makes the verdict red. --level-file writes the
 // verdict's level to a file (0 green, 1 yellow, 2 red), for a receipt (Compare.cmake RECORD), since the
-// exit code does not tell green from yellow.
+// exit code does not tell green from yellow. --flagged-file writes the names of the cases flagged minor or
+// MAJOR, one per line, which Compare.cmake runs again before it judges them.
 //
 // Exit code: 0 for a green or yellow verdict, 2 for a red one, 3 when it cannot judge (a usage error or
 // an unreadable file); Compare.cmake fails on anything else too (a crash). Usually run by Compare.cmake,
@@ -610,8 +611,8 @@ fullVerdict(const std::vector<Comparison>& a_cases, int a_failedRuns)
 
   if (minor > 0) {
     return {1,
-            "VERDICT: " + counted(minor, "minor regression") + "; rerun " + (minor == 1 ? "it" : "them") +
-              " with --rounds 10 before deciding (see Flagged above)"};
+            "VERDICT: " + counted(minor, "minor regression") + "; look at " + (minor == 1 ? "it" : "them") +
+              " before accepting (see Flagged above)"};
   }
 
   if (checksums > 0) {
@@ -909,7 +910,7 @@ usage(const std::string& a_problem)
                "PerfCompare: %s\n"
                "usage: PerfCompare.ex --base <file> --head <file> [--minor <percent>] [--major <percent>]\n"
                "                      [--markdown <file>] [--smoke] [--verdict-only | --no-verdict]\n"
-               "                      [--failed-runs <n>] [--level-file <file>]\n",
+               "                      [--failed-runs <n>] [--level-file <file>] [--flagged-file <file>]\n",
                a_problem.c_str());
   std::exit(3);
 }
@@ -937,6 +938,7 @@ main(int argc, char** argv)
   std::string headFile;
   std::string markdownFile;
   std::string levelFile;
+  std::string flaggedFile;
   Thresholds  thresholds;
   bool        smoke      = false;
   VerdictLine line       = VerdictLine::After;
@@ -972,6 +974,9 @@ main(int argc, char** argv)
     else if (arg == "--level-file") {
       levelFile = value(i, arg);
     }
+    else if (arg == "--flagged-file") {
+      flaggedFile = value(i, arg);
+    }
     else if (arg == "--failed-runs") {
       failedRuns = static_cast<int>(nonNegative(arg, value(i, arg)));
     }
@@ -995,6 +1000,24 @@ main(int argc, char** argv)
 
   const Results base = read(baseFile);
   const Results head = read(headFile);
+
+  // The cases a timing or pool-size threshold flags, for Compare.cmake to run again.
+  if (!flaggedFile.empty()) {
+    std::ofstream out(flaggedFile);
+
+    for (const auto& name : caseNames(base, head)) {
+      const Outcome outcome = compare(name, base.find(name), head.find(name), thresholds).outcome;
+
+      if (!smoke && (outcome == Outcome::Minor || outcome == Outcome::Major)) {
+        out << name << "\n";
+      }
+    }
+
+    if (!out) {
+      std::fprintf(stderr, "PerfCompare: cannot write %s\n", flaggedFile.c_str());
+      return 3;
+    }
+  }
 
   const int level = smoke ? smokeReport(base, head, markdownFile, line, failedRuns)
                           : fullReport(base, head, thresholds, markdownFile, line, failedRuns);

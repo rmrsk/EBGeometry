@@ -445,9 +445,9 @@ full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
      device kernel whose registers, stack or spills changed) are reported, not judged: they do not enter
      the verdict or CI. Report any flag to the user like a minor regression, with the kernels behind it,
      and say whether it is expected (new code) or not.
-   - Before calling something a regression, repeat the flagged cases by hand with more rounds
-     (`Scripts/run-performance.sh compare origin/<base> <pr-branch> '<glob>' --rounds 10`); do not
-     rerun until a noisy result passes.
+   - A flagged case is already confirmed: the comparison reruns every case flagged after its two rounds
+     with 8 more (`--confirm-rounds`) and judges it on all ten, so a flag in the verdict is not one noisy
+     round. Do not rerun until a result passes.
 4. **CI times nothing; it checks the receipt** (`Performance-receipt` in `.github/workflows/CI.yml`,
    `Performance/CheckReceipt.cmake`, required by `CI-passed`), on a PR that is ready for review (a
    draft only gets a notice). It fails when the PR changes the library

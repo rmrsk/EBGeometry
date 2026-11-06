@@ -39,6 +39,8 @@
 #              with assertions on both sides, and report what they cost (several minutes)   default: OFF
 #   NO_SKIP    ON: run every case, also those of probes that compiled to the same code on both
 #              sides (skipped by default, and listed as not run)            default: OFF
+#   CONFIRM_ROUNDS  rounds more of each case flagged minor or MAJOR, judged on all its rounds; 0 to
+#              judge the flags of ROUNDS rounds as they are                 default: 8
 #   NO_CACHE   ON: build both sides afresh, rather than reusing a cached build of the same code with the
 #              same compilers and settings                                  default: OFF
 #   CACHE_DIR  where the builds are cached (the last CACHE_KEEP)            default: build/performance/cache
@@ -56,7 +58,7 @@ get_filename_component(REPO "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 
 foreach(pair "BASE;origin/main" "HEAD;HEAD" "GPU;OFF" "CASES;*" "ROUNDS;2" "REPS;3" "MINOR;3" "MAJOR;10" "SMOKE;OFF"
              "WORK_DIR;${REPO}/build/performance/compare" "FAIL_ON_MAJOR;ON" "RECORD;OFF" "TEST_BUILDS;OFF" "NO_SKIP;OFF"
-             "NO_CACHE;OFF" "CACHE_DIR;${REPO}/build/performance/cache" "CACHE_KEEP;6"
+             "NO_CACHE;OFF" "CONFIRM_ROUNDS;8" "CACHE_DIR;${REPO}/build/performance/cache" "CACHE_KEEP;6"
              "BUILD_MINOR;10" "BUILD_MAJOR;25")
   list(GET pair 0 var)
   list(GET pair 1 default)
@@ -720,42 +722,87 @@ set(failed "")
 file(WRITE "${WORK_DIR}/base.jsonl" "")
 file(WRITE "${WORK_DIR}/head.jsonl" "")
 
-foreach(round RANGE 1 ${ROUNDS})
-  message(STATUS "Round ${round}/${ROUNDS}: ${njobs} cases per side")
+# run_rounds(<first> <last> <jobs>): rounds first..last of the given jobs, alternating between the sides (the
+# order swaps each round), each case in a fresh process; results appended to <side>.jsonl.
+function(run_rounds a_first a_last a_jobs)
+  list(LENGTH a_jobs count)
+  set(failed_here "")
 
-  math(EXPR odd "${round} % 2")
+  foreach(round RANGE ${a_first} ${a_last})
+    message(STATUS "Round ${round}/${a_last}: ${count} cases per side")
 
-  if(odd)
-    set(order base head)
-  else()
-    set(order head base)
-  endif()
+    math(EXPR odd "${round} % 2")
 
-  foreach(job IN LISTS jobs)
-    string(REPLACE "|" ";" job "${job}")
-    list(GET job 0 probe)
-    list(GET job 1 name)
+    if(odd)
+      set(order base head)
+    else()
+      set(order head base)
+    endif()
 
-    foreach(side IN LISTS order)
-      set(exe "${WORK_DIR}/${side}-build/bin/${probe}.ex")
+    foreach(job IN LISTS a_jobs)
+      string(REPLACE "|" ";" job "${job}")
+      list(GET job 0 probe)
+      list(GET job 1 name)
 
-      if(NOT EXISTS "${exe}")
-        continue()
-      endif()
+      foreach(side IN LISTS order)
+        set(exe "${WORK_DIR}/${side}-build/bin/${probe}.ex")
 
-      execute_process(COMMAND ${CMAKE_COMMAND} -E env EBGEOMETRY_PERF_GIT_SHA=${${side}_sha} ${pin} "${exe}" --case
-                              "${name}" --reps ${REPS} --json ${smoke_arg}
-                      OUTPUT_VARIABLE out RESULT_VARIABLE rc)
+        if(NOT EXISTS "${exe}")
+          continue()
+        endif()
 
-      if(NOT rc EQUAL 0)
-        message(WARNING "Compare.cmake: ${side} ${probe} --case ${name} exited with ${rc}")
-        list(APPEND failed "${side}: ${name} (exit ${rc})")
-      endif()
+        execute_process(COMMAND ${CMAKE_COMMAND} -E env EBGEOMETRY_PERF_GIT_SHA=${${side}_sha} ${pin} "${exe}" --case
+                                "${name}" --reps ${REPS} --json ${smoke_arg}
+                        OUTPUT_VARIABLE out RESULT_VARIABLE rc)
 
-      file(APPEND "${WORK_DIR}/${side}.jsonl" "${out}")
+        if(NOT rc EQUAL 0)
+          message(WARNING "Compare.cmake: ${side} ${probe} --case ${name} exited with ${rc}")
+          list(APPEND failed_here "${side}: ${name} (exit ${rc})")
+        endif()
+
+        file(APPEND "${WORK_DIR}/${side}.jsonl" "${out}")
+      endforeach()
     endforeach()
   endforeach()
-endforeach()
+
+  set(failed ${failed} ${failed_here} PARENT_SCOPE)
+endfunction()
+
+run_rounds(1 ${ROUNDS} "${jobs}")
+
+# Flags confirmed: a case flagged minor or MAJOR after ROUNDS rounds (a judged run, not a smoke one) runs
+# CONFIRM_ROUNDS more, and is judged on all of them. A flag from a noisy round then rarely survives, and one
+# that does is a change, not luck; no rerun by hand is needed before reading the verdict.
+set(confirmed "")
+
+if(NOT SMOKE AND ROUNDS GREATER_EQUAL 2 AND CONFIRM_ROUNDS GREATER 0 AND njobs GREATER 0)
+  execute_process(
+    COMMAND "${WORK_DIR}/head-build/bin/PerfCompare.ex" --base "${WORK_DIR}/base.jsonl" --head "${WORK_DIR}/head.jsonl"
+            --minor ${MINOR} --major ${MAJOR} --verdict-only --flagged-file "${WORK_DIR}/flagged.txt"
+    OUTPUT_QUIET RESULT_VARIABLE rc)
+
+  if(rc MATCHES "^(0|2)$" AND EXISTS "${WORK_DIR}/flagged.txt")
+    file(STRINGS "${WORK_DIR}/flagged.txt" flagged)
+    set(again_jobs "")
+
+    foreach(job IN LISTS jobs)
+      string(REGEX REPLACE "^[^|]*[|]" "" name "${job}")
+
+      if(name IN_LIST flagged)
+        list(APPEND again_jobs "${job}")
+        list(APPEND confirmed "${name}")
+      endif()
+    endforeach()
+
+    if(again_jobs)
+      list(LENGTH again_jobs nagain)
+      math(EXPR first "${ROUNDS} + 1")
+      math(EXPR last "${ROUNDS} + ${CONFIRM_ROUNDS}")
+      message(STATUS "Confirming ${nagain} flagged case(s) with ${CONFIRM_ROUNDS} more rounds")
+      run_rounds(${first} ${last} "${again_jobs}")
+    endif()
+  endif()
+endif()
 
 list(LENGTH failed nfailed)
 
@@ -834,6 +881,13 @@ foreach(side base head)
   endif()
 endforeach()
 
+if(confirmed)
+  list(LENGTH confirmed nconfirmed)
+  math(EXPR total_rounds "${ROUNDS} + ${CONFIRM_ROUNDS}")
+  string(REPLACE ";" ", " confirmed_text "${confirmed}")
+  string(APPEND notes "\nFlagged after ${ROUNDS} rounds, and judged on ${total_rounds} (${nconfirmed} cases): ${confirmed_text}\n")
+endif()
+
 if(not_run)
   string(REPLACE ";" ", " not_run_text "${not_run}")
   string(APPEND notes "\nThese probes compiled to the same code on both sides and were not run (${nnot_run} cases): "
@@ -908,6 +962,10 @@ endif()
 
 if(NO_CACHE)
   string(APPEND again " --no-cache")
+endif()
+
+if(NOT CONFIRM_ROUNDS EQUAL 8)
+  string(APPEND again " --confirm-rounds ${CONFIRM_ROUNDS}")
 endif()
 
 if(SMOKE)

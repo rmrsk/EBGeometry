@@ -730,7 +730,7 @@ and ``report.md`` starts with the same line:
 .. code-block:: text
 
    VERDICT: no regression (0 major, 0 minor across 88 cases)                                          (green)
-   VERDICT: 2 minor regressions; rerun them with --rounds 10 before deciding (see Flagged above)      (yellow)
+   VERDICT: 2 minor regressions; look at them before accepting (see Flagged above)                    (yellow)
    VERDICT: MAJOR regression in 1 case; do not merge until it is fixed or accepted (see Flagged above) (red)
    VERDICT (smoke): passed; all 88 cases ran on both sides with the same answers                      (green)
 
@@ -748,8 +748,10 @@ the median over each side's runs, their ratio, and a bootstrap 95% confidence in
 resampling the runs. A change counts only when the interval excludes no change at all, and is only
 judged with at least two runs on each side. With the default two rounds, that means a change is
 flagged only when both of the candidate's runs are slower than both of the baseline's: a coarse
-screen. To confirm or rule out a flagged or small change, rerun the case with more rounds
-(``--rounds 10``). With one round, every time is shown and none is judged, and the verdict says so.
+screen. So every case flagged minor or MAJOR after them runs ``--confirm-rounds`` more rounds (default
+8), and is judged on all of them; the report lists the cases confirmed this way. A flag from one noisy
+round then rarely survives, and one that does is a change. ``--confirm-rounds 0`` judges the first
+rounds as they are. With one round, every time is shown and none is judged, and the verdict says so.
 
 ==========  =========================================================================================
 ``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
