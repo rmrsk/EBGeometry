@@ -31,9 +31,9 @@ TEMPLATE_TEST_CASE("The shapes and EBGeometry_BVHUnion.hpp alone: a BVH union ha
 
   Pool pool(hostMemoryResource());
 
-  const BVHUnion<T, SphereSDF<T>, 4> scene(pool, balls, boxes);
+  const BVHUnion<T, 4, SphereSDF<T>> scene(pool, balls, boxes);
 
-  CHECK(hasRayForm<BVHUnion<T, SphereSDF<T>, 4>, T>);
+  CHECK(hasRayForm<BVHUnion<T, 4, SphereSDF<T>>, T>);
 
   // Traced, not marched: the hit is exact, and at the closed-form distance.
   const RayT<T> ray{Vec3(-T(3), T(0), T(0)), Vec3(T(1), T(0), T(0))};

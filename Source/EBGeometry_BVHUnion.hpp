@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_BVHUnion.hpp
- * @brief  BVH-accelerated unions of many primitives of one type: BVHUnion and BVHSmoothUnion.
+ * @brief  BVH-accelerated unions of many primitives of one or more types: BVHUnion and BVHSmoothUnion.
  * @details Device-callable value types. They need the BVH builders and the blend operators, but
  * not the expression builder, the Tape or the fused operations that EBGeometry_CSG.hpp also includes.
  * @author Robert Marskar
@@ -15,6 +15,9 @@
 
 // Std includes
 #include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -26,10 +29,33 @@
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
+
+namespace BVH {
+
+/**
+ * @brief How a BVH union is built: the construction method and, optionally, its leaf sizes.
+ * @details Passed as one argument before the primitive arrays (see BVHUnion), so that the arrays can be a
+ * parameter pack.
+ */
+struct BuildSettings
+{
+  /**
+   * @brief Preset construction method; every BVH::Construction value is supported.
+   */
+  Construction m_construction = Construction::SAH;
+
+  /**
+   * @brief Leaf-size settings; empty for the union's defaultConstructionOptions().
+   */
+  std::optional<ConstructionOptions> m_options;
+};
+
+} // namespace BVH
 
 /**
  * @brief Internal helpers shared by BVHUnion and BVHSmoothUnion.
@@ -136,27 +162,246 @@ struct UnionParts
   BVH::PackedBVH<T, Stored<P>, K> unbounded;
 };
 
+/**
+ * @brief A leaf of a union of several primitive types: the primitive's type, and its index in that type's
+ * array.
+ * @details Internal helper; not part of the public API.
+ */
+struct LeafRef
+{
+  /**
+   * @brief Index of the primitive's type among the union's types.
+   */
+  uint32_t m_type;
+
+  /**
+   * @brief Index of the primitive in its type's array.
+   */
+  uint32_t m_index;
+};
+
+/**
+ * @brief The arrays of a union of several primitive types, one per type in the order given: a recursive
+ * list, so that it stays trivially copyable and device-visible.
+ * @details Internal helper; not part of the public API.
+ * @tparam Ps Primitive types.
+ */
+template <class... Ps>
+struct UnionArrays
+{
+};
+
+/**
+ * @brief The arrays of a union of several primitive types: the first type's, and the rest.
+ * @details Internal helper; not part of the public API.
+ * @tparam P  First primitive type.
+ * @tparam Ps The others.
+ */
+template <class P, class... Ps>
+struct UnionArrays<P, Ps...>
+{
+  /**
+   * @brief The first type's primitives, as stored (see Stored).
+   */
+  PODVector<Stored<P>> m_head;
+
+  /**
+   * @brief The other types' arrays.
+   */
+  UnionArrays<Ps...> m_tail;
+};
+
+/**
+ * @brief What a union of several types adds to the one-type layout: its per-type arrays. Empty for one
+ * type, whose leaves hold the primitives themselves, so that a union of one type is laid out (and compiled)
+ * as it would be without this support.
+ * @details Internal helper; not part of the public API. A base of the union and of its Layout, so that
+ * the empty case takes no space.
+ * @tparam Ps Primitive types.
+ */
+template <class... Ps>
+struct ArraysOf
+{
+  /**
+   * @brief The per-type arrays.
+   */
+  UnionArrays<Ps...> m_arrays;
+};
+
+/**
+ * @brief A union of one type has no per-type arrays.
+ * @details Internal helper; not part of the public API.
+ * @tparam P Primitive type.
+ */
+template <class P>
+struct ArraysOf<P>
+{
+};
+
+/**
+ * @brief What a union's BVH leaves hold: the primitive itself for one type, a LeafRef for several.
+ * @details Internal helper; not part of the public API.
+ * @tparam Ps Primitive types.
+ */
+template <class... Ps>
+struct LeafOf
+{
+  /**
+   * @brief A reference into the per-type arrays.
+   */
+  using type = LeafRef;
+};
+
+/**
+ * @brief What a union of one type's BVH leaves hold: the primitive, as stored.
+ * @details Internal helper; not part of the public API.
+ * @tparam P Primitive type.
+ */
+template <class P>
+struct LeafOf<P>
+{
+  /**
+   * @brief The stored primitive.
+   */
+  using type = Stored<P>;
+};
+
+/**
+ * @brief Shorthand for what a union's BVH leaves hold.
+ * @tparam Ps Primitive types.
+ */
+template <class... Ps>
+using Leaf = typename LeafOf<Ps...>::type;
+
+/**
+ * @brief The precision of a primitive type: the T of the box its computeBoundingVolume() returns.
+ * @details Internal helper; not part of the public API.
+ * @tparam B The box type.
+ */
+template <class B>
+struct BoxPrecision;
+
+/**
+ * @brief The precision of an AABBT<T>.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct BoxPrecision<BoundingVolumes::AABBT<T>>
+{
+  /**
+   * @brief The precision.
+   */
+  using type = T;
+};
+
+/**
+ * @brief The precision of primitive type P, for the unions' deduction guides.
+ * @tparam P Primitive type.
+ */
+template <class P>
+using PrimitivePrecision =
+  typename BoxPrecision<std::decay_t<decltype(std::declval<const P&>().computeBoundingVolume())>>::type;
+
+/**
+ * @brief Whether X is a box, which an array of primitives never holds: keeps the deduction guide for several
+ * types from taking a one-type union's box array for a second type.
+ * @tparam X Type to inspect.
+ */
+template <class X>
+inline constexpr bool isBox = false;
+
+/**
+ * @brief An AABBT is a box.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+inline constexpr bool isBox<BoundingVolumes::AABBT<T>> = true;
+
+/**
+ * @brief Whether X is a std::vector: keeps the smooth unions' deduction guides that take a blend from taking
+ * the first array for one.
+ * @tparam X Type to inspect.
+ */
+template <class X>
+inline constexpr bool isVector = false;
+
+/**
+ * @brief A std::vector is a vector.
+ * @tparam V Element type.
+ * @tparam A Allocator.
+ */
+template <class V, class A>
+inline constexpr bool isVector<std::vector<V, A>> = true;
+
+/**
+ * @brief The weakest distance quality among primitive types: not a distance if any is not, else a bound.
+ * @tparam Ps Primitive types.
+ */
+template <class... Ps>
+inline constexpr DistanceQuality unionQuality =
+  ((distanceQualityOf<Ps> == DistanceQuality::NotADistance) || ...) ? DistanceQuality::NotADistance
+                                                                    : DistanceQuality::Bound;
+
+/**
+ * @brief Call @p a_f with the primitive a LeafRef stands for, testing its type against the arrays' types in
+ * order (the last is taken without a test).
+ * @details Internal helper; not part of the public API.
+ * @tparam F  Callable on each primitive type, returning the same type for all.
+ * @tparam P  First primitive type of the arrays.
+ * @tparam Ps The others.
+ * @param[in] a_arrays   The arrays, from the type a_type counts from.
+ * @param[in] a_type     The type's index among these arrays.
+ * @param[in] a_index    The primitive's index in its type's array.
+ * @param[in] a_location The union's location, which its arrays and any pool-resident primitive resolve against.
+ * @param[in] a_f        What to call.
+ * @return What @p a_f returns.
+ */
+template <class F, class P, class... Ps>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline auto
+visitArrays(const UnionArrays<P, Ps...>& a_arrays,
+            const uint32_t               a_type,
+            const uint32_t               a_index,
+            const PoolLocation&          a_location,
+            F&&                          a_f) noexcept
+{
+  if constexpr (sizeof...(Ps) == 0) {
+    EBGEOMETRY_EXPECT(a_type == 0);
+
+    return a_f(fromStored<P>(a_arrays.m_head.at(a_location.base(), a_index), a_location));
+  }
+  else {
+    if (a_type == 0) {
+      return a_f(fromStored<P>(a_arrays.m_head.at(a_location.base(), a_index), a_location));
+    }
+
+    return visitArrays(a_arrays.m_tail, a_type - 1, a_index, a_location, static_cast<F&&>(a_f));
+  }
+}
+
 } // namespace CSGDetail
 
 /**
- * @brief BVH-accelerated union of many primitives of one type.
+ * @brief BVH-accelerated union of many primitives of one or more types.
  * @details A PackedBVH over the primitives, stored by value in a Pool. At query time the BVH culls
  * primitives whose bounding volume lies further than the current best distance, giving sub-linear
  * cost on large scenes. The value is the minimum over all primitives, negative inside the union.
  *
  * This is a plain, trivially copyable value type with no virtual functions. signedDistance() is
  * callable on the host and on a device: mirror the pool, call rebasedView(), and pass the result to a
- * kernel. Because every primitive has the same type P, no runtime dispatch is needed. For primitives of
- * different types, compose them with Union() and compile the result into a Tape, which evaluates a
- * union of many operands with a BVH too.
+ * kernel. The primitive types are deduced from the arrays given, `BVHUnion(pool, spheres, boxes, mine)`.
+ * With one type, the BVH's leaves hold the primitives themselves and no type is tested. With several, each
+ * type's primitives are one array in the pool, a leaf holds a primitive's type and index, and evaluating a
+ * leaf tests its type against the types in the order given (the last without a test): put the most
+ * numerous first.
  *
- * P can be any trivially copyable type with an EBGEOMETRY_HOST_DEVICE
- * `signedDistance(const Vec3T<T>&)`: an analytic shape, a mesh distance function, or another BVH
- * union. Pruning needs only that each bounding volume encloses its primitive's object (where the
- * primitive's value is not positive): a primitive skipped because its box is further away than the
- * best value so far is positive at the query point, so skipping it never changes the union's sign.
- * Its value is a distance bound if the primitives' values are, and only a sign if they are
- * DistanceQuality::NotADistance (see distanceQuality).
+ * Each primitive type can be any trivially copyable type with an EBGEOMETRY_HOST_DEVICE
+ * `signedDistance(const Vec3T<T>&)` and a `computeBoundingVolume()`: an analytic shape, a mesh distance
+ * function, a fused composition, another BVH union, or a type of your own. Pruning needs only that each
+ * bounding volume encloses its primitive's object (where the primitive's value is not positive): a
+ * primitive skipped because its box is further away than the best value so far is positive at the query
+ * point, so skipping it never changes the union's sign. Its value is a distance bound if the primitives'
+ * values are, and only a sign if any type's is DistanceQuality::NotADistance (see distanceQuality).
  *
  * A primitive whose bounding box is unbounded in some direction (it reaches plus or minus
  * Math::Limits<T>::max(), as an InfiniteCylinderSDF's does along its axis) is kept out of the BVH:
@@ -167,32 +412,38 @@ struct UnionParts
  *
  * A pool-resident primitive (a mesh distance function or a union; see PoolHandle) must have been
  * built in the same Pool as this union. The union stores its layout, and rebuilds it with the union's
- * own location as it evaluates it. The constructor checks the pool, and that there is one bounding
- * volume per primitive, in every build, and aborts with a message if either fails.
- * @tparam T Floating-point precision.
- * @tparam P Primitive type.
- * @tparam K BVH branching factor.
+ * own location as it evaluates it. The constructors check the pool, and that there is one bounding
+ * volume per primitive, in every build, and abort with a message if either fails.
+ * @tparam T  Floating-point precision.
+ * @tparam K  BVH branching factor.
+ * @tparam Ps Primitive types (at least one).
  */
-template <class T, class P, size_t K>
-class BVHUnion : public PoolHandle
+template <class T, size_t K, class... Ps>
+class BVHUnion : public PoolHandle, private CSGDetail::ArraysOf<Ps...>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHUnion requires a floating-point type T");
-  static_assert(std::is_trivially_copyable_v<P>, "BVHUnion requires a trivially copyable primitive type");
+  static_assert(sizeof...(Ps) > 0, "BVHUnion requires at least one primitive type");
+  static_assert((std::is_trivially_copyable_v<Ps> && ...), "BVHUnion requires trivially copyable primitive types");
   static_assert(K > 1, "BVHUnion BVH branching factor K must be at least 2");
 
   /**
-   * @brief How far signedDistance() can be trusted as a distance: a bound, or only a sign if the
-   * primitives' values are not distances. With exact primitives the union is the exact minimum,
+   * @brief How far signedDistance() can be trusted as a distance: a bound, or only a sign if any
+   * primitive type's values are not distances. With exact primitives the union is the exact minimum,
    * which is exact outside but underestimates inside overlapping primitives.
    */
-  static constexpr DistanceQuality distanceQuality =
-    distanceQualityOf<P> == DistanceQuality::NotADistance ? DistanceQuality::NotADistance : DistanceQuality::Bound;
+  static constexpr DistanceQuality distanceQuality = CSGDetail::unionQuality<Ps...>;
 
   /**
-   * @brief Alias for the packed BVH type. Its primitives are P, or P's layout for a pool-resident P.
+   * @brief What the BVH's leaves hold: with one type the primitive (or its layout, for a pool-resident
+   * one), with several a reference to it in its type's array; visit() resolves either.
    */
-  using Root = BVH::PackedBVH<T, CSGDetail::Stored<P>, K>;
+  using Leaf = CSGDetail::Leaf<Ps...>;
+
+  /**
+   * @brief Alias for the packed BVH type.
+   */
+  using Root = BVH::PackedBVH<T, Leaf, K>;
 
   /**
    * @brief Alias for the bounding volume type.
@@ -200,12 +451,17 @@ public:
   using BV = BoundingVolumes::AABBT<T>;
 
   /**
+   * @brief The first primitive type: the only one for the constructors that take boxes.
+   */
+  using First = std::tuple_element_t<0, std::tuple<Ps...>>;
+
+  /**
    * @brief Disallowed, use the full constructor.
    */
   BVHUnion() = delete;
 
   /**
-   * @brief The leaf-size settings the constructor without options uses.
+   * @brief The leaf-size settings the constructors without options use.
    * @details K-1 primitives per leaf for the top-down methods (a node with fewer than K primitives is
    * a leaf), a target of K for the space-filling curves, and the default ClusterSpec for ClusterSAH.
    * Start from these to change one method's setting; see BVH::ConstructionOptions.
@@ -219,33 +475,54 @@ public:
   }
 
   /**
-   * @brief Build the union.
-   * @param[in,out] a_pool            Pool the BVH is reserved from; pool-resident primitives must live
-   * in it too. Must outlive this object and every copy of it.
+   * @brief Build the union of the given primitives, with SAH and the default leaf sizes.
+   * @details Each primitive's box is its computeBoundingVolume().
+   * @param[in,out] a_pool       Pool the union is reserved from; pool-resident primitives must live in it
+   * too. Must outlive this object and every copy of it.
+   * @param[in]     a_primitives One array per primitive type; empty arrays are allowed, but not all of them.
+   */
+  EBGEOMETRY_HOST
+  explicit BVHUnion(Pool& a_pool, const std::vector<Ps>&... a_primitives);
+
+  /**
+   * @brief Build the union with a construction method and, optionally, leaf sizes.
+   * @details As the constructor without settings. The chosen method reads only its own field of the leaf
+   * sizes; see BVH::ConstructionOptions.
+   * @param[in,out] a_pool       Pool the union is reserved from; see the constructor without settings.
+   * @param[in]     a_settings   Construction method and leaf sizes.
+   * @param[in]     a_primitives One array per primitive type; empty arrays are allowed, but not all of them.
+   */
+  EBGEOMETRY_HOST
+  BVHUnion(Pool& a_pool, const BVH::BuildSettings& a_settings, const std::vector<Ps>&... a_primitives);
+
+  /**
+   * @brief Build a union of one type with the caller's bounding boxes, which may be tighter than the
+   * primitives' own.
+   * @param[in,out] a_pool            Pool the union is reserved from; see the constructor without settings.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
    * The leaf sizes are defaultConstructionOptions().
    */
+  template <size_t N = sizeof...(Ps), std::enable_if_t<N == 1, int> = 0>
   EBGEOMETRY_HOST
-  BVHUnion(Pool&                  a_pool,
-           const std::vector<P>&  a_primitives,
-           const std::vector<BV>& a_boundingVolumes,
-           BVH::Construction      a_construction = BVH::Construction::SAH);
+  BVHUnion(Pool&                     a_pool,
+           const std::vector<First>& a_primitives,
+           const std::vector<BV>&    a_boundingVolumes,
+           BVH::Construction         a_construction = BVH::Construction::SAH);
 
   /**
-   * @brief Build the union with leaf-size settings.
-   * @details As the constructor without options, which uses defaultConstructionOptions(). The chosen
-   * method reads only its own field of @p a_options; see BVH::ConstructionOptions.
-   * @param[in,out] a_pool            Pool the BVH is reserved from; see the constructor without options.
+   * @brief Build a union of one type with the caller's bounding boxes and leaf-size settings.
+   * @param[in,out] a_pool            Pool the union is reserved from; see the constructor without settings.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
    * @param[in]     a_options         Leaf-size settings, in primitives.
    */
+  template <size_t N = sizeof...(Ps), std::enable_if_t<N == 1, int> = 0>
   EBGEOMETRY_HOST
   BVHUnion(Pool&                           a_pool,
-           const std::vector<P>&           a_primitives,
+           const std::vector<First>&       a_primitives,
            const std::vector<BV>&          a_boundingVolumes,
            BVH::Construction               a_construction,
            const BVH::ConstructionOptions& a_options);
@@ -279,14 +556,30 @@ public:
   getBVH() const noexcept;
 
   /**
-   * @brief Get the primitives whose bounding box is unbounded, which every query evaluates.
+   * @brief Get the leaves of the primitives whose bounding box is unbounded, which every query evaluates.
    * @details The span is a resolved address into pool memory; the lifetime caveat of
    * BVH::PackedBVH::getPrimitives() applies.
-   * @return Span over those primitives; empty if there are none.
+   * @return Span over those leaves; empty if there are none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PODSpan<const CSGDetail::Stored<P>>
+  inline PODSpan<const Leaf>
   getUnboundedPrimitives() const noexcept;
+
+  /**
+   * @brief Call @p a_f with the primitive a leaf stands for (one of the BVH's leaves, or of
+   * getUnboundedPrimitives()), and return what it returns.
+   * @details For the ray forms and other code that walks the union's leaves itself. With several types,
+   * @p a_f is called with the primitive's own type, so it must accept each of them and return the same type
+   * for all. Callable on the host and on a device.
+   * @tparam F Callable on each primitive type.
+   * @param[in] a_leaf A leaf of this union.
+   * @param[in] a_f    What to call.
+   * @return What @p a_f returns.
+   */
+  template <class F>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline auto
+  visit(const Leaf& a_leaf, F&& a_f) const noexcept;
 
   /**
    * @brief Produce a copy of this union that resolves against @p a_pool.
@@ -313,9 +606,10 @@ public:
 
   /**
    * @brief The union's arrays as offsets into its pool, with no location: what an outer union
-   * stores when this union is its primitive (see PoolHandle).
+   * stores when this union is its primitive (see PoolHandle). With several types it also holds the
+   * per-type arrays (its base).
    */
-  struct Layout
+  struct Layout : CSGDetail::ArraysOf<Ps...>
   {
     /**
      * @brief BVH over the primitives with bounded boxes.
@@ -337,7 +631,10 @@ public:
    */
   EBGEOMETRY_HOST_DEVICE
   BVHUnion(const Layout& a_layout, const PoolLocation& a_location) noexcept
-    : PoolHandle(a_location), m_bvh(a_layout.m_bvh), m_unbounded(a_layout.m_unbounded)
+    : PoolHandle(a_location),
+      CSGDetail::ArraysOf<Ps...>(a_layout),
+      m_bvh(a_layout.m_bvh),
+      m_unbounded(a_layout.m_unbounded)
   {}
 
   /**
@@ -348,17 +645,23 @@ public:
   Layout
   layout() const noexcept
   {
-    return Layout{m_bvh, m_unbounded};
+    Layout layout{};
+
+    static_cast<CSGDetail::ArraysOf<Ps...>&>(layout) = *this;
+    layout.m_bvh                                     = m_bvh;
+    layout.m_unbounded                               = m_unbounded;
+
+    return layout;
   }
 
 private:
   /**
    * @brief Adopt the built parts, which share one pool; used by the constructors.
-   * @param[in] a_parts The BVH and the unbounded primitives.
+   * @param[in] a_built The layout (the BVH, the unbounded primitives and, with several types, the arrays) and
+   * where it lives.
    */
   EBGEOMETRY_HOST
-  explicit BVHUnion(const CSGDetail::UnionParts<T, P, K>& a_parts) noexcept
-    : PoolHandle(a_parts.bvh.location()), m_bvh(a_parts.bvh.layout()), m_unbounded(a_parts.unbounded.layout())
+  explicit BVHUnion(const std::pair<Layout, PoolLocation>& a_built) noexcept : BVHUnion(a_built.first, a_built.second)
   {}
 
   /**
@@ -373,39 +676,110 @@ private:
 };
 
 /**
- * @brief BVH-accelerated smooth union of many primitives of one type.
+ * @brief A union of the given arrays' types, of the first type's precision and the default branching factor.
+ * @tparam P  First primitive type.
+ * @tparam Ps The others (none a box, which a one-type union's array of boxes is).
+ * @param[in] a_pool Pool.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_primitives The other types' primitives.
+ */
+template <class P, class... Ps, std::enable_if_t<!(CSGDetail::isBox<Ps> || ...), int> = 0>
+BVHUnion(Pool& a_pool, const std::vector<P>& a_first, const std::vector<Ps>&... a_primitives)
+  -> BVHUnion<CSGDetail::PrimitivePrecision<P>,
+              BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+              P,
+              Ps...>;
+
+/**
+ * @brief A union of the given arrays' types, built with settings.
+ * @tparam P  First primitive type.
+ * @tparam Ps The others.
+ * @param[in] a_pool Pool.
+ * @param[in] a_settings Construction method and leaf sizes.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_primitives The other types' primitives.
+ */
+template <class P, class... Ps>
+BVHUnion(Pool&                     a_pool,
+         const BVH::BuildSettings& a_settings,
+         const std::vector<P>&     a_first,
+         const std::vector<Ps>&... a_primitives)
+  -> BVHUnion<CSGDetail::PrimitivePrecision<P>,
+              BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+              P,
+              Ps...>;
+
+/**
+ * @brief A union of one type with the caller's boxes.
+ * @tparam P Primitive type.
+ * @tparam B Box type.
+ * @param[in] a_pool Pool.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_boxes The primitives' boxes.
+ */
+template <class P, class B, std::enable_if_t<CSGDetail::isBox<B>, int> = 0>
+BVHUnion(Pool& a_pool, const std::vector<P>& a_first, const std::vector<B>& a_boxes)
+  -> BVHUnion<CSGDetail::PrimitivePrecision<P>, BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(), P>;
+
+/**
+ * @brief A union of one type with the caller's boxes and a construction method.
+ * @tparam P Primitive type.
+ * @tparam B Box type.
+ * @param[in] a_pool Pool.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_boxes The primitives' boxes.
+ * @param[in] a_construction Construction method.
+ * @param[in] a_rest The leaf sizes (and for a smooth union, the construction method), if given.
+ */
+template <class P, class B, class... Rest, std::enable_if_t<CSGDetail::isBox<B>, int> = 0>
+BVHUnion(Pool&                 a_pool,
+         const std::vector<P>& a_first,
+         const std::vector<B>& a_boxes,
+         BVH::Construction     a_construction,
+         const Rest&... a_rest)
+  -> BVHUnion<CSGDetail::PrimitivePrecision<P>, BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(), P>;
+
+/**
+ * @brief BVH-accelerated smooth union of many primitives of one or more types.
  * @details Uses the BVH to find the two primitives with the smallest values and blends those values
  * with a smooth-minimum operator, yielding C1 (or better) blending across nearby surfaces with
- * sub-linear query cost. Otherwise identical to BVHUnion: a plain, trivially copyable value type
- * whose signedDistance() is callable on the host and on a device.
+ * sub-linear query cost. Otherwise identical to BVHUnion (the primitive types, deduced from the arrays,
+ * and how several are stored): a plain, trivially copyable value type whose signedDistance() is callable on
+ * the host and on a device.
  * @tparam T     Floating-point precision.
- * @tparam P     Primitive type; see BVHUnion.
  * @tparam K     BVH branching factor.
  * @tparam Blend Smooth-minimum operator: a trivially copyable function object with an
  * EBGEOMETRY_HOST_DEVICE `T operator()(const T& a, const T& b, const T& s) const`, such as
  * SmoothMinOp (the default) or ExpMinOp.
+ * @tparam Ps    Primitive types (at least one); see BVHUnion.
  */
-template <class T, class P, size_t K, class Blend = SmoothMinOp<T>>
-class BVHSmoothUnion : public PoolHandle
+template <class T, size_t K, class Blend = SmoothMinOp<T>, class... Ps>
+class BVHSmoothUnion : public PoolHandle, private CSGDetail::ArraysOf<Ps...>
 {
 public:
   static_assert(std::is_floating_point_v<T>, "BVHSmoothUnion requires a floating-point type T");
-  static_assert(std::is_trivially_copyable_v<P>, "BVHSmoothUnion requires a trivially copyable primitive type");
+  static_assert(sizeof...(Ps) > 0, "BVHSmoothUnion requires at least one primitive type");
+  static_assert((std::is_trivially_copyable_v<Ps> && ...),
+                "BVHSmoothUnion requires trivially copyable primitive types");
   static_assert(std::is_trivially_copyable_v<Blend>, "BVHSmoothUnion requires a trivially copyable blend operator");
   static_assert(K > 1, "BVHSmoothUnion BVH branching factor K must be at least 2");
 
   /**
-   * @brief How far signedDistance() can be trusted as a distance: a bound, or only a sign if the
-   * primitives' values are not distances. SmoothMinOp and ExpMinOp weight the two primitives'
+   * @brief How far signedDistance() can be trusted as a distance: a bound, or only a sign if any
+   * primitive type's values are not distances. SmoothMinOp and ExpMinOp weight the two primitives'
    * gradients by weights that sum to one, so they do not make the blend steeper than its inputs.
    */
-  static constexpr DistanceQuality distanceQuality =
-    distanceQualityOf<P> == DistanceQuality::NotADistance ? DistanceQuality::NotADistance : DistanceQuality::Bound;
+  static constexpr DistanceQuality distanceQuality = CSGDetail::unionQuality<Ps...>;
 
   /**
-   * @brief Alias for the packed BVH type. Its primitives are P, or P's layout for a pool-resident P.
+   * @brief What the BVH's leaves hold; see BVHUnion::Leaf.
    */
-  using Root = BVH::PackedBVH<T, CSGDetail::Stored<P>, K>;
+  using Leaf = CSGDetail::Leaf<Ps...>;
+
+  /**
+   * @brief Alias for the packed BVH type.
+   */
+  using Root = BVH::PackedBVH<T, Leaf, K>;
 
   /**
    * @brief Alias for the bounding volume type.
@@ -413,12 +787,17 @@ public:
   using BV = BoundingVolumes::AABBT<T>;
 
   /**
+   * @brief The first primitive type: the only one for the constructors that take boxes.
+   */
+  using First = std::tuple_element_t<0, std::tuple<Ps...>>;
+
+  /**
    * @brief Disallowed, use the full constructor.
    */
   BVHSmoothUnion() = delete;
 
   /**
-   * @brief The leaf-size settings the constructor without options uses; the same as BVHUnion's.
+   * @brief The leaf-size settings the constructors without options use; the same as BVHUnion's.
    * @return The default settings.
    */
   [[nodiscard]] EBGEOMETRY_HOST
@@ -429,8 +808,44 @@ public:
   }
 
   /**
-   * @brief Build the smooth union.
-   * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnion.
+   * @brief Build the smooth union of the given primitives with a default-constructed Blend, SAH and the default
+   * leaf sizes.
+   * @details Each primitive's box is its computeBoundingVolume().
+   * @param[in,out] a_pool       Pool the union is reserved from; see BVHUnion.
+   * @param[in]     a_smoothLen  Smoothing length (must be > 0).
+   * @param[in]     a_primitives One array per primitive type; empty arrays are allowed, but not all of them.
+   */
+  EBGEOMETRY_HOST
+  BVHSmoothUnion(Pool& a_pool, T a_smoothLen, const std::vector<Ps>&... a_primitives);
+
+  /**
+   * @brief Build the smooth union of the given primitives with a smooth-minimum operator.
+   * @param[in,out] a_pool       Pool the union is reserved from; see BVHUnion.
+   * @param[in]     a_smoothLen  Smoothing length (must be > 0).
+   * @param[in]     a_blend      Smooth-minimum operator.
+   * @param[in]     a_primitives One array per primitive type; empty arrays are allowed, but not all of them.
+   */
+  EBGEOMETRY_HOST
+  BVHSmoothUnion(Pool& a_pool, T a_smoothLen, Blend a_blend, const std::vector<Ps>&... a_primitives);
+
+  /**
+   * @brief Build the smooth union with a construction method and, optionally, leaf sizes.
+   * @param[in,out] a_pool       Pool the union is reserved from; see BVHUnion.
+   * @param[in]     a_settings   Construction method and leaf sizes.
+   * @param[in]     a_smoothLen  Smoothing length (must be > 0).
+   * @param[in]     a_blend      Smooth-minimum operator.
+   * @param[in]     a_primitives One array per primitive type; empty arrays are allowed, but not all of them.
+   */
+  EBGEOMETRY_HOST
+  BVHSmoothUnion(Pool&                     a_pool,
+                 const BVH::BuildSettings& a_settings,
+                 T                         a_smoothLen,
+                 Blend                     a_blend,
+                 const std::vector<Ps>&... a_primitives);
+
+  /**
+   * @brief Build a smooth union of one type with the caller's bounding boxes.
+   * @param[in,out] a_pool            Pool the union is reserved from; see BVHUnion.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_smoothLen       Smoothing length (must be > 0).
@@ -438,19 +853,19 @@ public:
    * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
    * The leaf sizes are defaultConstructionOptions().
    */
+  template <size_t N = sizeof...(Ps), std::enable_if_t<N == 1, int> = 0>
   EBGEOMETRY_HOST
-  BVHSmoothUnion(Pool&                  a_pool,
-                 const std::vector<P>&  a_primitives,
-                 const std::vector<BV>& a_boundingVolumes,
-                 T                      a_smoothLen,
-                 Blend                  a_blend        = Blend{},
-                 BVH::Construction      a_construction = BVH::Construction::SAH);
+  BVHSmoothUnion(Pool&                     a_pool,
+                 const std::vector<First>& a_primitives,
+                 const std::vector<BV>&    a_boundingVolumes,
+                 T                         a_smoothLen,
+                 Blend                     a_blend        = Blend{},
+                 BVH::Construction         a_construction = BVH::Construction::SAH);
 
   /**
-   * @brief Build the smooth union with leaf-size settings.
-   * @details As the constructor without options, which uses defaultConstructionOptions(). The chosen
-   * method reads only its own field of @p a_options; see BVH::ConstructionOptions.
-   * @param[in,out] a_pool            Pool the BVH is reserved from; see BVHUnion.
+   * @brief Build a smooth union of one type with the caller's bounding boxes and leaf-size settings.
+   * @details The chosen method reads only its own field of @p a_options; see BVH::ConstructionOptions.
+   * @param[in,out] a_pool            Pool the union is reserved from; see BVHUnion.
    * @param[in]     a_primitives      Primitives (must be non-empty).
    * @param[in]     a_boundingVolumes Bounding box of each primitive (same length as a_primitives).
    * @param[in]     a_smoothLen       Smoothing length (must be > 0).
@@ -458,9 +873,10 @@ public:
    * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
    * @param[in]     a_options         Leaf-size settings, in primitives.
    */
+  template <size_t N = sizeof...(Ps), std::enable_if_t<N == 1, int> = 0>
   EBGEOMETRY_HOST
   BVHSmoothUnion(Pool&                           a_pool,
-                 const std::vector<P>&           a_primitives,
+                 const std::vector<First>&       a_primitives,
                  const std::vector<BV>&          a_boundingVolumes,
                  T                               a_smoothLen,
                  Blend                           a_blend,
@@ -469,10 +885,9 @@ public:
 
   /**
    * @brief Evaluate the smooth union at a point.
-   * @details Finds the two smallest primitive values via the BVH and blends them. Negative when
-   * inside the smooth union.
+   * @details Blends the two smallest primitive values with the smooth-minimum operator.
    * @param[in] a_point 3D query point.
-   * @return Smooth minimum of the two smallest primitive values.
+   * @return The blended value.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
@@ -488,7 +903,6 @@ public:
 
   /**
    * @brief Get the packed BVH over the primitives whose bounding box is bounded.
-   * @details The primitives with unbounded boxes are not in it; see getUnboundedPrimitives().
    * @return The BVH.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -496,18 +910,27 @@ public:
   getBVH() const noexcept;
 
   /**
-   * @brief Get the primitives whose bounding box is unbounded, which every query evaluates.
-   * @details The span is a resolved address into pool memory; the lifetime caveat of
-   * BVH::PackedBVH::getPrimitives() applies.
-   * @return Span over those primitives; empty if there are none.
+   * @brief Get the leaves of the primitives whose bounding box is unbounded, which every query evaluates.
+   * @return Span over those leaves; empty if there are none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PODSpan<const CSGDetail::Stored<P>>
+  inline PODSpan<const Leaf>
   getUnboundedPrimitives() const noexcept;
 
   /**
-   * @brief Produce a copy of this smooth union that resolves against @p a_pool; see
-   * BVHUnion::rebasedView().
+   * @brief Call @p a_f with the primitive a leaf stands for; see BVHUnion::visit().
+   * @tparam F Callable on each primitive type.
+   * @param[in] a_leaf A leaf of this union.
+   * @param[in] a_f    What to call.
+   * @return What @p a_f returns.
+   */
+  template <class F>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline auto
+  visit(const Leaf& a_leaf, F&& a_f) const noexcept;
+
+  /**
+   * @brief Produce a copy of this smooth union that resolves against @p a_pool; see BVHUnion.
    * @param[in] a_pool Pool to rebase onto: the union's own pool or one in its mirror chain.
    * @return A BVHSmoothUnion resolving against @p a_pool.
    */
@@ -516,7 +939,8 @@ public:
   rebasedView(const Pool& a_pool) const noexcept;
 
   /**
-   * @brief Duplicate this smooth union's storage into @p a_dstPool; see BVHUnion::deepCopy().
+   * @brief Duplicate this smooth union's storage, and that of any pool-resident primitive, into
+   * @p a_dstPool.
    * @param[in,out] a_dstPool Pool to reserve the copy from.
    * @return A BVHSmoothUnion with the same structure, backed by @p a_dstPool.
    */
@@ -526,9 +950,10 @@ public:
 
   /**
    * @brief The smooth union's arrays and parameters, with no location: what an outer union stores
-   * when this one is its primitive (see PoolHandle).
+   * when this one is its primitive (see PoolHandle). With several types it also holds the per-type arrays
+   * (its base).
    */
-  struct Layout
+  struct Layout : CSGDetail::ArraysOf<Ps...>
   {
     /**
      * @brief BVH over the primitives with bounded boxes.
@@ -560,6 +985,7 @@ public:
   EBGEOMETRY_HOST_DEVICE
   BVHSmoothUnion(const Layout& a_layout, const PoolLocation& a_location) noexcept
     : PoolHandle(a_location),
+      CSGDetail::ArraysOf<Ps...>(a_layout),
       m_bvh(a_layout.m_bvh),
       m_unbounded(a_layout.m_unbounded),
       m_smoothLen(a_layout.m_smoothLen),
@@ -575,25 +1001,33 @@ public:
   Layout
   layout() const noexcept
   {
-    return Layout{m_bvh, m_unbounded, m_smoothLen, m_blend};
+    Layout layout{};
+
+    static_cast<CSGDetail::ArraysOf<Ps...>&>(layout) = *this;
+    layout.m_bvh                                     = m_bvh;
+    layout.m_unbounded                               = m_unbounded;
+    layout.m_smoothLen                               = m_smoothLen;
+    layout.m_blend                                   = m_blend;
+
+    return layout;
   }
 
 private:
   /**
    * @brief Adopt the built parts; used by the constructors.
-   * @param[in] a_parts     The BVH and the unbounded primitives.
+   * @param[in] a_built     The layout of the BVH, the unbounded primitives and, with several types, the
+   * arrays (its smoothing length and blend unset), and where it lives.
    * @param[in] a_smoothLen Smoothing length; a nonpositive one is replaced by the smallest positive
    * value, and the public constructors reject it.
    * @param[in] a_blend     Smooth-minimum operator.
    */
   EBGEOMETRY_HOST
-  BVHSmoothUnion(const CSGDetail::UnionParts<T, P, K>& a_parts, T a_smoothLen, Blend a_blend) noexcept
-    : PoolHandle(a_parts.bvh.location()),
-      m_bvh(a_parts.bvh.layout()),
-      m_unbounded(a_parts.unbounded.layout()),
-      m_smoothLen(Math::max(a_smoothLen, Math::Limits<T>::min())),
-      m_blend(a_blend)
-  {}
+  BVHSmoothUnion(const std::pair<Layout, PoolLocation>& a_built, T a_smoothLen, Blend a_blend) noexcept
+    : BVHSmoothUnion(a_built.first, a_built.second)
+  {
+    m_smoothLen = Math::max(a_smoothLen, Math::Limits<T>::min());
+    m_blend     = a_blend;
+  }
 
   /**
    * @brief Packed BVH over the primitives with bounded boxes, as a layout.
@@ -615,6 +1049,117 @@ private:
    */
   Blend m_blend;
 };
+
+/**
+ * @brief A smooth union of the given arrays' types with the default blend.
+ * @tparam P  First primitive type.
+ * @tparam Ps The others.
+ * @param[in] a_pool Pool.
+ * @param[in] a_smoothLen Smoothing length.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_primitives The other types' primitives.
+ */
+template <class P, class... Ps, std::enable_if_t<!(CSGDetail::isBox<Ps> || ...), int> = 0>
+BVHSmoothUnion(Pool&                            a_pool,
+               CSGDetail::PrimitivePrecision<P> a_smoothLen,
+               const std::vector<P>&            a_first,
+               const std::vector<Ps>&... a_primitives)
+  -> BVHSmoothUnion<CSGDetail::PrimitivePrecision<P>,
+                    BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+                    SmoothMinOp<CSGDetail::PrimitivePrecision<P>>,
+                    P,
+                    Ps...>;
+
+/**
+ * @brief A smooth union of the given arrays' types with a blend.
+ * @tparam B  Blend type.
+ * @tparam P  First primitive type.
+ * @tparam Ps The others.
+ * @param[in] a_pool Pool.
+ * @param[in] a_smoothLen Smoothing length.
+ * @param[in] a_blend Smooth-minimum operator.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_primitives The other types' primitives.
+ */
+template <class B, class P, class... Ps, std::enable_if_t<!CSGDetail::isVector<B>, int> = 0>
+BVHSmoothUnion(Pool&                            a_pool,
+               CSGDetail::PrimitivePrecision<P> a_smoothLen,
+               B                                a_blend,
+               const std::vector<P>&            a_first,
+               const std::vector<Ps>&... a_primitives)
+  -> BVHSmoothUnion<CSGDetail::PrimitivePrecision<P>,
+                    BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+                    B,
+                    P,
+                    Ps...>;
+
+/**
+ * @brief A smooth union of the given arrays' types with settings and a blend.
+ * @tparam B  Blend type.
+ * @tparam P  First primitive type.
+ * @tparam Ps The others.
+ * @param[in] a_pool Pool.
+ * @param[in] a_settings Construction method and leaf sizes.
+ * @param[in] a_smoothLen Smoothing length.
+ * @param[in] a_blend Smooth-minimum operator.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_primitives The other types' primitives.
+ */
+template <class B, class P, class... Ps, std::enable_if_t<!CSGDetail::isVector<B>, int> = 0>
+BVHSmoothUnion(Pool&                            a_pool,
+               const BVH::BuildSettings&        a_settings,
+               CSGDetail::PrimitivePrecision<P> a_smoothLen,
+               B                                a_blend,
+               const std::vector<P>&            a_first,
+               const std::vector<Ps>&... a_primitives)
+  -> BVHSmoothUnion<CSGDetail::PrimitivePrecision<P>,
+                    BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+                    B,
+                    P,
+                    Ps...>;
+
+/**
+ * @brief A smooth union of one type with the caller's boxes and the default blend.
+ * @tparam P Primitive type.
+ * @tparam V Box type.
+ * @param[in] a_pool Pool.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_boxes The primitives' boxes.
+ * @param[in] a_smoothLen Smoothing length.
+ */
+template <class P, class V, std::enable_if_t<CSGDetail::isBox<V>, int> = 0>
+BVHSmoothUnion(Pool&                            a_pool,
+               const std::vector<P>&            a_first,
+               const std::vector<V>&            a_boxes,
+               CSGDetail::PrimitivePrecision<P> a_smoothLen)
+  -> BVHSmoothUnion<CSGDetail::PrimitivePrecision<P>,
+                    BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+                    SmoothMinOp<CSGDetail::PrimitivePrecision<P>>,
+                    P>;
+
+/**
+ * @brief A smooth union of one type with the caller's boxes and a blend.
+ * @tparam P    Primitive type.
+ * @tparam V    Box type.
+ * @tparam B    Blend type.
+ * @tparam Rest The construction method and leaf sizes, if given.
+ * @param[in] a_pool Pool.
+ * @param[in] a_first The first type's primitives.
+ * @param[in] a_boxes The primitives' boxes.
+ * @param[in] a_smoothLen Smoothing length.
+ * @param[in] a_blend Smooth-minimum operator.
+ * @param[in] a_rest The leaf sizes (and for a smooth union, the construction method), if given.
+ */
+template <class P, class V, class B, class... Rest, std::enable_if_t<CSGDetail::isBox<V>, int> = 0>
+BVHSmoothUnion(Pool&                            a_pool,
+               const std::vector<P>&            a_first,
+               const std::vector<V>&            a_boxes,
+               CSGDetail::PrimitivePrecision<P> a_smoothLen,
+               B                                a_blend,
+               const Rest&... a_rest) -> BVHSmoothUnion<CSGDetail::PrimitivePrecision<P>,
+                                                        BVH::DefaultBranchingRatio<CSGDetail::PrimitivePrecision<P>>(),
+                                                        B,
+                                                        P>;
 
 } // namespace EBGeometry
 

@@ -586,7 +586,7 @@ sizes. A ``shared_ptr`` to a polymorphic base cannot be stored either, since it 
 copyable and so can never cross into a device address space.
 
 The BVH-accelerated CSG unions (:ref:`Chap:ImplemCSG`) are therefore restricted to a single
-primitive type: ``BVHUnion<T, P, K>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one
+primitive type: ``BVHUnion<T, K, P>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one
 type ``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially
 copyable (:ref:`Sec:BVHUnions`). A union of primitives of *different* types is compiled into a tape
 (:ref:`Sec:Tape`), whose BVH holds sub-program indices and whose clauses dispatch on a primitive

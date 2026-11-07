@@ -46,7 +46,7 @@ pool, the objects and one bounding box per object:
 
    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-   const EBGeometry::BVHUnion<T, Box, K> city(pool, buildings, buildingBoxes);
+   const EBGeometry::BVHUnion<T, K, Box> city(pool, buildings, buildingBoxes);
 
 The union copies the objects into the pool and builds its BVH there, so the input vectors are not
 needed afterwards. The pool must outlive the union and every copy of it. To combine objects of

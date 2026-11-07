@@ -30,8 +30,8 @@ using Box    = EBGeometry::BoxSDF<T>;
 // A BVHUnion holds one primitive type; K is the branching factor of its BVH.
 constexpr std::size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 
-using Spheres = EBGeometry::BVHUnion<T, Sphere, K>;
-using City    = EBGeometry::BVHUnion<T, Box, K>;
+using Spheres = EBGeometry::BVHUnion<T, K, Sphere>;
+using City    = EBGeometry::BVHUnion<T, K, Box>;
 
 // Run configuration: spheresPerAxis^3 spheres, (lotsPerAxis)^2 buildings, and the number of random
 // query points. The naive union visits every object for every point, so these stay small enough for an

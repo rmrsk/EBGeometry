@@ -180,7 +180,7 @@ Primitive types
 A tape can hold every analytic shape and the three mesh distance fields with their default
 parameters without being told. Any other shape type (a BVH union, a mesh distance field with another
 branching factor, a fused composition, another tape, or a type of your own) must be listed in the
-tape's type, ``Tape<T, MyShape, BVHUnion<T, SphereSDF<T>, 4>>``, since the interpreter can only reach
+tape's type, ``Tape<T, MyShape, BVHUnion<T, 4, SphereSDF<T>>>``, since the interpreter can only reach
 the types its type names. A listed type must be a shape of the tape's precision, which is checked when
 the program is compiled. An expression containing a type that is not listed compiles, but is rejected
 when the tape is constructed, as is a mesh, BVH union or tape that lives in another pool than the one

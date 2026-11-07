@@ -467,7 +467,7 @@ TEMPLATE_TEST_CASE("Fused: a fused shape is a Tape primitive and a BVH union's p
     boxes.push_back(placed.back().computeBoundingVolume());
   }
 
-  const BVHUnion<T, Placed, 4> manyBlocks(pool, placed, boxes);
+  const BVHUnion<T, 4, Placed> manyBlocks(pool, placed, boxes);
 
   for (const Vec3& p : probes<T>()) {
     T brute = std::numeric_limits<T>::max();
@@ -477,6 +477,29 @@ TEMPLATE_TEST_CASE("Fused: a fused shape is a Tape primitive and a BVH union's p
     }
 
     REQUIRE(manyBlocks.signedDistance(p) == brute);
+  }
+
+  // The placements and plain balls in one union of two types, drilled by a fused difference.
+  const std::vector<SphereSDF<T>> balls{SphereSDF<T>(Vec3(T(1.5), T(1.5), T(1.5)), T(0.8)),
+                                        SphereSDF<T>(Vec3(T(-2), T(0), T(0)), T(0.5))};
+  const SphereSDF<T>              drill(Vec3(T(0), T(0), T(0)), T(0.6));
+
+  const auto blocksAndBalls = BVHUnion(pool, placed, balls);
+  const auto drilled        = Fused::Difference(blocksAndBalls, drill);
+
+  for (const Vec3& p : probes<T>()) {
+    T brute = std::numeric_limits<T>::max();
+
+    for (const Placed& piece : placed) {
+      brute = std::min(brute, piece.signedDistance(p));
+    }
+
+    for (const SphereSDF<T>& ball : balls) {
+      brute = std::min(brute, ball.signedDistance(p));
+    }
+
+    REQUIRE(blocksAndBalls.signedDistance(p) == brute);
+    REQUIRE(drilled.signedDistance(p) == std::max(brute, -drill.signedDistance(p)));
   }
 }
 

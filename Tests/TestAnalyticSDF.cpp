@@ -1117,10 +1117,10 @@ TEMPLATE_TEST_CASE("Analytic shapes: distance quality", "[AnalyticSDF]", EBGEOME
 
   // A union is exact outside its primitives but only a bound inside where they overlap, and only a
   // sign if its primitives are.
-  STATIC_REQUIRE(BVHUnion<T, SphereSDF<T>, 4>::distanceQuality == DistanceQuality::Bound);
-  STATIC_REQUIRE(BVHSmoothUnion<T, SphereSDF<T>, 4>::distanceQuality == DistanceQuality::Bound);
-  STATIC_REQUIRE(BVHUnion<T, PerlinSDF<T>, 4>::distanceQuality == DistanceQuality::NotADistance);
-  STATIC_REQUIRE(BVHSmoothUnion<T, PerlinSDF<T>, 4>::distanceQuality == DistanceQuality::NotADistance);
+  STATIC_REQUIRE(BVHUnion<T, 4, SphereSDF<T>>::distanceQuality == DistanceQuality::Bound);
+  STATIC_REQUIRE(BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereSDF<T>>::distanceQuality == DistanceQuality::Bound);
+  STATIC_REQUIRE(BVHUnion<T, 4, PerlinSDF<T>>::distanceQuality == DistanceQuality::NotADistance);
+  STATIC_REQUIRE(BVHSmoothUnion<T, 4, SmoothMinOp<T>, PerlinSDF<T>>::distanceQuality == DistanceQuality::NotADistance);
 
   // The trait reads the member, and takes a type without one to be a bound.
   STATIC_REQUIRE(distanceQualityOf<SphereSDF<T>> == Exact);

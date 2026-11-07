@@ -26,7 +26,7 @@ using Sphere = EBGeometry::SphereSDF<T>;
 // The BVH branching factor, spelled out, and the smooth minimum that blends the two nearest spheres.
 constexpr std::size_t K = 4;
 
-using Packing = EBGeometry::BVHSmoothUnion<T, Sphere, K, EBGeometry::SmoothMinOp<T>>;
+using Packing = EBGeometry::BVHSmoothUnion<T, K, EBGeometry::SmoothMinOp<T>, Sphere>;
 
 // numSpheres spheres, centered in a cylinder along x of the given radius and five times as long, with radii
 // between minRadius and maxRadius; the union blends over blendLength.

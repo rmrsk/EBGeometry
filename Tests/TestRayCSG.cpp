@@ -852,7 +852,7 @@ TEMPLATE_TEST_CASE("Ray: firstCrossing() finds the crossing, its point and side,
 
   const std::vector<BoxSDF<T>>                 boxes{box};
   const std::vector<BoundingVolumes::AABBT<T>> boxBoxes{box.computeBoundingVolume()};
-  const BVHUnion<T, BoxSDF<T>, 4>              bvhUnion(pool, boxes, boxBoxes);
+  const BVHUnion<T, 4, BoxSDF<T>>              bvhUnion(pool, boxes, boxBoxes);
 
   check(bvhUnion, RayT<T>{-T(3) * x, x}, T(2), true, true);
 
@@ -972,7 +972,7 @@ TEMPLATE_TEST_CASE("Ray: a BVH union's hit names the member it crossed", "[Ray][
 
   Pool pool(hostMemoryResource());
 
-  const BVHUnion<T, SphereSDF<T>, 4> scene(pool, balls, boxes);
+  const BVHUnion<T, 4, SphereSDF<T>> scene(pool, balls, boxes);
 
   const auto hitAt = [&scene](const T a_x, const T a_y) {
     return firstHit(scene, RayT<T>{Vec3(a_x, a_y, T(5)), Vec3(T(0), T(0), -T(1))}, T(0), T(10));
@@ -990,6 +990,59 @@ TEMPLATE_TEST_CASE("Ray: a BVH union's hit names the member it crossed", "[Ray][
   CHECK(first.m_primitive != second.m_primitive);
   CHECK(first.m_primitive != third.m_primitive);
   CHECK(second.m_primitive != third.m_primitive);
+}
+
+TEMPLATE_TEST_CASE("Ray: a BVH union of several types is traced to its nearest member's crossing, through each "
+                   "member's ray form",
+                   "[Ray][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Balls, boxes and an infinite cylinder (unbounded, kept out of the BVH), and the unit cube as a mesh.
+  const std::vector<SphereSDF<T>> balls{SphereSDF<T>(Vec3(-T(0.6), T(0.1), T(0)), T(0.35)),
+                                        SphereSDF<T>(Vec3(T(0.5), -T(0.5), T(0.4)), T(0.25))};
+  const std::vector<BoxSDF<T>>    boxes{BoxSDF<T>(Vec3(-T(0.2), T(0.4), -T(0.8)), Vec3(T(0.3), T(0.9), -T(0.3)))};
+  const std::vector<InfiniteCylinderSDF<T>> rods{InfiniteCylinderSDF<T>(Vec3(T(0.8), T(0.6), T(0)), T(0.15), 2)};
+  const std::vector<TriMeshSDF<T, 4, 4>>    meshes{Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool)};
+
+  const auto scene = BVHUnion(pool, balls, boxes, rods, meshes);
+
+  const T tMax = T(10);
+
+  for (const RayT<T>& ray : deviceRays<T>()) {
+    // The reference: each member traced on its own, the nearest crossing kept.
+    T nearest = Math::Limits<T>::infinity();
+
+    const auto trace = [&](const auto& a_members) {
+      for (const auto& member : a_members) {
+        const auto hit = firstHit(member, ray, T(0), tMax);
+
+        if (hit.hit()) {
+          nearest = std::min(nearest, hit.m_t);
+        }
+      }
+    };
+
+    trace(balls);
+    trace(boxes);
+    trace(rods);
+    trace(meshes);
+
+    const auto hit = firstHit(scene, ray, T(0), tMax);
+
+    REQUIRE(hit.hit() == (nearest < Math::Limits<T>::infinity()));
+
+    if (hit.hit()) {
+      REQUIRE_THAT(hit.m_t, withinAbsT(nearest, looseMargin<T>()));
+
+      // The point is on the union's surface.
+      REQUIRE_THAT(scene.signedDistance(hit.m_point), withinAbsT(T(0), looseMargin<T>()));
+    }
+  }
 }
 
 TEMPLATE_TEST_CASE("Ray: device ray queries of compositions match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
@@ -1036,6 +1089,13 @@ TEMPLATE_TEST_CASE("Ray: device ray queries of compositions match the host", "[R
   const Tape<T>      shellTape(pool, Difference(Annular(Union(sphere, far), T(0.1)), corner));
   const auto         shellFused = Fused::Difference(Fused::Annular(Fused::Union(sphere, far), T(0.1)), corner);
 
+  // A BVH union of several types: the mesh, balls and an unbounded cylinder.
+  const auto mixedUnion =
+    BVHUnion(pool,
+             std::vector<std::decay_t<decltype(polygons)>>{polygons},
+             std::vector<SphereSDF<T>>{sphere, far},
+             std::vector<InfiniteCylinderSDF<T>>{InfiniteCylinderSDF<T>(Vec3::zeros(), T(0.2), 1)});
+
   // A smooth union of the mesh and a ball, traced as the plain union and marched where the blend changes it.
   const auto smoothFused = Fused::SmoothUnion(polygons, SphereSDF<T>(Vec3(T(1.1), T(0.5), T(0.5)), T(0.3)), T(0.2));
 
@@ -1063,6 +1123,11 @@ TEMPLATE_TEST_CASE("Ray: device ray queries of compositions match the host", "[R
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, S>{shellFused}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, S>{shellFused}, rays),
                      T(1e-3));
+
+  using MU = std::decay_t<decltype(mixedUnion)>;
+
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, MU>{mixedUnion.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, MU>{mixedUnion}, rays));
 
   using SF = std::decay_t<decltype(smoothFused)>;
 

@@ -254,7 +254,7 @@ TEMPLATE_TEST_CASE("Tape: user primitive types, including a BVH union and anothe
 {
   using T      = TestType;
   using Vec3   = Vec3T<T>;
-  using Union4 = BVHUnion<T, SphereSDF<T>, 4>;
+  using Union4 = BVHUnion<T, 4, SphereSDF<T>>;
 
   Pool pool(hostMemoryResource());
 
@@ -277,7 +277,17 @@ TEMPLATE_TEST_CASE("Tape: user primitive types, including a BVH union and anothe
   const Tape<T, Tape<T>>          nested(pool, Translate(inner, Vec3(T(5), T(0), T(0))));
   const Tape<T, Tape<T, Tape<T>>> twice(pool, Scale(nested, T(2)));
 
+  // A union of several types is a user type too.
+  const std::vector<BoxSDF<T>> blocks{BoxSDF<T>(Vec3(T(2), T(-2), T(-0.5)), Vec3(T(3), T(-1), T(0.5)))};
+  const auto                   mixed = BVHUnion(pool, spheres, blocks);
+
+  using Mixed = std::decay_t<decltype(mixed)>;
+
+  const Tape<T, Mixed> withMixed(pool, Difference(mixed, SphereSDF<T>(Vec3(T(2), T(0), T(0)), T(0.2))));
+
   for (const auto& p : probes<T>()) {
+    CHECK(withMixed.signedDistance(p) ==
+          Math::max(mixed.signedDistance(p), -SphereSDF<T>(Vec3(T(2), T(0), T(0)), T(0.2)).signedDistance(p)));
     CHECK(outer.signedDistance(p) == Math::min(row.signedDistance(p), other.signedDistance(p) - T(0.1)));
     CHECK(nested.signedDistance(p) == inner.signedDistance(p - Vec3(T(5), T(0), T(0))));
     CHECK_THAT(twice.signedDistance(p), withinAbsT(T(2) * nested.signedDistance(p / T(2)), tightMargin<T>()));
@@ -571,7 +581,7 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
 {
   using T      = TestType;
   using Vec3   = Vec3T<T>;
-  using Union4 = BVHUnion<T, SphereSDF<T>, 4>;
+  using Union4 = BVHUnion<T, 4, SphereSDF<T>>;
 
   using namespace EBGeometryTestGPU;
 

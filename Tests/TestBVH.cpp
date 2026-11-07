@@ -5194,7 +5194,7 @@ TEMPLATE_TEST_CASE("Nested BVH: a BVHUnion over several TriMeshSDF objects nests
 
   // Outer BVH: a PackedBVH over the TriMeshSDFs by value, each owning an inner PackedBVH in the same
   // pool -- a genuine two-level BVH hierarchy.
-  const auto nestedUnion = BVHUnion<T, Tri, K>(pool, primitives, boundingVolumes);
+  const auto nestedUnion = BVHUnion<T, K, Tri>(pool, primitives, boundingVolumes);
 
   // The union value is the minimum over all primitives; BVH pruning can never discard the actual
   // nearest one, so the nested traversal must agree exactly with a brute-force min over the same

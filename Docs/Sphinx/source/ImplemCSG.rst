@@ -255,7 +255,7 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
   (``FlatMeshSDF``, and ``MeshSDF`` and ``TriMeshSDF`` with the default branching factor and SIMD
   width) are built in. Any other shape type -- a BVH union, a mesh distance field with another
   branching factor, another tape, or a type of your own -- is listed after ``T``:
-  ``Tape<T, BVHUnion<T, SphereSDF<T>, 4>, MyShape>``. The constructor rejects a shape whose type is
+  ``Tape<T, BVHUnion<T, 4, SphereSDF<T>>, MyShape>``. The constructor rejects a shape whose type is
   not listed, and a pool-resident shape that lives in another pool.
 * **Features.** Code that only some tapes need is a *feature* (see :ref:`Sec:TapeFeatures`), compiled
   only into a tape whose type lists it among the arguments after ``T``, before the user types by
@@ -423,7 +423,7 @@ expression. Each is a plain, trivially copyable value type, in the same way as t
 and the mesh distance fields, whose ``signedDistance()`` can be called on the host or inside a GPU
 kernel:
 
-* **One primitive type per union.** ``BVHUnion<T, P, K>`` holds its primitives by value in the
+* **One primitive type per union.** ``BVHUnion<T, K, P>`` holds its primitives by value in the
   ``PackedBVH``, so every primitive has the same type ``P``: an analytic shape, a mesh distance
   field, or another BVH union. No runtime dispatch is needed to evaluate them. For a union of objects
   of *different* types, compose them with ``Union`` and compile the result into a tape.

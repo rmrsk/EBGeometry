@@ -29,7 +29,7 @@ constexpr std::size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
 constexpr std::size_t W = EBGeometry::TriangleSoA::DefaultWidth<T>();
 
 using Mesh     = EBGeometry::TriMeshSDF<T, K, W>;
-using Nested   = EBGeometry::BVHUnion<T, Mesh, K>;
+using Nested   = EBGeometry::BVHUnion<T, K, Mesh>;
 using Composed = EBGeometry::Tape<T>;
 
 namespace {

@@ -52,13 +52,15 @@ namespace EBGeometry {
   template struct SmoothMaxOp<PREC>;                                         \
   template struct ExpMinOp<PREC>;                                            \
   template struct ExpMaxOp<PREC>;                                            \
-  template class BVHUnion<PREC, SphereSDF<PREC>, 4>;                       \
-  template class BVHSmoothUnion<PREC, SphereSDF<PREC>, 4>;                 \
-  template class BVHSmoothUnion<PREC, BoxSDF<PREC>, 4, ExpMinOp<PREC>>;    \
+  template class BVHUnion<PREC, 4, SphereSDF<PREC>>;                       \
+  template class BVHSmoothUnion<PREC, 4, SmoothMinOp<PREC>, SphereSDF<PREC>>;                 \
+  template class BVHSmoothUnion<PREC, 4, ExpMinOp<PREC>, BoxSDF<PREC>>;    \
+  template class BVHUnion<PREC, 4, SphereSDF<PREC>, BoxSDF<PREC>, InfiniteCylinderSDF<PREC>>; \
+  template class BVHSmoothUnion<PREC, 4, SmoothMinOp<PREC>, SphereSDF<PREC>, BoxSDF<PREC>>; \
   template struct Affine3T<PREC>;                                            \
   template class Expr<PREC>;                                                 \
   template class Tape<PREC>;                                                 \
-  template class Tape<PREC, BVHUnion<PREC, SphereSDF<PREC>, 4>, MeshSDF<PREC, 8>>; \
+  template class Tape<PREC, BVHUnion<PREC, 4, SphereSDF<PREC>>, MeshSDF<PREC, 8>>; \
                                                                                \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \
@@ -74,8 +76,9 @@ namespace EBGeometry {
   template class FlatMeshSDF<PREC>;                                          \
   template class MeshSDF<PREC, 4>;                                           \
   template class TriMeshSDF<PREC, 4, 4>;                                     \
-  template class BVHUnion<PREC, TriMeshSDF<PREC, 4, 4>, 4>;                  \
-  template class BVHSmoothUnion<PREC, MeshSDF<PREC, 4>, 4>;                  \
+  template class BVHUnion<PREC, 4, TriMeshSDF<PREC, 4, 4>>;                  \
+  template class BVHUnion<PREC, 4, TriMeshSDF<PREC, 4, 4>, SphereSDF<PREC>>; \
+  template class BVHSmoothUnion<PREC, 4, SmoothMinOp<PREC>, MeshSDF<PREC, 4>>;                  \
   template struct ClosestFace<PREC>;                                         \
                                                                                \
   /* -- Point clouds --------------------------------------------------------*/\
@@ -117,7 +120,8 @@ namespace EBGeometry {
   template struct RayOptions<PREC>;                                          \
   template struct SpanEndT<PREC>;                                            \
   template struct RaySpansT<PREC>;                                           \
-  template struct RayForm<BVHUnion<PREC, SphereSDF<PREC>, 4>>;               \
+  template struct RayForm<BVHUnion<PREC, 4, SphereSDF<PREC>>>;               \
+  template struct RayForm<BVHUnion<PREC, 4, SphereSDF<PREC>, BoxSDF<PREC>>>; \
   template struct RayForm<Tape<PREC>>;                                       \
   template struct RayForm<PlaneSDF<PREC>>;                                   \
   template struct RayForm<SphereSDF<PREC>>;                                  \
@@ -403,7 +407,7 @@ instantiateFunctionTemplates()
     Pool                                         pool(hostMemoryResource());
     const std::vector<SphereSDF<T>>              spheres(2, sphere);
     const std::vector<BoundingVolumes::AABBT<T>> boxes(2, sphere.computeBoundingVolume());
-    const BVHUnion<T, SphereSDF<T>, 4>           bvhUnion(pool, spheres, boxes);
+    const BVHUnion<T, 4, SphereSDF<T>>           bvhUnion(pool, spheres, boxes);
     const Tape<T>                                tape(pool, Difference(Union(sphere, torus), Complement(sphere)));
 
     (void)firstHit(bvhUnion, ray, T(0), T(10));

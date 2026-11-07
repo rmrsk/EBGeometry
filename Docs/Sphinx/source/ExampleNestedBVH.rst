@@ -63,7 +63,7 @@ and builds an outer BVH over their bounding boxes (see :ref:`Sec:BVHUnions`):
 
 .. code-block:: c++
 
-   const EBGeometry::BVHUnion<T, Mesh, K> nested(pool, copies, boxes);
+   const EBGeometry::BVHUnion<T, K, Mesh> nested(pool, copies, boxes);
 
 One query therefore descends two levels: the outer BVH finds the placements near the point, and each
 of those meshes' own BVH finds the nearest triangle (see :ref:`Chap:BVH`). Since each placement is a
