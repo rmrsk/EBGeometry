@@ -98,8 +98,9 @@ try {
   //
   // The expression builder describes the object: Translate(mesh, shift) places the mesh without
   // copying it, and Union combines objects of any type, here the placed mesh and spheres. The Tape
-  // compiles the description into the pool. A union of eight or more operands is evaluated through a
-  // BVH over their bounding boxes, so a query only evaluates the objects near it.
+  // compiles the description into the pool. Accelerate::BVH asks it to evaluate the union through a BVH
+  // over the objects' bounding boxes, so a query only evaluates the objects near it; each object, a placed
+  // mesh or a sphere, is evaluated directly at its leaf.
   std::vector<EBGeometry::Expr<T>> objects;
 
   for (int i = 0; i < 6; i++) {
@@ -109,15 +110,15 @@ try {
     objects.emplace_back(EBGeometry::SphereSDF<T>(center + shift + Vec3(T(0), T(0.75) * size, T(0)), T(0.25) * size));
   }
 
-  const Composed composed(pool, EBGeometry::Union(objects));
+  const Composed composed(pool, EBGeometry::Union(objects, EBGeometry::Accelerate::BVH));
 
   std::cout << "  Tape   : 6 placements of the mesh and 6 spheres, " << composed.getNumClauses() << " clauses, "
             << composed.getNumBVHUnions() << " BVH union\n";
 
   // ── Many copies: a nested BVH ──────────────────────────────────────────────────────────────────────
   //
-  // A BVHUnion holds primitives of one type by value and builds a BVH over their bounding boxes. Its
-  // primitives here are TriMeshSDFs, each with a BVH of its own over its triangles, so one query
+  // A BVHUnion holds its primitives by value and builds a BVH over their bounding boxes. Its primitives
+  // here are TriMeshSDFs, each with a BVH of its own over its triangles, so one query
   // descends two levels: the outer BVH finds the placements near the point, and each of those meshes'
   // own BVH finds the nearest triangle. Each placement is a separate mesh with its own (translated)
   // triangles, so genuinely different meshes of the same type could be placed the same way. The first

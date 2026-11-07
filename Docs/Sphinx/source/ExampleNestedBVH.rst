@@ -46,12 +46,12 @@ combines objects of any type, here six placements of the mesh and six spheres:
    objects.emplace_back(EBGeometry::Translate(mesh, shift));
    objects.emplace_back(EBGeometry::SphereSDF<T>(center + shift + lift, radius));
 
-   const EBGeometry::Tape<T> composed(pool, EBGeometry::Union(objects));
+   const EBGeometry::Tape<T> composed(pool, EBGeometry::Union(objects, EBGeometry::Accelerate::BVH));
 
 The `Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ compiles the expression into the pool (see
-:ref:`Sec:Tape`). A union of eight or more operands is evaluated through a BVH over the operands'
-bounding boxes, so a query only evaluates the objects near it; the program prints the tape's number
-of clauses and BVH unions.
+:ref:`Sec:Tape`). ``Accelerate::BVH`` asks it to evaluate the union through a BVH over the operands'
+bounding boxes, so a query only evaluates the objects near it, each placement and sphere directly at its
+leaf; the program prints the tape's number of clauses and BVH unions.
 
 Many copies: a nested BVH
 -------------------------

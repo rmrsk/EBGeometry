@@ -190,7 +190,7 @@ main(int argc, char* argv[])
   // ── Build the scene ────────────────────────────────────────────────────────────────────────────────
   //
   // Twelve octahedra on a ring around a sphere, each turned about its own vertical axis before it is
-  // moved into place. A union of eight or more operands is evaluated with a BVH over their boxes.
+  // moved into place. Accelerate::BVH asks the tape to evaluate their union with a BVH over their boxes.
   const Octahedron<T> octahedron{octahedronR};
 
   std::vector<EBGeometry::Expr<T>> objects;
@@ -203,7 +203,7 @@ main(int argc, char* argv[])
 
   objects.emplace_back(EBGeometry::SphereSDF<T>(Vec3::zeros(), sphereRadius));
 
-  const EBGeometry::Expr<T> scene = EBGeometry::Union(objects);
+  const EBGeometry::Expr<T> scene = EBGeometry::Union(objects, EBGeometry::Accelerate::BVH);
 
   // The tape is compiled straight into memory the device can read. In a GPU build that is managed
   // memory, which migrates between host and device as it is touched and suits a small object like this

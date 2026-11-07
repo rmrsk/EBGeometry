@@ -27,6 +27,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
 | `BVHUnionMixed/` | `BVHUnion` of the three types at once, interleaved          |
 | `Shapes/`     | The analytic shapes `EllipsoidSDF` to `WedgeSDF`: each one's signed distance, and rays through a fused union of the six with closed-form ray forms, on the host and on a device |
+| `TapeBVHUnion/` | A `Tape`'s union of 64 shapes under maps, through a BVH (`Accelerate::BVH`) and as written |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |
 | `Ray/`        | Ray queries: a `TriMeshSDF` (`firstHit()`, a hand-written walk, `intersects()`), a `MeshSDF`, and the CSG solid traced, fused and through a tape |

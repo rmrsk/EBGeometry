@@ -44,6 +44,15 @@ enum class BlendKind : uint8_t
   Exponential ///< ExpMinOp/ExpMaxOp: log-sum-exp blend with length scale s; deepens by at most s ln 2.
 };
 
+/**
+ * @brief How a Tape evaluates a union of many objects: as written, or through a BVH over the objects' boxes.
+ */
+enum class Accelerate : uint8_t
+{
+  None, ///< No request: the tape evaluates the union with a BVH only when it has many operands (see TapeOptions).
+  BVH   ///< Through a BVH over the operands' boxes, however many there are.
+};
+
 namespace ExprDetail {
 
 /**
@@ -284,6 +293,11 @@ struct Node
   BlendKind m_blend = BlendKind::Polynomial;
 
   /**
+   * @brief Whether a union asks the tape for a BVH over its operands (Accelerate::BVH).
+   */
+  bool m_bvh = false;
+
+  /**
    * @brief A box enclosing the node's object.
    */
   BoundingVolumes::AABBT<T> m_boundingVolume;
@@ -449,17 +463,21 @@ Union(const A& a_first, const B& a_second);
 
 /**
  * @brief Union of any number of objects: the minimum of their values.
- * @details A Tape evaluates a union of many objects with a BVH over their boxes (see TapeOptions), unless
- * one of them is not a distance. With exact distances the value is the plain minimum; with operands that
- * are only bounds it can be larger, but keeps the sign and is still a bound.
+ * @details With Accelerate::BVH, a Tape evaluates the union through a BVH over the objects' boxes; with
+ * Accelerate::None, only when there are many of them and all are distances (see TapeOptions). In the BVH, an
+ * object that is a shape, or a shape under maps (Translate, Rotate, Scale, ...), is evaluated directly at its
+ * leaf; any other object is a sub-program the leaf calls. With exact distances the value is the plain minimum;
+ * with operands that are only bounds it can be larger, but keeps the sign and is still a bound; with operands
+ * that are not distances, only its sign means anything. A list of one object is that object, with no BVH.
  * @tparam A Shape or Expr type.
- * @param[in] a_operands Objects (must not be empty).
+ * @param[in] a_operands   Objects (must not be empty).
+ * @param[in] a_accelerate Whether the tape evaluates the union through a BVH.
  * @return The union.
  */
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Union(const std::vector<A>& a_operands);
+Union(const std::vector<A>& a_operands, Accelerate a_accelerate = Accelerate::None);
 
 /**
  * @brief Smooth union of two objects: a smooth minimum of their values.
@@ -482,11 +500,12 @@ SmoothUnion(const A&               a_first,
 /**
  * @brief Smooth union of any number of objects: a smooth minimum of the two smallest values.
  * @details Only the two smallest values are blended, which differs from folding a binary smooth
- * minimum. A Tape evaluates a smooth union of many objects with a BVH, as for Union().
+ * minimum. A Tape evaluates it through a BVH as for Union(); a ray marches it.
  * @tparam A Shape or Expr type.
- * @param[in] a_operands Objects (must not be empty).
- * @param[in] a_smooth   Smoothing length (> 0).
- * @param[in] a_blend    Blend kind.
+ * @param[in] a_operands   Objects (must not be empty).
+ * @param[in] a_smooth     Smoothing length (> 0).
+ * @param[in] a_blend      Blend kind.
+ * @param[in] a_accelerate Whether the tape evaluates the union through a BVH.
  * @return The smooth union.
  */
 template <class A>
@@ -494,7 +513,21 @@ template <class A>
 inline Expr<ExprPrecision<A>>
 SmoothUnion(const std::vector<A>&  a_operands,
             const ExprPrecision<A> a_smooth,
-            const BlendKind        a_blend = BlendKind::Polynomial);
+            const BlendKind        a_blend      = BlendKind::Polynomial,
+            const Accelerate       a_accelerate = Accelerate::None);
+
+/**
+ * @brief Smooth union of any number of objects with the polynomial blend, through a BVH or as written.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operands   Objects (must not be empty).
+ * @param[in] a_smooth     Smoothing length (> 0).
+ * @param[in] a_accelerate Whether the tape evaluates the union through a BVH.
+ * @return The smooth union.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+SmoothUnion(const std::vector<A>& a_operands, const ExprPrecision<A> a_smooth, const Accelerate a_accelerate);
 
 /**
  * @brief Intersection of two objects: the maximum of their values.
@@ -568,16 +601,18 @@ Difference(const A& a_first, const B& a_second);
 
 /**
  * @brief Difference A \ (B1 u B2 u ...): max(A, -min_i Bi).
+ * @details The objects subtracted are one Union(), through a BVH with Accelerate::BVH.
  * @tparam A Shape or Expr type.
  * @tparam B Shape or Expr type of the same precision.
- * @param[in] a_first  Object to subtract from.
- * @param[in] a_others Objects to subtract (must not be empty).
+ * @param[in] a_first      Object to subtract from.
+ * @param[in] a_others     Objects to subtract (must not be empty).
+ * @param[in] a_accelerate Whether the tape evaluates the union of a_others through a BVH.
  * @return The difference.
  */
 template <class A, class B>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Difference(const A& a_first, const std::vector<B>& a_others);
+Difference(const A& a_first, const std::vector<B>& a_others, Accelerate a_accelerate = Accelerate::None);
 
 /**
  * @brief Smooth difference A \ B: the smooth intersection of A and the complement of B.

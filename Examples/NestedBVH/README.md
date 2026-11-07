@@ -5,9 +5,9 @@ This folder shows how to place one surface mesh many times, in the two ways EBGe
 
 **Shared, in a `Tape`.** The mesh is read once into a `TriMeshSDF`. The expression builder places it
 with `Translate(mesh, shift)`, which refers to the mesh rather than copying it, and combines the
-placements with analytic spheres in a `Union`. A `Tape` compiles the expression into the pool. With
-eight or more operands, the tape evaluates the union through a BVH over their bounding boxes, so a
-query only evaluates the objects near it. This is the way to mix a mesh with shapes of other types.
+placements with analytic spheres in a `Union`. A `Tape` compiles the expression into the pool.
+`Union(objects, Accelerate::BVH)` asks it to evaluate the union through a BVH over their bounding boxes, so
+a query only evaluates the objects near it. This is the way to mix a mesh with shapes of other types.
 
 **Copied, under a nested BVH.** The mesh's triangles are read once, and each placement gets its own
 translated copy, built into its own `TriMeshSDF` with its own *inner* BVH over its triangles.

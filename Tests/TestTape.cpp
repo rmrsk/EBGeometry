@@ -248,6 +248,101 @@ TEMPLATE_TEST_CASE("Tape: a union of many objects of different types matches bru
   }
 }
 
+TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives the values and leaves of the "
+                   "union as written",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+
+  Pool pool(hostMemoryResource());
+
+  const auto          mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
+  const MeshSDF<T, K> meshSDF(mesh, pool, BVH::Construction::SAH);
+
+  // Fewer operands than the automatic threshold: plain shapes, shapes under maps and a value scale, a mesh,
+  // a composition (a sub-program at its leaf) and an unbounded plane.
+  const std::vector<Expr<T>> objects{
+    SphereSDF<T>(Vec3(T(0), T(2), T(0)), T(0.5)),
+    Translate(BoxSDF<T>(-T(0.4) * Vec3::ones(), T(0.4) * Vec3::ones()), Vec3(T(3), T(0), T(0))),
+    Scale(Rotate(TorusSDF<T>(Vec3::zeros(), T(0.6), T(0.2)), T(30), 0), T(1.5)),
+    Translate(meshSDF, Vec3(T(0), T(-2.5), T(0))),
+    Offset(Union(SphereSDF<T>(Vec3(T(-2), T(0), T(0)), T(0.3)), SphereSDF<T>(Vec3(T(-2), T(0.4), T(0)), T(0.3))),
+           T(0.05)),
+    PlaneSDF<T>(Vec3(T(0), T(0), -T(3)), Vec3(T(0), T(0), T(1)))};
+
+  const Tape<T> asWritten(pool, Union(objects));
+  const Tape<T> withBVH(pool, Union(objects, Accelerate::BVH));
+  const Tape<T> smooth(pool, SmoothUnion(objects, T(0.3), Accelerate::BVH));
+  const Tape<T> smoothAsWritten(pool, SmoothUnion(objects, T(0.3)));
+  const Tape<T> exponential(pool, SmoothUnion(objects, T(0.3), BlendKind::Exponential, Accelerate::BVH));
+  const Tape<T> exponentialAsWritten(pool, SmoothUnion(objects, T(0.3), BlendKind::Exponential));
+
+  const Expr<T> block = BoxSDF<T>(Vec3(-T(3), -T(4), -T(2)), Vec3(T(5), T(3), T(2)));
+  const Tape<T> drilled(pool, Difference(block, objects, Accelerate::BVH));
+  const Tape<T> drilledAsWritten(pool, Difference(block, objects));
+
+  CHECK(asWritten.getNumBVHUnions() == 0U);
+  CHECK(withBVH.getNumBVHUnions() == 1U);
+  CHECK(smooth.getNumBVHUnions() == 1U);
+  CHECK(drilled.getNumBVHUnions() == 1U);
+
+  for (const auto& p : probes<T>()) {
+    CHECK_THAT(withBVH.signedDistance(p), withinAbsT(asWritten.signedDistance(p), tightMargin<T>()));
+    CHECK_THAT(smooth.signedDistance(p), withinAbsT(smoothAsWritten.signedDistance(p), tightMargin<T>()));
+    CHECK_THAT(exponential.signedDistance(p), withinAbsT(exponentialAsWritten.signedDistance(p), tightMargin<T>()));
+    CHECK_THAT(drilled.signedDistance(p), withinAbsT(drilledAsWritten.signedDistance(p), tightMargin<T>()));
+
+    // The leaf a shape evaluated directly at its BVH leaf names is the one the union as written names, at the
+    // same local point.
+    const PrimitiveRef<T> fast  = withBVH.closestPrimitive(p);
+    const PrimitiveRef<T> plain = asWritten.closestPrimitive(p);
+
+    CHECK(fast.m_leaf == plain.m_leaf);
+    CHECK(fast.m_type == plain.m_type);
+    CHECK_THAT((fast.m_localPoint - plain.m_localPoint).length(), withinAbsT(T(0), tightMargin<T>()));
+  }
+
+  // A BVH union nested under other operations (a map, a difference, and as an operand of another BVH union): its
+  // leaves are evaluated directly one call level down.
+  const Expr<T>              nested          = Translate(Union(objects, Accelerate::BVH), Vec3(T(0.3), T(0), T(0)));
+  const Expr<T>              nestedAsWritten = Translate(Union(objects), Vec3(T(0.3), T(0), T(0)));
+  const std::vector<Expr<T>> twice{nested, SphereSDF<T>(Vec3(T(5), T(5), T(0)), T(1))};
+
+  const Tape<T> inner(pool, Difference(block, std::vector<Expr<T>>{nested}, Accelerate::BVH));
+  const Tape<T> innerAsWritten(pool, Difference(block, std::vector<Expr<T>>{nestedAsWritten}));
+  const Tape<T> outer(pool, Union(twice, Accelerate::BVH));
+  const Tape<T> outerAsWritten(pool, Union(std::vector<Expr<T>>{nestedAsWritten, twice[1]}));
+
+  CHECK(outer.getNumBVHUnions() == 2U);
+  CHECK(outer.getCallDepth() == 2U);
+
+  // A list of one object is that object: no BVH.
+  CHECK(Tape<T>(pool, Union(std::vector<Expr<T>>{objects[0]}, Accelerate::BVH)).getNumBVHUnions() == 0U);
+
+  for (const auto& p : probes<T>()) {
+    CHECK_THAT(inner.signedDistance(p), withinAbsT(innerAsWritten.signedDistance(p), tightMargin<T>()));
+    CHECK_THAT(outer.signedDistance(p), withinAbsT(outerAsWritten.signedDistance(p), tightMargin<T>()));
+    CHECK(outer.closestPrimitive(p).m_leaf == outerAsWritten.closestPrimitive(p).m_leaf);
+  }
+
+  // Operands that are not distances are allowed when asked for: the union keeps the sign.
+  const std::vector<Expr<T>> perlins{PerlinSDF<T>(T(1), Vec3::ones(), T(0.5), 3U),
+                                     Translate(PerlinSDF<T>(T(1), Vec3::ones(), T(0.5), 3U), Vec3(T(4), T(0), T(0)))};
+  const Tape<T>              signOnly(pool, Union(perlins, Accelerate::BVH));
+  const Tape<T>              signAsWritten(pool, Union(perlins));
+
+  CHECK(signOnly.getNumBVHUnions() == 1U);
+  CHECK(signOnly.getDistanceQuality() == DistanceQuality::NotADistance);
+
+  for (const auto& p : probes<T>()) {
+    CHECK((signOnly.signedDistance(p) < T(0)) == (signAsWritten.signedDistance(p) < T(0)));
+  }
+}
+
 TEMPLATE_TEST_CASE("Tape: user primitive types, including a BVH union and another tape",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -666,6 +761,13 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
 
   exprs.emplace_back("smooth union", SmoothUnion(primitives, T(0.3)));
   exprs.emplace_back("exponential smooth union", SmoothUnion(sphere, box, T(0.3), BlendKind::Exponential));
+  exprs.emplace_back("union through a BVH",
+                     Union(std::vector<Expr<T>>{Translate(sphere, Vec3(T(0.5), T(0), T(0))),
+                                                Scale(box, T(1.5)),
+                                                Rotate(torus, T(20), 1),
+                                                Offset(Intersection(sphere, box), T(0.1))},
+                           Accelerate::BVH));
+  exprs.emplace_back("smooth union through a BVH", SmoothUnion(primitives, T(0.3), Accelerate::BVH));
   exprs.emplace_back("intersection", Intersection(sphere, box));
   exprs.emplace_back("smooth intersection", SmoothIntersection(sphere, torus, T(0.2)));
   exprs.emplace_back("exponential smooth intersection",
