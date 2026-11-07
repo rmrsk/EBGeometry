@@ -1790,37 +1790,30 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
                                               const PoolLocation& a_location) const noexcept
 {
   if constexpr (I < Primitives::size) {
-    if (a_type == I) {
-      using P = typename TapeDetail::TypeAt<I, Primitives>::type;
+    using P = typename TapeDetail::TypeAt<I, Primitives>::type;
 
-      // A pool-resident primitive (a mesh SDF, a BVH union, a tape) is stored as its layout and resolves
-      // against the tape's own location. It is evaluated out of line (evaluateHandle()), so that its
-      // traversal stack is not part of the frame every analytic shape is evaluated in place in.
-      if constexpr (isOutOfLine<P>) {
-        if constexpr (Handles) {
-          const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index);
+    // Whether this dispatch tests type I: the in-place dispatch tests the types evaluated in place,
+    // evaluateHandle() those evaluated out of line, and evaluateRare() the rare shapes only.
+    constexpr bool outOfLine = TapeDetail::isOutOfLine<T, P>;
+    constexpr bool tested    = Rare ? (outOfLine && !isPoolHandle<P>) : (Handles == outOfLine);
 
-          if constexpr (isPoolHandle<P> && Rare) {
-            EBGEOMETRY_EXPECT(false);
+    if constexpr (tested) {
+      if (a_type == I) {
+        const auto& stored = TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index);
 
-            return T(0);
-          }
-          else if constexpr (isPoolHandle<P>) {
-            return P(stored, a_location).signedDistance(a_point);
-          }
-          else if constexpr (Rare) {
-            return stored.signedDistance(a_point);
-          }
-          else {
-            return this->evaluateRare(a_type, a_index, a_point, a_base, a_location);
-          }
+        // A pool-resident primitive (a mesh SDF, a BVH union, a tape) is stored as its layout and resolves
+        // against the tape's own location; it is evaluated in evaluateHandle(), so that its traversal stack is
+        // not part of the frame every analytic shape is evaluated in place in. A rare shape is handed on to
+        // evaluateRare() (see TapeDetail::RareShapes).
+        if constexpr (isPoolHandle<P>) {
+          return P(stored, a_location).signedDistance(a_point);
+        }
+        else if constexpr (Handles && !Rare) {
+          return this->evaluateRare(a_type, a_index, a_point, a_base, a_location);
         }
         else {
-          return this->evaluateHandle(a_type, a_index, a_point, a_base, a_location);
+          return stored.signedDistance(a_point);
         }
-      }
-      else {
-        return TapeDetail::storeAt<I>(m_layout.m_primitives).at(a_base, a_index).signedDistance(a_point);
       }
     }
 
@@ -1830,6 +1823,10 @@ Tape<T, UserPrimitives...>::dispatchPrimitive(const uint32_t      a_type,
     else {
       return this->template dispatchPrimitive<I + 1, Handles, Rare>(a_type, a_index, a_point, a_base, a_location);
     }
+  }
+  else if constexpr (!Handles) {
+    // No type evaluated in place matched: the primitive is one of those evaluated out of line.
+    return this->evaluateHandle(a_type, a_index, a_point, a_base, a_location);
   }
   else {
     EBGEOMETRY_EXPECT(false);

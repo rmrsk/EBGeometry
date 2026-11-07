@@ -581,43 +581,80 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 }
 
 /**
+ * @brief The built-in analytic shapes a tape evaluates out of line: the nine added last (EllipsoidSDF to
+ * WedgeSDF).
+ * @details Internal helper; not part of the public API. Every shape the evaluator dispatches in place is
+ * compiled into every level of every tape kernel (each call depth, value and tagged), so each built-in type
+ * multiplies the compile time and memory of every Tape<T>. These go, with the pool-resident primitives,
+ * through evaluateHandle(), which hands them to evaluateRare(): one copy of their distances per kernel, and
+ * one call site per level shared with the meshes.
+ *
+ * Three placements were measured (four tape kernels, float and double, signedDistance and firstHit, with
+ * nvcc 12.5 for sm_86; the timings on an RTX A4000):
+ * - Inlined at every level: 97 s and 3.4 GB to compile in Release, 164 s and 5.7 GB in Debug.
+ * - Evaluated in evaluateHandle() itself: 69 s, but marching a mesh, which calls evaluateHandle() at every
+ *   step, became 1.5-4x slower in float, with unchanged registers, stack and spills: the larger function,
+ *   not the call, cost.
+ * - Behind evaluateRare(), with the inlined types tested first and the rest falling through to one call
+ *   (this): 70 s and 2.4 GB, 118 s and 4.3 GB in Debug. Device run times are unchanged, except a float tape's
+ *   firstCrossing() on the CSG probe, 3-4% slower.
+ *
+ * A separate call site per level for them (their distances out of line where they are tested) slowed
+ * tapes that never use them (ClosestPrimitive/csg float +46%).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+using RareShapes = TypeList<EllipsoidSDF<T>,
+                            CappedConeSDF<T>,
+                            RoundConeSDF<T>,
+                            PolygonPrismSDF<T>,
+                            TubeSDF<T>,
+                            CappedTorusSDF<T>,
+                            CutSphereSDF<T>,
+                            CutHollowSphereSDF<T>,
+                            WedgeSDF<T>>;
+
+/**
+ * @brief Whether a tape evaluates primitive type P out of line (evaluateHandle()): a pool-resident primitive or
+ * one of the RareShapes.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam P Primitive type.
+ */
+template <class T, class P>
+inline constexpr bool isOutOfLine = isPoolHandle<P> || IndexOf<P, RareShapes<T>>::value < RareShapes<T>::size;
+
+/**
  * @brief The tape's primitive types: twelve analytic shapes (PlaneSDF to PerlinSDF), the three mesh SDFs with the
  * default branching factor and SIMD width, the user's types (its template arguments that are not features), then
- * nine more analytic shapes (EllipsoidSDF to WedgeSDF).
+ * the RareShapes.
  * @details Internal helper; not part of the public API. The evaluator finds a primitive's type by testing the
- * types in this order, so a type further down costs a test more; on the host, every type from Tape::DispatchSplit
- * on is dispatched out of line. The user's types come before the last nine shapes, so that a tape of user types
- * (a BVH union, a mesh with another branching factor, a fused part) reaches them right after the first fifteen.
+ * types it evaluates in place in this order, so a type further down costs a test more; on the host, every type
+ * from Tape::DispatchSplit on is dispatched out of line. A type evaluated out of line (isOutOfLine) is not tested
+ * there: whatever matches no in-place type goes to evaluateHandle(). The user's types come before the RareShapes,
+ * so that a tape of user types (a BVH union, a mesh with another branching factor, a fused part) reaches them right
+ * after the first fifteen.
  * @tparam T            Floating-point precision.
  * @tparam UserPrimitives User primitive types and features.
  */
 template <class T, class... UserPrimitives>
-using Primitives =
-  typename Concat<TypeList<PlaneSDF<T>,
-                           SphereSDF<T>,
-                           BoxSDF<T>,
-                           TorusSDF<T>,
-                           CylinderSDF<T>,
-                           InfiniteCylinderSDF<T>,
-                           CapsuleSDF<T>,
-                           InfiniteConeSDF<T>,
-                           ConeSDF<T>,
-                           RoundedBoxSDF<T>,
-                           RoundedCylinderSDF<T>,
-                           PerlinSDF<T>,
-                           FlatMeshSDF<T>,
-                           MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
-                           TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
-                  UserTypesOf<UserPrimitives...>,
-                  TypeList<EllipsoidSDF<T>,
-                           CappedConeSDF<T>,
-                           RoundConeSDF<T>,
-                           PolygonPrismSDF<T>,
-                           TubeSDF<T>,
-                           CappedTorusSDF<T>,
-                           CutSphereSDF<T>,
-                           CutHollowSphereSDF<T>,
-                           WedgeSDF<T>>>::type;
+using Primitives = typename Concat<TypeList<PlaneSDF<T>,
+                                            SphereSDF<T>,
+                                            BoxSDF<T>,
+                                            TorusSDF<T>,
+                                            CylinderSDF<T>,
+                                            InfiniteCylinderSDF<T>,
+                                            CapsuleSDF<T>,
+                                            InfiniteConeSDF<T>,
+                                            ConeSDF<T>,
+                                            RoundedBoxSDF<T>,
+                                            RoundedCylinderSDF<T>,
+                                            PerlinSDF<T>,
+                                            FlatMeshSDF<T>,
+                                            MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
+                                            TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
+                                   UserTypesOf<UserPrimitives...>,
+                                   RareShapes<T>>::type;
 
 /**
  * @brief Whether a tape's user primitive types are shapes of its precision.
@@ -1559,8 +1596,10 @@ private:
   /**
    * @brief Evaluate a primitive, dispatching on its type index from I onwards.
    * @tparam I       First type index to test.
-   * @tparam Handles Whether this is the out-of-line dispatch for pool-resident primitives (see
-   * evaluateHandle()); otherwise they are handed to it.
+   * @tparam Handles Whether this is the out-of-line dispatch (evaluateHandle()) for the types evaluated out of
+   * line (TapeDetail::isOutOfLine); otherwise those are not tested, and whatever matches no other type is handed to
+   * it.
+   * @tparam Rare    Whether this is evaluateRare()'s dispatch, of the TapeDetail::RareShapes only.
    * @param[in] a_type     Type index.
    * @param[in] a_index    Index within the type's array.
    * @param[in] a_point    Point.
@@ -1620,7 +1659,8 @@ private:
                     const PoolLocation& a_location) const noexcept;
 
   /**
-   * @brief Evaluate a pool-resident primitive (a mesh SDF, a BVH union, a tape).
+   * @brief Evaluate a primitive the tape evaluates out of line: a pool-resident one (a mesh SDF, a BVH union, a
+   * tape), or one of the TapeDetail::RareShapes through evaluateRare().
    * @details Out of line in a device pass, so that the stack such a primitive needs (a mesh SDF's
    * traversal stack, say) is taken only when one is evaluated, once below the deepest call, rather than in
    * the frame every clause is evaluated in.
@@ -1640,7 +1680,18 @@ private:
                  const void*         a_base,
                  const PoolLocation& a_location) const noexcept;
 
-  // PROTOTYPE (#302): the rare analytic shapes, out of line below evaluateHandle().
+  /**
+   * @brief Evaluate one of the TapeDetail::RareShapes.
+   * @details Out of line in a device pass, and reached only from evaluateHandle(): their distances are compiled
+   * once per kernel, and evaluateHandle(), which a march calls at every step for a mesh, stays as small as the
+   * meshes need (see TapeDetail::RareShapes).
+   * @param[in] a_type     Type index.
+   * @param[in] a_index    Index within the type's array.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline T

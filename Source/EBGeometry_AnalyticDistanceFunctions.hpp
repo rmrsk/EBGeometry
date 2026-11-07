@@ -44,7 +44,6 @@
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
-#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -4340,36 +4339,6 @@ static_assert(std::is_trivially_copyable_v<WedgeSDF<double>>, "WedgeSDF<double> 
 
 // Every translation unit that sees these shapes sees their ray forms too, so firstHit() on one of them
 // is the same function everywhere.
-#ifndef EBGEOMETRY_PROTO_COLD
-#define EBGEOMETRY_PROTO_COLD 1
-#endif
-
-namespace EBGeometry {
-#define EBGEOMETRY_PROTO_RARE(S)        \
-  template <class T>                    \
-  struct IsRareShape<S<T>> : std::true_type \
-  {};
-#if EBGEOMETRY_PROTO_COLD >= 1
-EBGEOMETRY_PROTO_RARE(EllipsoidSDF)
-EBGEOMETRY_PROTO_RARE(CappedConeSDF)
-EBGEOMETRY_PROTO_RARE(RoundConeSDF)
-EBGEOMETRY_PROTO_RARE(PolygonPrismSDF)
-EBGEOMETRY_PROTO_RARE(TubeSDF)
-EBGEOMETRY_PROTO_RARE(CappedTorusSDF)
-EBGEOMETRY_PROTO_RARE(CutSphereSDF)
-EBGEOMETRY_PROTO_RARE(CutHollowSphereSDF)
-EBGEOMETRY_PROTO_RARE(WedgeSDF)
-#endif
-#if EBGEOMETRY_PROTO_COLD >= 2
-EBGEOMETRY_PROTO_RARE(TorusSDF)
-EBGEOMETRY_PROTO_RARE(InfiniteConeSDF)
-EBGEOMETRY_PROTO_RARE(ConeSDF)
-EBGEOMETRY_PROTO_RARE(RoundedBoxSDF)
-EBGEOMETRY_PROTO_RARE(RoundedCylinderSDF)
-EBGEOMETRY_PROTO_RARE(PerlinSDF)
-#endif
-} // namespace EBGeometry
-
 #include "EBGeometry_AnalyticRayForms.hpp"
 
 #endif

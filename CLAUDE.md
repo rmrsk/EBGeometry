@@ -727,7 +727,12 @@ with explicit permission), and may ask whether to act on follow-ups.
   compile of `TestTape` did not finish). Keep them out of line, and mark any new function called that
   way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
   `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an
-  analytic primitive into the level that reads it. On the host, the primitive dispatch is split at
+  analytic primitive into the level that reads it, except the `TapeDetail::RareShapes`, which every level
+  reaches through its one existing out-of-line call (`evaluateHandle()`, then `evaluateRare()`): each
+  built-in type inlined at every level multiplies every tape kernel's compile time. A new built-in shape
+  goes in `RareShapes` unless common tapes use it; never give it a call site of its own at each level (that
+  slowed tapes that never use it by up to 46%), and keep it out of `evaluateHandle()` itself (marching a
+  mesh calls that at every step, and growing it slowed such tapes up to 4x). On the host, the primitive dispatch is split at
   `Tape::DispatchSplit` (`dispatchRest()`, `EBGEOMETRY_HOST_NOINLINE`): without the split, unrelated code
   added to the tape's headers (the ray program compiler, #237) made GCC keep double's whole dispatch out
   of `evaluateBody<0>`, and double tapes ran up to 28% slower. A new operation needs an `ExprDetail::Kind`,
