@@ -30,9 +30,9 @@ using T        = Real;
 using Vec3     = EBGeometry::Vec3T<T>;
 using AABB     = EBGeometry::BoundingVolumes::AABBT<T>;
 using Sphere   = EBGeometry::SphereSDF<T>;
-using Packing  = EBGeometry::BVHSmoothUnion<T, Sphere, 4, EBGeometry::SmoothMinOp<T>>;
+using Packing  = EBGeometry::BVHSmoothUnion<T, 4, EBGeometry::SmoothMinOp<T>, Sphere>;
 using Building = EBGeometry::BoxSDF<T>;
-using City     = EBGeometry::BVHUnion<T, Building, 4>;
+using City     = EBGeometry::BVHUnion<T, 4, Building>;
 
 // AMReX's implicit function. EBGeometry's value is negative inside the object and AMReX reads negative
 // values as fluid, so the sign is flipped: the fluid is around the object. Deriving from GPUable lets EB2

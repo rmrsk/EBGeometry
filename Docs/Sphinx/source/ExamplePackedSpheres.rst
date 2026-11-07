@@ -23,7 +23,7 @@ BVH over their boxes:
 
 .. code-block:: c++
 
-   const BVHSmoothUnion<T, SphereSDF<T>, K, SmoothMinOp<T>> packing(pool, spheres, boxes, blendLength);
+   const BVHSmoothUnion<T, K, SmoothMinOp<T>, SphereSDF<T>> packing(pool, spheres, boxes, blendLength);
 
 A point is evaluated against the spheres near it only, and the two nearest values are blended with the
 smooth minimum, so spheres within the blend length of each other merge (see :ref:`Sec:BVHUnions`). The

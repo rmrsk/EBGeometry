@@ -627,7 +627,7 @@ TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing",
   REQUIRE(abortsWith(
     [] {
       Pool                               pool(hostMemoryResource());
-      const BVHUnion<T, SphereSDF<T>, 4> u(pool, {}, {});
+      const BVHUnion<T, 4, SphereSDF<T>> u(pool, {}, {});
     },
     "BVHUnion: a union needs at least one primitive"));
 }

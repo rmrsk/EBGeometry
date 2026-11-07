@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <random>
 #include <string>
@@ -592,11 +593,11 @@ TEMPLATE_TEST_CASE("BVHUnion: a plain, trivially copyable value type", "[CSG][BV
 {
   using T = TestType;
 
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, SphereSDF<T>, 4>>);
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnion<T, SphereSDF<T>, 4>>);
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnion<T, SphereSDF<T>, 4, ExpMinOp<T>>>);
-  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, TestTriMesh<T>, 4>>);
-  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<BVHUnion<T, SphereSDF<T>, 4>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, 4, SphereSDF<T>>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereSDF<T>>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHSmoothUnion<T, 4, ExpMinOp<T>, SphereSDF<T>>>);
+  STATIC_REQUIRE(std::is_trivially_copyable_v<BVHUnion<T, 4, TestTriMesh<T>>>);
+  STATIC_REQUIRE_FALSE(std::is_polymorphic_v<BVHUnion<T, 4, SphereSDF<T>>>);
   STATIC_REQUIRE(std::is_trivially_copyable_v<SmoothMinOp<T>>);
   STATIC_REQUIRE(std::is_trivially_copyable_v<SmoothMaxOp<T>>);
   STATIC_REQUIRE(std::is_trivially_copyable_v<ExpMinOp<T>>);
@@ -612,7 +613,7 @@ TEMPLATE_TEST_CASE("BVHUnion: agrees with a brute-force minimum over a row of sp
 
   const auto spheres = sphereRow<T>();
 
-  const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, sphereRowBVs<T>());
+  const BVHUnion<T, 4, SphereSDF<T>> bvhUnion(pool, spheres, sphereRowBVs<T>());
 
   for (const auto& p : lineQueryPoints<T>()) {
     REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(bruteMin(spheres, p), formulaMargin<T>()));
@@ -632,10 +633,10 @@ TEMPLATE_TEST_CASE("BVHUnion: every build strategy gives the same union as the d
   const auto spheres = sphereRow<T>();
   const auto bvs     = sphereRowBVs<T>();
 
-  const BVHUnion<T, SphereSDF<T>, K> reference(pool, spheres, bvs);
+  const BVHUnion<T, K, SphereSDF<T>> reference(pool, spheres, bvs);
 
   for (const auto build : allConstructions) {
-    const BVHUnion<T, SphereSDF<T>, K> bvhUnion(pool, spheres, bvs, build);
+    const BVHUnion<T, K, SphereSDF<T>> bvhUnion(pool, spheres, bvs, build);
 
     for (const auto& p : lineQueryPoints<T>()) {
       REQUIRE_THAT(bvhUnion.signedDistance(p), withinAbsT(reference.signedDistance(p), exactMargin<T>()));
@@ -655,7 +656,7 @@ TEMPLATE_TEST_CASE("BVHSmoothUnion: agrees with the sharp union far from any ble
 
   const auto spheres = sphereRow<T>();
 
-  const BVHSmoothUnion<T, SphereSDF<T>, 4> bvhSmooth(pool, spheres, sphereRowBVs<T>(), smoothLen);
+  const BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereSDF<T>> bvhSmooth(pool, spheres, sphereRowBVs<T>(), smoothLen);
 
   // Deep inside any one sphere, far from every other sphere's surface.
   for (int i = 0; i < NumRowSpheres; i++) {
@@ -681,8 +682,8 @@ TEMPLATE_TEST_CASE("BVHSmoothUnion: matches a brute-force two-nearest blend insi
 
   // The pruning bound must retain *both* blend inputs even in the overlap region where the two
   // nearest surfaces interpenetrate. Checked for both the default and the exponential blend.
-  const BVHSmoothUnion<T, SphereSDF<T>, 4>              polySmooth(pool, spheres, bvs, smoothLen);
-  const BVHSmoothUnion<T, SphereSDF<T>, 4, ExpMinOp<T>> expSmooth(pool, spheres, bvs, smoothLen);
+  const BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereSDF<T>> polySmooth(pool, spheres, bvs, smoothLen);
+  const BVHSmoothUnion<T, 4, ExpMinOp<T>, SphereSDF<T>>    expSmooth(pool, spheres, bvs, smoothLen);
 
   for (const auto& p : lineQueryPoints<T>()) {
     REQUIRE_THAT(polySmooth.signedDistance(p),
@@ -729,7 +730,8 @@ TEMPLATE_TEST_CASE("BVHSmoothUnion: every build strategy matches brute force whe
   Pool pool(hostMemoryResource());
 
   for (const auto build : allConstructions) {
-    const BVHSmoothUnion<T, SphereSDF<T>, K> smooth(pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
+    const BVHSmoothUnion<T, K, SmoothMinOp<T>, SphereSDF<T>> smooth(
+      pool, spheres, bvs, smoothLen, SmoothMinOp<T>{}, build);
 
     for (const auto& p : queries) {
       REQUIRE_THAT(smooth.signedDistance(p),
@@ -746,8 +748,8 @@ TEMPLATE_TEST_CASE("BVHUnion/BVHSmoothUnion: ConstructionOptions set each constr
 
   constexpr size_t K = 4;
 
-  using Union  = BVHUnion<T, SphereSDF<T>, K>;
-  using Smooth = BVHSmoothUnion<T, SphereSDF<T>, K>;
+  using Union  = BVHUnion<T, K, SphereSDF<T>>;
+  using Smooth = BVHSmoothUnion<T, K, SmoothMinOp<T>, SphereSDF<T>>;
 
   std::mt19937                      rng(5);
   std::uniform_real_distribution<T> coord(T(0), T(10));
@@ -900,7 +902,7 @@ TEMPLATE_TEST_CASE("BVHUnion: every build strategy handles many coincident primi
   Pool pool(hostMemoryResource());
 
   for (const auto build : allConstructions) {
-    const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, spheres, bvs, build);
+    const BVHUnion<T, 4, SphereSDF<T>> bvhUnion(pool, spheres, bvs, build);
 
     REQUIRE_THAT(bvhUnion.signedDistance(Vec3T<T>::zeros()), withinAbsT(std::sqrt(T(3)) - T(0.5), formulaMargin<T>()));
     REQUIRE_THAT(bvhUnion.signedDistance(T(5) * Vec3T<T>::ones()), withinAbsT(T(-0.5), formulaMargin<T>()));
@@ -950,12 +952,12 @@ TEMPLATE_TEST_CASE("BVHUnion: primitives that are not distances keep the union's
     bvs.push_back(sphere.computeBoundingVolume());
   }
 
-  STATIC_REQUIRE(BVHUnion<T, SteepSphere<T>, 4>::distanceQuality == DistanceQuality::NotADistance);
+  STATIC_REQUIRE(BVHUnion<T, 4, SteepSphere<T>>::distanceQuality == DistanceQuality::NotADistance);
 
   Pool pool(hostMemoryResource());
 
   for (const auto build : allConstructions) {
-    const BVHUnion<T, SteepSphere<T>, 4> bvhUnion(pool, spheres, bvs, build);
+    const BVHUnion<T, 4, SteepSphere<T>> bvhUnion(pool, spheres, bvs, build);
 
     for (int i = 0; i < 2000; i++) {
       const Vec3 p(coord(rng), coord(rng), coord(rng));
@@ -1004,7 +1006,7 @@ TEMPLATE_TEST_CASE("BVHUnion: primitives with unbounded boxes match brute force"
     Pool pool(hostMemoryResource());
 
     for (const auto build : allConstructions) {
-      const BVHUnion<T, P, 4> bvhUnion(pool, a_primitives, bvs, build);
+      const BVHUnion<T, 4, P> bvhUnion(pool, a_primitives, bvs, build);
 
       // Every box is unbounded, so the BVH is empty and every primitive is scanned.
       REQUIRE(bvhUnion.getBVH().getPrimitives().size() == 0);
@@ -1116,8 +1118,8 @@ TEMPLATE_TEST_CASE("BVH unions: primitives with unbounded boxes are kept out of 
   Pool pool(hostMemoryResource());
 
   for (const auto build : allConstructions) {
-    const BVHUnion<T, Prim, 4>       sharp(pool, primitives, bvs, build);
-    const BVHSmoothUnion<T, Prim, 4> smooth(pool, primitives, bvs, smoothLen, SmoothMinOp<T>{}, build);
+    const BVHUnion<T, 4, Prim>                       sharp(pool, primitives, bvs, build);
+    const BVHSmoothUnion<T, 4, SmoothMinOp<T>, Prim> smooth(pool, primitives, bvs, smoothLen, SmoothMinOp<T>{}, build);
 
     REQUIRE(sharp.getBVH().getPrimitives().size() == 300);
     REQUIRE(sharp.getUnboundedPrimitives().size() == 4);
@@ -1150,9 +1152,9 @@ TEMPLATE_TEST_CASE("BVHUnion: host-mirror, deep and nested copies keep the unbou
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T      = TestType;
-  using Union  = BVHUnion<T, SphereOrCylinder<T>, 4>;
-  using Smooth = BVHSmoothUnion<T, SphereOrCylinder<T>, 4>;
-  using Nested = BVHUnion<T, Union, 4>;
+  using Union  = BVHUnion<T, 4, SphereOrCylinder<T>>;
+  using Smooth = BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereOrCylinder<T>>;
+  using Nested = BVHUnion<T, 4, Union>;
 
   const auto queries = EBGeometryTestGPU::queryGrid<T>(Vec3T<T>(T(-8), T(-8), T(-8)), Vec3T<T>(T(8), T(8), T(8)), 12);
 
@@ -1225,7 +1227,7 @@ TEMPLATE_TEST_CASE("BVHUnion::computeBoundingVolume encloses every input sphere"
 
   const auto bvs = sphereRowBVs<T>();
 
-  const BVHUnion<T, SphereSDF<T>, 4> bvhUnion(pool, sphereRow<T>(), bvs);
+  const BVHUnion<T, 4, SphereSDF<T>> bvhUnion(pool, sphereRow<T>(), bvs);
   const BV<T>                        rootBV = bvhUnion.computeBoundingVolume();
 
   for (const auto& bv : bvs) {
@@ -1241,8 +1243,8 @@ TEMPLATE_TEST_CASE("BVHUnion: a union of translated TriMeshSDFs, and a union of 
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T      = TestType;
-  using Union  = BVHUnion<T, TestTriMesh<T>, 4>;
-  using Nested = BVHUnion<T, Union, 4>;
+  using Union  = BVHUnion<T, 4, TestTriMesh<T>>;
+  using Nested = BVHUnion<T, 4, Union>;
 
   Pool pool(hostMemoryResource());
 
@@ -1268,8 +1270,8 @@ TEMPLATE_TEST_CASE("BVHUnion: host-mirror and deep copies of a TriMeshSDF union 
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T      = TestType;
-  using Union  = BVHUnion<T, TestTriMesh<T>, 4>;
-  using Nested = BVHUnion<T, Union, 4>;
+  using Union  = BVHUnion<T, 4, TestTriMesh<T>>;
+  using Nested = BVHUnion<T, 4, Union>;
 
   const auto queries = gridQueryPoints<T>();
 
@@ -1318,7 +1320,7 @@ TEMPLATE_TEST_CASE("BVHUnion: rejects a mesh from another pool and a missing bou
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T     = TestType;
-  using Union = BVHUnion<T, TestTriMesh<T>, 4>;
+  using Union = BVHUnion<T, 4, TestTriMesh<T>>;
 
   // Both checks are EBGEOMETRY_REQUIREs, so they abort in every build.
   REQUIRE_FALSE(aborts([] {
@@ -1348,7 +1350,7 @@ TEMPLATE_TEST_CASE("BVHUnion: rejects a mesh from another pool and a missing bou
 
       bvs.pop_back();
 
-      const BVHUnion<T, SphereSDF<T>, 4> sphereUnion(pool, spheres, bvs);
+      const BVHUnion<T, 4, SphereSDF<T>> sphereUnion(pool, spheres, bvs);
 
       (void)sphereUnion;
     },
@@ -1373,6 +1375,240 @@ struct UnionDistanceQuery
 
 } // namespace
 
+namespace {
+
+// A scene of three shape types and an empty fourth: the sphere row, boxes between its spheres, and infinite
+// cylinders along z (whose unbounded boxes keep them out of the BVH).
+template <class T>
+std::vector<BoxSDF<T>>
+boxRow()
+{
+  std::vector<BoxSDF<T>> boxes;
+
+  for (int i = 0; i + 1 < NumRowSpheres; i += 2) {
+    const T x = T(3) * T(i) + T(1.5);
+
+    boxes.emplace_back(Vec3T<T>(x - T(0.4), T(-0.3), T(-0.3)), Vec3T<T>(x + T(0.4), T(0.3), T(0.3)));
+  }
+
+  return boxes;
+}
+
+template <class T>
+std::vector<InfiniteCylinderSDF<T>>
+cylinderRow()
+{
+  return {InfiniteCylinderSDF<T>(Vec3T<T>(T(7.5), T(2), T(0)), T(0.4), 2),
+          InfiniteCylinderSDF<T>(Vec3T<T>(T(22.5), T(-2), T(0)), T(0.6), 2)};
+}
+
+// Points along and around the row, between and inside its members.
+template <class T>
+std::vector<Vec3T<T>>
+rowQueryPoints()
+{
+  std::vector<Vec3T<T>> points;
+
+  for (const T x : sweepValues<T>(T(-2), T(36), 39)) {
+    for (const T y : {T(-2.5), T(0.1), T(1.9)}) {
+      points.emplace_back(x, y, T(0.2));
+    }
+  }
+
+  return points;
+}
+
+// The minimum, and the two smallest values, over every primitive of every array.
+template <class T, class... Ps>
+std::vector<T>
+allValues(const Vec3T<T>& a_point, const std::vector<Ps>&... a_primitives)
+{
+  std::vector<T> values;
+
+  const auto add = [&](const auto& a_ofType) {
+    for (const auto& primitive : a_ofType) {
+      values.push_back(primitive.signedDistance(a_point));
+    }
+  };
+
+  (add(a_primitives), ...);
+
+  return values;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("BVHUnion: a union of several shape types, deduced from their arrays, matches brute force",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const auto                     spheres   = sphereRow<T>();
+  const auto                     boxes     = boxRow<T>();
+  const auto                     cylinders = cylinderRow<T>();
+  const std::vector<TorusSDF<T>> none;
+
+  const auto mixed  = BVHUnion(pool, spheres, boxes, cylinders, none);
+  const auto smooth = BVHSmoothUnion(pool, T(0.7), spheres, boxes, cylinders);
+
+  // The types and the default branching factor are deduced; a union stays a plain value type.
+  using Mixed = std::decay_t<decltype(mixed)>;
+
+  static_assert(
+    std::is_same_v<
+      Mixed,
+      BVHUnion<T, BVH::DefaultBranchingRatio<T>(), SphereSDF<T>, BoxSDF<T>, InfiniteCylinderSDF<T>, TorusSDF<T>>>);
+  static_assert(std::is_same_v<std::decay_t<decltype(smooth)>,
+                               BVHSmoothUnion<T,
+                                              BVH::DefaultBranchingRatio<T>(),
+                                              SmoothMinOp<T>,
+                                              SphereSDF<T>,
+                                              BoxSDF<T>,
+                                              InfiniteCylinderSDF<T>>>);
+  static_assert(std::is_trivially_copyable_v<Mixed>);
+  static_assert(Mixed::distanceQuality == DistanceQuality::Bound);
+
+  // The cylinders are unbounded, so they are kept out of the BVH.
+  REQUIRE(mixed.getUnboundedPrimitives().size() == 2U);
+
+  for (const auto& p : rowQueryPoints<T>()) {
+    const std::vector<T> values = allValues(p, spheres, boxes, cylinders);
+
+    REQUIRE_THAT(mixed.signedDistance(p),
+                 withinAbsT(*std::min_element(values.begin(), values.end()), exactMargin<T>()));
+    REQUIRE_THAT(smooth.signedDistance(p),
+                 withinAbsT(blendTwoSmallest(values, T(0.7), SmoothMinOp<T>{}), exactMargin<T>()));
+  }
+
+  // Every construction method gives the same union.
+  for (const BVH::Construction construction : allConstructions) {
+    const auto built = BVHUnion(pool, BVH::BuildSettings{construction, {}}, spheres, boxes, cylinders);
+
+    for (const auto& p : rowQueryPoints<T>()) {
+      REQUIRE_THAT(built.signedDistance(p), withinAbsT(mixed.signedDistance(p), exactMargin<T>()));
+    }
+  }
+
+  // The box encloses every member's bounded box.
+  const auto box = mixed.computeBoundingVolume();
+
+  for (const auto& sphere : spheres) {
+    REQUIRE(box.getLowCorner()[0] <= sphere.computeBoundingVolume().getLowCorner()[0]);
+    REQUIRE(box.getHighCorner()[0] >= sphere.computeBoundingVolume().getHighCorner()[0]);
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnion: one type deduced from its array, with or without the caller's boxes, is today's union",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const auto spheres = sphereRow<T>();
+  const auto deduced = BVHUnion(pool, spheres);
+  const auto boxed   = BVHUnion(pool, spheres, sphereRowBVs<T>());
+
+  using Expected = BVHUnion<T, BVH::DefaultBranchingRatio<T>(), SphereSDF<T>>;
+
+  static_assert(std::is_same_v<std::decay_t<decltype(deduced)>, Expected>);
+  static_assert(std::is_same_v<std::decay_t<decltype(boxed)>, Expected>);
+
+  // A union of one type stores its primitives in its leaves, as it did before several types were supported.
+  static_assert(std::is_same_v<typename Expected::Leaf, SphereSDF<T>>);
+  static_assert(sizeof(typename Expected::Layout) == 2 * sizeof(typename Expected::Root::Layout));
+
+  for (const auto& p : lineQueryPoints<T>()) {
+    REQUIRE_THAT(deduced.signedDistance(p), withinAbsT(bruteMin<T>(spheres, p), exactMargin<T>()));
+    REQUIRE_THAT(boxed.signedDistance(p), withinAbsT(bruteMin<T>(spheres, p), exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnion: meshes and spheres in one union, deep-copied and mirrored, match brute force",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  auto pool = std::make_unique<Pool>(hostMemoryResource());
+
+  const auto meshes  = dodecahedronGrid<T>(*pool);
+  const auto spheres = std::vector<SphereSDF<T>>{SphereSDF<T>(Vec3T<T>(T(2), T(2), T(0)), T(0.7)),
+                                                 SphereSDF<T>(Vec3T<T>(T(6), T(-1), T(0)), T(1.2))};
+
+  const auto mixed = BVHUnion(*pool, meshes, spheres);
+
+  static_assert(std::is_same_v<typename std::decay_t<decltype(mixed)>::Leaf, CSGDetail::LeafRef>);
+
+  std::vector<T> expected;
+
+  for (const auto& p : gridQueryPoints<T>()) {
+    const std::vector<T> values = allValues(p, meshes, spheres);
+
+    expected.push_back(*std::min_element(values.begin(), values.end()));
+
+    REQUIRE_THAT(mixed.signedDistance(p), withinAbsT(expected.back(), exactMargin<T>()));
+  }
+
+  // A union of unions of several types.
+  const auto nested = BVHUnion(*pool, std::vector<std::decay_t<decltype(mixed)>>{mixed});
+
+  // A host mirror, and a deep copy that outlives the source pool.
+  pool->freeze();
+
+  const Pool mirror = Pool::mirror(*pool, hostMemoryResource());
+  const auto view   = mixed.rebasedView(mirror);
+
+  Pool       copyPool(hostMemoryResource());
+  const auto copy = nested.deepCopy(copyPool);
+
+  const auto points = gridQueryPoints<T>();
+
+  for (size_t i = 0; i < points.size(); i++) {
+    REQUIRE_THAT(view.signedDistance(points[i]), withinAbsT(expected[i], exactMargin<T>()));
+    REQUIRE_THAT(nested.signedDistance(points[i]), withinAbsT(expected[i], exactMargin<T>()));
+  }
+
+  pool.reset();
+
+  for (size_t i = 0; i < points.size(); i++) {
+    REQUIRE_THAT(copy.signedDistance(points[i]), withinAbsT(expected[i], exactMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("BVHUnion: a union of several types rejects empty arrays and a mesh from another pool",
+                   "[CSG][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool pool(hostMemoryResource());
+
+      const auto mixed = BVHUnion(pool, std::vector<SphereSDF<T>>{}, std::vector<BoxSDF<T>>{});
+
+      (void)mixed;
+    },
+    "needs at least one primitive"));
+
+  REQUIRE(abortsWith(
+    [] {
+      Pool meshPool(hostMemoryResource());
+      Pool unionPool(hostMemoryResource());
+
+      const auto meshes = dodecahedronGrid<T>(meshPool);
+      const auto mixed  = BVHUnion(unionPool, sphereRow<T>(), meshes);
+
+      (void)mixed;
+    },
+    "lives in another Pool"));
+}
+
 TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
@@ -1387,14 +1623,17 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 
   const auto meshes = dodecahedronGrid<T>(pool);
 
-  const BVHUnion<T, SphereSDF<T>, 4>       sphereUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
-  const BVHSmoothUnion<T, SphereSDF<T>, 4> smoothUnion(pool, sphereRow<T>(), sphereRowBVs<T>(), T(0.6));
-  const BVHUnion<T, TestTriMesh<T>, 4>     meshUnion(pool, meshes, boundingVolumes(meshes));
+  const BVHUnion<T, 4, SphereSDF<T>>                       sphereUnion(pool, sphereRow<T>(), sphereRowBVs<T>());
+  const BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereSDF<T>> smoothUnion(pool, sphereRow<T>(), sphereRowBVs<T>(), T(0.6));
+  const BVHUnion<T, 4, TestTriMesh<T>>                     meshUnion(pool, meshes, boundingVolumes(meshes));
 
   // Spheres and infinite cylinders: the unbounded leaf is scanned on the device too.
-  const auto                                      mixed = spheresAndCylinders<T>();
-  const BVHUnion<T, SphereOrCylinder<T>, 4>       mixedUnion(pool, mixed, boxesOf<T>(mixed));
-  const BVHSmoothUnion<T, SphereOrCylinder<T>, 4> mixedSmooth(pool, mixed, boxesOf<T>(mixed), T(0.5));
+  const auto                                                      mixed = spheresAndCylinders<T>();
+  const BVHUnion<T, 4, SphereOrCylinder<T>>                       mixedUnion(pool, mixed, boxesOf<T>(mixed));
+  const BVHSmoothUnion<T, 4, SmoothMinOp<T>, SphereOrCylinder<T>> mixedSmooth(pool, mixed, boxesOf<T>(mixed), T(0.5));
+
+  const auto manyTypes       = BVHUnion(pool, meshes, sphereRow<T>(), cylinderRow<T>());
+  const auto manyTypesSmooth = BVHSmoothUnion(pool, T(0.6), sphereRow<T>(), boxRow<T>(), cylinderRow<T>());
 
   pool.freeze();
 
@@ -1424,6 +1663,10 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 
   check(mixedUnion, mixedPoints);
   check(mixedSmooth, mixedPoints);
+
+  // Several types in one union: meshes, spheres and unbounded cylinders, sharp and smooth.
+  check(manyTypes, meshPoints);
+  check(manyTypesSmooth, spherePoints);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2190,7 +2433,7 @@ TEST_CASE("BVHUnion and BVHSmoothUnion: reject an unknown build strategy and a n
     [] {
       Pool pool(hostMemoryResource());
 
-      (void)BVHUnion<double, SphereSDF<double>, 4>(
+      (void)BVHUnion<double, 4, SphereSDF<double>>(
         pool, sphereRow<double>(), sphereRowBVs<double>(), static_cast<BVH::Construction>(42));
     },
     "PackedBVH: unknown BVH::Construction value (42)"));
@@ -2199,7 +2442,8 @@ TEST_CASE("BVHUnion and BVHSmoothUnion: reject an unknown build strategy and a n
     [] {
       Pool pool(hostMemoryResource());
 
-      (void)BVHSmoothUnion<double, SphereSDF<double>, 4>(pool, sphereRow<double>(), sphereRowBVs<double>(), 0.0);
+      (void)BVHSmoothUnion<double, 4, SmoothMinOp<double>, SphereSDF<double>>(
+        pool, sphereRow<double>(), sphereRowBVs<double>(), 0.0);
     },
     "BVHSmoothUnion: the smoothing length must be positive (0)"));
 }

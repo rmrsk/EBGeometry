@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// A scene of many objects: thousands of spheres on a lattice, and a "city" of randomly sized boxes.
-// Each is put in a BVHUnion, which evaluates the union through a bounding volume hierarchy over the
-// objects' boxes, and timed against a naive union that visits every object. The last section runs the
-// unions on a GPU, timing the kernel alone. See README.md.
+// Scenes of many objects: thousands of spheres on a lattice, a "city" of randomly sized boxes, and the city
+// with balloons floating over it, spheres and boxes in one union. Each is put in a BVHUnion, which evaluates
+// the union through a bounding volume hierarchy over the objects' boxes, and timed against a naive union
+// that visits every object. The last section runs the unions on a GPU, timing the kernel alone. See
+// README.md.
 
 #include <chrono>
 #include <cstddef>
@@ -27,17 +28,12 @@ using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
 using Sphere = EBGeometry::SphereSDF<T>;
 using Box    = EBGeometry::BoxSDF<T>;
 
-// A BVHUnion holds one primitive type; K is the branching factor of its BVH.
-constexpr std::size_t K = EBGeometry::BVH::DefaultBranchingRatio<T>();
-
-using Spheres = EBGeometry::BVHUnion<T, Sphere, K>;
-using City    = EBGeometry::BVHUnion<T, Box, K>;
-
-// Run configuration: spheresPerAxis^3 spheres, (lotsPerAxis)^2 buildings, and the number of random
-// query points. The naive union visits every object for every point, so these stay small enough for an
+// Run configuration: spheresPerAxis^3 spheres, (lotsPerAxis)^2 buildings, numBalloons balloons, and the
+// number of random query points. The naive union visits every object for every point, so these stay small enough for an
 // unoptimized build to finish in seconds.
 constexpr int         spheresPerAxis = 20;
 constexpr int         lotsPerAxis    = 60;
+constexpr int         numBalloons    = 200;
 constexpr std::size_t numPoints      = 2000;
 
 // In a GPU build the last section uses many more points, so that the kernel, not the launch, is what
@@ -92,21 +88,26 @@ microsecondsSince(const std::chrono::steady_clock::time_point a_start)
   return elapsed.count();
 }
 
-// Time the naive union and the BVH union of the same objects over the same points, on the host.
-template <class Primitive, class Union>
+// Time the naive union and the BVH union of the same objects (given as one array per type, as the union was)
+// over the same points, on the host.
+template <class Union, class... Primitives>
 void
-compare(const std::string&            a_name,
-        const std::vector<Primitive>& a_objects,
-        const Union&                  a_union,
-        const std::vector<Vec3>&      a_points)
+compare(const std::string&       a_name,
+        const Union&             a_union,
+        const std::vector<Vec3>& a_points,
+        const std::vector<Primitives>&... a_objects)
 {
-  // The naive union: the smallest distance over every object.
-  const auto naiveUnion = [&a_objects](const Vec3& a_point) {
+  // The naive union: the smallest distance over every object of every array.
+  const auto naiveUnion = [&](const Vec3& a_point) {
     T distance = EBGeometry::Math::Limits<T>::max();
 
-    for (const Primitive& object : a_objects) {
-      distance = EBGeometry::Math::min(distance, object.signedDistance(a_point));
-    }
+    const auto scan = [&](const auto& a_ofType) {
+      for (const auto& object : a_ofType) {
+        distance = EBGeometry::Math::min(distance, object.signedDistance(a_point));
+      }
+    };
+
+    (scan(a_objects), ...);
 
     return distance;
   };
@@ -129,7 +130,7 @@ compare(const std::string&            a_name,
 
   const T bvhTime = microsecondsSince(middle) / T(a_points.size());
 
-  std::cout << a_name << ": " << a_objects.size() << " objects, " << a_points.size() << " points\n";
+  std::cout << a_name << ": " << (a_objects.size() + ...) << " objects, " << a_points.size() << " points\n";
   std::cout << "  Naive union : " << naiveTime << " us per point\n";
   std::cout << "  BVHUnion    : " << bvhTime << " us per point (" << naiveTime / bvhTime << "x faster)\n";
   std::cout << "  At " << a_points[0] << ": naive " << naive[0] << ", BVHUnion " << bvh[0] << "\n\n";
@@ -201,9 +202,9 @@ main(int argc, char* argv[])
 {
   // ── Build the scenes ───────────────────────────────────────────────────────────────────────────────
   //
-  // A BVHUnion takes the objects and one bounding box per object. It copies the objects into a Pool
-  // and builds its BVH over the boxes there, so the vectors can go once it is built; the pool must
-  // outlive the union and every copy of it.
+  // A BVHUnion takes one array of objects per type, and takes its types from them. It copies the objects
+  // into a Pool and builds its BVH over their boxes there, so the vectors can go once it is built; the pool
+  // must outlive the union and every copy of it.
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
   // Spheres of radius 1, a radius apart, on a lattice.
@@ -211,20 +212,17 @@ main(int argc, char* argv[])
   const T spacing = T(3) * radius;
 
   std::vector<Sphere> spheres;
-  std::vector<AABB>   sphereBoxes;
 
   for (int i = 0; i < spheresPerAxis; i++) {
     for (int j = 0; j < spheresPerAxis; j++) {
       for (int k = 0; k < spheresPerAxis; k++) {
-        const Vec3 center = spacing * Vec3(T(i), T(j), T(k));
-
-        spheres.emplace_back(center, radius);
-        sphereBoxes.push_back(spheres.back().computeBoundingVolume());
+        spheres.emplace_back(spacing * Vec3(T(i), T(j), T(k)), radius);
       }
     }
   }
 
-  const Spheres packedSpheres(pool, spheres, sphereBoxes);
+  // Each sphere's box is its computeBoundingVolume().
+  const auto packedSpheres = EBGeometry::BVHUnion(pool, spheres);
 
   // A city: one building per lot, of random width, length and height, never overlapping its
   // neighbors. Lots are maxWidth + gap wide.
@@ -251,7 +249,22 @@ main(int argc, char* argv[])
     }
   }
 
-  const City city(pool, buildings, buildingBoxes);
+  // A union of one type can also be given the boxes, when the caller has tighter ones (here the same).
+  const auto city = EBGeometry::BVHUnion(pool, buildings, buildingBoxes);
+
+  // Balloons over the city: spheres and boxes in one union, one array per type. The union stores each type's
+  // objects in an array of its own, and a leaf of its BVH tests which type it holds.
+  std::vector<Sphere> balloons;
+
+  const T cityWidth = T(lotsPerAxis) * (maxWidth + gap);
+
+  for (int i = 0; i < numBalloons; i++) {
+    const Vec3 center(unit(rng) * cityWidth, unit(rng) * cityWidth, maxHeight + T(5) + T(15) * unit(rng));
+
+    balloons.emplace_back(center, T(1.5) + T(2) * unit(rng));
+  }
+
+  const auto skyline = EBGeometry::BVHUnion(pool, buildings, balloons);
 
   // ── Use them on the host ───────────────────────────────────────────────────────────────────────────
   //
@@ -260,9 +273,11 @@ main(int argc, char* argv[])
   // box around them all, used here to place the query points.
   const std::vector<Vec3> spherePoints = randomPoints(packedSpheres.computeBoundingVolume(), numPoints);
   const std::vector<Vec3> cityPoints   = randomPoints(city.computeBoundingVolume(), numPoints);
+  const std::vector<Vec3> skyPoints    = randomPoints(skyline.computeBoundingVolume(), numPoints);
 
-  compare("Packed spheres", spheres, packedSpheres, spherePoints);
-  compare("Random city", buildings, city, cityPoints);
+  compare("Packed spheres", packedSpheres, spherePoints, spheres);
+  compare("Random city", city, cityPoints, buildings);
+  compare("City and balloons", skyline, skyPoints, buildings, balloons);
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //
@@ -284,17 +299,20 @@ main(int argc, char* argv[])
                 randomPoints(packedSpheres.computeBoundingVolume(), numDevicePoints));
     runOnDevice(
       "Random city", city.rebasedView(devicePool), randomPoints(city.computeBoundingVolume(), numDevicePoints));
+    runOnDevice("City and balloons",
+                skyline.rebasedView(devicePool),
+                randomPoints(skyline.computeBoundingVolume(), numDevicePoints));
   }
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // A window on the random city, a BVH union of boxes (built with VIEWER=SDL2; otherwise, with --no-view or
-  // without a display, view() prints why and returns). Drag to orbit, scroll to zoom, X cuts it open, P
-  // colors each primitive. The buildings rise along z, so the camera is fitted with z up.
-  // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
-  const auto camera = EBGeometry::Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(T(0), T(0), T(1)));
+  // A window on the city and its balloons, a BVH union of boxes and spheres (built with VIEWER=SDL2;
+  // otherwise, with --no-view or without a display, view() prints why and returns). Drag to orbit, scroll to
+  // zoom, X cuts it open, P colors each primitive. The buildings rise along z, so the camera is fitted with z
+  // up. Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
+  const auto camera = EBGeometry::Render::Camera<T>::fit(skyline.computeBoundingVolume(), Vec3(T(0), T(0), T(1)));
 
-  EBGeometry::Render::view(city, pool, camera, EBGeometry::Render::Settings<T>(), argc, argv);
+  EBGeometry::Render::view(skyline, pool, camera, EBGeometry::Render::Settings<T>(), argc, argv);
 
   return 0;
 }

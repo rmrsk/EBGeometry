@@ -131,7 +131,7 @@ The shapes share a few conventions:
   member, and treats a type without one as ``Bound``.
 
 Every shape can be composed with the expression builder and evaluated through a ``Tape``
-(:ref:`Sec:Tape`); many shapes of one type can also be joined directly by a BVH union
+(:ref:`Sec:Tape`); many shapes, of one type or several, can also be joined directly by a BVH union
 (:ref:`Sec:BVHUnions`).
 
 Composing objects
@@ -255,7 +255,7 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
   (``FlatMeshSDF``, and ``MeshSDF`` and ``TriMeshSDF`` with the default branching factor and SIMD
   width) are built in. Any other shape type -- a BVH union, a mesh distance field with another
   branching factor, another tape, or a type of your own -- is listed after ``T``:
-  ``Tape<T, BVHUnion<T, SphereSDF<T>, 4>, MyShape>``. The constructor rejects a shape whose type is
+  ``Tape<T, BVHUnion<T, 4, SphereSDF<T>>, MyShape>``. The constructor rejects a shape whose type is
   not listed, and a pool-resident shape that lives in another pool.
 * **Features.** Code that only some tapes need is a *feature* (see :ref:`Sec:TapeFeatures`), compiled
   only into a tape whose type lists it among the arguments after ``T``, before the user types by
@@ -418,15 +418,26 @@ closest-object query to an :math:`\mathcal{O}(\log N)` tree traversal instead of
 see :ref:`Chap:ImplemBVH` for how the BVH itself is built and traversed; this section only concerns
 how the unions use it. ``BVHSmoothUnion`` blends the two nearest objects with a smooth-minimum
 functor, ``SmoothMinOp<T>`` by default. A tape evaluates a union of many operands the same way
-(:ref:`Sec:Tape`); the classes here are for many primitives of one type, without compiling an
+(:ref:`Sec:Tape`); the classes here are for many primitives given as arrays, without compiling an
 expression. Each is a plain, trivially copyable value type, in the same way as the analytic shapes
 and the mesh distance fields, whose ``signedDistance()`` can be called on the host or inside a GPU
 kernel:
 
-* **One primitive type per union.** ``BVHUnion<T, P, K>`` holds its primitives by value in the
-  ``PackedBVH``, so every primitive has the same type ``P``: an analytic shape, a mesh distance
-  field, or another BVH union. No runtime dispatch is needed to evaluate them. For a union of objects
-  of *different* types, compose them with ``Union`` and compile the result into a tape.
+* **One array per primitive type, the types deduced.** Pass one array per type, and the union takes
+  its types, precision and default branching factor from them:
+
+  .. code-block:: c++
+
+     const auto scene = EBGeometry::BVHUnion(pool, spheres, boxes, meshes);
+     const auto blob  = EBGeometry::BVHSmoothUnion(pool, 0.1, spheres, boxes);   // smoothing length 0.1
+
+  Each type can be an analytic shape, a mesh distance field, a fused composition, another BVH union or a
+  shape type of your own. The full type is ``BVHUnion<T, K, Ps...>`` (and ``BVHSmoothUnion<T, K, Blend,
+  Ps...>``), which you only need to write to store the union as a member. With one type, the union holds
+  its primitives in the BVH's leaves and evaluates them without any dispatch. With several, each type's
+  primitives are one array in the pool, and a leaf tests its primitive's type against the types in the
+  order given, so put the most numerous type first. ``BVH::BuildSettings`` chooses the construction method
+  and leaf sizes: ``BVHUnion(pool, BVH::BuildSettings{BVH::Construction::BinnedSAH, {}}, spheres, boxes)``.
 * **Bounding boxes that enclose their primitives.** The traversal skips a primitive whose bounding
   box is further away than the best value found so far. If every box encloses its primitive's
   object (where the primitive's value is not positive), a skipped primitive is positive at the query
@@ -442,11 +453,11 @@ kernel:
   the BVH query plus one evaluation per unbounded primitive. ``getBVH()`` holds the bounded
   primitives and ``getUnboundedPrimitives()`` the others, and ``computeBoundingVolume()`` covers
   both.
-* **Built in a** ``Pool``. The constructor takes the ``Pool`` to reserve the BVH from, the
-  primitives, and one bounding box per primitive, which the BVH needs up front (an analytic shape's
-  ``computeBoundingVolume()``, for example), plus an optional
-  ``BVH::Construction`` strategy (SAH by default). A further constructor also takes the
-  ``BVH::ConstructionOptions`` that set the chosen method's leaf size (see :ref:`Sec:LeafSizes`).
+* **Built in a** ``Pool``. The constructors take the ``Pool`` to reserve the union from first. Each
+  primitive's box is its ``computeBoundingVolume()``. A union of one type can be given its own boxes
+  instead, tighter ones say, as ``BVHUnion(pool, primitives, boxes)``, with an optional
+  ``BVH::Construction`` strategy (SAH by default) and the ``BVH::ConstructionOptions`` that set the chosen
+  method's leaf size (see :ref:`Sec:LeafSizes`).
 * **Mirrored to a GPU like any pool-backed type.** Freeze the pool, mirror it, and pass
   ``rebasedView(devicePool)`` to a kernel; ``deepCopy(pool)`` duplicates the storage.
 * **Primitives that live in a pool.** A mesh distance field, or a nested union, stored as a
@@ -458,8 +469,9 @@ kernel:
   ``TriMeshSDF`` objects -- a BVH whose primitives are themselves BVHs -- evaluable on a mirrored pool
   and on a GPU. ``getBVH().getPrimitives()`` therefore returns the layouts of such primitives.
 
-The :ref:`Chap:ExampleManyObjects` example times a BVH union of spheres and of boxes against a plain
-loop over every object, and :ref:`Chap:ExampleNestedBVH` builds a union of mesh distance fields.
+The :ref:`Chap:ExampleManyObjects` example times BVH unions of spheres, of boxes and of both together
+against a plain loop over every object, and :ref:`Chap:ExampleNestedBVH` builds a union of mesh distance
+fields.
 
 .. list-table::
    :header-rows: 1

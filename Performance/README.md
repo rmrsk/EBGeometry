@@ -25,6 +25,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |
 | `BVHRefit/`   | `BVH::refit()` where its pool is: the host's sweep, and a launch per tree level in device memory |
 | `BVHUnion/`   | `BVHUnion` of spheres, diagonal capsules, random cylinders      |
+| `BVHUnionMixed/` | `BVHUnion` of the three types at once, interleaved          |
 | `Shapes/`     | The analytic shapes `EllipsoidSDF` to `WedgeSDF`: each one's signed distance, and rays through a fused union of the six with closed-form ray forms, on the host and on a device |
 | `Tape/`       | `Tape` signed distance (CSG, smooth, BVH union) against a hand-written solid |
 | `Fused/`      | Fused CSG compositions (the Tape probe's solids, a drilled mesh fused and through a tape) |

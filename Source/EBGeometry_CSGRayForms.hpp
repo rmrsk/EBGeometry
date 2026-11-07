@@ -668,18 +668,18 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
 /**
  * @brief BVHUnion's ray form: the union of the spans of the primitives whose boxes the ray meets, found by
  * walking the BVH nearest box first and leaving out the boxes beyond what the union so far is known up to.
- * Exact where the primitive type has a ray form (and marched one primitive at a time otherwise), and
+ * Exact where a primitive type has a ray form (and marched one primitive at a time otherwise), and
  * callable on a device.
  * @details Unless the ray starts inside a primitive, only the first crossings are needed, and the walk
  * stops at the first box beyond the nearest. HitT::m_primitive is the member crossed: its place in the
  * union's storage (the unbounded members first, then the BVH's order), not the order the constructor was
- * given.
- * @tparam T Floating-point precision.
- * @tparam P Primitive type.
- * @tparam K BVH branching factor.
+ * given. Each member is traced through its own type's ray form.
+ * @tparam T  Floating-point precision.
+ * @tparam K  BVH branching factor.
+ * @tparam Ps Primitive types.
  */
-template <class T, class P, size_t K>
-struct RayForm<BVHUnion<T, P, K>>
+template <class T, size_t K, class... Ps>
+struct RayForm<BVHUnion<T, K, Ps...>>
 {
   /**
    * @brief The first crossing of the union along a ray.
@@ -692,8 +692,11 @@ struct RayForm<BVHUnion<T, P, K>>
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static inline HitT<T>
-  firstHit(
-    const BVHUnion<T, P, K>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept
+  firstHit(const BVHUnion<T, K, Ps...>& a_shape,
+           const RayT<T>&               a_ray,
+           T                            a_tMin,
+           T                            a_tMax,
+           const RayOptions<T>&         a_options) noexcept
   {
     const auto trace =
       [&a_shape, &a_ray, &a_options](const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
@@ -719,8 +722,11 @@ struct RayForm<BVHUnion<T, P, K>>
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static inline CrossingT<T>
-  firstCrossing(
-    const BVHUnion<T, P, K>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept
+  firstCrossing(const BVHUnion<T, K, Ps...>& a_shape,
+                const RayT<T>&               a_ray,
+                T                            a_tMin,
+                T                            a_tMax,
+                const RayOptions<T>&         a_options) noexcept
   {
     const auto trace =
       [&a_shape, &a_ray, &a_options](const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
@@ -743,61 +749,118 @@ struct RayForm<BVHUnion<T, P, K>>
    */
   EBGEOMETRY_HOST_DEVICE
   static inline void
-  spans(const BVHUnion<T, P, K>& a_shape,
-        const RayT<T>&           a_ray,
-        T                        a_tMin,
-        T                        a_tMax,
-        const RayOptions<T>&     a_options,
-        bool                     a_firstOnly,
-        RaySpansT<T>&            a_spans) noexcept
+  spans(const BVHUnion<T, K, Ps...>& a_shape,
+        const RayT<T>&               a_ray,
+        T                            a_tMin,
+        T                            a_tMax,
+        const RayOptions<T>&         a_options,
+        bool                         a_firstOnly,
+        RaySpansT<T>&                a_spans) noexcept
   {
-    using Root = typename BVHUnion<T, P, K>::Root;
+    // One type: the leaf is the primitive, traced directly, with no type test (kept apart so that a union of one
+    // type compiles to the code it needs and nothing more). Several: each leaf through visit().
+    if constexpr (sizeof...(Ps) == 1) {
+      using First = typename BVHUnion<T, K, Ps...>::First;
 
-    a_spans.reset(a_tMax);
+      using Root = typename BVHUnion<T, K, Ps...>::Root;
 
-    RaySpansT<T> operand;
+      a_spans.reset(a_tMax);
 
-    const PoolLocation location   = a_shape.location();
-    const Root         bvh        = a_shape.getBVH();
-    const auto         unbounded  = a_shape.getUnboundedPrimitives();
-    const auto         primitives = bvh.getPrimitives();
+      RaySpansT<T> operand;
 
-    // Each primitive is traced only up to what the union so far is known up to, beyond which it can change
-    // nothing known.
-    const auto add = [&a_ray, a_tMin, &a_options, a_firstOnly, &location, &operand](
-                       RaySpansT<T>& a_union, const CSGDetail::Stored<P>& a_primitive, const uint32_t a_leaf) noexcept {
-      RayDetail::shapeSpans(CSGDetail::fromStored<P>(a_primitive, location),
-                            a_ray,
-                            a_tMin,
-                            a_union.m_horizon,
-                            a_options,
-                            a_firstOnly,
-                            operand);
-      RayDetail::nameLeaf(a_leaf, operand);
-      RayDetail::uniteInto(a_union, operand);
+      const PoolLocation location   = a_shape.location();
+      const Root         bvh        = a_shape.getBVH();
+      const auto         unbounded  = a_shape.getUnboundedPrimitives();
+      const auto         primitives = bvh.getPrimitives();
 
-      if (a_firstOnly) {
-        RayDetail::keepFirst(a_union);
+      // Each primitive is traced only up to what the union so far is known up to, beyond which it can change
+      // nothing known.
+      const auto add =
+        [&a_ray, a_tMin, &a_options, a_firstOnly, &location, &operand](
+          RaySpansT<T>& a_union, const CSGDetail::Stored<First>& a_primitive, const uint32_t a_leaf) noexcept {
+          RayDetail::shapeSpans(CSGDetail::fromStored<First>(a_primitive, location),
+                                a_ray,
+                                a_tMin,
+                                a_union.m_horizon,
+                                a_options,
+                                a_firstOnly,
+                                operand);
+          RayDetail::nameLeaf(a_leaf, operand);
+          RayDetail::uniteInto(a_union, operand);
+
+          if (a_firstOnly) {
+            RayDetail::keepFirst(a_union);
+          }
+        };
+
+      for (uint32_t i = 0; i < unbounded.size(); i++) {
+        add(a_spans, unbounded[i], i);
       }
-    };
 
-    for (uint32_t i = 0; i < unbounded.size(); i++) {
-      add(a_spans, unbounded[i], i);
+      const uint32_t numUnbounded = unbounded.size();
+
+      const auto leaf =
+        [&primitives, &add, numUnbounded](RaySpansT<T>& a_union, const size_t a_offset, const size_t a_count) noexcept {
+          for (size_t i = a_offset; i < a_offset + a_count; i++) {
+            add(a_union, primitives[static_cast<uint32_t>(i)], numUnbounded + static_cast<uint32_t>(i));
+          }
+        };
+
+      // A box the ray enters beyond what the union is known up to can change nothing known.
+      const auto bound = [](const RaySpansT<T>& a_union) noexcept -> T { return a_union.m_horizon; };
+
+      bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), a_spans, leaf, bound);
     }
+    else {
+      using Root = typename BVHUnion<T, K, Ps...>::Root;
 
-    const uint32_t numUnbounded = unbounded.size();
+      a_spans.reset(a_tMax);
 
-    const auto leaf =
-      [&primitives, &add, numUnbounded](RaySpansT<T>& a_union, const size_t a_offset, const size_t a_count) noexcept {
-        for (size_t i = a_offset; i < a_offset + a_count; i++) {
-          add(a_union, primitives[static_cast<uint32_t>(i)], numUnbounded + static_cast<uint32_t>(i));
+      RaySpansT<T> operand;
+
+      using Leaf = typename BVHUnion<T, K, Ps...>::Leaf;
+
+      const Root bvh        = a_shape.getBVH();
+      const auto unbounded  = a_shape.getUnboundedPrimitives();
+      const auto primitives = bvh.getPrimitives();
+
+      // Each primitive is traced only up to what the union so far is known up to, beyond which it can change
+      // nothing known.
+      const auto add = [&a_shape, &a_ray, a_tMin, &a_options, a_firstOnly, &operand](
+                         RaySpansT<T>& a_union, const Leaf& a_primitive, const uint32_t a_leaf) noexcept {
+        const T horizon = a_union.m_horizon;
+
+        (void)a_shape.visit(a_primitive, [&](const auto& a_member) noexcept {
+          RayDetail::shapeSpans(a_member, a_ray, a_tMin, horizon, a_options, a_firstOnly, operand);
+
+          return 0;
+        });
+        RayDetail::nameLeaf(a_leaf, operand);
+        RayDetail::uniteInto(a_union, operand);
+
+        if (a_firstOnly) {
+          RayDetail::keepFirst(a_union);
         }
       };
 
-    // A box the ray enters beyond what the union is known up to can change nothing known.
-    const auto bound = [](const RaySpansT<T>& a_union) noexcept -> T { return a_union.m_horizon; };
+      for (uint32_t i = 0; i < unbounded.size(); i++) {
+        add(a_spans, unbounded[i], i);
+      }
 
-    bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), a_spans, leaf, bound);
+      const uint32_t numUnbounded = unbounded.size();
+
+      const auto leaf =
+        [&primitives, &add, numUnbounded](RaySpansT<T>& a_union, const size_t a_offset, const size_t a_count) noexcept {
+          for (size_t i = a_offset; i < a_offset + a_count; i++) {
+            add(a_union, primitives[static_cast<uint32_t>(i)], numUnbounded + static_cast<uint32_t>(i));
+          }
+        };
+
+      // A box the ray enters beyond what the union is known up to can change nothing known.
+      const auto bound = [](const RaySpansT<T>& a_union) noexcept -> T { return a_union.m_horizon; };
+
+      bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), a_spans, leaf, bound);
+    }
   }
 
   /**
@@ -811,27 +874,49 @@ struct RayForm<BVHUnion<T, P, K>>
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   static inline HitT<T>
-  leafHit(const BVHUnion<T, P, K>& a_shape,
-          const RayT<T>&           a_ray,
-          T                        a_t,
-          uint32_t                 a_leaf,
-          const RayOptions<T>&     a_options) noexcept
+  leafHit(const BVHUnion<T, K, Ps...>& a_shape,
+          const RayT<T>&               a_ray,
+          T                            a_t,
+          uint32_t                     a_leaf,
+          const RayOptions<T>&         a_options) noexcept
   {
-    const PoolLocation location  = a_shape.location();
-    const auto         unbounded = a_shape.getUnboundedPrimitives();
+    // One type: the leaf is the primitive, traced directly, with no type test (kept apart so that a union of one
+    // type compiles to the code it needs and nothing more). Several: each leaf through visit().
+    if constexpr (sizeof...(Ps) == 1) {
+      using First = typename BVHUnion<T, K, Ps...>::First;
 
-    const auto primitives = a_shape.getBVH().getPrimitives();
+      const PoolLocation location  = a_shape.location();
+      const auto         unbounded = a_shape.getUnboundedPrimitives();
 
-    const CSGDetail::Stored<P> stored =
-      (a_leaf < unbounded.size()) ? unbounded[a_leaf] : primitives[a_leaf - unbounded.size()];
+      const auto primitives = a_shape.getBVH().getPrimitives();
 
-    // The hit names the member crossed, not what the member would name (a mesh's face): a union's parts are
-    // its members, as a tape's are its leaves.
-    HitT<T> hit = RayDetail::leafHit(CSGDetail::fromStored<P>(stored, location), a_ray, a_t, a_options);
+      const CSGDetail::Stored<First> stored =
+        (a_leaf < unbounded.size()) ? unbounded[a_leaf] : primitives[a_leaf - unbounded.size()];
 
-    hit.m_primitive = a_leaf;
+      // The hit names the member crossed, not what the member would name (a mesh's face): a union's parts are
+      // its members, as a tape's are its leaves.
+      HitT<T> hit = RayDetail::leafHit(CSGDetail::fromStored<First>(stored, location), a_ray, a_t, a_options);
 
-    return hit;
+      hit.m_primitive = a_leaf;
+
+      return hit;
+    }
+    else {
+      const auto unbounded  = a_shape.getUnboundedPrimitives();
+      const auto primitives = a_shape.getBVH().getPrimitives();
+
+      const typename BVHUnion<T, K, Ps...>::Leaf stored =
+        (a_leaf < unbounded.size()) ? unbounded[a_leaf] : primitives[a_leaf - unbounded.size()];
+
+      // The hit names the member crossed, not what the member would name (a mesh's face): a union's parts are
+      // its members, as a tape's are its leaves.
+      HitT<T> hit = a_shape.visit(
+        stored, [&](const auto& a_member) noexcept { return RayDetail::leafHit(a_member, a_ray, a_t, a_options); });
+
+      hit.m_primitive = a_leaf;
+
+      return hit;
+    }
   }
 };
 

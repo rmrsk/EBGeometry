@@ -58,12 +58,12 @@ Many copies: a nested BVH
 
 The mesh's triangles are read once with ``Parser::readIntoTriangles``, and each of 16 placements on
 a 4 x 4 grid gets its own translated copy, built into its own ``TriMeshSDF`` with its own inner BVH.
-A `BVHUnion <doxygen/html/classEBGeometry_1_1BVHUnion.html>`__ holds primitives of one type by value
-and builds an outer BVH over their bounding boxes (see :ref:`Sec:BVHUnions`):
+A `BVHUnion <doxygen/html/classEBGeometry_1_1BVHUnion.html>`__ holds its primitives by value (here of one
+type, the mesh) and builds an outer BVH over their bounding boxes (see :ref:`Sec:BVHUnions`):
 
 .. code-block:: c++
 
-   const EBGeometry::BVHUnion<T, Mesh, K> nested(pool, copies, boxes);
+   const EBGeometry::BVHUnion<T, K, Mesh> nested(pool, copies, boxes);
 
 One query therefore descends two levels: the outer BVH finds the placements near the point, and each
 of those meshes' own BVH finds the nearest triangle (see :ref:`Chap:BVH`). Since each placement is a

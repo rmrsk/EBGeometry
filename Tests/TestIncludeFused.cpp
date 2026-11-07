@@ -33,7 +33,7 @@ TEMPLATE_TEST_CASE(
 
   CHECK(hasRayForm<std::decay_t<decltype(composition)>, T>);
   CHECK(hasRayForm<std::decay_t<decltype(offset)>, T>);
-  CHECK(hasRayForm<BVHUnion<T, SphereSDF<T>, 4>, T>);
+  CHECK(hasRayForm<BVHUnion<T, 4, SphereSDF<T>>, T>);
 
   // Traced, not marched: the hit is exact, and at the closed-form distance.
   const RayT<T> ray{Vec3(-T(3), T(0), T(0)), Vec3(T(1), T(0), T(0))};

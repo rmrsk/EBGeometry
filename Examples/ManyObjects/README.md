@@ -1,10 +1,11 @@
 Examples/ManyObjects
 --------------------
 
-This folder shows how to evaluate a scene made of many objects quickly. It builds two scenes:
+This folder shows how to evaluate a scene made of many objects quickly. It builds three scenes:
 
-* 8,000 spheres on a lattice, and
-* a "random city" of 3,600 boxes (buildings) of random width, length and height, one per lot on a grid.
+* 8,000 spheres on a lattice,
+* a "random city" of 3,600 boxes (buildings) of random width, length and height, one per lot on a grid, and
+* the city with 200 balloons (spheres) floating over it: boxes and spheres in one union.
 
 The signed distance to a scene is the smallest signed distance to any of its objects. Taken
 literally, that means visiting every object for every query point, so the cost grows with the number
@@ -12,10 +13,10 @@ of objects. `BVHUnion` builds a bounding volume hierarchy over the objects' boun
 and a query only visits the objects whose boxes show that they could be the closest. Its value is the
 same as the naive minimum. The example times both and prints how much faster the BVH is.
 
-A `BVHUnion` holds one primitive type, so the spheres and the buildings are two unions. To combine
-different types in one object, compose them with the expression builder instead (see the CSG example).
+A `BVHUnion` takes one array of objects per type, `BVHUnion(pool, buildings, balloons)`, and takes its
+types from them.
 
-The last section runs both unions on a GPU and shows how to time the queries there without timing the
+The last section runs the unions on a GPU and shows how to time the queries there without timing the
 memory traffic around them: the query points and the results stay on the device, in a pool mirrored
 there once, and `GPU::transform(query, pool, in, out)` is called on them. The same section also
 times `GPU::transform(query, points, results)` over host vectors, which allocates device memory and

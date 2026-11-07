@@ -29,6 +29,7 @@ What is in Performance/
      BVH/main.cpp             PackedBVH::traverse() itself
      BVHRefit/main.cpp        refitting a PackedBVH where its pool is
      BVHUnion/main.cpp        BVHUnion
+     BVHUnionMixed/main.cpp   BVHUnion of several types
      Shapes/main.cpp          the analytic shapes EllipsoidSDF to WedgeSDF
      Tape/main.cpp            Tape's signed distance
      Fused/main.cpp           fused compositions (Fused::)
@@ -295,6 +296,12 @@ Family                                Build  Measures
 ``<family>/query-morton``,            GPU    signed distance at 262,144 such points
 ``query-random``
 ====================================  =====  =====================================================
+
+**BVHUnionMixed** (``Performance/BVHUnionMixed``): one union of the three types of ``BVHUnion`` at once,
+about 100,000 objects on the same lattice, one type per point in turn (spheres of radius 0.8, diagonal
+capsules and random cylinders, spacing 1.8), so that each leaf's type is tested as it is evaluated. Its
+cases are those of a ``BVHUnion`` family, as ``spheres-capsules-cylinders/build``, ``/query-random`` and the
+GPU pairs.
 
 **Tape** (``Performance/Tape``): ``Tape::signedDistance()`` at random points around each object (its box
 grown by a quarter on every side), against the same solid written by hand. The

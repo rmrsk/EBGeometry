@@ -103,7 +103,7 @@ void
 addFamily(Perf::Suite& a_suite, const std::string& a_family, Objects a_objects)
 {
   using AABB  = EBGeometry::BoundingVolumes::AABBT<T>;
-  using Union = EBGeometry::BVHUnion<T, Shape, K>;
+  using Union = EBGeometry::BVHUnion<T, K, Shape>;
 
   const std::string prefix = Perf::caseName({"BVHUnion", a_family});
   const std::string prec   = Perf::precisionName<T>();
