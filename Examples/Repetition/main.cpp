@@ -95,7 +95,7 @@ try {
   // Both give the same values. The repetition stores the statue once; the union stores every copy and
   // finds the ones near a point through a BVH over their boxes.
   const Tape repeated(pool, grid);
-  const Tape placed(pool, EBGeometry::Union(copies));
+  const Tape placed(pool, EBGeometry::Union(copies, EBGeometry::Accelerate::BVH));
 
   std::vector<Vec3> points;
 

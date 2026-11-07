@@ -15,10 +15,13 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <unistd.h>
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -227,12 +230,8 @@ TEMPLATE_TEST_CASE("Tape: a union of many objects of different types matches bru
     return minimum;
   };
 
-  TapeOptions linearOptions;
-
-  linearOptions.m_bvhUnionThreshold = 1000;
-
-  const Tape<T> withBVH(pool, Union(objects));
-  const Tape<T> linear(pool, Union(objects), linearOptions);
+  const Tape<T> withBVH(pool, Union(objects, Accelerate::BVH));
+  const Tape<T> linear(pool, Union(objects));
 
   CHECK(withBVH.getNumBVHUnions() == 1U);
   CHECK(linear.getNumBVHUnions() == 0U);
@@ -343,6 +342,104 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
   }
 }
 
+TEMPLATE_TEST_CASE("Tape: a union as written reports its size, and a large one warns once unless silenced",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  std::vector<Expr<T>> spheres;
+
+  for (int i = 0; i < 20; i++) {
+    spheres.emplace_back(SphereSDF<T>(Vec3(T(i), T(0), T(0)), T(0.3)));
+  }
+
+  // What the tape prints to stderr while it is built.
+  const auto warning = [&pool](const Expr<T>& a_expr, const TapeOptions& a_options) {
+    std::FILE* captured = std::tmpfile();
+
+    REQUIRE(captured != nullptr);
+
+    (void)std::fflush(stderr);
+
+    const int saved = dup(STDERR_FILENO);
+
+    REQUIRE(dup2(fileno(captured), STDERR_FILENO) >= 0);
+
+    const Tape<T> tape(pool, a_expr, a_options);
+
+    (void)std::fflush(stderr);
+    (void)dup2(saved, STDERR_FILENO);
+    (void)close(saved);
+
+    std::string text;
+
+    std::rewind(captured);
+
+    for (int c = std::fgetc(captured); c != EOF; c = std::fgetc(captured)) {
+      text.push_back(static_cast<char>(c));
+    }
+
+    std::fclose(captured);
+
+    return text;
+  };
+
+  TapeOptions at10;
+  TapeOptions silenced;
+
+  at10.m_largeUnionWarning     = 10;
+  silenced.m_largeUnionWarning = 0;
+
+  // A chain of sharp unions is one union of all its objects; a smooth union, or a map in between, ends it.
+  Expr<T> chain = spheres[0];
+
+  for (size_t i = 1; i < spheres.size(); i++) {
+    chain = Union(chain, spheres[i]);
+  }
+
+  const std::vector<Expr<T>> first(spheres.begin(), spheres.begin() + 12);
+  const std::vector<Expr<T>> second(spheres.begin() + 12, spheres.end());
+
+  const Tape<T> plain(pool, Union(spheres), silenced);
+  const Tape<T> chained(pool, chain, silenced);
+  const Tape<T> smooth(pool, SmoothUnion(first, T(0.1)), silenced);
+  const Tape<T> broken(pool, Union(Union(first), Translate(Union(second), Vec3::ones())), silenced);
+  const Tape<T> withBVH(pool, Union(spheres, Accelerate::BVH), silenced);
+  const Tape<T> inside(pool, Union(std::vector<Expr<T>>{Union(first), Union(second)}, Accelerate::BVH), silenced);
+
+  CHECK(plain.getNumPrimitives() == 20U);
+  CHECK(plain.getLargestPlainUnion() == 20U);
+  CHECK(chained.getLargestPlainUnion() == 20U);
+  CHECK(smooth.getLargestPlainUnion() == 12U);
+  CHECK(broken.getLargestPlainUnion() == 13U);
+  CHECK(withBVH.getNumPrimitives() == 20U);
+  CHECK(withBVH.getLargestPlainUnion() == 0U);
+  CHECK(inside.getLargestPlainUnion() == 12U);
+  CHECK(Tape<T>(pool, SphereSDF<T>(Vec3::zeros(), T(1))).getLargestPlainUnion() == 0U);
+
+  // The tape's copies keep the counts.
+  CHECK(plain.deepCopy(pool).getLargestPlainUnion() == 20U);
+  CHECK(plain.deepCopy(pool).getNumPrimitives() == 20U);
+
+  const std::string expected = "EBGeometry::Tape: a union of 20 objects is evaluated as written";
+
+  CHECK(warning(Union(spheres), at10).rfind(expected, 0) == 0U);
+  CHECK(warning(chain, at10).rfind(expected, 0) == 0U);
+  CHECK(warning(Union(first), at10).find("a union of 12 objects") != std::string::npos);
+  CHECK(warning(Union(std::vector<Expr<T>>(spheres.begin(), spheres.begin() + 9)), at10).empty());
+  CHECK(warning(Union(spheres), silenced).empty());
+  CHECK(warning(Union(spheres, Accelerate::BVH), at10).empty());
+
+  // One warning per tape, for its largest union.
+  const std::string twice = warning(Union(Union(first), Translate(Union(second), Vec3::ones())), at10);
+
+  CHECK(twice.find("EBGeometry::Tape") == twice.rfind("EBGeometry::Tape"));
+}
+
 TEMPLATE_TEST_CASE("Tape: user primitive types, including a BVH union and another tape",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -413,7 +510,7 @@ TEMPLATE_TEST_CASE("Tape: a handle rebuilt from its layout, a view on a mirror a
 
   objects.emplace_back(meshSDF);
 
-  const Tape<T> tape(pool, Blur(SmoothUnion(objects, T(0.2)), T(0.05)));
+  const Tape<T> tape(pool, Blur(SmoothUnion(objects, T(0.2), Accelerate::BVH), T(0.05)));
   const Tape<T> again(tape.layout(), tape.location());
 
   CHECK(tape.getCallDepth() == 2U);
@@ -511,12 +608,8 @@ TEMPLATE_TEST_CASE("Tape: an intersection of disjoint objects is empty, and a BV
     objects.emplace_back(SphereSDF<T>(Vec3(T(i), T(5), T(0)), T(0.3)));
   }
 
-  TapeOptions linearOptions;
-
-  linearOptions.m_bvhUnionThreshold = 1000;
-
-  const Tape<T> withBVH(pool, Union(objects));
-  const Tape<T> linear(pool, Union(objects), linearOptions);
+  const Tape<T> withBVH(pool, Union(objects, Accelerate::BVH));
+  const Tape<T> linear(pool, Union(objects));
 
   CHECK(withBVH.getNumBVHUnions() == 1U);
 
@@ -546,12 +639,8 @@ TEMPLATE_TEST_CASE("Tape: a BVH union of Bound operands keeps the sign and never
       Offset(Elongate(SphereSDF<T>(Vec3(T(1.5) * T(i), T(0), T(0)), T(0.5)), Vec3(T(0.3), T(0), T(0))), T(-0.2)));
   }
 
-  TapeOptions linearOptions;
-
-  linearOptions.m_bvhUnionThreshold = 1000;
-
-  const Tape<T> withBVH(pool, Union(objects));
-  const Tape<T> linear(pool, Union(objects), linearOptions);
+  const Tape<T> withBVH(pool, Union(objects, Accelerate::BVH));
+  const Tape<T> linear(pool, Union(objects));
 
   CHECK(withBVH.getNumBVHUnions() == 1U);
   CHECK(withBVH.getDistanceQuality() == DistanceQuality::Bound);
@@ -657,17 +746,6 @@ TEST_CASE("Tape: rejects an unknown primitive type, a mesh from another pool and
       const Tape<T> tape(pool, deepValues);
     },
     "Tape: the expression needs 17 values at once in one sub-program"));
-
-  REQUIRE(abortsWith(
-    [] {
-      Pool        pool(hostMemoryResource());
-      TapeOptions options;
-
-      options.m_bvhUnionThreshold = 1;
-
-      const Tape<T> tape(pool, SphereSDF<T>(Vec3::zeros(), T(1)), options);
-    },
-    "Tape: the BVH union threshold must be at least 2 (1)"));
 }
 
 TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation",
@@ -751,11 +829,7 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
 
   exprs.emplace_back("perlin", Offset(perlin, T(0.45)));
 
-  TapeOptions linear;
-
-  linear.m_bvhUnionThreshold = 1000;
-
-  exprs.emplace_back("union", Union(primitives));
+  exprs.emplace_back("union", Union(primitives, Accelerate::BVH));
 
   const size_t unionIndex = exprs.size() - 1;
 
@@ -798,7 +872,7 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
       operands.emplace_back(SphereSDF<T>(Vec3(T(i), T(level), T(0)), T(0.3)));
     }
 
-    nestedUnions = Union(operands);
+    nestedUnions = Union(operands, Accelerate::BVH);
   }
 
   const size_t nestedUnionsIndex = exprs.size();
@@ -828,7 +902,7 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
     tapes.emplace_back(name, Tape<T>(pool, expr));
   }
 
-  tapes.emplace_back("union without a BVH", Tape<T>(pool, Union(primitives), linear));
+  tapes.emplace_back("union without a BVH", Tape<T>(pool, Union(primitives)));
 
   // User primitive types: a BVH union, another shape type, and a tape inside a tape.
   std::vector<SphereSDF<T>>              rowSpheres;
@@ -945,7 +1019,7 @@ ringCenter(const int a_index, const int a_count, const T a_radius)
 }
 
 // Twelve octahedra, each turned about its own vertical axis, on a ring around a sphere: thirteen
-// operands, so the union is evaluated through a BVH.
+// operands, in a union evaluated through a BVH.
 template <class T>
 Expr<T>
 octahedronRing(const T a_size, const T a_sphereRadius)
@@ -960,7 +1034,7 @@ octahedronRing(const T a_size, const T a_sphereRadius)
 
   objects.emplace_back(SphereSDF<T>(Vec3T<T>::zeros(), a_sphereRadius));
 
-  return Union(objects);
+  return Union(objects, Accelerate::BVH);
 }
 
 } // namespace

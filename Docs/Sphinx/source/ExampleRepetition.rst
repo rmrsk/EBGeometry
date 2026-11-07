@@ -35,8 +35,8 @@ lies in, and only the copies whose boxes come closer than that copy's value are 
 Against a union of copies
 -------------------------
 
-The program also places the same 49 copies one by one with ``Translate`` in a ``Union``, which the tape
-evaluates through a BVH over their boxes (see :ref:`Sec:BVHUnions`). Both give the same values; the
+The program also places the same 49 copies one by one with ``Translate`` in a ``Union`` built with
+``Accelerate::BVH``, which the tape evaluates through a BVH over their boxes (see :ref:`Sec:BVHUnions`). Both give the same values; the
 program prints each tape's number of clauses, which grows with the copies only for the union, and the
 time per point of each.
 

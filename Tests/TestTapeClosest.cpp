@@ -92,12 +92,8 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive names the operand a union, intersecti
     operands.emplace_back(spheres.back());
   }
 
-  TapeOptions linear;
-
-  linear.m_bvhUnionThreshold = std::numeric_limits<uint32_t>::max();
-
-  const Tape<T> unionBVH(pool, Union(operands));
-  const Tape<T> unionLinear(pool, Union(operands), linear);
+  const Tape<T> unionBVH(pool, Union(operands, Accelerate::BVH));
+  const Tape<T> unionLinear(pool, Union(operands));
   const Tape<T> intersection(pool, Intersection(operands));
 
   REQUIRE(unionBVH.getNumBVHUnions() == 1U);

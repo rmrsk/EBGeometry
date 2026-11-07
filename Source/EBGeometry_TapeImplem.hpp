@@ -127,6 +127,16 @@ struct Staging
    * @brief The object's distance quality.
    */
   DistanceQuality m_quality = DistanceQuality::NotADistance;
+
+  /**
+   * @brief How many primitives (leaves) the tape has, each occurrence counted.
+   */
+  uint32_t m_numPrimitives = 0;
+
+  /**
+   * @brief The most objects in one union evaluated as written.
+   */
+  uint32_t m_largestPlainUnion = 0;
 };
 
 /**
@@ -211,6 +221,26 @@ template <class T, size_t K, class List, class Features>
 class Compiler
 {
 public:
+  /**
+   * @brief The number of primitives (leaves) emitted so far.
+   * @return The count.
+   */
+  [[nodiscard]] uint32_t
+  numPrimitives() const noexcept
+  {
+    return m_nextLeaf;
+  }
+
+  /**
+   * @brief The most objects in one union evaluated as written, over the unions emitted so far.
+   * @return The count.
+   */
+  [[nodiscard]] uint32_t
+  largestPlainUnion() const noexcept
+  {
+    return m_largestPlainUnion;
+  }
+
   /**
    * @brief Set up.
    * @param[in,out] a_pool           Pool the BVHs are built in, and that pool-resident primitives must live in.
@@ -395,6 +425,11 @@ private:
   uint32_t m_nextLeaf = 0;
 
   /**
+   * @brief The most objects in one union evaluated as written (see plainUnionSize()).
+   */
+  uint32_t m_largestPlainUnion = 0;
+
+  /**
    * @brief Append a clause and track the stacks.
    * @param[in,out] a_state  Sub-program state.
    * @param[in]     a_clause Clause.
@@ -527,27 +562,36 @@ private:
   /**
    * @brief Whether a union is evaluated with a BVH.
    * @param[in] a_node The union.
-   * @return True if it has enough operands and all of them are distances.
+   * @return True if it was built with Accelerate::BVH.
    */
   [[nodiscard]] bool
   useBVH(const ExprDetail::Node<T>& a_node) const noexcept
   {
-    // Asked for (Accelerate::BVH): whatever the operands.
-    if (a_node.m_bvh) {
-      return true;
-    }
+    return a_node.m_bvh;
+  }
 
-    if (a_node.m_children.size() < m_options.m_bvhUnionThreshold) {
-      return false;
-    }
+  /**
+   * @brief How many objects a union evaluated as written evaluates: its operands, with those of the sharp
+   * unions evaluated as written directly under a sharp one counted in its place.
+   * @param[in] a_node The union (a Union or SmoothUnion not built with Accelerate::BVH).
+   * @return The count.
+   */
+  [[nodiscard]] uint32_t
+  plainUnionSize(const ExprDetail::Node<T>& a_node) const noexcept
+  {
+    using ExprDetail::Kind;
+
+    uint32_t size = 0;
 
     for (const auto& child : a_node.m_children) {
-      if (child.getDistanceQuality() == DistanceQuality::NotADistance) {
-        return false;
-      }
+      const ExprDetail::Node<T>& c = child.node();
+
+      const bool nested = (a_node.m_kind == Kind::Union && c.m_kind == Kind::Union && !this->useBVH(c));
+
+      size += nested ? this->plainUnionSize(c) : 1U;
     }
 
-    return true;
+    return size;
   }
 
   /**
@@ -1159,6 +1203,10 @@ private:
         this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
       }
       else {
+        if (a_node.m_kind == Kind::Union) {
+          m_largestPlainUnion = Math::max(m_largestPlainUnion, this->plainUnionSize(a_node));
+        }
+
         const Op      op    = (a_node.m_kind == Kind::Union) ? Op::Min : Op::Max;
         const RayOp   rayOp = (a_node.m_kind == Kind::Union) ? RayOp::Union : RayOp::Intersection;
         const bool    all   = (a_ray != nullptr) && (a_ray->m_all || a_node.m_kind == Kind::Intersection);
@@ -1217,6 +1265,10 @@ private:
         this->push(a_state, clause(Op::SmoothUnionBVH, bvh, s, 0U, exponential ? 1U : 0U), 1, 0);
       }
       else {
+        if (isUnion) {
+          m_largestPlainUnion = Math::max(m_largestPlainUnion, this->plainUnionSize(a_node));
+        }
+
         // Only the two extreme values are blended, so they are tracked as the operands are evaluated.
         this->push(a_state, clause(Op::PairInit, 0U, 0U, 0U, maxFlag), 2, 0);
 
@@ -1310,10 +1362,6 @@ template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST
 Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const TapeOptions& a_options) : PoolHandle()
 {
-  EBGEOMETRY_REQUIRE(a_options.m_bvhUnionThreshold >= 2U,
-                     "Tape: the BVH union threshold must be at least 2 (%u)",
-                     unsigned(a_options.m_bvhUnionThreshold));
-
   TapeDetail::Staging<T, BranchingRatio, Primitives> staging;
 
   TapeDetail::Compiler<T, BranchingRatio, Primitives, Features> compiler(
@@ -1333,8 +1381,17 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
                      unsigned(staging.m_depth.front()),
                      unsigned(MaxCallDepth));
 
-  staging.m_boundingVolume = a_expr.computeBoundingVolume();
-  staging.m_quality        = a_expr.getDistanceQuality();
+  staging.m_boundingVolume    = a_expr.computeBoundingVolume();
+  staging.m_quality           = a_expr.getDistanceQuality();
+  staging.m_numPrimitives     = compiler.numPrimitives();
+  staging.m_largestPlainUnion = compiler.largestPlainUnion();
+
+  if (a_options.m_largeUnionWarning > 0U && staging.m_largestPlainUnion >= a_options.m_largeUnionWarning) {
+    std::fprintf(stderr,
+                 "EBGeometry::Tape: a union of %u objects is evaluated as written; Union(objects, "
+                 "Accelerate::BVH) evaluates it through a BVH (TapeOptions::m_largeUnionWarning silences this)\n",
+                 unsigned(staging.m_largestPlainUnion));
+  }
 
   TapeDetail::flatten(staging);
 
@@ -1371,11 +1428,13 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
-  layout.m_boundingVolume = a_staging.m_boundingVolume;
-  layout.m_quality        = a_staging.m_quality;
-  layout.m_callDepth      = a_staging.m_depth.front();
-  layout.m_numPrograms    = a_staging.m_flatNumPrograms;
-  layout.m_rayPrograms    = a_staging.m_flatRayPrograms;
+  layout.m_boundingVolume    = a_staging.m_boundingVolume;
+  layout.m_quality           = a_staging.m_quality;
+  layout.m_callDepth         = a_staging.m_depth.front();
+  layout.m_numPrograms       = a_staging.m_flatNumPrograms;
+  layout.m_numPrimitives     = a_staging.m_numPrimitives;
+  layout.m_largestPlainUnion = a_staging.m_largestPlainUnion;
+  layout.m_rayPrograms       = a_staging.m_flatRayPrograms;
 
   m_layout = layout;
 }
@@ -2823,6 +2882,22 @@ Tape<T, UserPrimitives...>::getNumBVHUnions() const noexcept
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
+Tape<T, UserPrimitives...>::getNumPrimitives() const noexcept
+{
+  return m_layout.m_numPrimitives;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getLargestPlainUnion() const noexcept
+{
+  return m_layout.m_largestPlainUnion;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
 Tape<T, UserPrimitives...>::getCallDepth() const noexcept
 {
   return m_layout.m_callDepth;
@@ -2969,9 +3044,11 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     parts.m_unbounded = UnionRoot(parts.m_unbounded, location).deepCopy(a_dstPool).layout();
   }
 
-  staging.m_depth          = {m_layout.m_callDepth};
-  staging.m_boundingVolume = m_layout.m_boundingVolume;
-  staging.m_quality        = m_layout.m_quality;
+  staging.m_depth             = {m_layout.m_callDepth};
+  staging.m_boundingVolume    = m_layout.m_boundingVolume;
+  staging.m_quality           = m_layout.m_quality;
+  staging.m_numPrimitives     = m_layout.m_numPrimitives;
+  staging.m_largestPlainUnion = m_layout.m_largestPlainUnion;
 
   Tape copy(Layout{}, PoolLocation{});
 

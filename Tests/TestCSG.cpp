@@ -1675,8 +1675,8 @@ TEMPLATE_TEST_CASE("BVH unions: device signedDistance matches the host", "[CSG][
 
 namespace {
 
-// 50 spheres of radius 0.4 scattered in [-5, 5]^3: enough operands for the tape to build a BVH over
-// them with the default TapeOptions, and close enough for some to overlap.
+// 50 spheres of radius 0.4 scattered in [-5, 5]^3: enough operands for a BVH over them to prune, and close
+// enough for some to overlap.
 template <class T>
 std::vector<Sphere<T>>
 scatteredSpheres()
@@ -1709,17 +1709,6 @@ scatteredQueries(const int a_count, const unsigned a_seed)
   return points;
 }
 
-// TapeOptions under which no union is evaluated with a BVH.
-inline TapeOptions
-linearScanOptions()
-{
-  TapeOptions options;
-
-  options.m_bvhUnionThreshold = 1000;
-
-  return options;
-}
-
 } // namespace
 
 TEMPLATE_TEST_CASE("Union: a union and a smooth union of many spheres give the same values with and without a BVH",
@@ -1731,10 +1720,10 @@ TEMPLATE_TEST_CASE("Union: a union and a smooth union of many spheres give the s
   const auto spheres   = scatteredSpheres<T>();
   const T    smoothLen = T(0.5);
 
-  const Compiled<T> bvhUnion(Union(spheres));
-  const Compiled<T> linearUnion(Union(spheres), linearScanOptions());
-  const Compiled<T> bvhSmooth(SmoothUnion(spheres, smoothLen));
-  const Compiled<T> linearSmooth(SmoothUnion(spheres, smoothLen), linearScanOptions());
+  const Compiled<T> bvhUnion(Union(spheres, Accelerate::BVH));
+  const Compiled<T> linearUnion(Union(spheres));
+  const Compiled<T> bvhSmooth(SmoothUnion(spheres, smoothLen, Accelerate::BVH));
+  const Compiled<T> linearSmooth(SmoothUnion(spheres, smoothLen));
 
   REQUIRE(bvhUnion.tape().getNumBVHUnions() == 1);
   REQUIRE(linearUnion.tape().getNumBVHUnions() == 0);
@@ -1752,7 +1741,7 @@ TEMPLATE_TEST_CASE("Union: a union and a smooth union of many spheres give the s
   }
 }
 
-TEMPLATE_TEST_CASE("Union: a union with an operand that is not a distance is scanned operand by operand",
+TEMPLATE_TEST_CASE("Union: a union as written with an operand that is not a distance takes every operand's value",
                    "[CSG][Union][SmoothUnion][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1763,7 +1752,7 @@ TEMPLATE_TEST_CASE("Union: a union with an operand that is not a distance is sca
   const Constant constant{T(0.25)};
   const T        smoothLen = T(0.5);
 
-  // The constant shape, like a Perlin noise field, is NotADistance: a BVH could not prune by its box.
+  // The constant shape, like a Perlin noise field, is NotADistance: the union is only a sign there.
   std::vector<Expr<T>> operands(spheres.begin(), spheres.end());
 
   operands.insert(operands.begin() + 20, Expr<T>(constant));
@@ -1811,8 +1800,8 @@ TEMPLATE_TEST_CASE("Union: unbounded operands inside a BVH union match brute for
   operands.insert(operands.begin() + 7, Expr<T>(plane));
   operands.insert(operands.end(), cylinders.begin(), cylinders.end());
 
-  const Compiled<T> sharp(Union(operands));
-  const Compiled<T> smooth(SmoothUnion(operands, smoothLen));
+  const Compiled<T> sharp(Union(operands, Accelerate::BVH));
+  const Compiled<T> smooth(SmoothUnion(operands, smoothLen, Accelerate::BVH));
 
   REQUIRE(sharp.tape().getNumBVHUnions() == 1);
   REQUIRE(smooth.tape().getNumBVHUnions() == 1);
@@ -1845,8 +1834,8 @@ TEMPLATE_TEST_CASE("SmoothUnion: an exponential smooth union of many spheres mat
   const auto spheres   = scatteredSpheres<T>();
   const T    smoothLen = T(0.3);
 
-  const Compiled<T> bvhSmooth(SmoothUnion(spheres, smoothLen, BlendKind::Exponential));
-  const Compiled<T> linearSmooth(SmoothUnion(spheres, smoothLen, BlendKind::Exponential), linearScanOptions());
+  const Compiled<T> bvhSmooth(SmoothUnion(spheres, smoothLen, BlendKind::Exponential, Accelerate::BVH));
+  const Compiled<T> linearSmooth(SmoothUnion(spheres, smoothLen, BlendKind::Exponential));
 
   REQUIRE(bvhSmooth.tape().getNumBVHUnions() == 1);
   REQUIRE(linearSmooth.tape().getNumBVHUnions() == 0);
