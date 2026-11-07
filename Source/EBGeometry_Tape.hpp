@@ -638,23 +638,24 @@ inline constexpr bool isOutOfLine = isPoolHandle<P> || IndexOf<P, RareShapes<T>>
  * @tparam UserPrimitives User primitive types and features.
  */
 template <class T, class... UserPrimitives>
-using Primitives = typename Concat<TypeList<PlaneSDF<T>,
-                                            SphereSDF<T>,
-                                            BoxSDF<T>,
-                                            TorusSDF<T>,
-                                            CylinderSDF<T>,
-                                            InfiniteCylinderSDF<T>,
-                                            CapsuleSDF<T>,
-                                            InfiniteConeSDF<T>,
-                                            ConeSDF<T>,
-                                            RoundedBoxSDF<T>,
-                                            RoundedCylinderSDF<T>,
-                                            PerlinSDF<T>,
-                                            FlatMeshSDF<T>,
-                                            MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
-                                            TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
-                                   UserTypesOf<UserPrimitives...>,
-                                   RareShapes<T>>::type;
+using Primitives =
+  typename Concat<TypeList<PlaneSDF<T>,
+                           SphereSDF<T>,
+                           BoxSDF<T>,
+                           TorusSDF<T>,
+                           CylinderSDF<T>,
+                           InfiniteCylinderSDF<T>,
+                           CapsuleSDF<T>,
+                           InfiniteConeSDF<T>,
+                           ConeSDF<T>,
+                           RoundedBoxSDF<T>,
+                           RoundedCylinderSDF<T>,
+                           PerlinSDF<T>,
+                           FlatMeshSDF<T>,
+                           MeshSDF<T, BVH::DefaultBranchingRatio<T>()>,
+                           TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>>,
+                  UserTypesOf<UserPrimitives...>,
+                  RareShapes<T>>::type;
 
 /**
  * @brief Whether a tape's user primitive types are shapes of its precision.
