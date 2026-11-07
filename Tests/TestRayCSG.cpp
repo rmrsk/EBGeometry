@@ -1061,7 +1061,7 @@ TEMPLATE_TEST_CASE("Ray: a union through a BVH (Accelerate::BVH) is traced to th
     Scale(SphereSDF<T>(Vec3(T(0.2), T(0.5), -T(0.4)), T(0.1)), T(1.5)),
     Offset(Union(SphereSDF<T>(Vec3(T(0.7), T(0.6), T(0)), T(0.1)), SphereSDF<T>(Vec3(T(0.8), T(0.7), T(0)), T(0.1))),
            T(0.05)),
-    Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool)};
+    Parser::readIntoTriMeshSDF<T>(unitCube(), pool)};
 
   const Tape<T> withBVH(pool, Union(objects, Accelerate::BVH));
   const Tape<T> asWritten(pool, Union(objects));
