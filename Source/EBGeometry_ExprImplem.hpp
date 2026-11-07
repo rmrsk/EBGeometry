@@ -203,7 +203,11 @@ toExprs(const std::vector<A>& a_operands)
  */
 template <class T>
 [[nodiscard]] inline Expr<T>
-combine(const Kind a_kind, std::vector<Expr<T>> a_operands, const T a_smooth, const BlendKind a_blend)
+combine(const Kind           a_kind,
+        std::vector<Expr<T>> a_operands,
+        const T              a_smooth,
+        const BlendKind      a_blend,
+        const bool           a_bvh = false)
 {
   if (a_operands.size() == 1) {
     return a_operands.front();
@@ -216,6 +220,7 @@ combine(const Kind a_kind, std::vector<Expr<T>> a_operands, const T a_smooth, co
 
   node->m_scalar0 = a_smooth;
   node->m_blend   = a_blend;
+  node->m_bvh     = a_bvh;
 
   BoundingVolumes::AABBT<T> box = isUnion ? BoundingVolumes::AABBT<T>() : everywhere<T>();
   DistanceQuality           q   = DistanceQuality::Bound;
@@ -418,13 +423,17 @@ Union(const A& a_first, const B& a_second)
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Union(const std::vector<A>& a_operands)
+Union(const std::vector<A>& a_operands, const Accelerate a_accelerate)
 {
   using T = ExprPrecision<A>;
 
   EBGEOMETRY_REQUIRE(!a_operands.empty(), "Union: the list of operands must not be empty");
 
-  return ExprDetail::combine<T>(ExprDetail::Kind::Union, ExprDetail::toExprs(a_operands), T(0), BlendKind::Polynomial);
+  return ExprDetail::combine<T>(ExprDetail::Kind::Union,
+                                ExprDetail::toExprs(a_operands),
+                                T(0),
+                                BlendKind::Polynomial,
+                                a_accelerate == Accelerate::BVH);
 }
 
 template <class A, class B>
@@ -442,7 +451,10 @@ SmoothUnion(const A& a_first, const B& a_second, const ExprPrecision<A> a_smooth
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-SmoothUnion(const std::vector<A>& a_operands, const ExprPrecision<A> a_smooth, const BlendKind a_blend)
+SmoothUnion(const std::vector<A>&  a_operands,
+            const ExprPrecision<A> a_smooth,
+            const BlendKind        a_blend,
+            const Accelerate       a_accelerate)
 {
   using T = ExprPrecision<A>;
 
@@ -450,7 +462,15 @@ SmoothUnion(const std::vector<A>& a_operands, const ExprPrecision<A> a_smooth, c
 
   ExprDetail::requireSmoothingLength("SmoothUnion", a_smooth);
 
-  return ExprDetail::combine<T>(ExprDetail::Kind::SmoothUnion, ExprDetail::toExprs(a_operands), a_smooth, a_blend);
+  return ExprDetail::combine<T>(
+    ExprDetail::Kind::SmoothUnion, ExprDetail::toExprs(a_operands), a_smooth, a_blend, a_accelerate == Accelerate::BVH);
+}
+
+template <class A>
+inline Expr<ExprPrecision<A>>
+SmoothUnion(const std::vector<A>& a_operands, const ExprPrecision<A> a_smooth, const Accelerate a_accelerate)
+{
+  return SmoothUnion(a_operands, a_smooth, BlendKind::Polynomial, a_accelerate);
 }
 
 template <class A, class B>
@@ -518,7 +538,7 @@ Difference(const A& a_first, const B& a_second)
 
 template <class A, class B>
 inline Expr<ExprPrecision<A>>
-Difference(const A& a_first, const std::vector<B>& a_others)
+Difference(const A& a_first, const std::vector<B>& a_others, const Accelerate a_accelerate)
 {
   using T = ExprPrecision<A>;
 
@@ -526,7 +546,7 @@ Difference(const A& a_first, const std::vector<B>& a_others)
 
   EBGEOMETRY_REQUIRE(!a_others.empty(), "Difference: the list of objects to subtract must not be empty");
 
-  return Intersection(toExpr(a_first), Complement(Union(a_others)));
+  return Intersection(toExpr(a_first), Complement(Union(a_others, a_accelerate)));
 }
 
 template <class A, class B>

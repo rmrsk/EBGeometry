@@ -260,16 +260,21 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
 * **Features.** Code that only some tapes need is a *feature* (see :ref:`Sec:TapeFeatures`), compiled
   only into a tape whose type lists it among the arguments after ``T``, before the user types by
   convention: ``Tape<T, TapeFeature::ExactOffsets, MyShape>``. A plain ``Tape<T>`` compiles none.
-* **Unions of many objects.** A union or smooth union of at least
-  ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default) is evaluated with a BVH over the
-  operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate their primitives
-  (:ref:`Sec:BVHUnions`), including keeping operands with unbounded boxes out of the tree. The
-  operands can be of any type and composed in any way, such as several translations of one mesh. With
+* **Unions of many objects.** ``Union(list, Accelerate::BVH)`` (and ``SmoothUnion(list, s,
+  Accelerate::BVH)``, ``Difference(a, list, Accelerate::BVH)``, whose subtracted objects are one such union)
+  is evaluated with a BVH over the operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate
+  their primitives (:ref:`Sec:BVHUnions`), including keeping operands with unbounded boxes out of the tree.
+  Without it, a union or smooth union of at least ``TapeOptions::m_bvhUnionThreshold`` operands (8 by
+  default), all of them distances, is evaluated the same way. The operands can be of any type and composed
+  in any way, such as several translations of one mesh: an operand that is a shape, or a shape under maps
+  (``Translate``, ``Rotate``, ``Scale``, ...), is evaluated directly at its leaf, any other through a
+  sub-program. With
   ``Exact`` operands the value is the same as an operand-by-operand minimum. A ``Bound`` operand (a
   blur, an elongation, a shrinking offset) can have a value below its box's distance, so the BVH may
   skip an operand whose value would have been smaller: the result can then be larger than the plain
   minimum, but it keeps the sign and is still a bound on the distance. A union with an operand that is
-  ``NotADistance`` cannot be pruned and is evaluated operand by operand.
+  ``NotADistance`` is evaluated operand by operand, unless ``Accelerate::BVH`` asks for the BVH: its value
+  then keeps only its sign, as its distance quality says.
   `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ also chooses the BVH
   construction method.
 * **Limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are compiled into

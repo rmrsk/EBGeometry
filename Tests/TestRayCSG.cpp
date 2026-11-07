@@ -1045,6 +1045,42 @@ TEMPLATE_TEST_CASE("Ray: a BVH union of several types is traced to its nearest m
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: a union through a BVH (Accelerate::BVH) is traced to the crossings of the union as "
+                   "written",
+                   "[Ray][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const std::vector<Expr<T>> objects{
+    SphereSDF<T>(Vec3(-T(0.6), T(0.1), T(0)), T(0.35)),
+    Translate(BoxSDF<T>(-T(0.2) * Vec3::ones(), T(0.2) * Vec3::ones()), Vec3(T(0.5), -T(0.4), T(0.3))),
+    Scale(SphereSDF<T>(Vec3(T(0.2), T(0.5), -T(0.4)), T(0.1)), T(1.5)),
+    Offset(Union(SphereSDF<T>(Vec3(T(0.7), T(0.6), T(0)), T(0.1)), SphereSDF<T>(Vec3(T(0.8), T(0.7), T(0)), T(0.1))),
+           T(0.05)),
+    Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool)};
+
+  const Tape<T> withBVH(pool, Union(objects, Accelerate::BVH));
+  const Tape<T> asWritten(pool, Union(objects));
+
+  REQUIRE(withBVH.getNumBVHUnions() == 1U);
+
+  for (const RayT<T>& ray : deviceRays<T>()) {
+    const auto fast  = firstHit(withBVH, ray, T(0), T(10));
+    const auto plain = firstHit(asWritten, ray, T(0), T(10));
+
+    REQUIRE(fast.hit() == plain.hit());
+
+    if (fast.hit()) {
+      REQUIRE_THAT(fast.m_t, withinAbsT(plain.m_t, looseMargin<T>()));
+      REQUIRE(fast.m_primitive == plain.m_primitive);
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("Ray: device ray queries of compositions match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;

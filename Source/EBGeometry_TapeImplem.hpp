@@ -532,6 +532,11 @@ private:
   [[nodiscard]] bool
   useBVH(const ExprDetail::Node<T>& a_node) const noexcept
   {
+    // Asked for (Accelerate::BVH): whatever the operands.
+    if (a_node.m_bvh) {
+      return true;
+    }
+
     if (a_node.m_children.size() < m_options.m_bvhUnionThreshold) {
       return false;
     }
@@ -543,6 +548,29 @@ private:
     }
 
     return true;
+  }
+
+  /**
+   * @brief Whether a sub-program is one shape, maybe under point maps and a value scale (see
+   * TapeDetail::LeafProgram).
+   * @param[in] a_program The sub-program.
+   * @return True if its clauses are only PushAffine, Primitive, PopPoint and MulConstant, with one Primitive.
+   */
+  [[nodiscard]] bool
+  isLeafProgram(const uint32_t a_program) const noexcept
+  {
+    uint32_t primitives = 0;
+
+    for (const Clause& c : m_staging.m_programs[a_program]) {
+      if (c.m_op == Op::Primitive) {
+        primitives++;
+      }
+      else if (c.m_op != Op::PushAffine && c.m_op != Op::PopPoint && c.m_op != Op::MulConstant) {
+        return false;
+      }
+    }
+
+    return primitives == 1U && a_program < LeafProgram;
   }
 
   /**
@@ -570,7 +598,7 @@ private:
       // goes with the unbounded operands, which every query evaluates.
       const BoundingVolumes::AABBT<T>& box = child.computeBoundingVolume();
 
-      programs.push_back(program);
+      programs.push_back(this->isLeafProgram(program) ? (program | LeafProgram) : program);
       boxes.push_back(ExprDetail::isEmpty(box) ? ExprDetail::everywhere<T>() : box);
     }
 
@@ -1872,6 +1900,46 @@ Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
 }
 
 template <class T, class... UserPrimitives>
+template <class V>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline V
+Tape<T, UserPrimitives...>::evaluateLeaf(const uint32_t      a_program,
+                                         const Vec3T<T>&     a_point,
+                                         const void*         a_base,
+                                         const PoolLocation& a_location) const noexcept
+{
+  using TapeDetail::Op;
+
+  const TapeDetail::Program range   = m_layout.m_programs.at(a_base, a_program);
+  const TapeDetail::Clause* clauses = m_layout.m_clauses.data(a_base);
+  const T*                  params  = m_layout.m_params.data(a_base);
+
+  // The clauses are those of evaluateBody(), with the point maps applied in turn: the shape is read at the point
+  // the last map gives, and the value scaled after.
+  Vec3T<T> point = a_point;
+  V        value = CSGOps::pairInit<V>(false).m_first;
+
+  for (uint32_t pc = range.m_begin; pc < range.m_end; pc++) {
+    const TapeDetail::Clause& c = clauses[pc];
+
+    if (c.m_op == Op::PushAffine) {
+      point = CSGOps::affinePoint(params + c.m_a, point);
+    }
+    else if (c.m_op == Op::Primitive) {
+      value = CSGOps::leafValue<V>(this->evaluatePrimitive(c.m_type, c.m_a, point, a_base, a_location), pc, point);
+    }
+    else if (c.m_op == Op::MulConstant) {
+      value = CSGOps::times(value, params[c.m_a]);
+    }
+  }
+
+  EBGEOMETRY_EXPECT(!std::isnan(CSGOps::valueOf(value)));
+
+  return value;
+}
+
+template <class T, class... UserPrimitives>
 template <unsigned D, class V>
 EBGEOMETRY_HOST_DEVICE
 inline V
@@ -1917,17 +1985,25 @@ Tape<T, UserPrimitives...>::evaluateUnion(const TapeDetail::Clause& a_clause,
 
   Closest closest;
 
+  // An operand that is one shape is evaluated directly, any other through its sub-program.
+  const auto operand = [this, &a_point, a_base, &a_location](const uint32_t a_program) noexcept -> V {
+    if ((a_program & TapeDetail::LeafProgram) != 0U) {
+      return this->template evaluateLeaf<V>(a_program & ~TapeDetail::LeafProgram, a_point, a_base, a_location);
+    }
+
+    return this->template evaluate<D - 1, V>(a_program, a_point, a_base, a_location);
+  };
+
   for (uint32_t i = 0; i < unboundedPrograms.size(); i++) {
-    insert(closest, this->template evaluate<D - 1, V>(unboundedPrograms[i], a_point, a_base, a_location));
+    insert(closest, operand(unboundedPrograms[i]));
   }
 
-  const auto evalLeaf = [this, &programs, &a_point, a_base, &a_location, &insert](
-                          Closest& a_closest, const size_t a_offset, const size_t a_count) noexcept {
-    for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      insert(a_closest,
-             this->template evaluate<D - 1, V>(programs[static_cast<uint32_t>(i)], a_point, a_base, a_location));
-    }
-  };
+  const auto evalLeaf =
+    [&programs, &operand, &insert](Closest& a_closest, const size_t a_offset, const size_t a_count) noexcept {
+      for (size_t i = a_offset; i < a_offset + a_count; i++) {
+        insert(a_closest, operand(programs[static_cast<uint32_t>(i)]));
+      }
+    };
 
   const auto pruneDist2 = [smooth](const Closest& a_closest) noexcept -> T {
     const T bound = Math::max(T(0), CSGOps::valueOf(smooth ? a_closest.b : a_closest.a));
@@ -2318,8 +2394,15 @@ Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
   // nothing known.
   const auto add = [this, &a_ray, a_t0, &a_options, a_all, firstOnly, a_base, &a_location, &operand](
                      RaySpansT<T>& a_union, const uint32_t a_program) noexcept {
-    this->template rayEvaluate<D - 1>(
-      a_program, a_ray, a_t0, a_union.m_horizon, a_options, a_all, a_base, a_location, operand);
+    this->template rayEvaluate<D - 1>(a_program & ~TapeDetail::LeafProgram,
+                                      a_ray,
+                                      a_t0,
+                                      a_union.m_horizon,
+                                      a_options,
+                                      a_all,
+                                      a_base,
+                                      a_location,
+                                      operand);
 
     RayDetail::uniteInto(a_union, operand);
 

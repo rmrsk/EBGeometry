@@ -57,7 +57,8 @@ struct TapeOptions
 {
   /**
    * @brief A union or smooth union of at least this many objects is evaluated with a BVH over the
-   * objects' boxes (unless one of them is not a distance); a smaller one is evaluated object by object.
+   * objects' boxes (unless one of them is not a distance); a smaller one is evaluated object by object. A
+   * union built with Accelerate::BVH is evaluated with a BVH whatever this says.
    */
   uint32_t m_bvhUnionThreshold = 8;
 
@@ -317,6 +318,14 @@ struct Program
    */
   uint32_t m_end = 0;
 };
+
+/**
+ * @brief The bit a BVH union's leaf sets on its sub-program's index when that sub-program is one shape, maybe
+ * under point maps and a value scale (its clauses are only PushAffine, Primitive, PopPoint and MulConstant, with
+ * one Primitive): the leaf evaluates it directly (Tape::evaluateLeaf()), with no call into the interpreter.
+ * @details Internal helper; not part of the public API.
+ */
+inline constexpr uint32_t LeafProgram = uint32_t(1) << 31;
 
 /**
  * @brief A BVH union's two parts, as layouts in the tape's pool: a BVH over the sub-programs with bounded
@@ -1682,6 +1691,27 @@ private:
                  const T*                  a_params,
                  const void*               a_base,
                  const PoolLocation&       a_location) const noexcept;
+
+  /**
+   * @brief Evaluate a sub-program that is one shape under point maps and a value scale (see
+   * TapeDetail::LeafProgram), as evaluateBody() would, without its stacks.
+   * @details Out of line in a device pass: one copy of the shapes' dispatch per kernel, which every BVH union
+   * at every call depth shares.
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @param[in] a_program  The sub-program.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The shape's value, scaled.
+   */
+  template <class V>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline V
+  evaluateLeaf(uint32_t            a_program,
+               const Vec3T<T>&     a_point,
+               const void*         a_base,
+               const PoolLocation& a_location) const noexcept;
 
   /**
    * @brief Evaluate a BVH union clause.

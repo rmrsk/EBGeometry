@@ -83,10 +83,11 @@ operand is compiled into a separate *sub-program*, which the operation's clause 
    * - ``FiniteRepetition``
      - once for each copy the search reaches: the copy in the tile the point falls in, then the
        copies whose box is nearer than the value so far
-   * - A union or smooth union of at least ``TapeOptions::m_bvhUnionThreshold`` operands (8 by
-       default), all of them distances
+   * - A union or smooth union through a BVH: ``Accelerate::BVH``, or at least
+       ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default), all of them distances
      - each operand is compiled into its own sub-program; a BVH over the operands' boxes picks which
-       ones to call, and the others are pruned (see :ref:`Sec:Tape`)
+       ones to evaluate, and the others are pruned (see :ref:`Sec:Tape`). An operand that is a shape,
+       maybe under maps, is evaluated directly at its leaf, without a call
 
 A sub-program has stacks of its own: when it starts, only its input point is on its point stack, and
 nothing its caller holds counts against it. A sub-program can itself contain one of these operations,
@@ -131,9 +132,10 @@ waits on the stack. How much a composition needs therefore depends on its shape,
   rest is evaluated: :math:`n` operands nested this way hold :math:`n` values, so seventeen are
   rejected. The same holds for intersections, and for differences nested on the subtracted side,
   ``Difference(a, Difference(b, ...))``.
-* **One union of a list,** ``Union({a, b, c, d})``, holds two values, like the left-nested form. With
-  at least ``TapeOptions::m_bvhUnionThreshold`` operands, all of them distances, each operand becomes
-  its own sub-program, with fresh stacks, and the union itself holds one value in its caller.
+* **One union of a list,** ``Union({a, b, c, d})``, holds two values, like the left-nested form. Through a
+  BVH (``Accelerate::BVH``, or at least ``TapeOptions::m_bvhUnionThreshold`` operands, all of them
+  distances), each operand becomes its own sub-program, with fresh stacks, and the union itself holds one
+  value in its caller.
 * **Smooth unions and intersections** keep the two most extreme values of their operands while they
   evaluate them, so each one holds two values plus what its operand needs, whichever side it is nested
   on: seven binary smooth operations of primitives nested in each other fit in a sub-program, eight do
@@ -152,9 +154,9 @@ waits on the stack. How much a composition needs therefore depends on its shape,
 
 To stay within the limit, build unions, intersections and differences of many objects from a list
 (``Union(list)``, ``Intersection(list)``, ``Difference(a, list)``), or nest them on the left. A list is
-also the faster choice for a union: only a union whose operands are given as one list can reach the
-BVH threshold, since a binary ``Union(a, b)`` has two operands however deeply it is nested, and is
-evaluated operand by operand.
+also the faster choice for a union: only a union of a list can be evaluated through a BVH
+(``Union(list, Accelerate::BVH)``, or a list reaching the threshold), since a binary ``Union(a, b)`` has two
+operands however deeply it is nested, and is evaluated operand by operand.
 
 Point maps held at once
 ~~~~~~~~~~~~~~~~~~~~~~~
