@@ -463,8 +463,8 @@ buildMixedUnion(Pool&                           a_pool,
 
 /**
  * @brief Build a union of one or more primitive types, each primitive's box its computeBoundingVolume().
- * @details Internal helper; not part of the public API. One type is built as before several types were
- * supported (buildUnionParts()); several by buildMixedUnion().
+ * @details Internal helper; not part of the public API. One type is built by buildUnionParts(), its leaves
+ * holding the primitives; several by buildMixedUnion().
  * @tparam T      Floating-point precision.
  * @tparam K      BVH branching factor.
  * @tparam Layout The union's layout type.
@@ -634,8 +634,9 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 BVHUnion<T, K, Ps...>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  // One type: the code a union of one type has always compiled to, the leaf being the primitive. Several: each
-  // leaf resolved through visitAt().
+  // One type: the leaf is the primitive, evaluated directly, with no type test (this code is kept apart so
+  // that a union of one type compiles to the code it needs and nothing more). Several: each leaf resolved
+  // through visitAt().
   if constexpr (sizeof...(Ps) == 1) {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -907,8 +908,9 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 BVHSmoothUnion<T, K, Blend, Ps...>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  // One type: the code a union of one type has always compiled to, the leaf being the primitive. Several: each
-  // leaf resolved through visitAt().
+  // One type: the leaf is the primitive, evaluated directly, with no type test (this code is kept apart so
+  // that a union of one type compiles to the code it needs and nothing more). Several: each leaf resolved
+  // through visitAt().
   if constexpr (sizeof...(Ps) == 1) {
     EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
     EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));

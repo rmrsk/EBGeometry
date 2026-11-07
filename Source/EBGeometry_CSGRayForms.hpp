@@ -757,7 +757,8 @@ struct RayForm<BVHUnion<T, K, Ps...>>
         bool                         a_firstOnly,
         RaySpansT<T>&                a_spans) noexcept
   {
-    // One type: the code a union of one type has always compiled to. Several: each leaf through visit().
+    // One type: the leaf is the primitive, traced directly, with no type test (kept apart so that a union of one
+    // type compiles to the code it needs and nothing more). Several: each leaf through visit().
     if constexpr (sizeof...(Ps) == 1) {
       using First = typename BVHUnion<T, K, Ps...>::First;
 
@@ -879,7 +880,8 @@ struct RayForm<BVHUnion<T, K, Ps...>>
           uint32_t                     a_leaf,
           const RayOptions<T>&         a_options) noexcept
   {
-    // One type: the code a union of one type has always compiled to. Several: each leaf through visit().
+    // One type: the leaf is the primitive, traced directly, with no type test (kept apart so that a union of one
+    // type compiles to the code it needs and nothing more). Several: each leaf through visit().
     if constexpr (sizeof...(Ps) == 1) {
       using First = typename BVHUnion<T, K, Ps...>::First;
 

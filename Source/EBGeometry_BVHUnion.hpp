@@ -213,8 +213,8 @@ struct UnionArrays<P, Ps...>
 
 /**
  * @brief What a union of several types adds to the one-type layout: its per-type arrays. Empty for one
- * type, whose leaves hold the primitives themselves, so that a union of one type is laid out (and compiled)
- * as it would be without this support.
+ * type, whose leaves hold the primitives themselves, so that a union of one type holds nothing but its two
+ * BVHs.
  * @details Internal helper; not part of the public API. A base of the union and of its Layout, so that
  * the empty case takes no space.
  * @tparam Ps Primitive types.
@@ -301,6 +301,24 @@ struct BoxPrecision<BoundingVolumes::AABBT<T>>
 template <class P>
 using PrimitivePrecision =
   typename BoxPrecision<std::decay_t<decltype(std::declval<const P&>().computeBoundingVolume())>>::type;
+
+/**
+ * @brief Whether a primitive type is of precision T: true if its computeBoundingVolume() returns an
+ * AABBT<T>, and for a type without one (a one-type union given the caller's boxes), which says nothing.
+ * @tparam P Primitive type.
+ * @tparam T Floating-point precision.
+ */
+template <class P, class T, class = void>
+inline constexpr bool hasPrecision = true;
+
+/**
+ * @brief Whether a primitive type with a computeBoundingVolume() is of precision T.
+ * @tparam P Primitive type.
+ * @tparam T Floating-point precision.
+ */
+template <class P, class T>
+inline constexpr bool hasPrecision<P, T, std::void_t<decltype(std::declval<const P&>().computeBoundingVolume())>> =
+  std::is_same_v<PrimitivePrecision<P>, T>;
 
 /**
  * @brief Whether X is a box, which an array of primitives never holds: keeps the deduction guide for several
@@ -424,6 +442,8 @@ class BVHUnion : public PoolHandle, private CSGDetail::ArraysOf<Ps...>
 public:
   static_assert(std::is_floating_point_v<T>, "BVHUnion requires a floating-point type T");
   static_assert(sizeof...(Ps) > 0, "BVHUnion requires at least one primitive type");
+  static_assert((CSGDetail::hasPrecision<Ps, T> && ...),
+                "BVHUnion requires every primitive type to have the union's precision T");
   static_assert((std::is_trivially_copyable_v<Ps> && ...), "BVHUnion requires trivially copyable primitive types");
   static_assert(K > 1, "BVHUnion BVH branching factor K must be at least 2");
 
@@ -772,6 +792,8 @@ class BVHSmoothUnion : public PoolHandle, private CSGDetail::ArraysOf<Ps...>
 public:
   static_assert(std::is_floating_point_v<T>, "BVHSmoothUnion requires a floating-point type T");
   static_assert(sizeof...(Ps) > 0, "BVHSmoothUnion requires at least one primitive type");
+  static_assert((CSGDetail::hasPrecision<Ps, T> && ...),
+                "BVHSmoothUnion requires every primitive type to have the union's precision T");
   static_assert((std::is_trivially_copyable_v<Ps> && ...),
                 "BVHSmoothUnion requires trivially copyable primitive types");
   static_assert(std::is_trivially_copyable_v<Blend>, "BVHSmoothUnion requires a trivially copyable blend operator");
