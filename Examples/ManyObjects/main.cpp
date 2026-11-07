@@ -259,9 +259,9 @@ main(int argc, char* argv[])
   const T cityWidth = T(lotsPerAxis) * (maxWidth + gap);
 
   for (int i = 0; i < numBalloons; i++) {
-    const Vec3 center(unit(rng) * cityWidth, unit(rng) * cityWidth, maxHeight + T(2) + T(10) * unit(rng));
+    const Vec3 center(unit(rng) * cityWidth, unit(rng) * cityWidth, maxHeight + T(5) + T(15) * unit(rng));
 
-    balloons.emplace_back(center, T(0.5) + unit(rng));
+    balloons.emplace_back(center, T(1.5) + T(2) * unit(rng));
   }
 
   const auto skyline = EBGeometry::BVHUnion(pool, buildings, balloons);
