@@ -1916,7 +1916,8 @@ Tape<T, UserPrimitives...>::evaluateLeaf(const uint32_t      a_program,
   const T*                  params  = m_layout.m_params.data(a_base);
 
   // The clauses are those of evaluateBody(), with the point maps applied in turn: the shape is read at the point
-  // the last map gives, and the value scaled after.
+  // the last map gives, and the value scaled after. The one Primitive clause sets the value (an untagged,
+  // infinite start until then).
   Vec3T<T> point = a_point;
   V        value = CSGOps::pairInit<V>(false).m_first;
 

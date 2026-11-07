@@ -32,6 +32,7 @@ What is in Performance/
      BVHUnionMixed/main.cpp   BVHUnion of several types
      Shapes/main.cpp          the analytic shapes EllipsoidSDF to WedgeSDF
      Tape/main.cpp            Tape's signed distance
+     TapeBVHUnion/main.cpp    a Tape's union through a BVH on request
      Fused/main.cpp           fused compositions (Fused::)
      Ray/main.cpp             ray queries on meshes and compositions
      RayCSG/main.cpp          ray tracing a composition from its parts' spans
@@ -324,6 +325,11 @@ Family                                Build  Measures
                                              clauses, no BVH; and ``chain16-handwritten``: a loop)
 ``<input>/signedDistance``            GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
+
+**TapeBVHUnion** (``Performance/TapeBVHUnion``): a tape's union of 64 shapes under point maps (rotated boxes
+and scaled spheres, each moved into place on a 4 × 4 × 4 lattice), ``maps64-bvh`` through a BVH asked for
+with ``Accelerate::BVH``, whose leaves evaluate the shapes directly, and ``maps64-as-written`` operand by
+operand, which reports its time over the BVH's. Each is a host case and a GPU pair, as in the Tape probe.
 
 **Fused** (``Performance/Fused``): the Tape probe's solids as fused compositions (``Fused::``, see
 :ref:`Sec:Fused`), at the same points as the Tape probe's cases, and a mesh drilled through by a

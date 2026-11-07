@@ -306,6 +306,29 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
     CHECK_THAT((fast.m_localPoint - plain.m_localPoint).length(), withinAbsT(T(0), tightMargin<T>()));
   }
 
+  // A BVH union nested under other operations (a map, a difference, and as an operand of another BVH union): its
+  // leaves are evaluated directly one call level down.
+  const Expr<T>              nested          = Translate(Union(objects, Accelerate::BVH), Vec3(T(0.3), T(0), T(0)));
+  const Expr<T>              nestedAsWritten = Translate(Union(objects), Vec3(T(0.3), T(0), T(0)));
+  const std::vector<Expr<T>> twice{nested, SphereSDF<T>(Vec3(T(5), T(5), T(0)), T(1))};
+
+  const Tape<T> inner(pool, Difference(block, std::vector<Expr<T>>{nested}, Accelerate::BVH));
+  const Tape<T> innerAsWritten(pool, Difference(block, std::vector<Expr<T>>{nestedAsWritten}));
+  const Tape<T> outer(pool, Union(twice, Accelerate::BVH));
+  const Tape<T> outerAsWritten(pool, Union(std::vector<Expr<T>>{nestedAsWritten, twice[1]}));
+
+  CHECK(outer.getNumBVHUnions() == 2U);
+  CHECK(outer.getCallDepth() == 2U);
+
+  // A list of one object is that object: no BVH.
+  CHECK(Tape<T>(pool, Union(std::vector<Expr<T>>{objects[0]}, Accelerate::BVH)).getNumBVHUnions() == 0U);
+
+  for (const auto& p : probes<T>()) {
+    CHECK_THAT(inner.signedDistance(p), withinAbsT(innerAsWritten.signedDistance(p), tightMargin<T>()));
+    CHECK_THAT(outer.signedDistance(p), withinAbsT(outerAsWritten.signedDistance(p), tightMargin<T>()));
+    CHECK(outer.closestPrimitive(p).m_leaf == outerAsWritten.closestPrimitive(p).m_leaf);
+  }
+
   // Operands that are not distances are allowed when asked for: the union keeps the sign.
   const std::vector<Expr<T>> perlins{PerlinSDF<T>(T(1), Vec3::ones(), T(0.5), 3U),
                                      Translate(PerlinSDF<T>(T(1), Vec3::ones(), T(0.5), 3U), Vec3(T(4), T(0), T(0)))};

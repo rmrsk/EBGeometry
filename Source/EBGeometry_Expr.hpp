@@ -468,7 +468,7 @@ Union(const A& a_first, const B& a_second);
  * object that is a shape, or a shape under maps (Translate, Rotate, Scale, ...), is evaluated directly at its
  * leaf; any other object is a sub-program the leaf calls. With exact distances the value is the plain minimum;
  * with operands that are only bounds it can be larger, but keeps the sign and is still a bound; with operands
- * that are not distances, only its sign means anything.
+ * that are not distances, only its sign means anything. A list of one object is that object, with no BVH.
  * @tparam A Shape or Expr type.
  * @param[in] a_operands   Objects (must not be empty).
  * @param[in] a_accelerate Whether the tape evaluates the union through a BVH.
