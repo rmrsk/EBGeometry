@@ -5,8 +5,9 @@ ManyObjects
 
 The signed distance to a scene of many objects is the smallest signed distance to any of them.
 Computed literally, every query visits every object, so the cost grows with the number of objects.
-This example builds two such scenes, 8,000 spheres on a lattice and a "city" of 3,600 randomly sized
-boxes, and evaluates each in two ways: a naive loop over every object, and a
+This example builds three such scenes, 8,000 spheres on a lattice, a "city" of 3,600 randomly sized
+boxes, and the city with 200 balloons (spheres) floating over it, and evaluates each in two ways: a naive
+loop over every object, and a
 `BVHUnion <doxygen/html/classEBGeometry_1_1BVHUnion.html>`__, which evaluates the same union through
 a bounding volume hierarchy over the objects' boxes (see :ref:`Chap:BVH`). It times both. Its last
 section runs the unions on a GPU and shows how to time the queries there without timing the memory
@@ -24,7 +25,7 @@ it with CMake, GNU Make, or a direct compiler invocation.
    :width: 60%
    :align: center
 
-   The random city, a BVH union of boxes.
+   The city and its balloons, a BVH union of boxes and spheres.
 
 The query
 ---------
@@ -37,21 +38,31 @@ is cheap, and a kernel can receive it once it describes a pool the device can re
 Building the scenes
 -------------------
 
-A ``BVHUnion`` holds one primitive type, here
-`SphereSDF <doxygen/html/classEBGeometry_1_1SphereSDF.html>`__ for one scene and
-`BoxSDF <doxygen/html/classEBGeometry_1_1BoxSDF.html>`__ for the other. Its constructor takes the
-pool, the objects and one bounding box per object:
+A ``BVHUnion`` takes one array of objects per type, and takes its types from them. The spheres are one
+array of `SphereSDF <doxygen/html/classEBGeometry_1_1SphereSDF.html>`__, each object's box its
+``computeBoundingVolume()``:
 
 .. code-block:: c++
 
    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-   const EBGeometry::BVHUnion<T, K, Box> city(pool, buildings, buildingBoxes);
+   const auto packedSpheres = EBGeometry::BVHUnion(pool, spheres);
 
-The union copies the objects into the pool and builds its BVH there, so the input vectors are not
-needed afterwards. The pool must outlive the union and every copy of it. To combine objects of
-different types in one union, compose them with the expression builder instead
-(:ref:`Chap:ExampleBasicCSG`).
+A union of one type can also be given the boxes, when the caller has tighter ones than the objects' own
+(for the city's `BoxSDF <doxygen/html/classEBGeometry_1_1BoxSDF.html>`__ buildings they are the same):
+
+.. code-block:: c++
+
+   const auto city = EBGeometry::BVHUnion(pool, buildings, buildingBoxes);
+
+The city and its balloons are boxes and spheres in one union, one array per type:
+
+.. code-block:: c++
+
+   const auto skyline = EBGeometry::BVHUnion(pool, buildings, balloons);
+
+The union copies the objects into the pool, one array per type, and builds its BVH there, so the input
+vectors are not needed afterwards. The pool must outlive the union and every copy of it.
 
 Using the unions on the host
 ----------------------------
@@ -66,7 +77,7 @@ points.
 Timing the queries on a GPU
 ---------------------------
 
-The pool holding both unions is frozen, mirrored into ``GPU::memoryResource()`` (device memory in a
+The pool holding the unions is frozen, mirrored into ``GPU::memoryResource()`` (device memory in a
 CUDA or HIP build) and each union rebased onto the copy with ``rebasedView()``, as in
 :ref:`Chap:ExampleMeshSDF`.
 
@@ -107,14 +118,14 @@ on the host it keeps ``numPoints``. See :ref:`Sec:ExamplesGPU` for building for 
 Looking at it
 -------------
 
-The example ends with a window on the random city. Its buildings rise along :math:`z`, so it fits the
-camera with :math:`z` up, and the floor goes under them:
+The example ends with a window on the city and its balloons. Its buildings rise along :math:`z`, so it fits
+the camera with :math:`z` up, and the floor goes under them:
 
 .. code-block:: c++
 
-   const auto camera = Render::Camera<T>::fit(city.computeBoundingVolume(), Vec3(0, 0, 1));
+   const auto camera = Render::Camera<T>::fit(skyline.computeBoundingVolume(), Vec3(0, 0, 1));
 
-   Render::view(city, pool, camera, Render::Settings<T>(), argc, argv);
+   Render::view(skyline, pool, camera, Render::Settings<T>(), argc, argv);
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why

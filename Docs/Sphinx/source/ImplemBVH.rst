@@ -585,12 +585,12 @@ type, which is meaningless when the elements are of different derived types and 
 sizes. A ``shared_ptr`` to a polymorphic base cannot be stored either, since it is not trivially
 copyable and so can never cross into a device address space.
 
-The BVH-accelerated CSG unions (:ref:`Chap:ImplemCSG`) are therefore restricted to a single
-primitive type: ``BVHUnion<T, K, P>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one
-type ``P`` -- analytic shapes, mesh distance fields, or other unions -- and is itself trivially
-copyable (:ref:`Sec:BVHUnions`). A union of primitives of *different* types is compiled into a tape
-(:ref:`Sec:Tape`), whose BVH holds sub-program indices and whose clauses dispatch on a primitive
-type index instead of a virtual call.
+The BVH-accelerated CSG unions (:ref:`Chap:ImplemCSG`) therefore know their primitive types at compile
+time: ``BVHUnion<T, K, P>`` is a ``PackedBVH<T, P, K>`` over value-type primitives of one type ``P`` --
+analytic shapes, mesh distance fields, or other unions -- and ``BVHUnion<T, K, Ps...>`` over several types
+keeps one array per type, its BVH's leaves holding a type and an index, dispatched on the type instead of
+a virtual call. Either is trivially copyable (:ref:`Sec:BVHUnions`). A tape (:ref:`Sec:Tape`) does the same
+for an expression, its BVH holding sub-program indices and its clauses a primitive type index.
 
 Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects, say -- works. The inner BVHs live in the same ``Pool`` as the outer one, and the outer union stores each
 inner object as its layout and pairs it with its own pool location as it evaluates it (see

@@ -612,13 +612,20 @@ EBGEOMETRY_HOST_DEVICE
 inline auto
 BVHUnion<T, K, Ps...>::visit(const Leaf& a_leaf, F&& a_f) const noexcept
 {
-  const PoolLocation location = this->location();
+  return this->visitAt(a_leaf, this->location(), static_cast<F&&>(a_f));
+}
 
+template <class T, size_t K, class... Ps>
+template <class F>
+EBGEOMETRY_HOST_DEVICE
+inline auto
+BVHUnion<T, K, Ps...>::visitAt(const Leaf& a_leaf, const PoolLocation& a_location, F&& a_f) const noexcept
+{
   if constexpr (sizeof...(Ps) == 1) {
-    return a_f(CSGDetail::fromStored<First>(a_leaf, location));
+    return a_f(CSGDetail::fromStored<First>(a_leaf, a_location));
   }
   else {
-    return CSGDetail::visitArrays(this->m_arrays, a_leaf.m_type, a_leaf.m_index, location, static_cast<F&&>(a_f));
+    return CSGDetail::visitArrays(this->m_arrays, a_leaf.m_type, a_leaf.m_index, a_location, static_cast<F&&>(a_f));
   }
 }
 
@@ -627,48 +634,96 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 BVHUnion<T, K, Ps...>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+  // One type: the code a union of one type has always compiled to, the leaf being the primitive. Several: each
+  // leaf resolved through visitAt().
+  if constexpr (sizeof...(Ps) == 1) {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  T minDist = Math::Limits<T>::infinity();
+    T minDist = Math::Limits<T>::infinity();
 
-  const auto value = [&a_point](const auto& a_primitive) noexcept -> T { return a_primitive.signedDistance(a_point); };
+    // The unbounded primitives first, so that their values can prune the traversal.
+    const PoolLocation location = this->location();
+    const Root         bvh      = this->getBVH();
+    const Root         unboundedRoot(m_unbounded, location);
+    const auto         unbounded = unboundedRoot.getPrimitives();
 
-  // The unbounded primitives first, so that their values can prune the traversal.
-  const Root bvh = this->getBVH();
-  const Root unboundedRoot(m_unbounded, this->location());
-  const auto unbounded = unboundedRoot.getPrimitives();
-
-  for (uint32_t i = 0; i < unbounded.size(); i++) {
-    minDist = Math::min(minDist, this->visit(unbounded[i], value));
-  }
-
-  const auto primitives = bvh.getPrimitives();
-
-  const auto evalLeaf = [this, &primitives, &value](T& a_minDist, size_t a_offset, size_t a_count) noexcept {
-    for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const T v = this->visit(primitives[static_cast<uint32_t>(i)], value);
-
-      EBGEOMETRY_EXPECT(!std::isnan(v));
-
-      a_minDist = Math::min(a_minDist, v);
+    for (uint32_t i = 0; i < unbounded.size(); i++) {
+      minDist = Math::min(minDist, CSGDetail::fromStored<First>(unbounded[i], location).signedDistance(a_point));
     }
-  };
 
-  // traverse() prunes a node when its squared distance to a_point exceeds this bound, and visits
-  // children nearest-first via a SIMD child-box test. A node is kept iff its (unsigned) bounding-volume
-  // distance is within max(0, minDist). When the running best is negative (a_point is inside a
-  // primitive) the bound collapses to 0, so only nodes whose box contains a_point are descended into.
-  const auto pruneDist2 = [](const T& a_minDist) noexcept -> T {
-    const T bound = Math::max(T(0), a_minDist);
+    const auto primitives = bvh.getPrimitives();
 
-    return bound * bound;
-  };
+    const auto evalLeaf = [&primitives, &a_point, &location](T& a_minDist, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = a_offset; i < a_offset + a_count; i++) {
+        const T v =
+          CSGDetail::fromStored<First>(primitives[static_cast<uint32_t>(i)], location).signedDistance(a_point);
 
-  bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
+        EBGEOMETRY_EXPECT(!std::isnan(v));
 
-  return minDist;
+        a_minDist = Math::min(a_minDist, v);
+      }
+    };
+
+    // traverse() prunes a node when its squared distance to a_point exceeds this bound, and visits
+    // children nearest-first via a SIMD child-box test. A node is kept iff its (unsigned) bounding-volume
+    // distance is within max(0, minDist). When the running best is negative (a_point is inside a
+    // primitive) the bound collapses to 0, so only nodes whose box contains a_point are descended into.
+    const auto pruneDist2 = [](const T& a_minDist) noexcept -> T {
+      const T bound = Math::max(T(0), a_minDist);
+
+      return bound * bound;
+    };
+
+    bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
+
+    return minDist;
+  }
+  else {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    T minDist = Math::Limits<T>::infinity();
+
+    const auto value = [&a_point](const auto& a_primitive) noexcept -> T {
+      return a_primitive.signedDistance(a_point);
+    };
+
+    // The unbounded primitives first, so that their values can prune the traversal.
+    const PoolLocation location = this->location();
+    const Root         bvh      = this->getBVH();
+    const Root         unboundedRoot(m_unbounded, location);
+    const auto         unbounded = unboundedRoot.getPrimitives();
+
+    for (uint32_t i = 0; i < unbounded.size(); i++) {
+      minDist = Math::min(minDist, this->visitAt(unbounded[i], location, value));
+    }
+
+    const auto primitives = bvh.getPrimitives();
+
+    const auto evalLeaf =
+      [this, &primitives, &location, &value](T& a_minDist, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = a_offset; i < a_offset + a_count; i++) {
+          const T v = this->visitAt(primitives[static_cast<uint32_t>(i)], location, value);
+
+          EBGEOMETRY_EXPECT(!std::isnan(v));
+
+          a_minDist = Math::min(a_minDist, v);
+        }
+      };
+
+    const auto pruneDist2 = [](const T& a_minDist) noexcept -> T {
+      const T bound = Math::max(T(0), a_minDist);
+
+      return bound * bound;
+    };
+
+    bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
+
+    return minDist;
+  }
 }
 
 template <class T, size_t K, class... Ps>
@@ -830,13 +885,20 @@ EBGEOMETRY_HOST_DEVICE
 inline auto
 BVHSmoothUnion<T, K, Blend, Ps...>::visit(const Leaf& a_leaf, F&& a_f) const noexcept
 {
-  const PoolLocation location = this->location();
+  return this->visitAt(a_leaf, this->location(), static_cast<F&&>(a_f));
+}
 
+template <class T, size_t K, class Blend, class... Ps>
+template <class F>
+EBGEOMETRY_HOST_DEVICE
+inline auto
+BVHSmoothUnion<T, K, Blend, Ps...>::visitAt(const Leaf& a_leaf, const PoolLocation& a_location, F&& a_f) const noexcept
+{
   if constexpr (sizeof...(Ps) == 1) {
-    return a_f(CSGDetail::fromStored<First>(a_leaf, location));
+    return a_f(CSGDetail::fromStored<First>(a_leaf, a_location));
   }
   else {
-    return CSGDetail::visitArrays(this->m_arrays, a_leaf.m_type, a_leaf.m_index, location, static_cast<F&&>(a_f));
+    return CSGDetail::visitArrays(this->m_arrays, a_leaf.m_type, a_leaf.m_index, a_location, static_cast<F&&>(a_f));
   }
 }
 
@@ -845,65 +907,133 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 BVHSmoothUnion<T, K, Blend, Ps...>::signedDistance(const Vec3T<T>& a_point) const noexcept
 {
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
-  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+  // One type: the code a union of one type has always compiled to, the leaf being the primitive. Several: each
+  // leaf resolved through visitAt().
+  if constexpr (sizeof...(Ps) == 1) {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-  // The smooth union blends only the two nearest primitive values, so the traversal state tracks the
-  // two smallest values seen so far (a <= b).
-  struct Closest
-  {
-    T a = Math::Limits<T>::infinity();
-    T b = Math::Limits<T>::infinity();
-  };
+    // The smooth union blends only the two nearest primitive values, so the traversal state tracks the
+    // two smallest values seen so far (a <= b).
+    struct Closest
+    {
+      T a = Math::Limits<T>::infinity();
+      T b = Math::Limits<T>::infinity();
+    };
 
-  Closest closest;
+    Closest closest;
 
-  const auto insert = [](Closest& a_closest, const T a_value) noexcept {
-    EBGEOMETRY_EXPECT(!std::isnan(a_value));
+    const auto insert = [](Closest& a_closest, const T a_value) noexcept {
+      EBGEOMETRY_EXPECT(!std::isnan(a_value));
 
-    if (a_value < a_closest.a) {
-      a_closest.b = a_closest.a;
-      a_closest.a = a_value;
-    }
-    else if (a_value < a_closest.b) {
-      a_closest.b = a_value;
-    }
-  };
-
-  const auto value = [&a_point](const auto& a_primitive) noexcept -> T { return a_primitive.signedDistance(a_point); };
-
-  // The unbounded primitives first, so that their values can prune the traversal.
-  const Root bvh = this->getBVH();
-  const Root unboundedRoot(m_unbounded, this->location());
-  const auto unbounded = unboundedRoot.getPrimitives();
-
-  for (uint32_t i = 0; i < unbounded.size(); i++) {
-    insert(closest, this->visit(unbounded[i], value));
-  }
-
-  const auto primitives = bvh.getPrimitives();
-
-  const auto evalLeaf =
-    [this, &primitives, &value, &insert](Closest& a_closest, size_t a_offset, size_t a_count) noexcept {
-      for (size_t i = a_offset; i < a_offset + a_count; i++) {
-        insert(a_closest, this->visit(primitives[static_cast<uint32_t>(i)], value));
+      if (a_value < a_closest.a) {
+        a_closest.b = a_closest.a;
+        a_closest.a = a_value;
+      }
+      else if (a_value < a_closest.b) {
+        a_closest.b = a_value;
       }
     };
 
-  // Prune against the second-smallest value b, not the nearest a: a primitive whose box is farther
-  // than b cannot be one of the two the blend uses, but one between a and b still can and must not be
-  // pruned. The result depends only on the two smallest values, and the b-bound provably retains
-  // both -- extra nodes it would admit hold only values larger than b, which cannot change a or b.
-  const auto pruneDist2 = [](const Closest& a_closest) noexcept -> T {
-    const T bound = Math::max(T(0), a_closest.b);
+    // The unbounded primitives first, so that their values can prune the traversal.
+    const PoolLocation location = this->location();
+    const Root         bvh      = this->getBVH();
+    const Root         unboundedRoot(m_unbounded, location);
+    const auto         unbounded = unboundedRoot.getPrimitives();
 
-    return bound * bound;
-  };
+    for (uint32_t i = 0; i < unbounded.size(); i++) {
+      insert(closest, CSGDetail::fromStored<First>(unbounded[i], location).signedDistance(a_point));
+    }
 
-  bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
+    const auto primitives = bvh.getPrimitives();
 
-  return m_blend(closest.a, closest.b, m_smoothLen);
+    const auto evalLeaf =
+      [&primitives, &a_point, &location, &insert](Closest& a_closest, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = a_offset; i < a_offset + a_count; i++) {
+          insert(a_closest,
+                 CSGDetail::fromStored<First>(primitives[static_cast<uint32_t>(i)], location).signedDistance(a_point));
+        }
+      };
+
+    // Prune against the second-smallest value b, not the nearest a: a primitive whose box is farther
+    // than b cannot be one of the two the blend uses, but one between a and b still can and must not be
+    // pruned. The result depends only on the two smallest values, and the b-bound provably retains
+    // both -- extra nodes it would admit hold only values larger than b, which cannot change a or b.
+    const auto pruneDist2 = [](const Closest& a_closest) noexcept -> T {
+      const T bound = Math::max(T(0), a_closest.b);
+
+      return bound * bound;
+    };
+
+    bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
+
+    return m_blend(closest.a, closest.b, m_smoothLen);
+  }
+  else {
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+    // The smooth union blends only the two nearest primitive values, so the traversal state tracks the
+    // two smallest values seen so far (a <= b).
+    struct Closest
+    {
+      T a = Math::Limits<T>::infinity();
+      T b = Math::Limits<T>::infinity();
+    };
+
+    Closest closest;
+
+    const auto insert = [](Closest& a_closest, const T a_value) noexcept {
+      EBGEOMETRY_EXPECT(!std::isnan(a_value));
+
+      if (a_value < a_closest.a) {
+        a_closest.b = a_closest.a;
+        a_closest.a = a_value;
+      }
+      else if (a_value < a_closest.b) {
+        a_closest.b = a_value;
+      }
+    };
+
+    const auto value = [&a_point](const auto& a_primitive) noexcept -> T {
+      return a_primitive.signedDistance(a_point);
+    };
+
+    // The unbounded primitives first, so that their values can prune the traversal.
+    const PoolLocation location = this->location();
+    const Root         bvh      = this->getBVH();
+    const Root         unboundedRoot(m_unbounded, location);
+    const auto         unbounded = unboundedRoot.getPrimitives();
+
+    for (uint32_t i = 0; i < unbounded.size(); i++) {
+      insert(closest, this->visitAt(unbounded[i], location, value));
+    }
+
+    const auto primitives = bvh.getPrimitives();
+
+    const auto evalLeaf =
+      [this, &primitives, &location, &value, &insert](Closest& a_closest, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = a_offset; i < a_offset + a_count; i++) {
+          insert(a_closest, this->visitAt(primitives[static_cast<uint32_t>(i)], location, value));
+        }
+      };
+
+    // Prune against the second-smallest value b, not the nearest a: a primitive whose box is farther
+    // than b cannot be one of the two the blend uses, but one between a and b still can and must not be
+    // pruned. The result depends only on the two smallest values, and the b-bound provably retains
+    // both -- extra nodes it would admit hold only values larger than b, which cannot change a or b.
+    const auto pruneDist2 = [](const Closest& a_closest) noexcept -> T {
+      const T bound = Math::max(T(0), a_closest.b);
+
+      return bound * bound;
+    };
+
+    bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
+
+    return m_blend(closest.a, closest.b, m_smoothLen);
+  }
 }
 
 template <class T, size_t K, class Blend, class... Ps>

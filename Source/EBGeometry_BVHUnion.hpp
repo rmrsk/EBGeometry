@@ -656,6 +656,19 @@ public:
 
 private:
   /**
+   * @brief Call @p a_f with the primitive a leaf stands for, resolved against a location the caller read once
+   * (visit() with the location given).
+   * @tparam F Callable on each primitive type.
+   * @param[in] a_leaf     A leaf of this union.
+   * @param[in] a_location The union's location.
+   * @param[in] a_f        What to call.
+   * @return What @p a_f returns.
+   */
+  template <class F>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline auto
+  visitAt(const Leaf& a_leaf, const PoolLocation& a_location, F&& a_f) const noexcept;
+  /**
    * @brief Adopt the built parts, which share one pool; used by the constructors.
    * @param[in] a_built The layout (the BVH, the unbounded primitives and, with several types, the arrays) and
    * where it lives.
@@ -1013,6 +1026,19 @@ public:
   }
 
 private:
+  /**
+   * @brief Call @p a_f with the primitive a leaf stands for, resolved against a location the caller read once
+   * (visit() with the location given).
+   * @tparam F Callable on each primitive type.
+   * @param[in] a_leaf     A leaf of this union.
+   * @param[in] a_location The union's location.
+   * @param[in] a_f        What to call.
+   * @return What @p a_f returns.
+   */
+  template <class F>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline auto
+  visitAt(const Leaf& a_leaf, const PoolLocation& a_location, F&& a_f) const noexcept;
   /**
    * @brief Adopt the built parts; used by the constructors.
    * @param[in] a_built     The layout of the BVH, the unbounded primitives and, with several types, the
