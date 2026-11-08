@@ -894,9 +894,13 @@ closestSurfaceOfUnion(const U& a_union, const Vec3T<T>& a_point) noexcept
       return SurfaceDetail::closestSurfaceOf<T>(a_member, a_point);
     });
 
+    // An empty collection names no surface.
     if (inner.m_surface != SurfaceRef<T>::None) {
       surface.m_surface += inner.m_surface;
       surface.m_localPoint = inner.m_localPoint;
+    }
+    else {
+      surface.m_surface = SurfaceRef<T>::None;
     }
   }
 

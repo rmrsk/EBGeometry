@@ -395,6 +395,21 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills through a tape listed as a primi
   }
 }
 
+TEMPLATE_TEST_CASE("Tape: an empty collection names no surface", "[SurfaceRef][Tape]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const auto empty = SphereCloudBVH<T>::build(pool, std::vector<SphereCloud::Sphere<T>>{}, 4);
+
+  const Tape<T, SphereCloudBVH<T>> tape(pool, toExpr(empty));
+
+  CHECK(empty.closestSurface(Vec3T<T>::zeros()).m_surface == SurfaceRef<T>::None);
+  CHECK(tape.getNumSurfaces() == 0U);
+  CHECK(tape.closestSurface(Vec3T<T>::zeros()).m_surface == SurfaceRef<T>::None);
+}
+
 TEMPLATE_TEST_CASE("ExprIndex: rejects a surface or a leaf out of range", "[ExprIndex]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

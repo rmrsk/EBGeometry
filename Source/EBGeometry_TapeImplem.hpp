@@ -182,9 +182,13 @@ struct Drill
     if constexpr (hasSurfaces<P, T>) {
       const SurfaceRef<T> inner = SurfaceDetail::closestSurfaceOf<T>(a_primitive, m_surface->m_localPoint);
 
+      // An empty collection names no surface (it decides nothing unless the tape holds nothing else).
       if (inner.m_surface != SurfaceRef<T>::None) {
         m_surface->m_surface += inner.m_surface;
         m_surface->m_localPoint = inner.m_localPoint;
+      }
+      else {
+        m_surface->m_surface = SurfaceRef<T>::None;
       }
     }
   }

@@ -618,7 +618,8 @@ public:
 
   /**
    * @brief The surface that decides the union's value at a point (see hasSurfaces): the member with the
-   * smallest value, ties going to the lower member index, drilled into if it is a container.
+   * smallest value, ties going to the lower member index (with several types, to the earlier type), drilled into
+   * if it is a container.
    * @param[in] a_point Query point.
    * @return The surface, and the point in its member's frame.
    */
@@ -1058,7 +1059,8 @@ public:
 
   /**
    * @brief The surface that decides the union's value at a point (see hasSurfaces): the member with the
-   * smallest value (the one that dominates the blend), ties going to the lower member index, drilled into if it is a container.
+   * smallest value (the one that dominates the blend), ties going to the lower member index (with several types,
+   * to the earlier type), drilled into if it is a container.
    * @param[in] a_point Query point.
    * @return The surface, and the point in its member's frame.
    */
