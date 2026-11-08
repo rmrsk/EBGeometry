@@ -118,7 +118,9 @@ mesh's.
 .. note::
 
    Every solid of an ASCII STL file is read, and each named solid's faces are a face group of that
-   name; an OBJ file's ``g`` and ``o`` lines put the faces after them in a group too. The groups are
+   name (a solid that starts before the previous one has ended ends it); an OBJ file's ``g`` and ``o``
+   lines put the faces after them in a group too, named by the rest of the line (``g a b`` is the one group
+   ``a b``). The groups are
    ``PolygonSoup::getFaceGroups()``, and ``Label(mesh, groups)`` turns them into labels of the mesh's faces
    (see :ref:`Sec:Parts`). In a binary STL, the two "attribute" bytes after each triangle are ignored;
    some exporters store a color there.

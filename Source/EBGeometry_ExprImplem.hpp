@@ -915,8 +915,14 @@ Label(const A& a_operand, FaceGroups a_groups)
   EBGEOMETRY_REQUIRE(operand.node().m_kind == ExprDetail::Kind::Primitive,
                      "Label: face groups label the parts of one shape, not of a composition (label it first)");
 
-  const ExprDetail::Leaf& leaf  = operand.node().m_leaf;
-  const uint32_t          parts = (leaf.m_numParts != nullptr) ? leaf.m_numParts(leaf.m_object.get()) : 1U;
+  const ExprDetail::Leaf& leaf = operand.node().m_leaf;
+
+  // A collection's parts are its members' (closestSurface() reports the member's part), not the leaf's own, so its
+  // parts cannot be labeled by one table.
+  EBGEOMETRY_REQUIRE(leaf.m_numSurfaces == nullptr,
+                     "Label: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)");
+
+  const uint32_t parts = (leaf.m_numParts != nullptr) ? leaf.m_numParts(leaf.m_object.get()) : 1U;
 
   EBGEOMETRY_REQUIRE(a_groups.m_group.size() == parts,
                      "Label: the face groups name %zu parts of a shape with %u",

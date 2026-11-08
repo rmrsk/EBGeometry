@@ -868,8 +868,9 @@ Label(const A& a_operand, std::string a_name);
  * @details For a mesh read from a file, the groups are its face groups (PolygonSoup::getFaceGroups()): an OBJ
  * file's `g` and `o` groups, or an ASCII STL file's named solids, so that a mesh's patches (inlet, outlet, wall)
  * become labels. The names are numbered with every other label's (see Label()), in the order they first appear.
- * The operand must be one shape, not a composition (label it before translating or combining it), with as many
- * parts as the groups have faces; anything else aborts with a message, in every build. A Tape reports the label in
+ * The operand must be one shape, not a composition (label it before translating or combining it) nor a collection
+ * (a BVH union, a sphere cloud, a tape), with as many parts as the groups have faces; anything else aborts with a
+ * message, in every build. A Tape reports the label in
  * SurfaceRef::m_label, from closestSurface() and firstSurface(), on the host and on a device.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand A shape with parts (a mesh SDF, a box, ...).

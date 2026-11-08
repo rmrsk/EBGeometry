@@ -228,6 +228,11 @@ TEMPLATE_TEST_CASE("Parser: OBJ groups and STL solids are kept as face groups",
   CHECK(tetrahedron.getFaceGroups().m_names == std::vector<std::string>{"base", "sides"});
   CHECK(tetrahedron.getFaceGroups().m_group == std::vector<uint32_t>{0, 1, 1, 1});
 
+  // A solid that starts before the previous one has ended ends it.
+  const auto open = Parser::readSTL<T>(dataFile("tetrahedron_solids_open.stl"));
+
+  CHECK(open.getFaceGroups().m_group == std::vector<uint32_t>{0, 1, 1, 1});
+
   // A file without groups has none.
   CHECK(Parser::readOBJ<T>(dataFile("cube_quads.obj")).getFaceGroups().empty());
   CHECK(Parser::readSTL<T>(dataFile("tetrahedron.stl")).getFaceGroups().m_names ==
@@ -354,6 +359,19 @@ TEMPLATE_TEST_CASE(
 
   REQUIRE(abortsWith([six] { (void)Label(Translate(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), V(1, 0, 0)), six); },
                      "Label: face groups label the parts of one shape, not of a composition (label it first)"));
+  REQUIRE(abortsWith(
+    [] {
+      Pool                            pool(hostMemoryResource());
+      const BVHUnion<T, 4, BoxSDF<T>> boxes(pool, std::vector<BoxSDF<T>>{BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1))});
+
+      FaceGroups one;
+
+      one.m_names = {"a"};
+      one.m_group = {0U};
+
+      (void)Label(boxes, one);
+    },
+    "Label: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)"));
   REQUIRE(abortsWith([six] { (void)Label(CylinderSDF<T>(V(0, 0, 0), V(0, 0, 1), T(1)), six); },
                      "Label: the face groups name 6 parts of a shape with 3"));
 

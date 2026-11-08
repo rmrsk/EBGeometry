@@ -3087,11 +3087,16 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexce
     this->visitPrimitive(ref, TapeDetail::Drill<T>{&surface});
   }
 
-  // A part whose face group named it has that label, over the leaf's.
+  // A part whose face group named it has that label, over the leaf's. The table starts with one entry per leaf:
+  // where the leaf's labels begin, or None for a leaf whose parts are not labeled. Only a single shape's parts are
+  // (Label() rejects a collection), so the part indexes the leaf's own labels; a label there may itself be None,
+  // for a part in no group under an unlabeled leaf.
   if (m_layout.m_partLabels.size() > 0) {
     const uint32_t begin = m_layout.m_partLabels.at(this->base(), ref.m_leaf);
 
     if (begin != SurfaceRef<T>::None) {
+      EBGEOMETRY_EXPECT(begin + surface.m_part < m_layout.m_partLabels.size());
+
       surface.m_label = m_layout.m_partLabels.at(this->base(), begin + surface.m_part);
     }
   }

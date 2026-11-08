@@ -24,6 +24,7 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -248,6 +249,11 @@ struct GroupReader
   uint32_t m_current = FaceGroups::None;
 
   /**
+   * @brief Each name's group, so that a file with many groups is read in linear time.
+   */
+  std::unordered_map<std::string, uint32_t> m_index;
+
+  /**
    * @brief Start a group: the faces read next are in the group of this name (none for an empty name).
    * @param[in] a_name The name, trimmed.
    */
@@ -260,17 +266,13 @@ struct GroupReader
       return;
     }
 
-    for (uint32_t g = 0; g < m_groups.m_names.size(); g++) {
-      if (m_groups.m_names[g] == a_name) {
-        m_current = g;
+    const auto [entry, added] = m_index.emplace(a_name, static_cast<uint32_t>(m_groups.m_names.size()));
 
-        return;
-      }
+    if (added) {
+      m_groups.m_names.push_back(a_name);
     }
 
-    m_current = static_cast<uint32_t>(m_groups.m_names.size());
-
-    m_groups.m_names.push_back(a_name);
+    m_current = entry->second;
   }
 
   /**
@@ -416,8 +418,9 @@ Parser::readSTL(const std::string& a_filename)
       sstream >> keyword;
 
       if (keyword == "solid") {
-        if (inSolid) {
-          throw ParseError(a_filename, lineNumber, "a solid starts before the previous one has ended");
+        // A solid that starts before the previous one has ended ends it: some exporters leave out 'endsolid'.
+        if (inFacet) {
+          throw ParseError(a_filename, lineNumber, "a solid starts inside a facet");
         }
 
         inSolid = true;
