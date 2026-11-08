@@ -68,7 +68,7 @@ try {
   //
   // The tape stores each leaf's label, as a number it can report on the host and on a GPU. ExprIndex, built
   // from the same expression on the host, numbers the labels the same way and holds their names, so a table
-  // of your own, indexed by the label, can be filled by name. findLabel() returns PrimitiveRef::None for a
+  // of your own, indexed by the label, can be filled by name. findLabel() returns LeafRef::None for a
   // name the expression does not have, and a query finds no label for an unlabeled leaf, so check the number
   // before indexing.
   const EBGeometry::ExprIndex<T> index(object);
@@ -90,12 +90,12 @@ try {
     return a_label < materials.size() ? materials[a_label] : std::string("none");
   };
 
-  // closestPrimitive(p) names the leaf the value at p comes from, and getLabel() its label.
+  // closestLeaf(p) names the leaf the value at p comes from, and getLabel() its label.
   std::cout << std::fixed << std::setprecision(3) << "Near a point:\n";
 
   for (const Vec3& p : {Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(0.25), T(1.22), T(-0.2)), Vec3(T(0), T(0.4), T(0))}) {
     std::cout << "  " << p << "   value " << std::setw(7) << tape.signedDistance(p) << "   "
-              << material(tape.getLabel(tape.closestPrimitive(p))) << '\n';
+              << material(tape.getLabel(tape.closestLeaf(p))) << '\n';
   }
 
   // firstHit() along a ray reports the leaf it crossed in HitT::m_primitive, with the point and the normal.

@@ -41,7 +41,7 @@ What is in Performance/
      RayParticles/main.cpp    particles colliding with a boundary
      Render/main.cpp          one frame of the renderer
      MeshCSG/main.cpp         a mesh in plain and smooth unions: rays and frames
-     ClosestPrimitive/main.cpp  a tape's closestPrimitive()
+     ClosestPrimitive/main.cpp  a tape's closestLeaf()
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -503,7 +503,7 @@ Family                                Build  Measures
 
 The inputs are ``mesh``, ``csg-tape``, ``drilled-mesh-tape`` and ``smooth-mesh-tape``.
 
-**ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestPrimitive()``, the deciding
+**ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestLeaf()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the
 drilled mesh. Each query also evaluates the leaf at its local point, so that the checksum depends on
 both; a host and a device answer agree when they name the same leaf or two leaves whose values tie.

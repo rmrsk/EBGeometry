@@ -21,7 +21,7 @@ The reading order:
 8. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 9. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
 10. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
-11. `Materials`: which part of an object a query found (`closestPrimitive()`, `firstHit()`), and a material table indexed by it.
+11. `Materials`: which part of an object a query found (`closestLeaf()`, `firstHit()`), and a material table indexed by it.
 12. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
 13. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
 14. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.

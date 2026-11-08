@@ -25,7 +25,7 @@ Labels
 :ref:`Chap:ClosestPrimitive`). Two queries name the leaf a part of the answer comes from, and the tape's
 ``getLabel()`` gives its label:
 
-* ``closestPrimitive(p)``, the leaf the value at ``p`` comes from;
+* ``closestLeaf(p)``, the leaf the value at ``p`` comes from;
 * ``firstHit(shape, ray, tMin, tMax).m_primitive``, the leaf the ray crossed, with the point and the normal
   (see :ref:`Chap:ImplemRays`).
 
@@ -44,7 +44,7 @@ here; in an application, materials or boundary conditions) is filled by name and
 
    for (const auto& [name, material] : {std::pair<const char*, const char*>{"skin", "skin (the armadillo)"},
                                         {"bore", "machined (the cylinder's bore)"}}) {
-     const uint32_t label = index.findLabel(name);   // PrimitiveRef<T>::None for a name the expression lacks
+     const uint32_t label = index.findLabel(name);   // LeafRef<T>::None for a name the expression lacks
 
      if (label < materials.size()) {
        materials[label] = material;
@@ -57,7 +57,7 @@ here; in an application, materials or boundary conditions) is filled by name and
      std::cout << materials[tape.getLabel(hit.m_primitive)] << '\n';
    }
 
-An unlabeled leaf has no label (``PrimitiveRef::None``), so check the number before indexing. A mesh is one
+An unlabeled leaf has no label (``LeafRef::None``), so check the number before indexing. A mesh is one
 leaf; its faces are told apart by ``getClosestFace()`` on the mesh itself (see
 :ref:`Chap:ExampleMeshSDF`).
 

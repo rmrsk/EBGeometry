@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Performance cases for closestPrimitive(), the deciding leaf of a tape at a point: the classic CSG solid,
+// Performance cases for closestLeaf(), the deciding leaf of a tape at a point: the classic CSG solid,
 // a scene of fused CSG parts (each one leaf of the tape) and a mesh drilled through by a cylinder, in float
 // and double, at random points around each object. Each query returns the leaf and the leaf's own value at
 // its local point (through visitPrimitive()), so that the checksum depends on both. A host build runs the
@@ -55,7 +55,7 @@ struct Leaf
   LeafHit<T>
   operator()(const Vec3<T>& a_point) const noexcept
   {
-    const EBGeometry::PrimitiveRef<T> ref = m_shape.closestPrimitive(a_point);
+    const EBGeometry::LeafRef<T> ref = m_shape.closestLeaf(a_point);
 
     T value = T(0);
 
@@ -138,7 +138,7 @@ pointsAround(const EBGeometry::BoundingVolumes::AABBT<T>& a_box, std::size_t a_n
     Perf::Seed::TapeQueries);
 }
 
-// The cases for one composition: closestPrimitive() on the host and as a host/device pair. a_build(case,
+// The cases for one composition: closestLeaf() on the host and as a host/device pair. a_build(case,
 // pool) returns the tape and the box its points are drawn around.
 template <class T, class Build>
 void

@@ -6,7 +6,7 @@ Which part: the deciding primitive
 A composed object answers one question at a point, its signed distance, but an application often needs
 a second: which part of the object is that? A boundary condition depends on whether a wall is the inlet,
 the outlet or the casing; a material on whether a surface is the machined bore or the cast body; a
-picture or a label on which object a pixel shows. A tape answers this with ``closestPrimitive(p)``. It
+picture or a label on which object a pixel shows. A tape answers this with ``closestLeaf(p)``. It
 names the leaf of the composition whose surface the value at ``p`` comes from: the *deciding primitive*.
 
 The deciding primitive, not the nearest one
@@ -15,7 +15,7 @@ The deciding primitive, not the nearest one
 A composition takes its value from its operands' values: a union takes the smallest, an intersection the
 largest, a difference the largest of the first operand's value and the negated values of the others.
 Whichever operand the value is taken from is the one that decides it, and following that choice down
-the composition ends at a leaf. That leaf is the one ``closestPrimitive(p)`` names.
+the composition ends at a leaf. That leaf is the one ``closestLeaf(p)`` names.
 
 This is not the same as the primitive whose surface is geometrically nearest to ``p``. A composition
 removes parts of its primitives' surfaces, and the nearest primitive surface may be one of those removed
@@ -59,15 +59,15 @@ Each operation passes on a leaf as follows:
 Asking for it
 -------------
 
-``closestPrimitive(p)`` is a member of the
+``closestLeaf(p)`` is a member of the
 `Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__ and returns a
-`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__:
+`LeafRef <doxygen/html/structEBGeometry_1_1LeafRef.html>`__:
 
 * ``m_leaf``: the leaf's number. The leaves are numbered in the order they appear in the expression,
   depth first, counting each occurrence, so a shape used twice is two leaves. In
   ``Difference(Intersection(cube, ball), Union(drills))`` the cube is leaf 0, the ball leaf 1 and the
   three drills leaves 2 to 4. The number is the one to index a table of your own with: materials,
-  boundary conditions, colors. It is ``PrimitiveRef::None`` when the query names no leaf, so check it
+  boundary conditions, colors. It is ``LeafRef::None`` when the query names no leaf, so check it
   before indexing.
 * ``m_type`` and ``m_index``: which of the tape's primitive types the leaf is, and which primitive of that
   type. They are what the accessors below use; most programs need not read them directly.
@@ -94,9 +94,9 @@ point:
 
    using Mesh = TriMeshSDF<T, BVH::DefaultBranchingRatio<T>(), TriangleSoA::DefaultWidth<T>()>;
 
-   const PrimitiveRef<T> ref = tape.closestPrimitive(p);
+   const LeafRef<T> ref = tape.closestLeaf(p);
 
-   if (ref.m_leaf != PrimitiveRef<T>::None && tape.isPrimitive<Mesh>(ref)) {
+   if (ref.m_leaf != LeafRef<T>::None && tape.isPrimitive<Mesh>(ref)) {
      const Mesh     mesh = tape.primitive<Mesh>(ref);
      const uint32_t face = mesh.getClosestFace(ref.m_localPoint).faceId;   // the face's position in the file
    }
@@ -112,7 +112,7 @@ A leaf number is fine for a program that builds its expression itself, but it de
 order: an edit earlier in the expression renumbers everything after it. A name does not.
 ``Label(object, "name")`` names an object, and every leaf below it gets the label, unless a label nearer the
 leaf names it. Labels change nothing in how the object is evaluated, and nothing has to be labeled: an
-unlabeled leaf has no label (``PrimitiveRef::None``). Several objects may share a name, and so a label.
+unlabeled leaf has no label (``LeafRef::None``). Several objects may share a name, and so a label.
 
 .. code-block:: c++
 
@@ -122,10 +122,10 @@ unlabeled leaf has no label (``PrimitiveRef::None``). Several objects may share 
    const ExprIndex<T> index(part);
 
    std::vector<Wall> walls(tape.getNumLabels());   // per-label data of your own
-   walls[index.findLabel("wall")]  = ...;          // findLabel() is PrimitiveRef<T>::None for an unknown name
+   walls[index.findLabel("wall")]  = ...;          // findLabel() is LeafRef<T>::None for an unknown name
    walls[index.findLabel("bores")] = ...;
 
-   const uint32_t label = tape.getLabel(tape.closestPrimitive(p));   // or tape.getLabel(hit.m_primitive)
+   const uint32_t label = tape.getLabel(tape.closestLeaf(p));   // or tape.getLabel(hit.m_primitive)
 
 The tape reports a leaf's label with ``getLabel()``, on the host and inside a GPU kernel, so a kernel
 (a particle hitting a wall, say) looks up per-label data in an array of its own. The label is a number;
@@ -146,7 +146,7 @@ Along a ray
 -----------
 
 A ray query (see :ref:`Chap:Rays`) reports which part it crossed in ``HitT::m_primitive``, with the same
-meaning: for a tape, the leaf whose surface the ray crossed, numbered as ``closestPrimitive()`` numbers
+meaning: for a tape, the leaf whose surface the ray crossed, numbered as ``closestLeaf()`` numbers
 the leaves. Other shapes name what they can: a mesh distance
 field the id of the face crossed, a BVH union (not a smooth one) the member crossed, and any other shape (an analytic
 shape, a fused composition) 0. The renderer colors by this number with
@@ -156,21 +156,21 @@ the viewer picks the part under the cursor by it (see :ref:`Chap:Rendering`).
 On the host and on a device
 ---------------------------
 
-``closestPrimitive()``, ``isPrimitive()``, ``primitive()`` and ``visitPrimitive()`` can be called on the
-host and inside a GPU kernel, like ``signedDistance()``. ``closestPrimitive()`` evaluates the composition
+``closestLeaf()``, ``isPrimitive()``, ``primitive()`` and ``visitPrimitive()`` can be called on the
+host and inside a GPU kernel, like ``signedDistance()``. ``closestLeaf()`` evaluates the composition
 the way ``signedDistance()`` does, carrying the deciding leaf and its local point along with every
 intermediate value, so it costs somewhat more than ``signedDistance()``. The two are compiled
 separately: ``signedDistance()`` carries nothing extra, and a program that never asks for the deciding
 primitive pays nothing for it.
 
-Only a tape has ``closestPrimitive()``. A fused composition is one shape with one surface and names no
+Only a tape has ``closestLeaf()``. A fused composition is one shape with one surface and names no
 parts; to tell parts apart, make them leaves of a tape (each part can be a fused composition itself).
 
 Examples
 --------
 
 * :ref:`Chap:ExampleMaterials` bores a cylinder through a mesh, labels the two parts, names each point's
-  part with ``closestPrimitive()`` and each ray's with ``HitT::m_primitive``, looks its label up in a table
+  part with ``closestLeaf()`` and each ray's with ``HitT::m_primitive``, looks its label up in a table
   of materials, and renders the object colored by part.
 * :ref:`Chap:ExampleBasicCSG` prints the deciding leaf at a few points of the classic CSG solid, a cube
   intersected with a ball and drilled along three axes.

@@ -430,7 +430,7 @@ private:
   uint32_t m_current = UINT32_MAX;
 
   /**
-   * @brief The number the next primitive leaf gets (see Tape::closestPrimitive()).
+   * @brief The number the next primitive leaf gets (see Tape::closestLeaf()).
    */
   uint32_t m_nextLeaf = 0;
 
@@ -1038,7 +1038,7 @@ private:
 
       // The leaf's number, in expression order (the compiler visits the expression depth first, the
       // operands of a BVH union and the sub-programs too), in the value clause's otherwise unused m_b, and
-      // in the ray Leaf clause's m_b: the number closestPrimitive() reports, which a hit reports as its
+      // in the ray Leaf clause's m_b: the number closestLeaf() reports, which a hit reports as its
       // primitive (the spans name a leaf by its ray clause's position instead).
       if (a_ray != nullptr) {
         // At a level set: the level in params[m_c], flagged in m_flags (see TapeDetail::RayOp::Leaf).
@@ -1531,8 +1531,8 @@ Tape<T, UserPrimitives...>::intersects(const Vec3T<T>&      a_from,
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
-inline PrimitiveRef<T>
-Tape<T, UserPrimitives...>::closestPrimitive(const Vec3T<T>& a_point) const noexcept
+inline LeafRef<T>
+Tape<T, UserPrimitives...>::closestLeaf(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1546,7 +1546,7 @@ Tape<T, UserPrimitives...>::closestPrimitive(const Vec3T<T>& a_point) const noex
                     ? this->template evaluateBody<0, V>(0U, a_point, this->base(), this->location())
                     : this->template evaluate<MaxCallDepth, V>(0U, a_point, this->base(), this->location());
 
-  PrimitiveRef<T> ref;
+  LeafRef<T> ref;
 
   if (value.m_tag != CSGOps::NoTag) {
     const TapeDetail::Clause& c = m_layout.m_clauses.at(this->base(), value.m_tag);
@@ -1564,7 +1564,7 @@ template <class T, class... UserPrimitives>
 template <class P>
 EBGEOMETRY_HOST_DEVICE
 inline bool
-Tape<T, UserPrimitives...>::isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::isPrimitive(const LeafRef<T>& a_ref) const noexcept
 {
   constexpr size_t I = TapeDetail::IndexOf<P, Primitives>::value;
 
@@ -1577,7 +1577,7 @@ template <class T, class... UserPrimitives>
 template <class P>
 EBGEOMETRY_HOST_DEVICE
 inline P
-Tape<T, UserPrimitives...>::primitive(const PrimitiveRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::primitive(const LeafRef<T>& a_ref) const noexcept
 {
   constexpr size_t I = TapeDetail::IndexOf<P, Primitives>::value;
 
@@ -1600,7 +1600,7 @@ template <class T, class... UserPrimitives>
 template <class F>
 EBGEOMETRY_HOST_DEVICE
 inline void
-Tape<T, UserPrimitives...>::visitPrimitive(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
+Tape<T, UserPrimitives...>::visitPrimitive(const LeafRef<T>& a_ref, F&& a_f) const noexcept
 {
   EBGEOMETRY_EXPECT(a_ref.m_type < Primitives::size);
 
@@ -1611,7 +1611,7 @@ template <class T, class... UserPrimitives>
 template <size_t I, class F>
 EBGEOMETRY_HOST_DEVICE
 inline void
-Tape<T, UserPrimitives...>::dispatchVisit(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
+Tape<T, UserPrimitives...>::dispatchVisit(const LeafRef<T>& a_ref, F&& a_f) const noexcept
 {
   if constexpr (I < Primitives::size) {
     if (a_ref.m_type == I) {
@@ -2188,7 +2188,7 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
 
   // A crossing found by marching a subtree is named by the leaf deciding the value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
-    hit.m_primitive = this->closestPrimitive(hit.m_point).m_leaf;
+    hit.m_primitive = this->closestLeaf(hit.m_point).m_leaf;
   }
 
   return hit;
@@ -2928,13 +2928,13 @@ EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getLabel(const uint32_t a_leaf) const noexcept
 {
-  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : PrimitiveRef<T>::None;
+  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : LeafRef<T>::None;
 }
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-Tape<T, UserPrimitives...>::getLabel(const PrimitiveRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::getLabel(const LeafRef<T>& a_ref) const noexcept
 {
   return this->getLabel(a_ref.m_leaf);
 }

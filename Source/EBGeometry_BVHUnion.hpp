@@ -167,7 +167,7 @@ struct UnionParts
  * array.
  * @details Internal helper; not part of the public API.
  */
-struct LeafRef
+struct MemberRef
 {
   /**
    * @brief Index of the primitive's type among the union's types.
@@ -239,7 +239,7 @@ struct ArraysOf<P>
 };
 
 /**
- * @brief What a union's BVH leaves hold: the primitive itself for one type, a LeafRef for several.
+ * @brief What a union's BVH leaves hold: the primitive itself for one type, a MemberRef for several.
  * @details Internal helper; not part of the public API.
  * @tparam Ps Primitive types.
  */
@@ -249,7 +249,7 @@ struct LeafOf
   /**
    * @brief A reference into the per-type arrays.
    */
-  using type = LeafRef;
+  using type = MemberRef;
 };
 
 /**
@@ -361,7 +361,7 @@ inline constexpr DistanceQuality unionQuality =
                                                                     : DistanceQuality::Bound;
 
 /**
- * @brief Call @p a_f with the primitive a LeafRef stands for, testing its type against the arrays' types in
+ * @brief Call @p a_f with the primitive a MemberRef stands for, testing its type against the arrays' types in
  * order (the last is taken without a test).
  * @details Internal helper; not part of the public API.
  * @tparam F  Callable on each primitive type, returning the same type for all.

@@ -847,7 +847,7 @@ Label(const A& a_operand, std::string a_name);
 
 /**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
- * way from what a Tape reports (a leaf, see PrimitiveRef::m_leaf and HitT::m_primitive) back to the
+ * way from what a Tape reports (a leaf, see LeafRef::m_leaf and HitT::m_primitive) back to the
  * expression.
  * @details The nodes are numbered from 0 at the root, depth first, the operands in order, each occurrence of
  * a shared subexpression counted; the leaves (the shapes) are numbered the same way, as a Tape compiled from

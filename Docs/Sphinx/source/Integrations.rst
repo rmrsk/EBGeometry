@@ -42,7 +42,7 @@ EBGeometry object.
      - :ref:`Chap:ExampleMeshCSG`
    * - :file:`Materials`
      - The armadillo with a bored cylinder, in a ``Tape``, and each cut cell labeled with its closest leaf
-       (``closestPrimitive()``) and, on the mesh, its closest face (``getClosestFace()``).
+       (``closestLeaf()``) and, on the mesh, its closest face (``getClosestFace()``).
      - :ref:`Chap:ExampleMaterials`
    * - :file:`ManyObjects`
      - 3,000 spheres in a cylinder joined by a ``BVHSmoothUnion`` (the fluid is between them), or a city of

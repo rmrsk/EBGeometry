@@ -113,7 +113,7 @@ main()
   // Ask it anything, anywhere: here, at a point in the blob.
   const Vec3T<T>        p    = beside;
   const T               d    = scene.signedDistance(p);    // negative inside, positive outside
-  const PrimitiveRef<T> leaf = scene.closestPrimitive(p);  // which surface decides the value
+  const LeafRef<T> leaf = scene.closestLeaf(p);  // which surface decides the value
 
   std::cout << "distance " << d << ", decided by leaf " << leaf.m_leaf << '\n';
 

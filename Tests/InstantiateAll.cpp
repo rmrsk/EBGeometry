@@ -466,7 +466,7 @@ instantiateFunctionTemplates()
     (void)tape.getLargestPlainUnion();
     (void)tape.getNumLabels();
     (void)tape.getLabel(0U);
-    (void)tape.getLabel(tape.closestPrimitive(Vec3T<T>::zeros()));
+    (void)tape.getLabel(tape.closestLeaf(Vec3T<T>::zeros()));
     (void)ExprIndex<T>(Label(expr, "all")).pathOf(0U);
     (void)tape.getCallDepth();
     (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
@@ -480,7 +480,7 @@ instantiateFunctionTemplates()
     (void)exact.signedDistance(Vec3T<T>::zeros());
     (void)exact.firstHit(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
 
-    const PrimitiveRef<T> leaf = tape.closestPrimitive(Vec3T<T>::zeros());
+    const LeafRef<T> leaf = tape.closestLeaf(Vec3T<T>::zeros());
 
     (void)tape.template isPrimitive<SphereSDF<T>>(leaf);
     (void)tape.template primitive<SphereSDF<T>>(leaf);

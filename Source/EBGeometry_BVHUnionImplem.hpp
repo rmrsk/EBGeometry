@@ -391,7 +391,7 @@ buildMixedUnion(Pool&                           a_pool,
                 const std::vector<Ps>&... a_primitives)
 {
   using BV   = BoundingVolumes::AABBT<T>;
-  using Root = BVH::PackedBVH<T, LeafRef, K>;
+  using Root = BVH::PackedBVH<T, MemberRef, K>;
   using Node = typename Root::Node;
 
   const size_t total = (a_primitives.size() + ...);
@@ -403,9 +403,9 @@ buildMixedUnion(Pool&                           a_pool,
   BVH::detail::requireLeafSetting("BVHUnion", a_construction, a_options);
 
   // A primitive with an unbounded box goes into one leaf that every query scans, as for one type.
-  std::vector<std::pair<LeafRef, BV>> leavesAndBVs;
-  std::vector<LeafRef>                unboundedLeaves;
-  BV                                  unboundedBox;
+  std::vector<std::pair<MemberRef, BV>> leavesAndBVs;
+  std::vector<MemberRef>                unboundedLeaves;
+  BV                                    unboundedBox;
 
   leavesAndBVs.reserve(total);
 
@@ -413,8 +413,8 @@ buildMixedUnion(Pool&                           a_pool,
 
   const auto collect = [&](const auto& a_ofType) {
     for (size_t i = 0; i < a_ofType.size(); i++) {
-      const BV      box = a_ofType[i].computeBoundingVolume();
-      const LeafRef leaf{type, static_cast<uint32_t>(i)};
+      const BV        box = a_ofType[i].computeBoundingVolume();
+      const MemberRef leaf{type, static_cast<uint32_t>(i)};
 
       if (isUnbounded(box)) {
         unboundedLeaves.push_back(leaf);
@@ -450,7 +450,7 @@ buildMixedUnion(Pool&                           a_pool,
   }
 
   const Root unbounded(a_pool, unboundedNodes, unboundedNodeBoxes, unboundedLeaves);
-  const Root bvh = leavesAndBVs.empty() ? Root(a_pool, std::vector<Node>{}, std::vector<BV>{}, std::vector<LeafRef>{})
+  const Root bvh = leavesAndBVs.empty() ? Root(a_pool, std::vector<Node>{}, std::vector<BV>{}, std::vector<MemberRef>{})
                                         : Root::build(a_pool, std::move(leavesAndBVs), a_construction, a_options);
 
   fillArrays(a_pool.base(), layout.m_arrays, storedOf(a_primitives)...);

@@ -1542,7 +1542,7 @@ TEMPLATE_TEST_CASE("BVHUnion: meshes and spheres in one union, deep-copied and m
 
   const auto mixed = BVHUnion(*pool, meshes, spheres);
 
-  static_assert(std::is_same_v<typename std::decay_t<decltype(mixed)>::Leaf, CSGDetail::LeafRef>);
+  static_assert(std::is_same_v<typename std::decay_t<decltype(mixed)>::Leaf, CSGDetail::MemberRef>);
 
   std::vector<T> expected;
 

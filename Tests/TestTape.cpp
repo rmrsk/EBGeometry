@@ -297,8 +297,8 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
 
     // The leaf a shape evaluated directly at its BVH leaf names is the one the union as written names, at the
     // same local point.
-    const PrimitiveRef<T> fast  = withBVH.closestPrimitive(p);
-    const PrimitiveRef<T> plain = asWritten.closestPrimitive(p);
+    const LeafRef<T> fast  = withBVH.closestLeaf(p);
+    const LeafRef<T> plain = asWritten.closestLeaf(p);
 
     CHECK(fast.m_leaf == plain.m_leaf);
     CHECK(fast.m_type == plain.m_type);
@@ -325,7 +325,7 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
   for (const auto& p : probes<T>()) {
     CHECK_THAT(inner.signedDistance(p), withinAbsT(innerAsWritten.signedDistance(p), tightMargin<T>()));
     CHECK_THAT(outer.signedDistance(p), withinAbsT(outerAsWritten.signedDistance(p), tightMargin<T>()));
-    CHECK(outer.closestPrimitive(p).m_leaf == outerAsWritten.closestPrimitive(p).m_leaf);
+    CHECK(outer.closestLeaf(p).m_leaf == outerAsWritten.closestLeaf(p).m_leaf);
   }
 
   // Operands that are not distances are allowed when asked for: the union keeps the sign.
