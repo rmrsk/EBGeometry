@@ -84,7 +84,8 @@ struct Scene
     solids.insert(solids.end(), boxes.begin(), boxes.end());
     cuts.insert(cuts.end(), holes.begin(), holes.end());
 
-    return EBGeometry::Difference(EBGeometry::Union(solids), EBGeometry::Union(cuts));
+    return EBGeometry::Difference(EBGeometry::Union(solids, EBGeometry::Accelerate::BVH),
+                                  EBGeometry::Union(cuts, EBGeometry::Accelerate::BVH));
   }
 
   // The scene fused.
@@ -105,7 +106,7 @@ private:
   }
 };
 
-// The crowd: balls with centers in [-1, 1]^3 and radii in [0.02, 0.04], as one union.
+// The crowd: balls with centers in [-1, 1]^3 and radii in [0.02, 0.04], as one union through a BVH.
 template <class T>
 EBGeometry::Expr<T>
 crowd(const std::size_t a_n)
@@ -119,7 +120,7 @@ crowd(const std::size_t a_n)
     balls.emplace_back(EBGeometry::SphereSDF<T>(centers[i], T(0.02) + T(0.02) * sizes[i][0]));
   }
 
-  return EBGeometry::Union(balls);
+  return EBGeometry::Union(balls, EBGeometry::Accelerate::BVH);
 }
 
 // The ray from a_origin towards a_target.
@@ -306,7 +307,7 @@ addPrecision(Perf::Suite& a_suite)
 {
   const auto fused = [](Perf::Case&, EBGeometry::Pool&) { return Scene<T>().fused(); };
 
-  // The union of 50 is a BVH union in the tape (TapeOptions::m_bvhUnionThreshold).
+  // The union of 50 and that of the 10 holes are BVH unions in the tape.
   const auto tape = [](Perf::Case& c, EBGeometry::Pool& a_pool) {
     const EBGeometry::Tape<T> t(a_pool, Scene<T>().expr());
 

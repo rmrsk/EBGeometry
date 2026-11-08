@@ -264,19 +264,19 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
   Accelerate::BVH)``, ``Difference(a, list, Accelerate::BVH)``, whose subtracted objects are one such union)
   is evaluated with a BVH over the operands' boxes, exactly as ``BVHUnion`` and ``BVHSmoothUnion`` evaluate
   their primitives (:ref:`Sec:BVHUnions`), including keeping operands with unbounded boxes out of the tree.
-  Without it, a union or smooth union of at least ``TapeOptions::m_bvhUnionThreshold`` operands (8 by
-  default), all of them distances, is evaluated the same way. The operands can be of any type and composed
-  in any way, such as several translations of one mesh: an operand that is a shape, or a shape under maps
-  (``Translate``, ``Rotate``, ``Scale``, ...), is evaluated directly at its leaf, any other through a
-  sub-program. With
-  ``Exact`` operands the value is the same as an operand-by-operand minimum. A ``Bound`` operand (a
+  Without it, a union is evaluated as written, every operand at every point, however many there are. The
+  BVH pays from fewer operands on the host than on a device, where the operands' arithmetic is cheap next
+  to the traversal; measure your own case (the ``TapeBVHUnion`` probe, :ref:`Chap:PerformanceTesting`).
+  The operands can be of any type and composed in any way, such as several translations of one mesh: an
+  operand that is a shape, or a shape under maps (``Translate``, ``Rotate``, ``Scale``, ...), is evaluated
+  directly at its leaf, any other through a sub-program. With ``Exact`` operands the value is the same as an operand-by-operand minimum. A ``Bound`` operand (a
   blur, an elongation, a shrinking offset) can have a value below its box's distance, so the BVH may
   skip an operand whose value would have been smaller: the result can then be larger than the plain
-  minimum, but it keeps the sign and is still a bound on the distance. A union with an operand that is
-  ``NotADistance`` is evaluated operand by operand, unless ``Accelerate::BVH`` asks for the BVH: its value
-  then keeps only its sign, as its distance quality says.
-  `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ also chooses the BVH
-  construction method.
+  minimum, but it keeps the sign and is still a bound on the distance. Through a BVH, a union with an operand
+  that is ``NotADistance`` keeps only its sign, as its distance quality says.
+  `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ chooses the BVH construction
+  method, and the size from which a union evaluated as written prints a warning each time a tape is built,
+  suggesting ``Accelerate::BVH`` (``m_largeUnionWarning``; 0 silences it).
 * **Limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are compiled into
   sub-programs, which nest at most ``Tape::MaxCallDepth`` (4) deep, and a sub-program holds at most
   ``Tape::ValueStackSize`` (16) values and ``Tape::PointStackSize`` (8) points at once. The constructor
@@ -285,8 +285,9 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
   than nesting them on the right), is in :ref:`Chap:Tape`.
 * **Metadata.** ``computeBoundingVolume()`` and ``getDistanceQuality()`` return the expression's
   box and quality. The quality is a runtime value, so a tape used as another object's primitive
-  counts as ``Bound`` there. ``getNumPrograms()``, ``getNumClauses()``, ``getNumBVHUnions()`` and
-  ``getCallDepth()`` describe what was compiled.
+  counts as ``Bound`` there. ``getNumPrograms()``, ``getNumClauses()``, ``getNumBVHUnions()``,
+  ``getNumPrimitives()``, ``getLargestPlainUnion()`` (the most objects in one union evaluated as written,
+  nested unions counted together) and ``getCallDepth()`` describe what was compiled.
 * **A pool handle.** A tape is trivially copyable and holds offsets into its pool and one location
   (see :ref:`Chap:MemoryModel`): ``rebasedView(mirror)`` evaluates it against a mirror of its pool,
   and ``deepCopy(pool)`` copies it, with every pool-resident primitive and BVH it holds, into another

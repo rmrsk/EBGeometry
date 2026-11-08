@@ -56,14 +56,20 @@ namespace EBGeometry {
 struct TapeOptions
 {
   /**
-   * @brief A union or smooth union of at least this many objects is evaluated with a BVH over the
-   * objects' boxes (unless one of them is not a distance); a smaller one is evaluated object by object. A
-   * union built with Accelerate::BVH is evaluated with a BVH whatever this says.
+   * @brief A union or smooth union evaluated as written (not built with Accelerate::BVH) of at least this
+   * many objects prints a warning to stderr when the tape is built, suggesting Accelerate::BVH; 0 silences
+   * it. Nested sharp unions count as one (Union(Union(a, b), c) is a union of three).
+   * @details The default is where a BVH pays on the host and on a device alike. Measured on a lattice of
+   * N spheres, 16 evaluations per point (one core of an i9-12900K, and an RTX 3080 through
+   * GPU::transform()), the BVH beat the union as written from N = 12 on the host (2.6x faster at 64), but
+   * only from about N = 50 to 60 on the device (12 to 15% faster at 64), where the operands' arithmetic is
+   * cheap next to the traversal; at 32 the BVH was 1.6x faster on the host and up to 34% slower on the
+   * device.
    */
-  uint32_t m_bvhUnionThreshold = 8;
+  uint32_t m_largeUnionWarning = 64;
 
   /**
-   * @brief How those BVHs are built.
+   * @brief How the BVHs of unions built with Accelerate::BVH are built.
    */
   BVH::Construction m_construction = BVH::Construction::SAH;
 };
@@ -818,6 +824,16 @@ public:
     uint32_t m_numPrograms = 0;
 
     /**
+     * @brief How many primitives (leaves) the tape has, each occurrence counted.
+     */
+    uint32_t m_numPrimitives = 0;
+
+    /**
+     * @brief The most objects in one union evaluated as written (see getLargestPlainUnion()).
+     */
+    uint32_t m_largestPlainUnion = 0;
+
+    /**
      * @brief Where in m_programs the ray programs begin: sub-program i's is entry m_rayPrograms + i (an empty
      * range for one a ray never follows).
      */
@@ -1013,12 +1029,29 @@ public:
   getNumClauses() const noexcept;
 
   /**
-   * @brief Number of unions evaluated with a BVH.
+   * @brief Number of unions evaluated with a BVH (those built with Accelerate::BVH).
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getNumBVHUnions() const noexcept;
+
+  /**
+   * @brief Number of primitives (leaves) in the tape, each occurrence counted.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumPrimitives() const noexcept;
+
+  /**
+   * @brief The most objects in one union evaluated as written (one not built with Accelerate::BVH), nested
+   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with.
+   * @return The count (0 if the tape has no such union).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getLargestPlainUnion() const noexcept;
 
   /**
    * @brief How deep sub-program calls nest (0 if the tape has no Blur, Mollify, FiniteRepetition or BVH union).

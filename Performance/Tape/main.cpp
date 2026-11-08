@@ -21,18 +21,15 @@
 
 namespace {
 
-// Queries per case, at full and at smoke size, and the number of spheres in the union (above the tape's
-// BVH threshold, TapeOptions::m_bvhUnionThreshold, spelled out).
-constexpr std::size_t HostQueries     = 400000;
-constexpr std::size_t PairQueries     = 1048576;
-constexpr std::size_t SmokeQueries    = 1000;
-constexpr std::size_t UnionSpheres    = 64;
-constexpr std::size_t BVHUnionMinimum = 8;
+// Queries per case, at full and at smoke size, and the number of spheres in the union evaluated through a
+// BVH.
+constexpr std::size_t HostQueries  = 400000;
+constexpr std::size_t PairQueries  = 1048576;
+constexpr std::size_t SmokeQueries = 1000;
+constexpr std::size_t UnionSpheres = 64;
 
-// The spheres of the union evaluated clause by clause, and the BVH threshold above that number which keeps
-// the tape from evaluating it through a BVH.
+// The spheres of the union evaluated as written, clause by clause.
 constexpr std::size_t ChainSpheres = 16;
-constexpr std::size_t NoBVHUnion   = 1000;
 
 template <class T>
 using Vec3 = EBGeometry::Vec3T<T>;
@@ -208,7 +205,7 @@ manySpheres()
       EBGeometry::SphereSDF<T>(Vec3<T>(T(i % 4), T((i / 4) % 4), T(i / 16)), T(0.3) + T(0.05) * T(i % 3)));
   }
 
-  return EBGeometry::Union(spheres);
+  return EBGeometry::Union(spheres, EBGeometry::Accelerate::BVH);
 }
 
 // A shape's signed distance at a point, as the pairs need it; with R > 1, the sum of its signed distances
@@ -300,26 +297,16 @@ addPrecision(Perf::Suite& a_suite)
   using Tape = EBGeometry::Tape<T>;
   using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 
-  EBGeometry::TapeOptions options;
-
-  options.m_bvhUnionThreshold = BVHUnionMinimum;
-
-  const auto tapeWith = [](const EBGeometry::Expr<T>& a_expr, const EBGeometry::TapeOptions& a_options) {
-    return [a_options, a_expr](Perf::Case& c, EBGeometry::Pool& a_pool) {
-      const Tape tape(a_pool, a_expr, a_options);
+  const auto tapeOf = [](const EBGeometry::Expr<T>& a_expr) {
+    return [a_expr](Perf::Case& c, EBGeometry::Pool& a_pool) {
+      const Tape tape(a_pool, a_expr);
 
       c.param("clauses", tape.getNumClauses());
-      c.param("bvhUnionMinimum", a_options.m_bvhUnionThreshold);
+      c.param("bvhUnions", tape.getNumBVHUnions());
 
       return tape;
     };
   };
-
-  const auto tapeOf = [&tapeWith, options](const EBGeometry::Expr<T>& a_expr) { return tapeWith(a_expr, options); };
-
-  EBGeometry::TapeOptions linear;
-
-  linear.m_bvhUnionThreshold = NoBVHUnion;
 
   const AABB cube(Vec3<T>(T(-1), T(-1), T(-1)), Vec3<T>(T(1), T(1), T(1)));
 
@@ -347,7 +334,7 @@ addPrecision(Perf::Suite& a_suite)
 
   const AABB chainBox = chainOfSpheres<T>().computeBoundingVolume();
 
-  addObject<T, Tape>(a_suite, "chain16", chainBox, tapeWith(chainOfSpheres<T>(), linear));
+  addObject<T, Tape>(a_suite, "chain16", chainBox, tapeOf(chainOfSpheres<T>()));
   addObject<T, DirectChain<T>>(
     a_suite, "chain16-handwritten", chainBox, [](Perf::Case&, EBGeometry::Pool&) { return directChain<T>(); });
 }

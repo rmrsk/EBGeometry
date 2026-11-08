@@ -24,10 +24,6 @@ constexpr std::size_t PairQueries  = 1048576;
 constexpr std::size_t SmokeQueries = 1000;
 constexpr std::size_t Shapes       = 64;
 
-// The BVH threshold above the number of shapes, which keeps the union as written from being evaluated
-// through a BVH.
-constexpr std::size_t NoBVHUnion = 1000;
-
 template <class T>
 using Vec3 = EBGeometry::Vec3T<T>;
 
@@ -95,9 +91,10 @@ addUnion(Perf::Suite& a_suite, const std::string& a_input, const EBGeometry::Acc
   const bool        bvh  = (a_accelerate == EBGeometry::Accelerate::BVH);
 
   const auto make = [=](Perf::Case& c, EBGeometry::Pool& a_pool) {
+    // The union as written is large on purpose: no warning.
     EBGeometry::TapeOptions options;
 
-    options.m_bvhUnionThreshold = NoBVHUnion;
+    options.m_largeUnionWarning = 0;
 
     const Tape tape(a_pool, EBGeometry::Union(shapes<T>(), a_accelerate), options);
 

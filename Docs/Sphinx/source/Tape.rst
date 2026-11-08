@@ -83,8 +83,7 @@ operand is compiled into a separate *sub-program*, which the operation's clause 
    * - ``FiniteRepetition``
      - once for each copy the search reaches: the copy in the tile the point falls in, then the
        copies whose box is nearer than the value so far
-   * - A union or smooth union through a BVH: ``Accelerate::BVH``, or at least
-       ``TapeOptions::m_bvhUnionThreshold`` operands (8 by default), all of them distances
+   * - A union or smooth union through a BVH (built with ``Accelerate::BVH``)
      - each operand is compiled into its own sub-program; a BVH over the operands' boxes picks which
        ones to evaluate, and the others are pruned (see :ref:`Sec:Tape`). An operand that is a shape,
        maybe under maps, is evaluated directly at its leaf, without a call
@@ -92,16 +91,16 @@ operand is compiled into a separate *sub-program*, which the operation's clause 
 A sub-program has stacks of its own: when it starts, only its input point is on its point stack, and
 nothing its caller holds counts against it. A sub-program can itself contain one of these operations,
 so calls nest; :numref:`Fig:TapeSubprograms` shows a main program, a blur, and a BVH union inside it.
-Every other operation (the maps, offsets, annuli, elongations, complements, unions and intersections
-below the threshold, and the smooth operations) is written into the program that contains it.
+Every other operation (the maps, offsets, annuli, elongations, complements, the unions and smooth unions
+evaluated as written, and the intersections) is written into the program that contains it.
 
 .. _Fig:TapeSubprograms:
 .. figure:: /_static/TapeSubprograms.png
    :width: 85%
    :align: center
 
-   The sub-programs of ``Union(box, Blur(Union({part_1, ..., part_8}), d, alpha))``, where each part is a
-   placed mesh. The main program (call level 0) calls the blurred operand's program 27 times; that
+   The sub-programs of ``Union(box, Blur(Union({part_1, ..., part_8}, Accelerate::BVH), d, alpha))``, where
+   each part is a placed mesh. The main program (call level 0) calls the blurred operand's program 27 times; that
    program is a BVH union of eight operands, each compiled into its own program at call level 2. Each
    program has its own stacks. Calls may nest ``Tape::MaxCallDepth`` (4) levels below the main
    program; a fifth is rejected when the tape is built.
@@ -133,13 +132,12 @@ waits on the stack. How much a composition needs therefore depends on its shape,
   rejected. The same holds for intersections, and for differences nested on the subtracted side,
   ``Difference(a, Difference(b, ...))``.
 * **One union of a list,** ``Union({a, b, c, d})``, holds two values, like the left-nested form. Through a
-  BVH (``Accelerate::BVH``, or at least ``TapeOptions::m_bvhUnionThreshold`` operands, all of them
-  distances), each operand becomes its own sub-program, with fresh stacks, and the union itself holds one
-  value in its caller.
+  BVH (``Accelerate::BVH``), each operand becomes its own sub-program, with fresh stacks, and the union
+  itself holds one value in its caller.
 * **Smooth unions and intersections** keep the two most extreme values of their operands while they
   evaluate them, so each one holds two values plus what its operand needs, whichever side it is nested
   on: seven binary smooth operations of primitives nested in each other fit in a sub-program, eight do
-  not. A smooth union of a list (below the BVH threshold) holds two values plus what its largest
+  not. A smooth union of a list evaluated as written holds two values plus what its largest
   operand needs; it blends only the two most extreme values, which is a different object from nested
   binary smooth unions.
 
@@ -154,9 +152,9 @@ waits on the stack. How much a composition needs therefore depends on its shape,
 
 To stay within the limit, build unions, intersections and differences of many objects from a list
 (``Union(list)``, ``Intersection(list)``, ``Difference(a, list)``), or nest them on the left. A list is
-also the faster choice for a union: only a union of a list can be evaluated through a BVH
-(``Union(list, Accelerate::BVH)``, or a list reaching the threshold), since a binary ``Union(a, b)`` has two
-operands however deeply it is nested, and is evaluated operand by operand.
+also the faster choice for a large union: only a union of a list can be evaluated through a BVH
+(``Union(list, Accelerate::BVH)``), since a binary ``Union(a, b)`` has two operands however deeply it is
+nested, and is evaluated operand by operand.
 
 Point maps held at once
 ~~~~~~~~~~~~~~~~~~~~~~~

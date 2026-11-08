@@ -26,7 +26,7 @@
 \centering
 \begin{tikzpicture}[x=1cm, y=1cm]
 
-  \node[head] at (0.0,10.35) {\texttt{Union(box, Blur(Union(\{part$_1$, \ldots, part$_8$\}), d, alpha))}};
+  \node[head] at (0.0,10.35) {\texttt{Union(box, Blur(Union(\{part$_1$, \ldots, part$_8$\}, Accelerate::BVH), d, alpha))}};
 
   % ── Call levels, as bands.
   \foreach \l/\y in {0/9.0, 1/7.2, 2/5.4} {

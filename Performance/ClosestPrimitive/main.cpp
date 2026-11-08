@@ -218,7 +218,7 @@ addPrecision(Perf::Suite& a_suite)
       }
     }
 
-    const EBGeometry::Tape<T, Part> tape(a_pool, EBGeometry::Union(parts));
+    const EBGeometry::Tape<T, Part> tape(a_pool, EBGeometry::Union(parts, EBGeometry::Accelerate::BVH));
 
     c.param("parts", parts.size());
     c.param("clauses", tape.getNumClauses());

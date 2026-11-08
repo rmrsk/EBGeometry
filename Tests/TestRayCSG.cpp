@@ -357,8 +357,8 @@ TEMPLATE_TEST_CASE("Ray: fused compositions and tapes agree with their values sa
 
   Pool pool(hostMemoryResource());
 
-  // A union of 12 solids is evaluated with a BVH by default (TapeOptions::m_bvhUnionThreshold).
-  const Expr<T> solids = Union(scene.solids());
+  // A union of 12 solids, evaluated through a BVH.
+  const Expr<T> solids = Union(scene.solids(), Accelerate::BVH);
   const Expr<T> drills = Union(scene.drills());
 
   const Tape<T> unionTape(pool, solids);

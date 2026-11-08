@@ -461,6 +461,8 @@ instantiateFunctionTemplates()
     (void)tape.getNumPrograms();
     (void)tape.getNumClauses();
     (void)tape.getNumBVHUnions();
+    (void)tape.getNumPrimitives();
+    (void)tape.getLargestPlainUnion();
     (void)tape.getCallDepth();
     (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
     (void)tape.rebasedView(meshPool);

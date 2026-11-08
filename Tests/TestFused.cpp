@@ -52,17 +52,6 @@ probes()
   return points;
 }
 
-// A tape compiled without BVH unions, so that it evaluates unions operand by operand, as fused does.
-inline TapeOptions
-linear()
-{
-  TapeOptions options;
-
-  options.m_bvhUnionThreshold = std::numeric_limits<uint32_t>::max();
-
-  return options;
-}
-
 // The analytic shapes the tests compose.
 template <class T>
 struct Shapes
@@ -284,7 +273,7 @@ TEMPLATE_TEST_CASE("Fused: equals a Tape of the same expression, to rounding", "
 
   // Each fused composition beside the same expression built with the builder.
   const auto compare = [](const auto& a_fused, const Expr<T>& a_expr) {
-    const Compiled<T> tape(a_expr, linear());
+    const Compiled<T> tape(a_expr);
 
     for (const Vec3& p : probes<T>()) {
       INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
@@ -407,8 +396,7 @@ TEMPLATE_TEST_CASE("Fused: a composition with a mesh SDF resolves through its po
                      SmoothUnion(std::vector<Expr<T>>{Translate(Difference(tri, s.drill), Vec3(T(0.5), T(0), T(0))),
                                                       Rotate(bvhMesh, T(20), size_t(1)),
                                                       s.small},
-                                 T(0.2)),
-                     linear());
+                                 T(0.2)));
 
   for (const Vec3& p : probes<T>()) {
     REQUIRE_THAT(pieces.signedDistance(p), withinAbsT(tape.signedDistance(p), tightMargin<T>()));

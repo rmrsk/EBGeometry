@@ -271,7 +271,8 @@ main(int argc, char* argv[])
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  EBGeometry::Render::view(EBGeometry::Tape<T>(pool, EBGeometry::Union(gallery)), pool, argc, argv);
+  EBGeometry::Render::view(
+    EBGeometry::Tape<T>(pool, EBGeometry::Union(gallery, EBGeometry::Accelerate::BVH)), pool, argc, argv);
 
   return 0;
 }

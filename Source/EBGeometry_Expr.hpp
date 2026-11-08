@@ -49,7 +49,7 @@ enum class BlendKind : uint8_t
  */
 enum class Accelerate : uint8_t
 {
-  None, ///< No request: the tape evaluates the union with a BVH only when it has many operands (see TapeOptions).
+  None, ///< As written: the tape evaluates every operand, however many there are.
   BVH   ///< Through a BVH over the operands' boxes, however many there are.
 };
 
@@ -464,7 +464,8 @@ Union(const A& a_first, const B& a_second);
 /**
  * @brief Union of any number of objects: the minimum of their values.
  * @details With Accelerate::BVH, a Tape evaluates the union through a BVH over the objects' boxes; with
- * Accelerate::None, only when there are many of them and all are distances (see TapeOptions). In the BVH, an
+ * Accelerate::None, as written, every object at every point (a large one prints a warning when the tape is
+ * built, see TapeOptions::m_largeUnionWarning). In the BVH, an
  * object that is a shape, or a shape under maps (Translate, Rotate, Scale, ...), is evaluated directly at its
  * leaf; any other object is a sub-program the leaf calls. With exact distances the value is the plain minimum;
  * with operands that are only bounds it can be larger, but keeps the sign and is still a bound; with operands
