@@ -27,6 +27,7 @@
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SphereAoSoA.hpp"
 #include "EBGeometry_SphereCloud.hpp"
+#include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -448,6 +449,26 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Hit
   closestSphere(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The sphere whose surface decides the cloud's value at a point, as a container names it (see
+   * hasSurfaces): its cloud index.
+   * @param[in] a_point Query point.
+   * @return The sphere's cloud index as SurfaceRef::m_surface, and the point; no surface for an empty cloud.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many surfaces the cloud numbers: one per cloud index it can hold (maxSpheres(), or numSpheres() for
+   * a cloud built without room for a rebuild), so that a tape's numbering of its surfaces stays valid when the
+   * cloud is rebuilt with another number of spheres.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline uint32_t
+  getNumSurfaces() const noexcept;
 
   /**
    * @brief Visit every sphere in contact with sphere a_index: each sphere j != a_index whose separation

@@ -29,7 +29,8 @@ namespace EBGeometry {
  * carved cavity gets the sphere and a point near the box's outside gets the box. This is the leaf that
  * decides the value, not the geometrically nearest primitive, which could be one the composition removed.
  * A nested composite (a fused composition, which is one shape with one surface; a tape listed as a
- * primitive; a BVH union) is one leaf.
+ * primitive; a BVH union; a sphere cloud) is one leaf; Tape::closestSurface() goes on into the collections
+ * among them (see SurfaceRef).
  *
  * The tape that made the reference returns the primitive itself: isPrimitive<P>(ref), primitive<P>(ref)
  * (by value: the shape, or a pool-resident one's handle rebuilt with the tape's location) and

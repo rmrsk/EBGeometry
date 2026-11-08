@@ -1,13 +1,15 @@
 .. _Chap:ClosestPrimitive:
 
-Which part: the deciding primitive
-==================================
+Which part: leaves and surfaces
+===============================
 
 A composed object answers one question at a point, its signed distance, but an application often needs
 a second: which part of the object is that? A boundary condition depends on whether a wall is the inlet,
 the outlet or the casing; a material on whether a surface is the machined bore or the cast body; a
 picture or a label on which object a pixel shows. A tape answers this with ``closestLeaf(p)``. It
 names the leaf of the composition whose surface the value at ``p`` comes from: the *deciding primitive*.
+When that leaf holds many things itself (a cloud of spheres, a BVH union of objects, another tape),
+``closestSurface(p)`` goes on into it and names the one that decides there (see :ref:`Sec:Surfaces`).
 
 The deciding primitive, not the nearest one
 -------------------------------------------
@@ -52,9 +54,10 @@ Each operation passes on a leaf as follows:
   passes on its operand's leaf. Every copy of a repeated object is the same leaf; the copy whose value
   is taken decides which local point is reported (see below).
 * A **nested composite is one leaf**: a fused composition (see :ref:`Sec:Fused`), which is one shape
-  with one surface however it is built, a tape listed as a primitive of another tape, and a BVH union of
-  many objects. A scene is therefore a tape whose leaves are its parts: it names the part that decides
-  the value, and each part can be as large a composition as it likes.
+  with one surface however it is built, a tape listed as a primitive of another tape, a BVH union of
+  many objects and a sphere cloud. A scene is therefore a tape whose leaves are its parts: it names the
+  part that decides the value, and each part can be as large a composition as it likes. The collections
+  among them (all but the fused composition) are drilled into by ``closestSurface()``.
 
 Asking for it
 -------------
@@ -105,6 +108,44 @@ The local point matters here: the mesh was translated, rotated or scaled into pl
 and its own BVH knows only the mesh's own coordinates. A nested tape is asked the same way, for its own
 deciding leaf at the local point.
 
+.. _Sec:Surfaces:
+
+Surfaces: inside a cloud, a union or a nested tape
+--------------------------------------------------
+
+A leaf can hold many things: a ``SphereCloudBVH`` thousands of spheres, a ``BVHUnion`` many objects, a tape
+listed as a primitive its own leaves. ``closestLeaf(p)`` names the leaf; ``closestSurface(p)`` goes on into
+it and names the member whose surface decides the value there, at any depth (a sphere of a cloud inside a
+union inside a nested tape). It returns a
+`SurfaceRef <doxygen/html/structEBGeometry_1_1SurfaceRef.html>`__:
+
+* ``m_surface``: the surface, numbered across the whole scene. Each leaf covers a contiguous range of
+  surface numbers, in leaf order: one surface for a leaf that is one shape, and for a collection one per
+  member, in the collection's own order (a cloud's cloud indices, a union's members in the order its
+  constructor was given them). ``getFirstSurface(leaf)`` is where a leaf's range starts, so data of your
+  own per member (per sphere, say) is an array indexed by ``m_surface - getFirstSurface(m_leaf)``: no
+  sphere needs a label.
+* ``m_leaf`` and ``m_label``: the leaf, as ``closestLeaf()`` numbers it, and its label (see below).
+* ``m_localPoint``: the point in the frame of the deepest shape reached.
+
+.. code-block:: c++
+
+   const Tape<T, SphereCloudBVH<T>> tape(pool, Difference(Label(box, "wall"), Label(cloud, "particles")));
+
+   const SurfaceRef<T> s = tape.closestSurface(p);   // on a device too
+
+   restitution[s.m_label];                                     // per-label data
+   sphereData[s.m_surface - tape.getFirstSurface(s.m_leaf)];   // per-sphere data, in cloud order
+
+A collection costs one more query of the deciding leaf for each level drilled (a second search of the cloud,
+say), paid only by ``closestSurface()``; for a tape whose leaves are all single shapes, the surface is the
+leaf, and the tape stores nothing more. A cloud numbers as many surfaces as it has room for
+(``maxSpheres()``), so a rebuild with another number of spheres keeps the scene's numbering. A shape of your
+own becomes a collection by defining ``getNumSurfaces()`` and ``closestSurface()`` (see
+`hasSurfaces <doxygen/html/namespaceEBGeometry.html>`__). A nested tape's labels are its own, and the outer
+tape does not report them: label within one expression. A mesh is one surface; its faces are told apart by
+asking the mesh, as above.
+
 Labels
 ------
 
@@ -136,8 +177,10 @@ expression gives the same numbers to both. A tape whose expression has no label 
 
 An ``ExprIndex`` also numbers the expression's nodes, depth first like the leaves, and gives each node its
 parent, its operation and the leaves below it. The leaves below a node are always a contiguous range of
-leaf numbers, so a group of surfaces (a whole subexpression) can be handed to a kernel as two numbers, and
-``pathOf(leaf)`` lists the nodes from the root down to a leaf: the levels a surface belongs to. The nodes are
+leaf numbers, and so are the surfaces below it (``m_firstSurface`` and ``m_numSurfaces``), so a group of
+surfaces (a whole subexpression) can be handed to a kernel as two numbers. ``getLeafOfSurface(surface)``
+finds a surface's leaf, and ``pathOf(leaf)`` lists the nodes from the root down to a leaf: the levels a
+surface belongs to. The nodes are
 those the expression is built of: ``Difference(a, b)`` is an intersection of ``a`` with the complement of
 ``b``, and translations, rotations and scalings applied one after another are one transform, unless one of
 them is labeled.
@@ -147,17 +190,18 @@ Along a ray
 
 A ray query (see :ref:`Chap:Rays`) reports which part it crossed in ``HitT::m_primitive``, with the same
 meaning: for a tape, the leaf whose surface the ray crossed, numbered as ``closestLeaf()`` numbers
-the leaves. Other shapes name what they can: a mesh distance
-field the id of the face crossed, a BVH union (not a smooth one) the member crossed, and any other shape (an analytic
-shape, a fused composition) 0. The renderer colors by this number with
+the leaves. Other shapes name what they can: a mesh distance field the id of the face crossed, a BVH union
+(not a smooth one) the member crossed, in the order its constructor was given them, and any other shape (an
+analytic shape, a fused composition) 0. ``closestSurface(hit.m_point)`` names the surface crossed, drilled
+into collections like any other point's. The renderer colors by this number with
 ``Render::ColorBy::Primitive``, from a table of colors of your own or a built-in palette, and a click in
 the viewer picks the part under the cursor by it (see :ref:`Chap:Rendering`).
 
 On the host and on a device
 ---------------------------
 
-``closestLeaf()``, ``isPrimitive()``, ``primitive()`` and ``visitPrimitive()`` can be called on the
-host and inside a GPU kernel, like ``signedDistance()``. ``closestLeaf()`` evaluates the composition
+``closestLeaf()``, ``closestSurface()``, ``getFirstSurface()``, ``isPrimitive()``, ``primitive()`` and
+``visitPrimitive()`` can be called on the host and inside a GPU kernel, like ``signedDistance()``. ``closestLeaf()`` evaluates the composition
 the way ``signedDistance()`` does, carrying the deciding leaf and its local point along with every
 intermediate value, so it costs somewhat more than ``signedDistance()``. The two are compiled
 separately: ``signedDistance()`` carries nothing extra, and a program that never asks for the deciding

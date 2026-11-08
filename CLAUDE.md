@@ -700,7 +700,8 @@ with explicit permission), and may ask whether to act on follow-ups.
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
   an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`), the fused
   operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, `LeafRef` (the deciding leaf
-  `closestLeaf()` returns) in `EBGeometry_LeafRef.hpp`, each operation's arithmetic, shared by
+  `closestLeaf()` returns) in `EBGeometry_LeafRef.hpp`, `SurfaceRef` (the drilled surface `closestSurface()`
+  returns) and the container protocol (`hasSurfaces`) in `EBGeometry_SurfaceRef.hpp`, each operation's arithmetic, shared by
   the tape and the fused operations, in `EBGeometry_CSGOps.hpp`, `EBGeometry_CSG.hpp` including all of
   them, and `operator<<` for `Vec3T`/`AABBT` in `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.

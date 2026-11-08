@@ -416,6 +416,13 @@ Test coverage
        inherited and replaced labels, labeled maps kept as nodes, values unchanged by labels, the label of
        the leaf ``closestLeaf()`` and a ray hit report (also after ``deepCopy()``, and on the device),
        and the rejected empty name and numbers out of range.
+   * - ``TestTapeSurfaces``
+     - ``closestSurface()`` against brute force: a sphere cloud's sphere by cloud index, a BVH union's and a
+       smooth union's member in the order given (and a reordered storage mapped back), a union of several
+       types type by type with an unbounded member, a union of clouds through its first surfaces, a tape
+       drilling into a cloud leaf with the surfaces numbered across the scene (and ``ExprIndex`` agreeing,
+       and after ``deepCopy()``), a tape without a container where a surface is its leaf, a tape inside a
+       tape drilled down to the sphere; numbers out of range rejected; and the device against the host.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

@@ -424,6 +424,18 @@ structure, are on the host in an
 ``pathOf(leaf)``, the nodes from the root down to a leaf. Both number labels in the order their names
 first appear, so the same expression gives the same numbers to both.
 
+A tape's ``closestSurface(p)`` drills into a deciding leaf that is a collection (a ``SphereCloudBVH``, a
+``BVHUnion`` or ``BVHSmoothUnion``, a nested tape, or a shape of your own with ``getNumSurfaces()`` and
+``closestSurface()``) and returns a
+`SurfaceRef <doxygen/html/structEBGeometry_1_1SurfaceRef.html>`__: the surface, numbered across the scene
+(``m_surface``), its leaf and label, and the point in the deepest shape's frame. ``getNumSurfaces()`` and
+``getFirstSurface(leaf)`` give the numbering, a contiguous range per leaf; ``ExprIndex`` has the same, and
+each node's range (``m_firstSurface``, ``m_numSurfaces``) and ``getLeafOfSurface(surface)``. The
+collections answer ``closestSurface()`` themselves, numbering their members: a cloud by cloud index, a BVH
+union in the order its constructor was given them (``getMemberIndex(place)`` maps its storage order to
+that, and ``getFirstSurface(member)`` gives each member's range when the members are collections too). All
+are device-callable. :ref:`Sec:Surfaces` explains the numbering.
+
 .. _Sec:BVHUnions:
 
 BVH-accelerated unions

@@ -2,11 +2,13 @@ Examples/Materials
 ------------------
 
 Which part of an object a query found. The armadillo has a cylinder bored through its chest
-(`Difference`), and each part is named with `Label`. The tape reports a leaf's label with `getLabel()`, on the
+(`Difference`) and stands in a ring of pebbles (a `SphereCloudBVH`), and each part is named with `Label`. The tape reports a leaf's label with `getLabel()`, on the
 host and on a GPU; an `ExprIndex` built from the same expression holds the names. The label indexes a table
 of your own (here material names; in an application, materials or boundary conditions).
 `closestLeaf(p)` names the leaf the value at a point comes from, and `firstHit()` reports the leaf a ray
-crossed in `HitT::m_primitive`. The viewer colors by the leaf (`ColorBy::Primitive`), so the bore's wall
+crossed in `HitT::m_primitive`. The whole cloud is one leaf; `closestSurface(p)` goes on into it and names
+the pebble, numbered across the scene from the leaf's `getFirstSurface()`, so data per pebble needs no
+label. The viewer colors by the leaf (`ColorBy::Primitive`), so the bore's wall
 shows in another color.
 
 The default mesh comes from the `common-3d-test-models` git submodule: clone the repository with
@@ -73,5 +75,6 @@ Running
 
     ./Materials.ex
 
-It prints the value and material at three points, and the point and material three rays hit: one at the chest
+It prints the value and material at three points, the pebble found above three pebbles, and the point and
+material three rays hit: one at the chest
 from in front, one straight through the bore (no hit), and one sideways from inside the bore (its wall).

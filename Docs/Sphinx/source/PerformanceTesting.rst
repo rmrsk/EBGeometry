@@ -42,6 +42,7 @@ What is in Performance/
      Render/main.cpp          one frame of the renderer
      MeshCSG/main.cpp         a mesh in plain and smooth unions: rays and frames
      ClosestPrimitive/main.cpp  a tape's closestLeaf()
+     ClosestSurface/main.cpp  a tape's closestSurface(), drilled into a collection
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -519,6 +520,20 @@ Family                                Build  Measures
                                              points
 ``<input>/closestPrimitive``          GPU    each of the above at 1,048,576 points on both sides
                                              (262,144 for the drilled mesh)
+====================================  =====  =====================================================
+
+**ClosestSurface** (``Performance/ClosestSurface``): a tape's ``closestSurface()`` (see :ref:`Sec:Surfaces`),
+for a box with 65,536 spheres cut out of it, the spheres a ``SphereCloudBVH`` (``cloud``) or a ``BVHUnion``
+of analytic spheres (``union``). Each query also reads the deciding sphere's distance at the local point, so
+that the checksum depends on both. Each input's ``closestLeaf`` case, which stops at the collection, names its
+``closestSurface`` case, and a comparison notes the ratio of their times (what the drilling costs).
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``<input>/closestSurface``            host   the surface, at 200,000 points in the box
+``<input>/closestLeaf``               host   the leaf alone, at the same points
+``<input>/<operation>``               GPU    each of the above at 1,048,576 points on both sides
 ====================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see

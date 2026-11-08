@@ -1518,9 +1518,11 @@ TEMPLATE_TEST_CASE("BVHUnion: one type deduced from its array, with or without t
   static_assert(std::is_same_v<std::decay_t<decltype(deduced)>, Expected>);
   static_assert(std::is_same_v<std::decay_t<decltype(boxed)>, Expected>);
 
-  // A union of one type stores its primitives in its leaves, as it did before several types were supported.
+  // A union of one type stores its primitives in its leaves, and holds no per-type arrays: its two BVHs and its
+  // members' table.
   static_assert(std::is_same_v<typename Expected::Leaf, SphereSDF<T>>);
-  static_assert(sizeof(typename Expected::Layout) == 2 * sizeof(typename Expected::Root::Layout));
+  static_assert(sizeof(typename Expected::Layout) ==
+                2 * sizeof(typename Expected::Root::Layout) + sizeof(PODVector<uint32_t>));
 
   for (const auto& p : lineQueryPoints<T>()) {
     REQUIRE_THAT(deduced.signedDistance(p), withinAbsT(bruteMin<T>(spheres, p), exactMargin<T>()));

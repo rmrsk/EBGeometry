@@ -8,6 +8,8 @@
 // of shape, smooth unions and intersections (fused, and marched through a tape), full span lists, and
 // device evaluation.
 
+#include <array>
+
 #include "TestRayHelpers.hpp"
 
 using namespace EBGeometry;
@@ -954,20 +956,22 @@ TEMPLATE_TEST_CASE("Ray: a composition whose operand never decides is unresolved
   REQUIRE(intersects(tape, ray, T(0), T(4)) == HitStatus::Unresolved);
 }
 
-TEMPLATE_TEST_CASE("Ray: a BVH union's hit names the member it crossed", "[Ray][BVHUnion]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Ray: a BVH union's hit names the member it crossed, in the order given",
+                   "[Ray][BVHUnion]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  // Three balls along x; a ray along -z through each center, and a second one off-center through the first.
-  const std::vector<SphereSDF<T>> balls{SphereSDF<T>(Vec3(T(0), T(0), T(0)), T(1)),
-                                        SphereSDF<T>(Vec3(T(3), T(0), T(0)), T(1)),
-                                        SphereSDF<T>(Vec3(T(6), T(0), T(0)), T(1))};
+  // Eight balls along x, given out of order, so that the BVH stores them in another order than the array's.
+  const std::array<int, 8> slots{5, 2, 7, 0, 3, 6, 1, 4};
 
+  std::vector<SphereSDF<T>>              balls;
   std::vector<BoundingVolumes::AABBT<T>> boxes;
 
-  for (const auto& ball : balls) {
-    boxes.push_back(ball.computeBoundingVolume());
+  for (const int slot : slots) {
+    balls.emplace_back(Vec3(T(3 * slot), T(0), T(0)), T(1));
+    boxes.push_back(balls.back().computeBoundingVolume());
   }
 
   Pool pool(hostMemoryResource());
@@ -978,18 +982,17 @@ TEMPLATE_TEST_CASE("Ray: a BVH union's hit names the member it crossed", "[Ray][
     return firstHit(scene, RayT<T>{Vec3(a_x, a_y, T(5)), Vec3(T(0), T(0), -T(1))}, T(0), T(10));
   };
 
-  const auto first  = hitAt(T(0), T(0));
-  const auto again  = hitAt(T(0.3), T(0.2));
-  const auto second = hitAt(T(3), T(0));
-  const auto third  = hitAt(T(6), T(0));
+  // A member is named by its place in the array the union was built from, whichever point on it is hit.
+  for (uint32_t i = 0; i < balls.size(); i++) {
+    const T x = T(3 * slots[i]);
 
-  REQUIRE((first.hit() && again.hit() && second.hit() && third.hit()));
+    const auto center    = hitAt(x, T(0));
+    const auto offCenter = hitAt(x + T(0.3), T(0.2));
 
-  // A member is named by one number, whichever point on it is hit, and different members by different ones.
-  CHECK(first.m_primitive == again.m_primitive);
-  CHECK(first.m_primitive != second.m_primitive);
-  CHECK(first.m_primitive != third.m_primitive);
-  CHECK(second.m_primitive != third.m_primitive);
+    REQUIRE((center.hit() && offCenter.hit()));
+    CHECK(center.m_primitive == i);
+    CHECK(offCenter.m_primitive == i);
+  }
 }
 
 TEMPLATE_TEST_CASE("Ray: a BVH union of several types is traced to its nearest member's crossing, through each "

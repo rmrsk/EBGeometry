@@ -31,6 +31,7 @@
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_Pool.hpp"
+#include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -179,6 +180,16 @@ struct MemberRef
    */
   uint32_t m_index;
 };
+
+/**
+ * @brief Whether a union holds members that are containers themselves (see hasSurfaces), whose surfaces it
+ * numbers through a table of first surfaces.
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Ps Primitive types.
+ */
+template <class T, class... Ps>
+inline constexpr bool hasContainers = (hasSurfaces<Ps, T> || ...);
 
 /**
  * @brief The arrays of a union of several primitive types, one per type in the order given: a recursive
@@ -455,6 +466,16 @@ public:
   static constexpr DistanceQuality distanceQuality = CSGDetail::unionQuality<Ps...>;
 
   /**
+   * @brief How many primitive types the union holds.
+   */
+  static constexpr size_t NumTypes = sizeof...(Ps);
+
+  /**
+   * @brief Whether a primitive type is a container (see hasSurfaces), whose surfaces the union numbers too.
+   */
+  static constexpr bool HasContainers = CSGDetail::hasContainers<T, Ps...>;
+
+  /**
    * @brief What the BVH's leaves hold: with one type the primitive (or its layout, for a pool-resident
    * one), with several a reference to it in its type's array; visit() resolves either.
    */
@@ -559,6 +580,53 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief How many members (primitives) the union holds.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumMembers() const noexcept;
+
+  /**
+   * @brief A member's index in the order the constructor was given the primitives (type by type, in the order
+   * of the arrays, each array in its own order), from its place in the union's storage: the unbounded members
+   * first (getUnboundedPrimitives()), then the BVH's leaves in order (getBVH().getPrimitives()).
+   * @param[in] a_position Place in the storage, below getNumMembers().
+   * @return The member's index.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getMemberIndex(uint32_t a_position) const noexcept;
+
+  /**
+   * @brief How many surfaces the union numbers (see hasSurfaces): one per member, or a container member's own
+   * getNumSurfaces().
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumSurfaces() const noexcept;
+
+  /**
+   * @brief A member's first surface: member i covers [getFirstSurface(i), getFirstSurface(i + 1)).
+   * @param[in] a_member Member index, in the constructor's order, at most getNumMembers().
+   * @return The surface.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getFirstSurface(uint32_t a_member) const noexcept;
+
+  /**
+   * @brief The surface that decides the union's value at a point (see hasSurfaces): the member with the
+   * smallest value, ties going to the lower member index, drilled into if it is a container.
+   * @param[in] a_point Query point.
+   * @return The surface, and the point in its member's frame.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief The axis-aligned bounding box enclosing all primitives.
    * @return The BVH's root box merged with the boxes of the unbounded primitives.
    */
@@ -640,6 +708,12 @@ public:
      * @brief The primitives with unbounded boxes, as one leaf.
      */
     typename Root::Layout m_unbounded;
+
+    /**
+     * @brief The members' table: with one type, each storage place's member index (see getMemberIndex()); then,
+     * if a member type is a container, each member's first surface and the total.
+     */
+    PODVector<uint32_t> m_members;
   };
 
   /**
@@ -654,7 +728,8 @@ public:
     : PoolHandle(a_location),
       CSGDetail::ArraysOf<Ps...>(a_layout),
       m_bvh(a_layout.m_bvh),
-      m_unbounded(a_layout.m_unbounded)
+      m_unbounded(a_layout.m_unbounded),
+      m_members(a_layout.m_members)
   {}
 
   /**
@@ -670,6 +745,7 @@ public:
     static_cast<CSGDetail::ArraysOf<Ps...>&>(layout) = *this;
     layout.m_bvh                                     = m_bvh;
     layout.m_unbounded                               = m_unbounded;
+    layout.m_members                                 = m_members;
 
     return layout;
   }
@@ -706,6 +782,11 @@ private:
    * @brief The primitives with unbounded boxes, as a single leaf (or empty), as a layout.
    */
   typename Root::Layout m_unbounded;
+
+  /**
+   * @brief The members' table (see Layout::m_members).
+   */
+  PODVector<uint32_t> m_members;
 };
 
 /**
@@ -805,6 +886,16 @@ public:
    * gradients by weights that sum to one, so they do not make the blend steeper than its inputs.
    */
   static constexpr DistanceQuality distanceQuality = CSGDetail::unionQuality<Ps...>;
+
+  /**
+   * @brief How many primitive types the union holds.
+   */
+  static constexpr size_t NumTypes = sizeof...(Ps);
+
+  /**
+   * @brief Whether a primitive type is a container (see hasSurfaces), whose surfaces the union numbers too.
+   */
+  static constexpr bool HasContainers = CSGDetail::hasContainers<T, Ps...>;
 
   /**
    * @brief What the BVH's leaves hold; see BVHUnion::Leaf.
@@ -929,6 +1020,53 @@ public:
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief How many members (primitives) the union holds.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumMembers() const noexcept;
+
+  /**
+   * @brief A member's index in the order the constructor was given the primitives (type by type, in the order
+   * of the arrays, each array in its own order), from its place in the union's storage: the unbounded members
+   * first (getUnboundedPrimitives()), then the BVH's leaves in order (getBVH().getPrimitives()).
+   * @param[in] a_position Place in the storage, below getNumMembers().
+   * @return The member's index.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getMemberIndex(uint32_t a_position) const noexcept;
+
+  /**
+   * @brief How many surfaces the union numbers (see hasSurfaces): one per member, or a container member's own
+   * getNumSurfaces().
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumSurfaces() const noexcept;
+
+  /**
+   * @brief A member's first surface: member i covers [getFirstSurface(i), getFirstSurface(i + 1)).
+   * @param[in] a_member Member index, in the constructor's order, at most getNumMembers().
+   * @return The surface.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getFirstSurface(uint32_t a_member) const noexcept;
+
+  /**
+   * @brief The surface that decides the union's value at a point (see hasSurfaces): the member with the
+   * smallest value (the one that dominates the blend), ties going to the lower member index, drilled into if it is a container.
+   * @param[in] a_point Query point.
+   * @return The surface, and the point in its member's frame.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief The axis-aligned bounding box enclosing all primitives.
    * @return The BVH's root box merged with the boxes of the unbounded primitives.
    */
@@ -1009,6 +1147,12 @@ public:
      * @brief Smooth-minimum operator.
      */
     Blend m_blend;
+
+    /**
+     * @brief The members' table: with one type, each storage place's member index (see getMemberIndex()); then,
+     * if a member type is a container, each member's first surface and the total.
+     */
+    PODVector<uint32_t> m_members;
   };
 
   /**
@@ -1024,7 +1168,8 @@ public:
       m_bvh(a_layout.m_bvh),
       m_unbounded(a_layout.m_unbounded),
       m_smoothLen(a_layout.m_smoothLen),
-      m_blend(a_layout.m_blend)
+      m_blend(a_layout.m_blend),
+      m_members(a_layout.m_members)
   {}
 
   /**
@@ -1043,6 +1188,7 @@ public:
     layout.m_unbounded                               = m_unbounded;
     layout.m_smoothLen                               = m_smoothLen;
     layout.m_blend                                   = m_blend;
+    layout.m_members                                 = m_members;
 
     return layout;
   }
@@ -1096,6 +1242,11 @@ private:
    * @brief Smooth-minimum operator.
    */
   Blend m_blend;
+
+  /**
+   * @brief The members' table (see Layout::m_members).
+   */
+  PODVector<uint32_t> m_members;
 };
 
 /**

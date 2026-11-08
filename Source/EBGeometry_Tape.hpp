@@ -46,6 +46,7 @@
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -376,6 +377,26 @@ struct TypeList
  */
 template <size_t I, class List>
 struct TypeAt;
+
+/**
+ * @brief Whether a TypeList holds a container (see hasSurfaces).
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision.
+ * @tparam List TypeList.
+ */
+template <class T, class List>
+struct AnyContainer;
+
+/**
+ * @brief Whether a TypeList holds a container (see hasSurfaces).
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Ps Types.
+ */
+template <class T, class... Ps>
+struct AnyContainer<T, TypeList<Ps...>> : std::bool_constant<(hasSurfaces<Ps, T> || ...)>
+{
+};
 
 /**
  * @brief The I-th type of a TypeList.
@@ -845,6 +866,12 @@ public:
     PODVector<uint32_t> m_labels;
 
     /**
+     * @brief Each leaf's first surface, and the number of surfaces last (see getFirstSurface()); empty when no
+     * leaf is a container, each leaf then being one surface, numbered as the leaf.
+     */
+    PODVector<uint32_t> m_surfaces;
+
+    /**
      * @brief How many distinct labels the expression has.
      */
     uint32_t m_numLabels = 0;
@@ -896,7 +923,7 @@ public:
    * @details Evaluates the tape as signedDistance() does, carrying with each value the leaf it comes from.
    * The leaves are numbered in expression order, depth first, each occurrence counted. A primitive that
    * is itself a composition (a fused one, a tape, a BVH union) is one leaf: the tape is the scene, its
-   * leaves the parts. Callable on a device, like signedDistance().
+   * leaves the parts. closestSurface() goes on into a leaf that is a collection. Callable on a device, like signedDistance().
    * @param[in] a_point Query point.
    * @return The leaf, its type and index in the tape, and the point in its frame.
    */
@@ -1091,6 +1118,41 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getNumLabels() const noexcept;
+
+  /**
+   * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when
+   * it is a container (a sphere cloud, a BVH union, a nested tape; see hasSurfaces) down to the member that
+   * decides there, at any depth.
+   * @details The surfaces are numbered across the scene: each leaf covers [getFirstSurface(leaf),
+   * getFirstSurface(leaf + 1)), one surface for a leaf that is not a container, and a container's are its own
+   * numbers (a cloud's cloud indices, a union's members in the order it was given them) after the leaf's first.
+   * A container costs one more query of that leaf (a second search of a cloud, say), paid only here; for a
+   * tape without one, the surface is the leaf. For a ray hit, closestSurface(hit.m_point) names the surface
+   * crossed. Labels of a nested tape are its own, not reported here. Callable on a device.
+   * @param[in] a_point Query point.
+   * @return The surface, its leaf and label, and the point in the frame of the deepest shape reached.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many surfaces the tape numbers (see closestSurface()).
+   * @return The count: the number of leaves when no leaf is a container.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumSurfaces() const noexcept;
+
+  /**
+   * @brief A leaf's first surface: the leaf covers [getFirstSurface(leaf), getFirstSurface(leaf + 1)), so
+   * per-member data of a container leaf (a sphere's) is an array indexed by SurfaceRef::m_surface minus it.
+   * @param[in] a_leaf Leaf number, at most getNumPrimitives() (which gives getNumSurfaces()).
+   * @return The surface, or SurfaceRef<T>::None past that.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getFirstSurface(uint32_t a_leaf) const noexcept;
 
   /**
    * @brief How deep sub-program calls nest (0 if the tape has no Blur, Mollify, FiniteRepetition or BVH union).

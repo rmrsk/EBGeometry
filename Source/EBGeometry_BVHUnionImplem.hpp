@@ -24,6 +24,7 @@
 #include "EBGeometry_BVHUnion.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_MemoryResource.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -68,6 +69,10 @@ isUnbounded(const BoundingVolumes::AABBT<T>& a_bv) noexcept
  * @param[in]     a_boundingVolumes Bounding box of each primitive.
  * @param[in]     a_construction    Preset construction method; every BVH::Construction value is supported.
  * @param[in]     a_options         Leaf-size settings; the chosen method reads only its own field.
+ * @param[out]    a_order           If not null: each storage place's index in a_primitives (the unbounded
+ * primitives first, then the BVH's leaves in order). The BVH is then built over the indices, in a scratch pool,
+ * and adopted with the primitives in its order: the builds partition by the boxes alone, so the tree is the one
+ * a direct build makes.
  * @return The BVH and the unbounded leaf.
  */
 template <class T, class P, size_t K>
@@ -77,7 +82,8 @@ buildUnionParts(Pool&                                         a_pool,
                 const std::vector<P>&                         a_primitives,
                 const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
                 const BVH::Construction                       a_construction,
-                const BVH::ConstructionOptions&               a_options)
+                const BVH::ConstructionOptions&               a_options,
+                std::vector<uint32_t>*                        a_order = nullptr)
 {
   using BV   = BoundingVolumes::AABBT<T>;
   using S    = Stored<P>;
@@ -113,17 +119,31 @@ buildUnionParts(Pool&                                         a_pool,
 
   // A primitive with an unbounded box goes into one leaf that every query scans, so that its box
   // neither makes every ancestor's box unbounded nor reaches the build heuristics.
-  std::vector<std::pair<S, BV>> primsAndBVs;
-  std::vector<S>                unboundedPrims;
-  BV                            unboundedBox;
+  std::vector<std::pair<S, BV>>        primsAndBVs;
+  std::vector<std::pair<uint32_t, BV>> indicesAndBVs;
+  std::vector<S>                       unboundedPrims;
+  BV                                   unboundedBox;
 
-  primsAndBVs.reserve(a_primitives.size());
+  if (a_order != nullptr) {
+    a_order->clear();
+    indicesAndBVs.reserve(a_primitives.size());
+  }
+  else {
+    primsAndBVs.reserve(a_primitives.size());
+  }
 
   for (size_t i = 0; i < a_primitives.size(); i++) {
     if (isUnbounded(a_boundingVolumes[i])) {
       unboundedPrims.push_back(toStored(a_primitives[i]));
 
       unboundedBox = unboundedBox.merged(a_boundingVolumes[i]);
+
+      if (a_order != nullptr) {
+        a_order->push_back(static_cast<uint32_t>(i));
+      }
+    }
+    else if (a_order != nullptr) {
+      indicesAndBVs.emplace_back(static_cast<uint32_t>(i), a_boundingVolumes[i]);
     }
     else {
       primsAndBVs.emplace_back(toStored(a_primitives[i]), a_boundingVolumes[i]);
@@ -145,8 +165,46 @@ buildUnionParts(Pool&                                         a_pool,
 
   Root unbounded(a_pool, unboundedNodes, unboundedNodeBoxes, unboundedPrims);
 
-  if (primsAndBVs.empty()) {
+  if (primsAndBVs.empty() && indicesAndBVs.empty()) {
     return UnionParts<T, P, K>{Root(a_pool, std::vector<Node>{}, std::vector<BV>{}, std::vector<S>{}), unbounded};
+  }
+
+  if (a_order != nullptr) {
+    Pool scratch(hostMemoryResource());
+
+    const auto indexBVH =
+      BVH::PackedBVH<T, uint32_t, K>::build(scratch, std::move(indicesAndBVs), a_construction, a_options);
+
+    // The node types differ by primitive type, but not their shape: each node is copied through its setters
+    // (its box row and slot are assigned again when the BVH is adopted).
+    std::vector<Node> nodes;
+    std::vector<BV>   boxes;
+    std::vector<S>    prims;
+
+    nodes.reserve(indexBVH.getNodes().size());
+    boxes.reserve(indexBVH.getNodes().size());
+
+    for (const auto& indexNode : indexBVH.getNodes()) {
+      Node node;
+
+      node.setPrimitivesOffset(indexNode.getPrimitivesOffset());
+      node.setNumPrimitives(indexNode.getNumPrimitives());
+
+      for (size_t k = 0; k < K; k++) {
+        node.setChildOffset(indexNode.getChildOffsets()[k], k);
+      }
+
+      nodes.push_back(node);
+      boxes.push_back(indexBVH.getBoundingVolume(indexNode));
+    }
+
+    for (const uint32_t index : indexBVH.getPrimitives()) {
+      prims.push_back(toStored(a_primitives[index]));
+
+      a_order->push_back(index);
+    }
+
+    return UnionParts<T, P, K>{Root(a_pool, nodes, boxes, prims), unbounded};
   }
 
   return UnionParts<T, P, K>{BVH::PackedBVH<T, S, K>::build(a_pool, std::move(primsAndBVs), a_construction, a_options),
@@ -251,6 +309,89 @@ fromParts(const UnionParts<T, P, K>& a_parts)
   layout.m_unbounded = a_parts.unbounded.layout();
 
   return {layout, a_parts.bvh.location()};
+}
+
+/**
+ * @brief Write a union's members' table into its pool (see BVHUnion::Layout::m_members): a one-type union's
+ * storage order, then, if a member type is a container, each member's first surface and the total.
+ * @details Internal helper; not part of the public API. A union of several types with no container member has
+ * no table: a member's index is read from its MemberRef.
+ * @tparam T      Floating-point precision.
+ * @tparam Layout The union's layout type.
+ * @tparam Ps     Primitive types.
+ * @param[in,out] a_pool       The union's pool.
+ * @param[in]     a_built      The built union's layout and location.
+ * @param[in]     a_order      Each storage place's member index (one type), or empty (several).
+ * @param[in]     a_primitives One array per type, in the constructor's order.
+ * @return The layout, with its table, and where it lives.
+ */
+template <class T, class Layout, class... Ps>
+[[nodiscard]] EBGEOMETRY_HOST
+inline std::pair<Layout, PoolLocation>
+attachMembers(Pool&                           a_pool,
+              std::pair<Layout, PoolLocation> a_built,
+              const std::vector<uint32_t>&    a_order,
+              const std::vector<Ps>&... a_primitives)
+{
+  std::vector<uint32_t> members = a_order;
+
+  if constexpr (hasContainers<T, Ps...>) {
+    uint64_t first = 0;
+
+    const auto add = [&members, &first](const auto& a_ofType) {
+      for (const auto& primitive : a_ofType) {
+        members.push_back(static_cast<uint32_t>(first));
+
+        first += SurfaceDetail::numSurfacesOf<T>(primitive);
+      }
+    };
+
+    (add(a_primitives), ...);
+
+    EBGEOMETRY_REQUIRE(first < uint64_t(SurfaceRef<T>::None),
+                       "BVHUnion: the members hold %llu surfaces, more than 32-bit ids can number",
+                       static_cast<unsigned long long>(first));
+
+    members.push_back(static_cast<uint32_t>(first));
+  }
+
+  if (!members.empty()) {
+    a_built.first.m_members.reserveFrom(a_pool, static_cast<uint32_t>(members.size()));
+    a_built.first.m_members.assign(a_pool.base(), members.data(), static_cast<uint32_t>(members.size()));
+  }
+
+  return a_built;
+}
+
+/**
+ * @brief Build a union of one type with the caller's boxes, and its members' table.
+ * @details Internal helper; not part of the public API.
+ * @tparam T      Floating-point precision.
+ * @tparam K      BVH branching factor.
+ * @tparam Layout The union's layout type.
+ * @tparam P      Primitive type.
+ * @param[in,out] a_pool            Pool the union is reserved from.
+ * @param[in]     a_primitives      Primitives.
+ * @param[in]     a_boundingVolumes Bounding box of each primitive.
+ * @param[in]     a_construction    Construction method.
+ * @param[in]     a_options         Leaf sizes.
+ * @return The layout and where it lives.
+ */
+template <class T, size_t K, class Layout, class P>
+[[nodiscard]] EBGEOMETRY_HOST
+inline std::pair<Layout, PoolLocation>
+buildOneType(Pool&                                         a_pool,
+             const std::vector<P>&                         a_primitives,
+             const std::vector<BoundingVolumes::AABBT<T>>& a_boundingVolumes,
+             const BVH::Construction                       a_construction,
+             const BVH::ConstructionOptions&               a_options)
+{
+  std::vector<uint32_t> order;
+
+  const auto parts =
+    buildUnionParts<T, P, K>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options, &order);
+
+  return attachMembers<T>(a_pool, fromParts<Layout>(parts), order, a_primitives);
 }
 
 /**
@@ -490,11 +631,13 @@ buildUnion(Pool&                           a_pool,
 
     const std::vector<P>& primitives = std::get<0>(std::forward_as_tuple(a_primitives...));
 
-    return fromParts<Layout>(
-      buildUnionParts<T, P, K>(a_pool, primitives, boxesOf<T>(primitives), a_settings.m_construction, options));
+    return buildOneType<T, K, Layout>(a_pool, primitives, boxesOf<T>(primitives), a_settings.m_construction, options);
   }
   else {
-    return buildMixedUnion<T, K, Layout>(a_pool, a_settings.m_construction, options, a_primitives...);
+    return attachMembers<T>(a_pool,
+                            buildMixedUnion<T, K, Layout>(a_pool, a_settings.m_construction, options, a_primitives...),
+                            std::vector<uint32_t>{},
+                            a_primitives...);
   }
 }
 
@@ -568,6 +711,223 @@ checkArraysRebase(const UnionArrays<P, Ps...>&         a_arrays,
   return endByte;
 }
 
+/**
+ * @brief The index of a type's first member: the sizes of the arrays before it.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_arrays The arrays, from the type a_type counts from.
+ * @param[in] a_type   The type's index among these arrays.
+ * @return The index.
+ */
+template <class P, class... Ps>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+typeStart(const UnionArrays<P, Ps...>& a_arrays, const uint32_t a_type) noexcept
+{
+  if constexpr (sizeof...(Ps) == 0) {
+    return 0U;
+  }
+  else {
+    return (a_type == 0) ? 0U : a_arrays.m_head.size() + typeStart(a_arrays.m_tail, a_type - 1);
+  }
+}
+
+/**
+ * @brief How many members a BVH union (BVHUnion or BVHSmoothUnion) holds.
+ * @details Internal helper; not part of the public API.
+ * @tparam U Union type.
+ * @param[in] a_union The union.
+ * @return The count.
+ */
+template <class U>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+numMembersOf(const U& a_union) noexcept
+{
+  return a_union.getUnboundedPrimitives().size() + a_union.getBVH().getPrimitives().size();
+}
+
+/**
+ * @brief A BVH union's member index from its place in the storage (see BVHUnion::getMemberIndex()).
+ * @details Internal helper; not part of the public API.
+ * @tparam U Union type.
+ * @param[in] a_union    The union.
+ * @param[in] a_position Place in the storage.
+ * @return The member's index.
+ */
+template <class U>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+memberIndexOf(const U& a_union, const uint32_t a_position) noexcept
+{
+  EBGEOMETRY_EXPECT(a_position < numMembersOf(a_union));
+
+  const typename U::Layout layout = a_union.layout();
+
+  if constexpr (U::NumTypes == 1) {
+    return layout.m_members.at(a_union.location().base(), a_position);
+  }
+  else {
+    const auto unbounded = a_union.getUnboundedPrimitives();
+    const auto leaf      = (a_position < unbounded.size()) ? unbounded[a_position]
+                                                           : a_union.getBVH().getPrimitives()[a_position - unbounded.size()];
+
+    return typeStart(layout.m_arrays, leaf.m_type) + leaf.m_index;
+  }
+}
+
+/**
+ * @brief A BVH union's member's first surface (see BVHUnion::getFirstSurface()).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam U Union type.
+ * @param[in] a_union  The union.
+ * @param[in] a_member Member index, at most the number of members.
+ * @return The surface.
+ */
+template <class T, class U>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+firstSurfaceOf(const U& a_union, const uint32_t a_member) noexcept
+{
+  if constexpr (U::HasContainers) {
+    const uint32_t offset = (U::NumTypes == 1) ? numMembersOf(a_union) : 0U;
+
+    EBGEOMETRY_EXPECT(a_member <= numMembersOf(a_union));
+
+    return a_union.layout().m_members.at(a_union.location().base(), offset + a_member);
+  }
+  else {
+    return a_member;
+  }
+}
+
+/**
+ * @brief The surface that decides a BVH union's value at a point (see BVHUnion::closestSurface()): the member
+ * with the smallest value, ties to the lower member index, drilled into if it is a container.
+ * @details Internal helper; not part of the public API. The traversal is signedDistance()'s for a sharp union,
+ * which visits every member whose value can be the smallest; for a smooth union that member is the one that
+ * dominates its blend.
+ * @tparam T Floating-point precision.
+ * @tparam U Union type.
+ * @param[in] a_union The union.
+ * @param[in] a_point Query point.
+ * @return The surface.
+ */
+template <class T, class U>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+closestSurfaceOfUnion(const U& a_union, const Vec3T<T>& a_point) noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  struct Best
+  {
+    T        value    = Math::Limits<T>::infinity();
+    uint32_t member   = SurfaceRef<T>::None;
+    uint32_t position = SurfaceRef<T>::None;
+  };
+
+  const auto bvh        = a_union.getBVH();
+  const auto unbounded  = a_union.getUnboundedPrimitives();
+  const auto primitives = bvh.getPrimitives();
+
+  const auto valueOf = [&a_point](const auto& a_member) noexcept -> T { return a_member.signedDistance(a_point); };
+
+  const auto consider = [&a_union](Best& a_best, const T a_value, const uint32_t a_position) noexcept {
+    EBGEOMETRY_EXPECT(!std::isnan(a_value));
+
+    if (a_value <= a_best.value) {
+      const uint32_t member = memberIndexOf(a_union, a_position);
+
+      if (a_value < a_best.value || member < a_best.member) {
+        a_best.value    = a_value;
+        a_best.member   = member;
+        a_best.position = a_position;
+      }
+    }
+  };
+
+  Best best;
+
+  for (uint32_t i = 0; i < unbounded.size(); i++) {
+    consider(best, a_union.visit(unbounded[i], valueOf), i);
+  }
+
+  const uint32_t numUnbounded = unbounded.size();
+
+  const auto evalLeaf = [&](Best& a_best, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      const uint32_t place = static_cast<uint32_t>(i);
+
+      consider(a_best, a_union.visit(primitives[place], valueOf), numUnbounded + place);
+    }
+  };
+
+  // As signedDistance() prunes: a node further than the best value so far holds no smaller one. A tie at the
+  // bound is kept, so the lower member index can win it.
+  const auto pruneDist2 = [](const Best& a_best) noexcept -> T {
+    const T bound = Math::max(T(0), a_best.value);
+
+    return bound * bound;
+  };
+
+  if (bvh.getNodes().size() > 0) {
+    bvh.traverse(BVH::PointQuery<T>{a_point}, best, evalLeaf, pruneDist2);
+  }
+
+  SurfaceRef<T> surface;
+
+  if (best.member == SurfaceRef<T>::None) {
+    return surface;
+  }
+
+  surface.m_surface    = firstSurfaceOf<T>(a_union, best.member);
+  surface.m_localPoint = a_point;
+
+  if constexpr (U::HasContainers) {
+    const auto leaf =
+      (best.position < numUnbounded) ? unbounded[best.position] : primitives[best.position - numUnbounded];
+
+    const SurfaceRef<T> inner = a_union.visit(leaf, [&a_point](const auto& a_member) noexcept {
+      return SurfaceDetail::closestSurfaceOf<T>(a_member, a_point);
+    });
+
+    if (inner.m_surface != SurfaceRef<T>::None) {
+      surface.m_surface += inner.m_surface;
+      surface.m_localPoint = inner.m_localPoint;
+    }
+  }
+
+  return surface;
+}
+
+/**
+ * @brief Copy a BVH union's members' table into another pool.
+ * @details Internal helper; not part of the public API. The table is read out before anything is reserved.
+ * @param[in]     a_members  The table.
+ * @param[in]     a_location Where it lives.
+ * @param[in,out] a_dstPool  Pool to copy into.
+ * @return The copy's table.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline PODVector<uint32_t>
+deepCopyMembers(const PODVector<uint32_t>& a_members, const PoolLocation& a_location, Pool& a_dstPool)
+{
+  PODVector<uint32_t> copy;
+
+  if (a_members.size() > 0) {
+    const auto                  span = a_members.bind(a_location.base());
+    const std::vector<uint32_t> items(span.begin(), span.end());
+
+    copy.reserveFrom(a_dstPool, static_cast<uint32_t>(items.size()));
+    copy.assign(a_dstPool.base(), items.data(), static_cast<uint32_t>(items.size()));
+  }
+
+  return copy;
+}
+
 } // namespace CSGDetail
 
 template <class T, size_t K, class... Ps>
@@ -602,8 +962,7 @@ BVHUnion<T, K, Ps...>::BVHUnion(Pool&                           a_pool,
                                 const std::vector<BV>&          a_boundingVolumes,
                                 const BVH::Construction         a_construction,
                                 const BVH::ConstructionOptions& a_options)
-  : BVHUnion(CSGDetail::fromParts<Layout>(
-      CSGDetail::buildUnionParts<T, First, K>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options)))
+  : BVHUnion(CSGDetail::buildOneType<T, K, Layout>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options))
 {}
 
 template <class T, size_t K, class... Ps>
@@ -754,6 +1113,46 @@ BVHUnion<T, K, Ps...>::getUnboundedPrimitives() const noexcept
 }
 
 template <class T, size_t K, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHUnion<T, K, Ps...>::getNumMembers() const noexcept
+{
+  return CSGDetail::numMembersOf(*this);
+}
+
+template <class T, size_t K, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHUnion<T, K, Ps...>::getMemberIndex(const uint32_t a_position) const noexcept
+{
+  return CSGDetail::memberIndexOf(*this, a_position);
+}
+
+template <class T, size_t K, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHUnion<T, K, Ps...>::getNumSurfaces() const noexcept
+{
+  return CSGDetail::firstSurfaceOf<T>(*this, this->getNumMembers());
+}
+
+template <class T, size_t K, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHUnion<T, K, Ps...>::getFirstSurface(const uint32_t a_member) const noexcept
+{
+  return CSGDetail::firstSurfaceOf<T>(*this, a_member);
+}
+
+template <class T, size_t K, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+BVHUnion<T, K, Ps...>::closestSurface(const Vec3T<T>& a_point) const noexcept
+{
+  return CSGDetail::closestSurfaceOfUnion<T>(*this, a_point);
+}
+
+template <class T, size_t K, class... Ps>
 EBGEOMETRY_HOST
 inline BVHUnion<T, K, Ps...>
 BVHUnion<T, K, Ps...>::rebasedView(const Pool& a_pool) const noexcept
@@ -777,6 +1176,10 @@ BVHUnion<T, K, Ps...>::rebasedView(const Pool& a_pool) const noexcept
 
   [[maybe_unused]] const Root unboundedView = unbounded.rebasedView(a_pool);
 
+  if (m_members.size() > 0) {
+    [[maybe_unused]] const PoolLocation members = this->rebasedLocation(a_pool, m_members.endByte(), "BVHUnion");
+  }
+
   return BVHUnion(this->layout(), location);
 }
 
@@ -787,6 +1190,8 @@ BVHUnion<T, K, Ps...>::deepCopy(Pool& a_dstPool) const
 {
   // All parts go into a_dstPool, so the copy resolves them against one pool, as the original does.
   Layout layout = this->layout();
+
+  layout.m_members = CSGDetail::deepCopyMembers(m_members, this->location(), a_dstPool);
 
   if constexpr (sizeof...(Ps) == 1) {
     const Root bvh       = CSGDetail::deepCopyBVH<T, First, K>(this->getBVH(), a_dstPool);
@@ -871,10 +1276,10 @@ BVHSmoothUnion<T, K, Blend, Ps...>::BVHSmoothUnion(Pool&                        
                                                    const Blend                     a_blend,
                                                    const BVH::Construction         a_construction,
                                                    const BVH::ConstructionOptions& a_options)
-  : BVHSmoothUnion(CSGDetail::fromParts<Layout>(CSGDetail::buildUnionParts<T, First, K>(
-                     a_pool, a_primitives, a_boundingVolumes, a_construction, a_options)),
-                   a_smoothLen,
-                   a_blend)
+  : BVHSmoothUnion(
+      CSGDetail::buildOneType<T, K, Layout>(a_pool, a_primitives, a_boundingVolumes, a_construction, a_options),
+      a_smoothLen,
+      a_blend)
 {
   EBGEOMETRY_REQUIRE(
     a_smoothLen > T(0), "BVHSmoothUnion: the smoothing length must be positive (%g)", double(a_smoothLen));
@@ -1065,6 +1470,46 @@ BVHSmoothUnion<T, K, Blend, Ps...>::getUnboundedPrimitives() const noexcept
 }
 
 template <class T, size_t K, class Blend, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHSmoothUnion<T, K, Blend, Ps...>::getNumMembers() const noexcept
+{
+  return CSGDetail::numMembersOf(*this);
+}
+
+template <class T, size_t K, class Blend, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHSmoothUnion<T, K, Blend, Ps...>::getMemberIndex(const uint32_t a_position) const noexcept
+{
+  return CSGDetail::memberIndexOf(*this, a_position);
+}
+
+template <class T, size_t K, class Blend, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHSmoothUnion<T, K, Blend, Ps...>::getNumSurfaces() const noexcept
+{
+  return CSGDetail::firstSurfaceOf<T>(*this, this->getNumMembers());
+}
+
+template <class T, size_t K, class Blend, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+BVHSmoothUnion<T, K, Blend, Ps...>::getFirstSurface(const uint32_t a_member) const noexcept
+{
+  return CSGDetail::firstSurfaceOf<T>(*this, a_member);
+}
+
+template <class T, size_t K, class Blend, class... Ps>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+BVHSmoothUnion<T, K, Blend, Ps...>::closestSurface(const Vec3T<T>& a_point) const noexcept
+{
+  return CSGDetail::closestSurfaceOfUnion<T>(*this, a_point);
+}
+
+template <class T, size_t K, class Blend, class... Ps>
 EBGEOMETRY_HOST
 inline BVHSmoothUnion<T, K, Blend, Ps...>
 BVHSmoothUnion<T, K, Blend, Ps...>::rebasedView(const Pool& a_pool) const noexcept
@@ -1088,6 +1533,10 @@ BVHSmoothUnion<T, K, Blend, Ps...>::rebasedView(const Pool& a_pool) const noexce
 
   [[maybe_unused]] const Root unboundedView = unbounded.rebasedView(a_pool);
 
+  if (m_members.size() > 0) {
+    [[maybe_unused]] const PoolLocation members = this->rebasedLocation(a_pool, m_members.endByte(), "BVHSmoothUnion");
+  }
+
   return BVHSmoothUnion(this->layout(), location);
 }
 
@@ -1098,6 +1547,8 @@ BVHSmoothUnion<T, K, Blend, Ps...>::deepCopy(Pool& a_dstPool) const
 {
   // All parts go into a_dstPool, so the copy resolves them against one pool, as the original does.
   Layout layout = this->layout();
+
+  layout.m_members = CSGDetail::deepCopyMembers(m_members, this->location(), a_dstPool);
 
   if constexpr (sizeof...(Ps) == 1) {
     const Root bvh       = CSGDetail::deepCopyBVH<T, First, K>(this->getBVH(), a_dstPool);

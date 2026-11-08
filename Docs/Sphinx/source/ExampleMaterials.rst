@@ -4,13 +4,15 @@ Materials
 =========
 
 Which part of an object a query found, by label, and a table of your own indexed by it: the armadillo
-with a cylinder bored through its chest. The source is at :file:`Examples/Materials/main.cpp`.
+with a cylinder bored through its chest, standing in a ring of pebbles. The source is at
+:file:`Examples/Materials/main.cpp`.
 
 .. figure:: /_static/example_Materials.jpg
    :width: 60%
    :align: center
 
-   The armadillo colored by leaf, from a table of its own: the skin sand, the bore's wall (the cylinder's) steel gray.
+   The armadillo colored by leaf, from a table of its own: the skin sand, the bore's wall (the cylinder's) steel
+   gray, the pebbles slate.
 
 .. important::
 
@@ -35,10 +37,10 @@ here; in an application, materials or boundary conditions) is filled by name and
 
 .. code-block:: c++
 
-   const Expr<T> object = Difference(Label(armadillo, "skin"), Label(bore, "bore"));
+   const Expr<T> object = Union(Difference(Label(armadillo, "skin"), Label(bore, "bore")), Label(gravel, "gravel"));
 
-   const Tape<T>      tape(pool, object);
-   const ExprIndex<T> index(object);
+   const Tape<T, SphereCloudBVH<T>> tape(pool, object);   // a cloud is listed: it is not built into the tape
+   const ExprIndex<T>               index(object);
 
    std::vector<std::string> materials(tape.getNumLabels());
 
@@ -61,14 +63,31 @@ An unlabeled leaf has no label (``LeafRef::None``), so check the number before i
 leaf; its faces are told apart by ``getClosestFace()`` on the mesh itself (see
 :ref:`Chap:ExampleMeshSDF`).
 
-The program prints the value and material at three points, and what three rays hit: the chest from in
-front, nothing straight through the bore, and the bore's wall sideways from inside it.
+Which pebble
+------------
+
+The forty pebbles are one ``SphereCloudBVH``, one leaf of the tape, so ``closestLeaf()`` names the gravel.
+``closestSurface(p)`` goes on into the cloud and names the pebble that decides (see :ref:`Sec:Surfaces`). The
+surfaces are numbered across the scene, each leaf a range of them from ``getFirstSurface(leaf)``, a cloud's
+in cloud order, so data of your own per pebble needs no label:
+
+.. code-block:: c++
+
+   const SurfaceRef<T> s = tape.closestSurface(p);
+
+   const uint32_t pebble = s.m_surface - tape.getFirstSurface(s.m_leaf);   // the pebble's cloud index
+   materials[s.m_label];                                                    // and the gravel's label
+
+The program prints the value and material at three points, the pebble found just above three pebbles, and
+what three rays hit: the chest from in front, nothing straight through the bore, and the bore's wall
+sideways from inside it.
 
 Looking at it
 -------------
 
 ``Settings::m_colorBy = ColorBy::Primitive`` colors each surface by the leaf, ``HitT::m_primitive``. A tape
-numbers its leaves in expression order, depth first: the armadillo is leaf 0 and the cylinder leaf 1.
+numbers its leaves in expression order, depth first: the armadillo is leaf 0, the cylinder leaf 1 and the
+gravel leaf 2.
 ``Settings::m_primitiveColors`` gives each leaf a color of its own (a leaf left out gets the renderer's
 palette), and the camera looks from low in front, where the bore shows:
 
@@ -78,6 +97,7 @@ palette), and the camera looks from low in front, where the bore shows:
    settings.m_colorBy            = Render::ColorBy::Primitive;
    settings.m_primitiveColors[0] = Vec3(0.78, 0.62, 0.42); // the skin, sand
    settings.m_primitiveColors[1] = Vec3(0.55, 0.57, 0.60); // the bore, steel gray
+   settings.m_primitiveColors[2] = Vec3(0.35, 0.40, 0.45); // the gravel, slate
 
    Render::view(tape, pool, camera, settings, argc, argv);
 
