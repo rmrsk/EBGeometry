@@ -137,6 +137,16 @@ struct Staging
    * @brief The most objects in one union evaluated as written.
    */
   uint32_t m_largestPlainUnion = 0;
+
+  /**
+   * @brief Each leaf's label; empty when the expression has none.
+   */
+  std::vector<uint32_t> m_labels;
+
+  /**
+   * @brief How many distinct labels the expression has.
+   */
+  uint32_t m_numLabels = 0;
 };
 
 /**
@@ -1386,6 +1396,21 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_numPrimitives     = compiler.numPrimitives();
   staging.m_largestPlainUnion = compiler.largestPlainUnion();
 
+  // The labels, numbered as ExprIndex numbers them; a tape without any stores none.
+  const ExprIndex<T> index(a_expr);
+
+  EBGEOMETRY_EXPECT(index.getNumLeaves() == staging.m_numPrimitives);
+
+  staging.m_numLabels = index.getNumLabels();
+
+  if (staging.m_numLabels > 0U) {
+    staging.m_labels.resize(index.getNumLeaves());
+
+    for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
+      staging.m_labels[leaf] = index.getLabel(leaf);
+    }
+  }
+
   if (a_options.m_largeUnionWarning > 0U && staging.m_largestPlainUnion >= a_options.m_largeUnionWarning) {
     std::fprintf(stderr,
                  "EBGeometry::Tape: a union of %u objects is evaluated as written; Union(objects, "
@@ -1414,6 +1439,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_programs.reserveFrom(a_pool, static_cast<uint32_t>(programs.size()));
   layout.m_params.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_unions.size()));
+  layout.m_labels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_labels.size()));
 
   TapeDetail::reserveStore<0>(a_pool, layout.m_primitives, a_staging.m_primitives);
 
@@ -1425,6 +1451,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_programs.assign(base, programs.data(), static_cast<uint32_t>(programs.size()));
   layout.m_params.assign(base, a_staging.m_params.data(), static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.assign(base, a_staging.m_unions.data(), static_cast<uint32_t>(a_staging.m_unions.size()));
+  layout.m_labels.assign(base, a_staging.m_labels.data(), static_cast<uint32_t>(a_staging.m_labels.size()));
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
@@ -1435,6 +1462,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_numPrimitives     = a_staging.m_numPrimitives;
   layout.m_largestPlainUnion = a_staging.m_largestPlainUnion;
   layout.m_rayPrograms       = a_staging.m_flatRayPrograms;
+  layout.m_numLabels         = a_staging.m_numLabels;
 
   m_layout = layout;
 }
@@ -2898,6 +2926,30 @@ Tape<T, UserPrimitives...>::getLargestPlainUnion() const noexcept
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
+Tape<T, UserPrimitives...>::getLabel(const uint32_t a_leaf) const noexcept
+{
+  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : PrimitiveRef<T>::None;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getLabel(const PrimitiveRef<T>& a_ref) const noexcept
+{
+  return this->getLabel(a_ref.m_leaf);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getNumLabels() const noexcept
+{
+  return m_layout.m_numLabels;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
 Tape<T, UserPrimitives...>::getCallDepth() const noexcept
 {
   return m_layout.m_callDepth;
@@ -2997,9 +3049,10 @@ Tape<T, UserPrimitives...>::rebasedView(const Pool& a_pool) const noexcept
     [[maybe_unused]] const UnionRoot unbounded = UnionRoot(parts.m_unbounded, location).rebasedView(a_pool);
   }
 
-  const uint64_t endByte = Math::max(Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
-                                     Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
-                                               TapeDetail::storeEndByte(m_layout.m_primitives)));
+  const uint64_t endByte =
+    Math::max(Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
+              Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
+                        Math::max(m_layout.m_labels.endByte(), TapeDetail::storeEndByte(m_layout.m_primitives))));
 
   Tape view = *this;
 
@@ -3026,6 +3079,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     const auto programs = m_layout.m_programs.bind(base);
     const auto params   = m_layout.m_params.bind(base);
     const auto unions   = m_layout.m_unions.bind(base);
+    const auto labels   = m_layout.m_labels.bind(base);
 
     // The arrays are copied as they are laid out: the marched ranges overlap the sub-programs.
     staging.m_flatClauses.assign(clauses.begin(), clauses.end());
@@ -3035,6 +3089,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
 
     staging.m_params.assign(params.begin(), params.end());
     staging.m_unions.assign(unions.begin(), unions.end());
+    staging.m_labels.assign(labels.begin(), labels.end());
   }
 
   TapeDetail::deepCopyStore<0, Primitives>(m_layout.m_primitives, location, a_dstPool, staging.m_primitives);
@@ -3049,6 +3104,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
   staging.m_quality           = m_layout.m_quality;
   staging.m_numPrimitives     = m_layout.m_numPrimitives;
   staging.m_largestPlainUnion = m_layout.m_largestPlainUnion;
+  staging.m_numLabels         = m_layout.m_numLabels;
 
   Tape copy(Layout{}, PoolLocation{});
 

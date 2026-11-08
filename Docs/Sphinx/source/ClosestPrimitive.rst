@@ -105,6 +105,43 @@ The local point matters here: the mesh was translated, rotated or scaled into pl
 and its own BVH knows only the mesh's own coordinates. A nested tape is asked the same way, for its own
 deciding leaf at the local point.
 
+Labels
+------
+
+A leaf number is fine for a program that builds its expression itself, but it depends on the expression's
+order: an edit earlier in the expression renumbers everything after it. A name does not.
+``Label(object, "name")`` names an object, and every leaf below it gets the label, unless a label nearer the
+leaf names it. Labels change nothing in how the object is evaluated, and nothing has to be labeled: an
+unlabeled leaf has no label (``PrimitiveRef::None``). Several objects may share a name, and so a label.
+
+.. code-block:: c++
+
+   const Expr<T> part = Difference(Intersection(Label(box, "wall"), ball), Label(Union(drills), "bores"));
+
+   const Tape<T>      tape(pool, part);
+   const ExprIndex<T> index(part);
+
+   std::vector<Wall> walls(tape.getNumLabels());   // per-label data of your own
+   walls[index.findLabel("wall")]  = ...;
+   walls[index.findLabel("bores")] = ...;
+
+   const uint32_t label = tape.getLabel(tape.closestPrimitive(p));   // or tape.getLabel(hit.m_primitive)
+
+The tape reports a leaf's label with ``getLabel()``, on the host and inside a GPU kernel, so a kernel
+(a particle hitting a wall, say) looks up per-label data in an array of its own. The label is a number;
+the names live on the host, in an
+`ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression. Both
+number the labels in the order their names first appear in the expression, depth first, so the same
+expression gives the same numbers to both. A tape whose expression has no label stores none.
+
+An ``ExprIndex`` also numbers the expression's nodes, depth first like the leaves, and gives each node its
+parent, its operation and the leaves below it. The leaves below a node are always a contiguous range of
+leaf numbers, so a group of surfaces (a whole subexpression) can be handed to a kernel as two numbers, and
+``pathOf(leaf)`` lists the nodes from the root down to a leaf: the levels a surface belongs to. The nodes are
+those the expression is built of: ``Difference(a, b)`` is an intersection of ``a`` with the complement of
+``b``, and translations, rotations and scalings applied one after another are one transform, unless one of
+them is labeled.
+
 Along a ray
 -----------
 
@@ -132,9 +169,9 @@ parts; to tell parts apart, make them leaves of a tape (each part can be a fused
 Examples
 --------
 
-* :ref:`Chap:ExampleMaterials` bores a cylinder through a mesh, names each point's part with
-  ``closestPrimitive()`` and each ray's with ``HitT::m_primitive``, looks it up in a table of materials,
-  and renders the object colored by part.
+* :ref:`Chap:ExampleMaterials` bores a cylinder through a mesh, labels the two parts, names each point's
+  part with ``closestPrimitive()`` and each ray's with ``HitT::m_primitive``, looks its label up in a table
+  of materials, and renders the object colored by part.
 * :ref:`Chap:ExampleBasicCSG` prints the deciding leaf at a few points of the classic CSG solid, a cube
   intersected with a ball and drilled along three axes.
 * The AMReX ``Materials`` integration (see :ref:`Chap:Integrations`) labels every cut cell with its

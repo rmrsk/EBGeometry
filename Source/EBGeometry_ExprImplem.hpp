@@ -14,6 +14,8 @@
 // Std includes
 #include <cmath>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -260,8 +262,9 @@ affine(const Expr<T>& a_operand, const Affine3T<T>& a_map, const Affine3T<T>& a_
 {
   const Node<T>& inner = a_operand.node();
 
-  // The outer map is applied to the query point first: the child sees inner(outer(p)).
-  const bool fold  = (inner.m_kind == Kind::Affine);
+  // The outer map is applied to the query point first: the child sees inner(outer(p)). A labeled map stays
+  // a node of its own, so that its label keeps the leaves it names.
+  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_label.empty();
   const auto child = fold ? inner.m_children.front() : a_operand;
 
   auto node = makeNode<T>(Kind::Affine, {child});
@@ -845,6 +848,216 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
   node->m_count = static_cast<uint32_t>(a_samples);
 
   return Expr<T>(std::move(node));
+}
+
+template <class A>
+inline Expr<ExprPrecision<A>>
+Label(const A& a_operand, std::string a_name)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "Label: the name must not be empty");
+
+  // A copy of the node, so that other uses of the same subexpression keep their own label.
+  auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
+
+  node->m_label = std::move(a_name);
+
+  return Expr<T>(std::move(node));
+}
+
+namespace ExprDetail {
+
+/**
+ * @brief What a node does, as ExprIndex::Node::m_operation names it.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node Node.
+ * @return The name.
+ */
+template <class T>
+[[nodiscard]] inline std::string
+operationName(const Node<T>& a_node)
+{
+  const std::string bvh = a_node.m_bvh ? " (BVH)" : "";
+
+  switch (a_node.m_kind) {
+  case Kind::Primitive: {
+    return "Primitive";
+  }
+  case Kind::Affine: {
+    return "Transform";
+  }
+  case Kind::Elongate: {
+    return "Elongate";
+  }
+  case Kind::Repeat: {
+    return "Repeat";
+  }
+  case Kind::Complement: {
+    return "Complement";
+  }
+  case Kind::Offset: {
+    return "Offset";
+  }
+  case Kind::Annular: {
+    return "Annulus";
+  }
+  case Kind::Blur: {
+    return "Blur";
+  }
+  case Kind::Mollify: {
+    return "Mollify";
+  }
+  case Kind::Union: {
+    return "Union" + bvh;
+  }
+  case Kind::Intersection: {
+    return "Intersection";
+  }
+  case Kind::SmoothUnion: {
+    return "SmoothUnion" + bvh;
+  }
+  case Kind::SmoothIntersection: {
+    return "SmoothIntersection";
+  }
+  default: {
+    return "";
+  }
+  }
+}
+
+} // namespace ExprDetail
+
+template <class T>
+inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr)
+{
+  this->add(a_expr.node(), None, None);
+}
+
+template <class T>
+inline void
+ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, const uint32_t a_label)
+{
+  const auto id = static_cast<uint32_t>(m_nodes.size());
+
+  uint32_t own = None;
+
+  if (!a_node.m_label.empty()) {
+    own = this->findLabel(a_node.m_label);
+
+    if (own == None) {
+      own = static_cast<uint32_t>(m_names.size());
+
+      m_names.push_back(a_node.m_label);
+    }
+  }
+
+  const uint32_t label = (own != None) ? own : a_label;
+
+  Node node;
+
+  node.m_parent    = a_parent;
+  node.m_firstLeaf = static_cast<uint32_t>(m_leafNodes.size());
+  node.m_label     = own;
+  node.m_operation = ExprDetail::operationName(a_node);
+
+  m_nodes.push_back(std::move(node));
+
+  // Leaves are numbered in the order the tape compiler meets them: depth first, the operands in order.
+  if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+    m_leafNodes.push_back(id);
+    m_leafLabels.push_back(label);
+  }
+
+  for (const Expr<T>& child : a_node.m_children) {
+    this->add(child.node(), id, label);
+  }
+
+  m_nodes[id].m_numLeaves = static_cast<uint32_t>(m_leafNodes.size()) - m_nodes[id].m_firstLeaf;
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumNodes() const noexcept
+{
+  return static_cast<uint32_t>(m_nodes.size());
+}
+
+template <class T>
+inline const typename ExprIndex<T>::Node&
+ExprIndex<T>::getNode(const uint32_t a_node) const
+{
+  EBGEOMETRY_REQUIRE(a_node < m_nodes.size(), "ExprIndex: node %u of %zu", unsigned(a_node), m_nodes.size());
+
+  return m_nodes[a_node];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumLeaves() const noexcept
+{
+  return static_cast<uint32_t>(m_leafNodes.size());
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getLeafNode(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafNodes.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafNodes.size());
+
+  return m_leafNodes[a_leaf];
+}
+
+template <class T>
+inline std::vector<uint32_t>
+ExprIndex<T>::pathOf(const uint32_t a_leaf) const
+{
+  std::vector<uint32_t> path;
+
+  for (uint32_t node = this->getLeafNode(a_leaf); node != None; node = m_nodes[node].m_parent) {
+    path.push_back(node);
+  }
+
+  return std::vector<uint32_t>(path.rbegin(), path.rend());
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getLabel(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafLabels.size());
+
+  return m_leafLabels[a_leaf];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumLabels() const noexcept
+{
+  return static_cast<uint32_t>(m_names.size());
+}
+
+template <class T>
+inline const std::string&
+ExprIndex<T>::getLabelName(const uint32_t a_label) const
+{
+  EBGEOMETRY_REQUIRE(a_label < m_names.size(), "ExprIndex: label %u of %zu", unsigned(a_label), m_names.size());
+
+  return m_names[a_label];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::findLabel(const std::string_view a_name) const noexcept
+{
+  for (size_t i = 0; i < m_names.size(); i++) {
+    if (m_names[i] == a_name) {
+      return static_cast<uint32_t>(i);
+    }
+  }
+
+  return None;
 }
 
 } // namespace EBGeometry

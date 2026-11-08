@@ -2,11 +2,12 @@ Examples/Materials
 ------------------
 
 Which part of an object a query found. The armadillo has a cylinder bored through its chest
-(`Difference`), and a tape numbers its leaves in expression order: the armadillo 0, the cylinder 1. That
-number indexes a table of your own (here material names; in an application, materials or boundary
-conditions). `closestPrimitive(p).m_leaf` names the leaf the value at a point comes from, and `firstHit()`
-reports the leaf a ray crossed in `HitT::m_primitive`. The viewer colors by the same id
-(`ColorBy::Primitive`), so the bore's wall shows in another color.
+(`Difference`), and each part is named with `Label`. The tape reports a leaf's label with `getLabel()`, on the
+host and on a GPU; an `ExprIndex` built from the same expression holds the names. The label indexes a table
+of your own (here material names; in an application, materials or boundary conditions).
+`closestPrimitive(p)` names the leaf the value at a point comes from, and `firstHit()` reports the leaf a ray
+crossed in `HitT::m_primitive`. The viewer colors by the leaf (`ColorBy::Primitive`), so the bore's wall
+shows in another color.
 
 The default mesh comes from the `common-3d-test-models` git submodule: clone the repository with
 `--recurse-submodules`, or run `git submodule update --init` in it. Pass another mesh as the first

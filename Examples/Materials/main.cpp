@@ -2,13 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Which part of an object a query found: the armadillo with a cylinder bored through it, and for a point or a
-// ray, which of the two surfaces the answer comes from. That id indexes a table of your own, such as
-// materials or boundary conditions; the viewer colors by it. See README.md.
+// Which part of an object a query found: the armadillo with a cylinder bored through it, each part labeled,
+// and for a point or a ray, which of the two surfaces the answer comes from. The label indexes a table of your
+// own, such as materials or boundary conditions; the viewer colors by the leaf. See README.md.
 
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -58,23 +59,34 @@ try {
 
   const EBGeometry::CylinderSDF<T> bore(Vec3(T(0), T(1.22), T(-2)), Vec3(T(0), T(1.22), T(2)), T(0.16));
 
-  const Tape tape(pool, EBGeometry::Difference(armadillo, bore));
+  // Label each part: every leaf below a Label gets its name. Labels change nothing in the values.
+  const Expr object = EBGeometry::Difference(EBGeometry::Label(armadillo, "skin"), EBGeometry::Label(bore, "bore"));
 
-  // ── Which part: the leaf id ────────────────────────────────────────────────────────────────────────
+  const Tape tape(pool, object);
+
+  // ── Which part: the label ──────────────────────────────────────────────────────────────────────────
   //
-  // A tape numbers its leaves in expression order: here the armadillo 0 and the cylinder 1. Your own table,
-  // indexed by that number, says what each part is. A query can name no leaf (PrimitiveRef::None), so check
-  // the number before indexing.
-  const char* materials[] = {"skin (the armadillo)", "machined (the cylinder's bore)"};
+  // The tape stores each leaf's label, as a number it can report on the host and on a GPU. ExprIndex, built
+  // from the same expression on the host, numbers the labels the same way and holds their names, so a table
+  // of your own, indexed by the label, can be filled by name. A query can find no label (PrimitiveRef::None,
+  // for an unlabeled leaf), so check the number before indexing.
+  const EBGeometry::ExprIndex<T> index(object);
 
-  const auto material = [&materials](const uint32_t a_leaf) { return a_leaf < 2 ? materials[a_leaf] : "none"; };
+  std::vector<std::string> materials(tape.getNumLabels());
 
-  // closestPrimitive(p) names the leaf the value at p comes from.
+  materials[index.findLabel("skin")] = "skin (the armadillo)";
+  materials[index.findLabel("bore")] = "machined (the cylinder's bore)";
+
+  const auto material = [&materials](const uint32_t a_label) {
+    return a_label < materials.size() ? materials[a_label] : std::string("none");
+  };
+
+  // closestPrimitive(p) names the leaf the value at p comes from, and getLabel() its label.
   std::cout << std::fixed << std::setprecision(3) << "Near a point:\n";
 
   for (const Vec3& p : {Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(0.25), T(1.22), T(-0.2)), Vec3(T(0), T(0.4), T(0))}) {
     std::cout << "  " << p << "   value " << std::setw(7) << tape.signedDistance(p) << "   "
-              << material(tape.closestPrimitive(p).m_leaf) << '\n';
+              << material(tape.getLabel(tape.closestPrimitive(p))) << '\n';
   }
 
   // firstHit() along a ray reports the leaf it crossed in HitT::m_primitive, with the point and the normal.
@@ -89,7 +101,7 @@ try {
     std::cout << "  from " << ray.m_origin << " towards " << ray.m_direction << ": ";
 
     if (hit.m_status == EBGeometry::HitStatus::Hit) {
-      std::cout << "hit at " << hit.m_point << ", " << material(hit.m_primitive) << '\n';
+      std::cout << "hit at " << hit.m_point << ", " << material(tape.getLabel(hit.m_primitive)) << '\n';
     }
     else {
       std::cout << "no hit\n";
@@ -99,8 +111,9 @@ try {
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // ColorBy::Primitive colors each surface by the leaf it belongs to, from the same HitT::m_primitive (built
-  // with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why and returns). The
-  // table m_primitiveColors gives a leaf a color of its own, here the skin sand and the bore steel gray;
+  // with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why and returns). Leaves
+  // are numbered in expression order, the armadillo 0 and the cylinder 1. The table m_primitiveColors gives
+  // a leaf a color of its own, here the skin sand and the bore steel gray;
   // a leaf not in it gets the built-in palette's. Given the pool, view() renders on the GPU in a GPU build
   // (G switches to the CPU and back).
   EBGeometry::Render::Settings<T> settings;
