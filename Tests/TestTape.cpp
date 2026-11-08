@@ -430,7 +430,11 @@ TEMPLATE_TEST_CASE("Tape: a union as written reports its size, and a large one w
   CHECK(warning(Union(spheres), at10).rfind(expected, 0) == 0U);
   CHECK(warning(chain, at10).rfind(expected, 0) == 0U);
   CHECK(warning(Union(first), at10).find("a union of 12 objects") != std::string::npos);
-  CHECK(warning(Union(std::vector<Expr<T>>(spheres.begin(), spheres.begin() + 9)), at10).empty());
+  const std::vector<Expr<T>> ten(spheres.begin(), spheres.begin() + 10);
+  const std::vector<Expr<T>> nine(spheres.begin(), spheres.begin() + 9);
+
+  CHECK(warning(Union(ten), at10).find("a union of 10 objects") != std::string::npos);
+  CHECK(warning(Union(nine), at10).empty());
   CHECK(warning(Union(spheres), silenced).empty());
   CHECK(warning(Union(spheres, Accelerate::BVH), at10).empty());
 

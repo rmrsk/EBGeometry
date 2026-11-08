@@ -275,7 +275,7 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
   minimum, but it keeps the sign and is still a bound on the distance. Through a BVH, a union with an operand
   that is ``NotADistance`` keeps only its sign, as its distance quality says.
   `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ chooses the BVH construction
-  method, and the size from which a union evaluated as written prints a warning when the tape is built,
+  method, and the size from which a union evaluated as written prints a warning each time a tape is built,
   suggesting ``Accelerate::BVH`` (``m_largeUnionWarning``; 0 silences it).
 * **Limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are compiled into
   sub-programs, which nest at most ``Tape::MaxCallDepth`` (4) deep, and a sub-program holds at most
