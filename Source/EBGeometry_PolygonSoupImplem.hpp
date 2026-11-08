@@ -158,6 +158,33 @@ PolygonSoup<T>::setFaceProperty(const std::string& a_name, std::vector<T> a_data
 }
 
 template <typename T>
+const FaceGroups&
+PolygonSoup<T>::getFaceGroups() const noexcept
+{
+  return m_faceGroups;
+}
+
+template <typename T>
+void
+PolygonSoup<T>::setFaceGroups(FaceGroups a_groups)
+{
+  EBGEOMETRY_REQUIRE(a_groups.m_group.empty() || a_groups.m_group.size() == m_facets.size(),
+                     "PolygonSoup: face groups name %zu faces of %zu",
+                     a_groups.m_group.size(),
+                     m_facets.size());
+
+  for (size_t f = 0; f < a_groups.m_group.size(); f++) {
+    EBGEOMETRY_REQUIRE(a_groups.m_group[f] == FaceGroups::None || a_groups.m_group[f] < a_groups.m_names.size(),
+                       "PolygonSoup: face %zu is in group %u of %zu",
+                       f,
+                       unsigned(a_groups.m_group[f]),
+                       a_groups.m_names.size());
+  }
+
+  m_faceGroups = std::move(a_groups);
+}
+
+template <typename T>
 bool
 PolygonSoup<T>::isClean() const noexcept
 {
@@ -209,6 +236,16 @@ PolygonSoup<T>::clean()
     }
 
     property.second = std::move(kept);
+  }
+
+  if (!m_faceGroups.m_group.empty()) {
+    std::vector<uint32_t> kept(m_facets.size());
+
+    for (size_t f = 0; f < kept.size(); f++) {
+      kept[f] = m_faceGroups.m_group[originalFacet[f]];
+    }
+
+    m_faceGroups.m_group = std::move(kept);
   }
 
   m_isClean = true;

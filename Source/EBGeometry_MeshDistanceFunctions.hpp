@@ -167,6 +167,24 @@ public:
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief How many parts the mesh has (see hasParts): one per face, the mesh's numFaces().
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline uint32_t
+  getNumParts() const noexcept;
+
+  /**
+   * @brief The part that decides the value at a point (see hasParts): the closest face's id,
+   * getClosestFace(a_point).faceId.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The face id.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief Get the underlying DCEL mesh descriptor.
    * @return The mesh.
    */
@@ -388,6 +406,24 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline ClosestFace<T>
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many parts the mesh has (see hasParts): one per face, the mesh's numFaces().
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline uint32_t
+  getNumParts() const noexcept;
+
+  /**
+   * @brief The part that decides the value at a point (see hasParts): the closest face's id,
+   * getClosestFace(a_point).faceId.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The face id.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the PackedBVH enclosing the mesh.
@@ -695,6 +731,24 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline ClosestFace<T>
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many parts the mesh has (see hasParts): one per face, one more than the largest face id its triangles carry.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline uint32_t
+  getNumParts() const noexcept;
+
+  /**
+   * @brief The part that decides the value at a point (see hasParts): the closest face's id,
+   * getClosestFace(a_point).faceId.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The face id.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief Get the PackedBVH storing SoA triangle groups.

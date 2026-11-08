@@ -39,6 +39,7 @@
 #include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -539,6 +540,70 @@ firstCrossing(const S&             a_shape,
               const Vec3T<T>&      a_to,
               T                    a_tMin    = T(0),
               const RayOptions<T>& a_options = RayOptions<T>()) noexcept;
+
+/**
+ * @brief A ray's first crossing of a shape's surface, with the surface it crossed, as firstSurface() reports it.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct SurfaceHitT
+{
+  /**
+   * @brief The crossing, as firstHit() reports it.
+   */
+  HitT<T> m_hit;
+
+  /**
+   * @brief The surface crossed, drilled down as closestSurface() does (its surface, leaf, label, part and local
+   * point); no surface for a miss or an unresolved query.
+   */
+  SurfaceRef<T> m_surface;
+};
+
+/**
+ * @brief A ray's first crossing of a shape's surface, and the surface it crossed: the ray counterpart of
+ * closestSurface(), as firstHit() is of signedDistance().
+ * @details firstHit(), then, for a hit only, closestSurface() at the crossing: a collection (a tape's leaf, a BVH
+ * union, a sphere cloud) is drilled down to the member crossed, with its part and label. A miss costs what
+ * firstHit() costs; a hit, one more evaluation at the crossing. Callable on a device.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_ray     The ray, with a unit direction.
+ * @param[in] a_tMin    Start of the interval.
+ * @param[in] a_tMax    End of the interval.
+ * @param[in] a_options How to march.
+ * @return The crossing and its surface, a miss, or an unresolved query.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+firstSurface(const S&                 a_shape,
+             const RayT<T>&           a_ray,
+             typename RayT<T>::Scalar a_tMin,
+             typename RayT<T>::Scalar a_tMax,
+             const RayOptions<T>&     a_options = RayOptions<T>()) noexcept;
+
+/**
+ * @brief The first crossing of a shape's surface on the segment from a_from to a_to, and the surface crossed (see
+ * firstSurface() for a ray, and firstHit() for the segment).
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape   The shape.
+ * @param[in] a_from    Start of the segment.
+ * @param[in] a_to      End of the segment.
+ * @param[in] a_tMin    Distance from a_from where the search starts.
+ * @param[in] a_options How to march.
+ * @return The crossing and its surface, a miss, or an unresolved query.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+firstSurface(const S&             a_shape,
+             const Vec3T<T>&      a_from,
+             const Vec3T<T>&      a_to,
+             T                    a_tMin    = T(0),
+             const RayOptions<T>& a_options = RayOptions<T>()) noexcept;
 
 } // namespace EBGeometry
 

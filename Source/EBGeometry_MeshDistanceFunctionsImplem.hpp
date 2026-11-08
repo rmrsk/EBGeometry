@@ -376,6 +376,22 @@ FlatMeshSDF<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T>
+EBGEOMETRY_HOST
+inline uint32_t
+FlatMeshSDF<T>::getNumParts() const noexcept
+{
+  return this->getMesh().numFaces();
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+FlatMeshSDF<T>::closestPart(const Vec3T<T>& a_point) const noexcept
+{
+  return this->getClosestFace(a_point).faceId;
+}
+
+template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline ClosestFace<T>
 FlatMeshSDF<T>::getClosestFace(const Vec3T<T>& a_point) const noexcept
@@ -530,6 +546,22 @@ MeshSDF<T, K>::signedDistance(const Vec3T<T>& a_point) const noexcept
   bvh.traverse(BVH::PointQuery<T>{a_point}, minDist, evalLeaf, pruneDist2);
 
   return minDist;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST
+inline uint32_t
+MeshSDF<T, K>::getNumParts() const noexcept
+{
+  return this->getMesh().numFaces();
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+MeshSDF<T, K>::closestPart(const Vec3T<T>& a_point) const noexcept
+{
+  return this->getClosestFace(a_point).faceId;
 }
 
 template <class T, size_t K>
@@ -872,6 +904,31 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 
   return groups[nearest.group].signedDistanceAt(nearest.lane, a_point);
 #endif
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline uint32_t
+TriMeshSDF<T, K, W>::getNumParts() const noexcept
+{
+  // Every lane holds a face id, the padding lanes their group's last; the faces are numbered from 0.
+  uint32_t numFaces = 0;
+
+  for (const auto& group : this->getRoot().getPrimitives()) {
+    for (size_t lane = 0; lane < W; lane++) {
+      numFaces = Math::max(numFaces, group.getFaceId(lane) + 1U);
+    }
+  }
+
+  return numFaces;
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+TriMeshSDF<T, K, W>::closestPart(const Vec3T<T>& a_point) const noexcept
+{
+  return this->getClosestFace(a_point).faceId;
 }
 
 template <class T, size_t K, size_t W>

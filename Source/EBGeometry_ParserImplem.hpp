@@ -232,6 +232,93 @@ reserveHint(const size_t a_declared) noexcept
 }
 
 /**
+ * @brief The face groups a reader collects as it reads: the group of each face read, by name.
+ * @details Internal helper; not part of the public API.
+ */
+struct GroupReader
+{
+  /**
+   * @brief The groups read so far.
+   */
+  FaceGroups m_groups;
+
+  /**
+   * @brief The current group, which the next faces are in; FaceGroups::None for none.
+   */
+  uint32_t m_current = FaceGroups::None;
+
+  /**
+   * @brief Start a group: the faces read next are in the group of this name (none for an empty name).
+   * @param[in] a_name The name, trimmed.
+   */
+  void
+  start(const std::string& a_name)
+  {
+    if (a_name.empty()) {
+      m_current = FaceGroups::None;
+
+      return;
+    }
+
+    for (uint32_t g = 0; g < m_groups.m_names.size(); g++) {
+      if (m_groups.m_names[g] == a_name) {
+        m_current = g;
+
+        return;
+      }
+    }
+
+    m_current = static_cast<uint32_t>(m_groups.m_names.size());
+
+    m_groups.m_names.push_back(a_name);
+  }
+
+  /**
+   * @brief Record a face read: it is in the current group.
+   */
+  void
+  face()
+  {
+    m_groups.m_group.push_back(m_current);
+  }
+
+  /**
+   * @brief The groups, or none if no face is in a named group.
+   * @return The groups.
+   */
+  FaceGroups
+  take()
+  {
+    return m_groups.empty() ? FaceGroups{} : std::move(m_groups);
+  }
+};
+
+/**
+ * @brief The rest of a line after its keyword, trimmed of white space and of a trailing comment.
+ * @details Internal helper; not part of the public API.
+ * @param[in,out] a_stream The line, read up to and including its keyword.
+ * @return The rest.
+ */
+[[nodiscard]] inline std::string
+restOfLine(std::stringstream& a_stream)
+{
+  std::string rest;
+
+  std::getline(a_stream, rest);
+
+  const size_t comment = rest.find('#');
+
+  if (comment != std::string::npos) {
+    rest.erase(comment);
+  }
+
+  const size_t first = rest.find_first_not_of(" \t\r");
+  const size_t last  = rest.find_last_not_of(" \t\r");
+
+  return (first == std::string::npos) ? std::string() : rest.substr(first, last - first + 1);
+}
+
+/**
  * @brief Assemble what a reader read into a clean PolygonSoup.
  * @details A property with the wrong number of values (a VTK file whose CELL_DATA also covers lines
  * or vertices, say) cannot be aligned with the faces or vertices, and is dropped with a warning.
@@ -241,6 +328,7 @@ reserveHint(const size_t a_declared) noexcept
  * @param[in] a_facets           Faces, as read.
  * @param[in] a_vertexProperties Per-vertex properties, as read.
  * @param[in] a_faceProperties   Per-face properties, as read.
+ * @param[in] a_groups           The faces' named groups, as read; empty for none.
  * @return The soup, cleaned (see PolygonSoup::clean()).
  * @throws Parser::ParseError if the soup fails Soup::isValid().
  */
@@ -250,9 +338,14 @@ makeSoup(const std::string&                    a_filename,
          std::vector<Vec3T<T>>                 a_vertices,
          std::vector<std::vector<size_t>>      a_facets,
          std::map<std::string, std::vector<T>> a_vertexProperties,
-         std::map<std::string, std::vector<T>> a_faceProperties)
+         std::map<std::string, std::vector<T>> a_faceProperties,
+         FaceGroups                            a_groups = FaceGroups{})
 {
   PolygonSoup<T> soup(a_filename, std::move(a_vertices), std::move(a_facets));
+
+  if (!a_groups.empty()) {
+    soup.setFaceGroups(std::move(a_groups));
+  }
 
   for (auto& property : a_vertexProperties) {
     if (property.second.size() == soup.numVertices()) {
@@ -296,6 +389,7 @@ Parser::readSTL(const std::string& a_filename)
   // since they are always recalculated within EBGeometry.
   std::vector<Vec3T<T>>            vertices;
   std::vector<std::vector<size_t>> facets;
+  ParserDetail::GroupReader        groups;
 
   const Parser::Encoding encoding = Parser::getFileEncoding(a_filename);
 
@@ -303,14 +397,13 @@ Parser::readSTL(const std::string& a_filename)
   case Parser::Encoding::ASCII: {
     std::ifstream filestream = ParserDetail::open(a_filename);
 
-    // One pass over the lines: a 'facet' line starts a new facet, 'vertex' lines add to the current
-    // facet, and 'endsolid' ends the solid. Blank lines, 'outer loop'/'endloop'/'endfacet', and
-    // anything before 'solid' are ignored. Only the first solid in the file is read. A file that ends
-    // before 'endsolid' is rejected: it is almost certainly truncated, and a partial mesh would give
-    // wrong signs silently.
+    // One pass over the lines: a 'solid' line starts a solid, named by the rest of the line, a 'facet'
+    // line starts a new facet, 'vertex' lines add to the current facet, and 'endsolid' ends the solid.
+    // Blank lines, 'outer loop'/'endloop'/'endfacet', and anything outside a solid are ignored. Every
+    // solid is read, and each named solid is a face group. A file that ends inside a solid is rejected:
+    // it is almost certainly truncated, and a partial mesh would give wrong signs silently.
     bool        inSolid    = false;
     bool        inFacet    = false;
-    bool        complete   = false;
     size_t      lineNumber = 0;
     std::string line;
 
@@ -323,15 +416,23 @@ Parser::readSTL(const std::string& a_filename)
       sstream >> keyword;
 
       if (keyword == "solid") {
+        if (inSolid) {
+          throw ParseError(a_filename, lineNumber, "a solid starts before the previous one has ended");
+        }
+
         inSolid = true;
+
+        groups.start(ParserDetail::restOfLine(sstream));
       }
       else if (!inSolid) {
         continue;
       }
       else if (keyword == "endsolid") {
-        complete = true;
+        if (inFacet) {
+          throw ParseError(a_filename, lineNumber, "the solid ends inside a facet");
+        }
 
-        break;
+        inSolid = false;
       }
       else if (keyword == "facet") {
         if (inFacet) {
@@ -339,6 +440,7 @@ Parser::readSTL(const std::string& a_filename)
         }
 
         facets.emplace_back();
+        groups.face();
 
         inFacet = true;
       }
@@ -370,7 +472,7 @@ Parser::readSTL(const std::string& a_filename)
       }
     }
 
-    if (!complete && !facets.empty()) {
+    if (inSolid && !facets.empty()) {
       throw ParseError(a_filename, lineNumber, "the file ends without 'endsolid'; it is probably truncated");
     }
 
@@ -446,7 +548,7 @@ Parser::readSTL(const std::string& a_filename)
   }
   }
 
-  return ParserDetail::makeSoup<T>(a_filename, std::move(vertices), std::move(facets), {}, {});
+  return ParserDetail::makeSoup<T>(a_filename, std::move(vertices), std::move(facets), {}, {}, groups.take());
 }
 
 template <typename T>
@@ -1933,6 +2035,7 @@ Parser::readOBJ(const std::string& a_filename)
   // discarded since EBGeometry recomputes vertex normals when building the DCEL mesh.
   std::vector<Vec3T<T>>            vertices;
   std::vector<std::vector<size_t>> facets;
+  ParserDetail::GroupReader        groups;
 
   std::ifstream filestream = ParserDetail::open(a_filename);
 
@@ -1994,13 +2097,18 @@ Parser::readOBJ(const std::string& a_filename)
         // Skip degenerate faces (points/lines); polygons with three or more vertices are supported.
         if (facet.size() >= 3) {
           facets.emplace_back(facet);
+          groups.face();
         }
       }
-      // All other records (vt, vn, vp, g, o, s, usemtl, mtllib, '#' comments, blank lines) are ignored.
+      else if (keyword == "g" || keyword == "o") {
+        // A group or an object: the faces after it are in the group of that name (none for no name).
+        groups.start(ParserDetail::restOfLine(sstream));
+      }
+      // All other records (vt, vn, vp, s, usemtl, mtllib, '#' comments, blank lines) are ignored.
     }
   }
 
-  return ParserDetail::makeSoup<T>(a_filename, std::move(vertices), std::move(facets), {}, {});
+  return ParserDetail::makeSoup<T>(a_filename, std::move(vertices), std::move(facets), {}, {}, groups.take());
 }
 
 template <typename T>

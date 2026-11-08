@@ -765,6 +765,46 @@ firstHit(const S&             a_shape,
 
 template <class T, class S>
 EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+firstSurface(const S&                       a_shape,
+             const RayT<T>&                 a_ray,
+             const typename RayT<T>::Scalar a_tMin,
+             const typename RayT<T>::Scalar a_tMax,
+             const RayOptions<T>&           a_options) noexcept
+{
+  SurfaceHitT<T> result;
+
+  result.m_hit = firstHit(a_shape, a_ray, a_tMin, a_tMax, a_options);
+
+  if (result.m_hit.hit()) {
+    result.m_surface = closestSurface(a_shape, result.m_hit.m_point);
+  }
+
+  return result;
+}
+
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+firstSurface(const S&             a_shape,
+             const Vec3T<T>&      a_from,
+             const Vec3T<T>&      a_to,
+             const T              a_tMin,
+             const RayOptions<T>& a_options) noexcept
+{
+  SurfaceHitT<T> result;
+
+  result.m_hit = firstHit(a_shape, a_from, a_to, a_tMin, a_options);
+
+  if (result.m_hit.hit()) {
+    result.m_surface = closestSurface(a_shape, result.m_hit.m_point);
+  }
+
+  return result;
+}
+
+template <class T, class S>
+EBGEOMETRY_HOST_DEVICE
 inline HitStatus
 intersects(const S&                       a_shape,
            const RayT<T>&                 a_ray,

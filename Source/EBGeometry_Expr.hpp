@@ -33,6 +33,7 @@
 #include "EBGeometry_Affine.hpp"
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DistanceQuality.hpp"
+#include "EBGeometry_FaceGroups.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -223,6 +224,11 @@ struct Leaf
    * @brief For a container (see hasSurfaces): how many surfaces it holds. Null for a shape with one surface.
    */
   uint32_t (*m_numSurfaces)(const void*) = nullptr;
+
+  /**
+   * @brief For a shape with parts (see hasParts): how many it has. Null for a shape with one part.
+   */
+  uint32_t (*m_numParts)(const void*) = nullptr;
 };
 
 /**
@@ -320,6 +326,11 @@ struct Node
    * @brief The name Label() gave the node; empty for none.
    */
   std::string m_label;
+
+  /**
+   * @brief For a primitive: the groups Label(shape, FaceGroups) put its parts in; null for none.
+   */
+  std::shared_ptr<const FaceGroups> m_partGroups;
 };
 
 /**
@@ -852,6 +863,25 @@ inline Expr<ExprPrecision<A>>
 Label(const A& a_operand, std::string a_name);
 
 /**
+ * @brief Name a shape's parts by group (see hasParts): each part in a group gets the label of the group's name,
+ * which wins over any label above it; a part in no group keeps those.
+ * @details For a mesh read from a file, the groups are its face groups (PolygonSoup::getFaceGroups()): an OBJ
+ * file's `g` and `o` groups, or an ASCII STL file's named solids, so that a mesh's patches (inlet, outlet, wall)
+ * become labels. The names are numbered with every other label's (see Label()), in the order they first appear.
+ * The operand must be one shape, not a composition (label it before translating or combining it), with as many
+ * parts as the groups have faces; anything else aborts with a message, in every build. A Tape reports the label in
+ * SurfaceRef::m_label, from closestSurface() and firstSurface(), on the host and on a device.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operand A shape with parts (a mesh SDF, a box, ...).
+ * @param[in] a_groups  The group of each part, and the groups' names.
+ * @return The labeled shape.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Label(const A& a_operand, FaceGroups a_groups);
+
+/**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
  * way from what a Tape reports (a leaf, see LeafRef::m_leaf and HitT::m_primitive) back to the
  * expression.
@@ -861,6 +891,8 @@ Label(const A& a_operand, std::string a_name);
  * m_firstLeaf + m_numLeaves), and so are its surfaces, [m_firstSurface, m_firstSurface + m_numSurfaces): one
  * per leaf, or all of a container leaf's (a sphere cloud's spheres, a BVH union's members). A group of surfaces
  * can be handed to a device as two numbers. The nodes
+ * The labels are numbered in the order their names first appear, depth first, a leaf's face groups (Label(shape,
+ * FaceGroups)) after the leaf's own label. The nodes
  * are those the builder functions made: Difference(a, b) is an Intersection of a and a Complement of b,
  * and nested maps (Translate, Rotate, Scale, ...) are one Transform node.
  * @tparam T Floating-point precision.
@@ -1010,6 +1042,27 @@ public:
   getLabel(uint32_t a_leaf) const;
 
   /**
+   * @brief The label of a part of a leaf (see hasParts): its face group's label when Label(shape, FaceGroups)
+   * put it in one, and otherwise the leaf's (getLabel()).
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @param[in] a_part Part of the leaf's shape (SurfaceRef::m_part).
+   * @return The label, or None.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getPartLabel(uint32_t a_leaf, uint32_t a_part) const;
+
+  /**
+   * @brief The labels of a leaf's parts, one per part, as getPartLabel() gives them; empty for a leaf whose parts
+   * Label(shape, FaceGroups) did not name.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The labels.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const std::vector<uint32_t>&
+  getPartLabels(uint32_t a_leaf) const;
+
+  /**
    * @brief The number of distinct labels.
    * @return The count.
    */
@@ -1055,6 +1108,11 @@ private:
    * @brief Each leaf's first surface, and the number of surfaces last.
    */
   std::vector<uint32_t> m_leafSurfaces;
+
+  /**
+   * @brief Each leaf's part labels (see getPartLabels()).
+   */
+  std::vector<std::vector<uint32_t>> m_leafPartLabels;
 
   /**
    * @brief The labels' names.

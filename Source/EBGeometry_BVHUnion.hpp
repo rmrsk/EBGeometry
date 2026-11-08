@@ -476,6 +476,11 @@ public:
   static constexpr bool HasContainers = CSGDetail::hasContainers<T, Ps...>;
 
   /**
+   * @brief Whether a primitive type has parts (see hasParts), which closestSurface() reports.
+   */
+  static constexpr bool HasParts = (hasParts<Ps, T> || ...);
+
+  /**
    * @brief What the BVH's leaves hold: with one type the primitive (or its layout, for a pool-resident
    * one), with several a reference to it in its type's array; visit() resolves either.
    */
@@ -897,6 +902,11 @@ public:
    * @brief Whether a primitive type is a container (see hasSurfaces), whose surfaces the union numbers too.
    */
   static constexpr bool HasContainers = CSGDetail::hasContainers<T, Ps...>;
+
+  /**
+   * @brief Whether a primitive type has parts (see hasParts), which closestSurface() reports.
+   */
+  static constexpr bool HasParts = (hasParts<Ps, T> || ...);
 
   /**
    * @brief What the BVH's leaves hold; see BVHUnion::Leaf.
