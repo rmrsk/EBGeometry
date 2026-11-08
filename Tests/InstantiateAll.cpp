@@ -59,6 +59,7 @@ namespace EBGeometry {
   template class BVHSmoothUnion<PREC, 4, SmoothMinOp<PREC>, SphereSDF<PREC>, BoxSDF<PREC>>; \
   template struct Affine3T<PREC>;                                            \
   template class Expr<PREC>;                                                 \
+  template class ExprIndex<PREC>;                                            \
   template class Tape<PREC>;                                                 \
   template class Tape<PREC, BVHUnion<PREC, 4, SphereSDF<PREC>>, MeshSDF<PREC, 8>>; \
                                                                                \
@@ -463,6 +464,10 @@ instantiateFunctionTemplates()
     (void)tape.getNumBVHUnions();
     (void)tape.getNumPrimitives();
     (void)tape.getLargestPlainUnion();
+    (void)tape.getNumLabels();
+    (void)tape.getLabel(0U);
+    (void)tape.getLabel(tape.closestPrimitive(Vec3T<T>::zeros()));
+    (void)ExprIndex<T>(Label(expr, "all")).pathOf(0U);
     (void)tape.getCallDepth();
     (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
     (void)tape.rebasedView(meshPool);

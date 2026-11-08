@@ -838,6 +838,16 @@ public:
      * range for one a ray never follows).
      */
     uint32_t m_rayPrograms = 0;
+
+    /**
+     * @brief Each leaf's label (see getLabel()); empty when the expression has no Label.
+     */
+    PODVector<uint32_t> m_labels;
+
+    /**
+     * @brief How many distinct labels the expression has.
+     */
+    uint32_t m_numLabels = 0;
   };
 
   /**
@@ -1052,6 +1062,35 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getLargestPlainUnion() const noexcept;
+
+  /**
+   * @brief A leaf's label: that of the nearest node above it, or of the leaf itself, that Label() named.
+   * @details Labels are numbered from 0 in the order their names first appear in the expression, depth first,
+   * as ExprIndex numbers them, which also holds the names. A device reads the label from the tape's pool, so
+   * per-label data (a boundary condition, a restitution coefficient) is an array indexed by it.
+   * @param[in] a_leaf Leaf number: PrimitiveRef::m_leaf from closestPrimitive(), or HitT::m_primitive of a hit.
+   * @return The label, or PrimitiveRef<T>::None if the leaf has none (or is not a leaf of the tape).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getLabel(uint32_t a_leaf) const noexcept;
+
+  /**
+   * @brief The label of the leaf a reference names (see getLabel(uint32_t)).
+   * @param[in] a_ref Reference from closestPrimitive().
+   * @return The label, or PrimitiveRef<T>::None.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getLabel(const PrimitiveRef<T>& a_ref) const noexcept;
+
+  /**
+   * @brief How many distinct labels the expression has (ExprIndex::getNumLabels()).
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumLabels() const noexcept;
 
   /**
    * @brief How deep sub-program calls nest (0 if the tape has no Blur, Mollify, FiniteRepetition or BVH union).

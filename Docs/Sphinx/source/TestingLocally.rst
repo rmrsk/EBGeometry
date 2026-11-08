@@ -412,7 +412,10 @@ Test coverage
        operand) and an intersection against the brute-force choice, followed through smooth blends,
        blurs, maps and repetitions to the leaf and its local point, each occurrence of a shared shape
        numbered, a mesh leaf returned as a handle, a fused part as one leaf of a scene, and the device
-       against the host.
+       against the host. Labels: ``ExprIndex``'s node and leaf numbering against a hand-numbered expression,
+       inherited and replaced labels, labeled maps kept as nodes, values unchanged by labels, the label of
+       the leaf ``closestPrimitive()`` and a ray hit report (also after ``deepCopy()``, and on the device),
+       and the rejected empty name and numbers out of range.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

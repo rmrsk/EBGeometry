@@ -3,15 +3,18 @@
 
 // Test suite for Tape::closestPrimitive() (EBGeometry_Tape.hpp, EBGeometry_PrimitiveRef.hpp): the deciding
 // leaf of unions, intersections and differences, through smooth blends, blurs, maps and repetitions, the
-// numbering of repeated leaves, meshes and fused parts as leaves, and device evaluation.
+// numbering of repeated leaves, meshes and fused parts as leaves, and device evaluation. Also the labels
+// of the leaves (Label(), Tape::getLabel()) and the numbering of an expression's nodes (ExprIndex).
 
 #include "EBGeometry.hpp"
+#include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
 #include <cmath>
 #include <cstdint>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -59,6 +62,35 @@ struct LeafQuery
     return m_tape.closestPrimitive(a_point);
   }
 };
+
+// Device functor: the label of the deciding leaf at a point.
+template <class T, class TapeType>
+struct LabelQuery
+{
+  TapeType m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    return m_tape.getLabel(m_tape.closestPrimitive(a_point));
+  }
+};
+
+// Five unit spheres three apart along x, labeled left, right, right, none and left: two names, one shared by
+// separate objects, one given to a union.
+template <class T>
+Expr<T>
+labeledRow()
+{
+  std::vector<SphereSDF<T>> s;
+
+  for (int i = 0; i < 5; i++) {
+    s.emplace_back(Vec3T<T>(T(3 * i), T(0), T(0)), T(1));
+  }
+
+  return Union(std::vector<Expr<T>>{Label(s[0], "left"), Label(Union(s[1], s[2]), "right"), s[3], Label(s[4], "left")});
+}
 
 } // namespace
 
@@ -350,4 +382,329 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive on a device matches the host", "[Tape
   // The device rounds differently (fused multiply-add), so a point where two leaves are nearly as close can
   // name the other; anything more is a fault.
   CHECK(differ <= points.size() / 100);
+}
+
+TEMPLATE_TEST_CASE("ExprIndex: numbers nodes and leaves depth first, each node's leaves a contiguous range",
+                   "[ExprIndex]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using N    = uint32_t;
+
+  constexpr N None = ExprIndex<T>::None;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+  const BoxSDF<T>    box(-Vec3::ones(), Vec3::ones());
+
+  std::vector<Expr<T>> holes;
+
+  for (int i = 0; i < 3; i++) {
+    holes.push_back(Translate(sphere, Vec3(T(i), T(2), T(0))));
+  }
+
+  // Difference(a, b) is Intersection(a, Complement(b)).
+  const ExprIndex<T> index(
+    Difference(Intersection(Label(box, "wall"), sphere), Label(Union(holes, Accelerate::BVH), "bores")));
+
+  // Node: parent, first leaf, leaves, own label, operation.
+  const std::vector<std::tuple<N, N, N, N, std::string>> expected{{None, 0, 5, None, "Intersection"},
+                                                                  {0, 0, 2, None, "Intersection"},
+                                                                  {1, 0, 1, 0, "Primitive"},
+                                                                  {1, 1, 1, None, "Primitive"},
+                                                                  {0, 2, 3, None, "Complement"},
+                                                                  {4, 2, 3, 1, "Union (BVH)"},
+                                                                  {5, 2, 1, None, "Transform"},
+                                                                  {6, 2, 1, None, "Primitive"},
+                                                                  {5, 3, 1, None, "Transform"},
+                                                                  {8, 3, 1, None, "Primitive"},
+                                                                  {5, 4, 1, None, "Transform"},
+                                                                  {10, 4, 1, None, "Primitive"}};
+
+  REQUIRE(index.getNumNodes() == expected.size());
+
+  for (N n = 0; n < index.getNumNodes(); n++) {
+    const auto& node = index.getNode(n);
+
+    CHECK(node.m_parent == std::get<0>(expected[n]));
+    CHECK(node.m_firstLeaf == std::get<1>(expected[n]));
+    CHECK(node.m_numLeaves == std::get<2>(expected[n]));
+    CHECK(node.m_label == std::get<3>(expected[n]));
+    CHECK(node.m_operation == std::get<4>(expected[n]));
+  }
+
+  REQUIRE(index.getNumLeaves() == 5U);
+
+  CHECK(index.getLeafNode(0) == 2U);
+  CHECK(index.getLeafNode(4) == 11U);
+  CHECK(index.pathOf(0) == std::vector<N>{0, 1, 2});
+  CHECK(index.pathOf(3) == std::vector<N>{0, 4, 5, 8, 9});
+
+  REQUIRE(index.getNumLabels() == 2U);
+
+  CHECK(index.getLabelName(0) == "wall");
+  CHECK(index.getLabelName(1) == "bores");
+  CHECK(index.findLabel("bores") == 1U);
+  CHECK(index.findLabel("inlet") == None);
+  CHECK(index.getLabel(0) == 0U);
+  CHECK(index.getLabel(1) == None);
+
+  for (N leaf = 2; leaf < 5; leaf++) {
+    CHECK(index.getLabel(leaf) == 1U);
+  }
+}
+
+TEMPLATE_TEST_CASE("ExprIndex: the innermost label wins, a relabel replaces, and shared names share a label",
+                   "[ExprIndex]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr uint32_t None = ExprIndex<T>::None;
+
+  const SphereSDF<T> a(Vec3::zeros(), T(1));
+  const SphereSDF<T> b(Vec3::ones(), T(1));
+
+  const ExprIndex<T> nested(Label(Union(Label(a, "inner"), b), "outer"));
+
+  // Names are numbered as they first appear, depth first: the outer union comes first.
+  CHECK(nested.getLabelName(0) == "outer");
+  CHECK(nested.getLabel(0) == nested.findLabel("inner"));
+  CHECK(nested.getLabel(1) == nested.findLabel("outer"));
+
+  const ExprIndex<T> relabeled(Label(Label(a, "x"), "y"));
+
+  CHECK(relabeled.getNumLabels() == 1U);
+  CHECK(relabeled.findLabel("x") == None);
+  CHECK(relabeled.getLabel(0) == relabeled.findLabel("y"));
+
+  // A subexpression used twice is numbered at each use; its label is shared, and the copy Label() makes leaves
+  // the unlabeled use alone.
+  const Expr<T>      pair = Union(a, b);
+  const ExprIndex<T> shared(
+    Union(std::vector<Expr<T>>{Label(pair, "p"), Translate(pair, Vec3::ones()), Label(b, "p")}));
+
+  CHECK(shared.getNumLeaves() == 5U);
+  CHECK(shared.getNumLabels() == 1U);
+  CHECK(shared.getLabel(0) == 0U);
+  CHECK(shared.getLabel(1) == 0U);
+  CHECK(shared.getLabel(2) == None);
+  CHECK(shared.getLabel(3) == None);
+  CHECK(shared.getLabel(4) == 0U);
+}
+
+TEMPLATE_TEST_CASE("Label: a labeled map is not merged into the maps around it, and the value does not change",
+                   "[ExprIndex]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+  const Vec3         v(T(1), T(0), T(0));
+  const Vec3         w(T(0), T(2), T(0));
+
+  const Expr<T> plain   = Translate(Translate(sphere, v), w);
+  const Expr<T> labeled = Translate(Label(Translate(sphere, v), "moved"), w);
+
+  CHECK(ExprIndex<T>(plain).getNumNodes() == 2U);
+  CHECK(ExprIndex<T>(labeled).getNumNodes() == 3U);
+  CHECK(ExprIndex<T>(labeled).getNode(1).m_operation == "Transform");
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> a(pool, plain);
+  const Tape<T> b(pool, labeled);
+
+  for (const Vec3& p : {Vec3::zeros(), Vec3(T(1), T(2), T(0.5)), Vec3(T(-2), T(1), T(3))}) {
+    const T reference = (p - v - w).length() - T(1);
+
+    CHECK_THAT(a.signedDistance(p), withinAbsT<T>(reference, looseMargin<T>()));
+    CHECK_THAT(b.signedDistance(p), withinAbsT<T>(reference, looseMargin<T>()));
+  }
+
+  // Without a map in between, a label adds no clause: the values are the same, bit for bit.
+  const Tape<T> unlabeled(pool,
+                          Union(std::vector<Expr<T>>{SphereSDF<T>(Vec3::zeros(), T(1)),
+                                                     Union(SphereSDF<T>(Vec3(T(3), T(0), T(0)), T(1)),
+                                                           SphereSDF<T>(Vec3(T(6), T(0), T(0)), T(1))),
+                                                     SphereSDF<T>(Vec3(T(9), T(0), T(0)), T(1)),
+                                                     SphereSDF<T>(Vec3(T(12), T(0), T(0)), T(1))}));
+  const Tape<T> row(pool, labeledRow<T>());
+
+  for (int i = 0; i < 50; i++) {
+    const Vec3 p(T(0.3) * T(i) - T(1), T(0.1) * T(i % 7), T(0.2));
+
+    CHECK(row.signedDistance(p) == unlabeled.signedDistance(p));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestPrimitive and a ray hit report",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr uint32_t None = PrimitiveRef<T>::None;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T>      tape(pool, labeledRow<T>());
+  const ExprIndex<T> index(labeledRow<T>());
+
+  const uint32_t left  = index.findLabel("left");
+  const uint32_t right = index.findLabel("right");
+
+  const std::vector<uint32_t> expected{left, right, right, None, left};
+
+  REQUIRE(tape.getNumLabels() == 2U);
+  REQUIRE(tape.getNumPrimitives() == 5U);
+
+  for (uint32_t i = 0; i < 5; i++) {
+    const Vec3 center(T(3 * i), T(0), T(0));
+
+    // Just outside sphere i, and two away from the others.
+    const PrimitiveRef<T> ref = tape.closestPrimitive(center + Vec3(T(0), T(1.1), T(0)));
+    const HitT<T>         hit = tape.firstHit(RayT<T>{center + Vec3(T(0), T(5), T(0)), Vec3(0, -1, 0)}, T(0), T(10));
+
+    REQUIRE(ref.m_leaf == i);
+    REQUIRE(hit.hit());
+    REQUIRE(hit.m_primitive == i);
+
+    CHECK(tape.getLabel(ref) == expected[i]);
+    CHECK(tape.getLabel(hit.m_primitive) == expected[i]);
+    CHECK(index.getLabel(i) == expected[i]);
+  }
+
+  CHECK(tape.getLabel(5U) == None);
+
+  const Tape<T> copy = tape.deepCopy(pool);
+
+  CHECK(copy.getNumLabels() == 2U);
+
+  for (uint32_t i = 0; i < 5; i++) {
+    CHECK(copy.getLabel(i) == expected[i]);
+  }
+
+  // A tape without labels stores none.
+  const Tape<T> plain(pool, Union(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::ones(), T(1))));
+
+  CHECK(plain.getNumLabels() == 0U);
+  CHECK(plain.getLabel(0U) == None);
+}
+
+TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH unions, differences, maps and blurs",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Every sphere is named by its own center's x, so a leaf's label name says which sphere it is, whatever
+  // number the tape gave the leaf. Each sphere sits in its own 4-wide slot along x.
+  const auto named = [](const int a_slot, const Vec3& a_center, const T a_radius) {
+    return Label(SphereSDF<T>(a_center, a_radius), "s" + std::to_string(a_slot));
+  };
+
+  std::vector<Expr<T>> bvhOperands;
+
+  // Rotated a half turn about z to (1, 0, 0), then translated back to the origin.
+  bvhOperands.push_back(Translate(Rotate(named(0, Vec3(T(-1), T(0), T(0)), T(1)), T(180), 2), Vec3(T(-1), T(0), T(0))));
+  bvhOperands.push_back(named(1, Vec3(T(4), T(0), T(0)), T(1)));
+  bvhOperands.push_back(Blur(named(2, Vec3(T(8), T(0), T(0)), T(1)), T(0.05)));
+  bvhOperands.push_back(Scale(named(3, Vec3(T(6), T(0), T(0)), T(0.5)), T(2))); // center 12, radius 1
+
+  // A ball with a cavity carved out of it, after the union: the cavity's wall is decided by the carving sphere.
+  const Expr<T> holed =
+    Difference(named(4, Vec3(T(16), T(0), T(0)), T(1.5)), named(5, Vec3(T(16), T(0), T(0)), T(0.5)));
+
+  const Expr<T>      expr = Union(Union(bvhOperands, Accelerate::BVH), holed);
+  const ExprIndex<T> index(expr);
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, expr);
+
+  REQUIRE(tape.getNumPrimitives() == index.getNumLeaves());
+  REQUIRE(tape.getNumLabels() == 6U);
+
+  // A point just outside each sphere (inside the cavity for the carving one), and the sphere it must name.
+  const std::vector<std::pair<Vec3, int>> probes{{Vec3(T(0), T(1.2), T(0)), 0},
+                                                 {Vec3(T(4), T(1.2), T(0)), 1},
+                                                 {Vec3(T(8), T(1.2), T(0)), 2},
+                                                 {Vec3(T(12), T(1.2), T(0)), 3},
+                                                 {Vec3(T(16), T(1.7), T(0)), 4},
+                                                 {Vec3(T(16), T(0.3), T(0)), 5}};
+
+  for (const auto& [point, slot] : probes) {
+    const PrimitiveRef<T> ref = tape.closestPrimitive(point);
+
+    REQUIRE(ref.m_leaf != PrimitiveRef<T>::None);
+    CHECK(index.getLabelName(tape.getLabel(ref)) == "s" + std::to_string(slot));
+  }
+}
+
+TEMPLATE_TEST_CASE("Label and ExprIndex: reject an empty name and numbers out of range",
+                   "[ExprIndex]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  REQUIRE(
+    abortsWith([] { (void)Label(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), ""); }, "Label: the name must not be empty"));
+  REQUIRE(abortsWith(
+    [] {
+      const ExprIndex<T> index(toExpr(SphereSDF<T>(Vec3T<T>::zeros(), T(1))));
+
+      (void)index.getNode(1);
+    },
+    "ExprIndex: node 1 of 1"));
+  REQUIRE(abortsWith(
+    [] {
+      const ExprIndex<T> index(toExpr(SphereSDF<T>(Vec3T<T>::zeros(), T(1))));
+
+      (void)index.pathOf(1);
+    },
+    "ExprIndex: leaf 1 of 1"));
+}
+
+TEMPLATE_TEST_CASE("Tape: getLabel on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, labeledRow<T>());
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  // Points near each sphere, and between them.
+  std::vector<Vec3> points;
+
+  for (int i = 0; i < 60; i++) {
+    points.emplace_back(T(0.25) * T(i) - T(1), T(1.1), T(0));
+  }
+
+  const auto onDevice = evaluateOnDevice<uint32_t>(LabelQuery<T, Tape<T>>{tape.rebasedView(device)}, points);
+  const auto onHost   = evaluateOnHost<uint32_t>(LabelQuery<T, Tape<T>>{tape}, points);
+
+  size_t differ = 0;
+
+  for (size_t i = 0; i < points.size(); i++) {
+    differ += (onDevice[i] != onHost[i]) ? 1U : 0U;
+  }
+
+  // Midway between two spheres both are as close; the device's rounding may pick the other.
+  CHECK(differ <= 2U);
 }

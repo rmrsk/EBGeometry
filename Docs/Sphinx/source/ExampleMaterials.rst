@@ -3,8 +3,8 @@
 Materials
 =========
 
-Which part of an object a query found, and a table of your own indexed by it: the armadillo with a
-cylinder bored through its chest. The source is at :file:`Examples/Materials/main.cpp`.
+Which part of an object a query found, by label, and a table of your own indexed by it: the armadillo
+with a cylinder bored through its chest. The source is at :file:`Examples/Materials/main.cpp`.
 
 .. figure:: /_static/example_Materials.jpg
    :width: 60%
@@ -18,28 +18,46 @@ cylinder bored through its chest. The source is at :file:`Examples/Materials/mai
    ``--recurse-submodules``, or run ``git submodule update --init`` in the repository (see
    :ref:`Sec:Cloning`); otherwise pass a mesh of your own as the first argument.
 
-The leaf id
------------
+Labels
+------
 
-A tape numbers its leaves in expression order: in ``Difference(armadillo, bore)`` the armadillo is leaf 0
-and the cylinder leaf 1. The number indexes a table of your own (material names here; in an application,
-materials or boundary conditions). Two queries report it:
+``Label(object, "name")`` names a part; every leaf below it gets the label (see
+:ref:`Chap:ClosestPrimitive`). Two queries name the leaf a part of the answer comes from, and the tape's
+``getLabel()`` gives its label:
 
-* ``closestPrimitive(p).m_leaf``, the leaf the value at ``p`` comes from (see :ref:`Chap:ClosestPrimitive`);
+* ``closestPrimitive(p)``, the leaf the value at ``p`` comes from;
 * ``firstHit(shape, ray, tMin, tMax).m_primitive``, the leaf the ray crossed, with the point and the normal
   (see :ref:`Chap:ImplemRays`).
 
+The label is a number the tape reports on the host and on a GPU alike. An ``ExprIndex`` built from the same
+expression numbers the labels the same way and holds their names, so a table of your own (material names
+here; in an application, materials or boundary conditions) is filled by name and indexed by the label:
+
 .. code-block:: c++
 
-   const char* materials[] = {"skin (the armadillo)", "machined (the cylinder's bore)"};
+   const Expr<T> object = Difference(Label(armadillo, "skin"), Label(bore, "bore"));
+
+   const Tape<T>      tape(pool, object);
+   const ExprIndex<T> index(object);
+
+   std::vector<std::string> materials(tape.getNumLabels());
+
+   for (const auto& [name, material] : {std::pair<const char*, const char*>{"skin", "skin (the armadillo)"},
+                                        {"bore", "machined (the cylinder's bore)"}}) {
+     const uint32_t label = index.findLabel(name);   // PrimitiveRef<T>::None for a name the expression lacks
+
+     if (label < materials.size()) {
+       materials[label] = material;
+     }
+   }
 
    const auto hit = firstHit(tape, ray, T(0), T(6));
 
-   if (hit.m_status == HitStatus::Hit && hit.m_primitive < 2) {
-     std::cout << materials[hit.m_primitive] << '\n';
+   if (hit.m_status == HitStatus::Hit) {
+     std::cout << materials[tape.getLabel(hit.m_primitive)] << '\n';
    }
 
-A query can name no leaf (``PrimitiveRef::None``), so check the number before indexing. A mesh is one
+An unlabeled leaf has no label (``PrimitiveRef::None``), so check the number before indexing. A mesh is one
 leaf; its faces are told apart by ``getClosestFace()`` on the mesh itself (see
 :ref:`Chap:ExampleMeshSDF`).
 
@@ -49,9 +67,10 @@ front, nothing straight through the bore, and the bore's wall sideways from insi
 Looking at it
 -------------
 
-``Settings::m_colorBy = ColorBy::Primitive`` colors each surface by the same ``HitT::m_primitive``.
-``Settings::m_primitiveColors`` gives each leaf a color of its own, indexed like the material table (a
-leaf left out gets the renderer's palette), and the camera looks from low in front, where the bore shows:
+``Settings::m_colorBy = ColorBy::Primitive`` colors each surface by the leaf, ``HitT::m_primitive``. A tape
+numbers its leaves in expression order, depth first: the armadillo is leaf 0 and the cylinder leaf 1.
+``Settings::m_primitiveColors`` gives each leaf a color of its own (a leaf left out gets the renderer's
+palette), and the camera looks from low in front, where the bore shows:
 
 .. code-block:: c++
 

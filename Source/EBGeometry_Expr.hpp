@@ -20,9 +20,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -306,6 +309,11 @@ struct Node
    * @brief How far the node's value can be trusted as a distance.
    */
   DistanceQuality m_quality = DistanceQuality::Exact;
+
+  /**
+   * @brief The name Label() gave the node; empty for none.
+   */
+  std::string m_label;
 };
 
 /**
@@ -818,6 +826,205 @@ template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
 Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_samples);
+
+/**
+ * @brief Name an object: every leaf below it gets the label, unless a label nearer the leaf names it.
+ * @details Labels change nothing in how the object is evaluated; they say which surfaces belong together,
+ * for boundary conditions, per-surface data and picking. A Tape reports a leaf's label on the host and on a
+ * device (Tape::getLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
+ * are numbered from 0 in the order their names first appear, depth first, so the same expression gives the
+ * same numbers to both; several objects may share a name, and so a label. Labeling an object that already
+ * has a label replaces it: the replaced name is gone, and gets no number unless another object has it.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operand Object.
+ * @param[in] a_name    Name (not empty).
+ * @return The labeled object.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Label(const A& a_operand, std::string a_name);
+
+/**
+ * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
+ * way from what a Tape reports (a leaf, see PrimitiveRef::m_leaf and HitT::m_primitive) back to the
+ * expression.
+ * @details The nodes are numbered from 0 at the root, depth first, the operands in order, each occurrence of
+ * a shared subexpression counted; the leaves (the shapes) are numbered the same way, as a Tape compiled from
+ * the expression numbers them. So the leaves below a node are a contiguous range, [m_firstLeaf,
+ * m_firstLeaf + m_numLeaves), and a group of surfaces can be handed to a device as two numbers. The nodes
+ * are those the builder functions made: Difference(a, b) is an Intersection of a and a Complement of b,
+ * and nested maps (Translate, Rotate, Scale, ...) are one Transform node.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class ExprIndex
+{
+public:
+  /**
+   * @brief No node, leaf or label.
+   */
+  static constexpr uint32_t None = 0xFFFFFFFFU;
+
+  /**
+   * @brief One node of the expression.
+   */
+  struct Node
+  {
+    /**
+     * @brief The node it is an operand of; None for the root.
+     */
+    uint32_t m_parent = None;
+
+    /**
+     * @brief The first leaf below it (itself, for a leaf).
+     */
+    uint32_t m_firstLeaf = 0;
+
+    /**
+     * @brief How many leaves are below it (1 for a leaf).
+     */
+    uint32_t m_numLeaves = 0;
+
+    /**
+     * @brief Its own label, or None (the label its leaves inherit from further up is getLabel()'s).
+     */
+    uint32_t m_label = None;
+
+    /**
+     * @brief What it does: Primitive, Transform, Elongate, Repeat, Complement, Offset, Annulus, Blur, Mollify,
+     * Union, Intersection, SmoothUnion or SmoothIntersection, with " (BVH)" after a union built with
+     * Accelerate::BVH.
+     */
+    std::string m_operation;
+  };
+
+  /**
+   * @brief No empty index.
+   */
+  ExprIndex() = delete;
+
+  /**
+   * @brief Number the nodes, leaves and labels of an expression.
+   * @param[in] a_expr Expression.
+   */
+  EBGEOMETRY_HOST
+  explicit ExprIndex(const Expr<T>& a_expr);
+
+  /**
+   * @brief The number of nodes.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumNodes() const noexcept;
+
+  /**
+   * @brief A node.
+   * @param[in] a_node Node number (below getNumNodes()).
+   * @return The node.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const Node&
+  getNode(uint32_t a_node) const;
+
+  /**
+   * @brief The number of leaves: Tape::getNumPrimitives() of a tape compiled from the expression.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumLeaves() const noexcept;
+
+  /**
+   * @brief The node of a leaf.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The node number.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getLeafNode(uint32_t a_leaf) const;
+
+  /**
+   * @brief The nodes from the root down to a leaf: the levels a surface belongs to, from the whole object to
+   * the shape.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The node numbers, the root first and the leaf's node last.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<uint32_t>
+  pathOf(uint32_t a_leaf) const;
+
+  /**
+   * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The label, or None if no node on the path has one.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getLabel(uint32_t a_leaf) const;
+
+  /**
+   * @brief The number of distinct labels.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumLabels() const noexcept;
+
+  /**
+   * @brief A label's name.
+   * @param[in] a_label Label (below getNumLabels()).
+   * @return The name.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const std::string&
+  getLabelName(uint32_t a_label) const;
+
+  /**
+   * @brief The label of a name.
+   * @param[in] a_name Name.
+   * @return The label, or None if no node has that name.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  findLabel(std::string_view a_name) const;
+
+private:
+  /**
+   * @brief The nodes.
+   */
+  std::vector<Node> m_nodes;
+
+  /**
+   * @brief Each leaf's node.
+   */
+  std::vector<uint32_t> m_leafNodes;
+
+  /**
+   * @brief Each leaf's label (see getLabel()).
+   */
+  std::vector<uint32_t> m_leafLabels;
+
+  /**
+   * @brief The labels' names.
+   */
+  std::vector<std::string> m_names;
+
+  /**
+   * @brief Each name's label.
+   */
+  std::unordered_map<std::string, uint32_t> m_labels;
+
+  /**
+   * @brief Number a node and those below it.
+   * @param[in] a_node   Node.
+   * @param[in] a_parent Its parent's number, or None.
+   * @param[in] a_label  The label it inherits, or None.
+   */
+  void
+  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, uint32_t a_label);
+};
 
 } // namespace EBGeometry
 

@@ -201,6 +201,9 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
      - A smooth minimum or maximum of the two extreme values, with smoothing length :math:`s` and a
        ``BlendKind`` (``Polynomial`` or ``Exponential``); a smooth difference is the smooth
        intersection of :math:`a` with the complement of each :math:`b_i`
+   * - ``Label(a, name)``
+     - :math:`a(\mathbf{x})`, unchanged: names the object, and every leaf below it gets the label unless a
+       label nearer the leaf names it (see :ref:`Sec:DecidingLeaf`)
 
 The n-ary smooth operations blend only the two extreme values, which differs from folding a binary
 smooth minimum over the list. ``Polynomial`` uses ``SmoothMinOp``/``SmoothMaxOp`` and
@@ -411,6 +414,15 @@ and has no ``closestPrimitive()``.
      const auto mesh = tape.primitive<TriMeshSDF<T, 4, 4>>(leaf);   // resolves against the tape's pool
      const auto face = mesh.getClosestFace(leaf.m_localPoint);
    }
+
+A tape also reports a leaf's label, ``getLabel(leaf)`` or ``getLabel(ref)``, on the host and on a device
+(``PrimitiveRef::None`` for an unlabeled leaf), and ``getNumLabels()``. The names, and the expression's
+structure, are on the host in an
+`ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression:
+``findLabel(name)`` and ``getLabelName(label)``; the nodes, numbered depth first, with ``getNode(node)``
+(its parent, operation, own label and the contiguous range of leaves below it); ``getLeafNode(leaf)``; and
+``pathOf(leaf)``, the nodes from the root down to a leaf. Both number labels in the order their names
+first appear, so the same expression gives the same numbers to both.
 
 .. _Sec:BVHUnions:
 
