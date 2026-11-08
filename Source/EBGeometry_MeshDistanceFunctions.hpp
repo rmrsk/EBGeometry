@@ -733,7 +733,9 @@ public:
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief How many parts the mesh has (see hasParts): one per face, one more than the largest face id its triangles carry.
+   * @brief How many parts the mesh has (see hasParts): one per face, one more than the largest face id its triangles
+   * carry.
+   * @details Reads every triangle group, so a caller keeps the count rather than asking again.
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST

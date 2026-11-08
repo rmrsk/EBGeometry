@@ -125,7 +125,8 @@ union inside a nested tape). It returns a
   constructor was given them). ``getFirstSurface(leaf)`` is where a leaf's range starts, so data of your
   own per member (per sphere, say) is an array indexed by ``m_surface - getFirstSurface(m_leaf)``: no
   sphere needs a label.
-* ``m_leaf`` and ``m_label``: the leaf, as ``closestLeaf()`` numbers it, and its label (see below).
+* ``m_leaf`` and ``m_label``: the leaf, as ``closestLeaf()`` numbers it, and the surface's label (see below).
+* ``m_part``: the part of the deepest shape reached, a box's face or a mesh's face (see :ref:`Sec:Parts`).
 * ``m_localPoint``: the point in the frame of the deepest shape reached.
 
 .. code-block:: c++
@@ -143,8 +144,42 @@ leaf, and the tape stores nothing more. A cloud numbers as many surfaces as it h
 (``maxSpheres()``), so a rebuild with another number of spheres keeps the scene's numbering. A shape of your
 own becomes a collection by defining ``getNumSurfaces()`` and ``closestSurface()`` (see
 `hasSurfaces <doxygen/html/namespaceEBGeometry.html>`__). A nested tape's labels are its own, and the outer
-tape does not report them: label within one expression. A mesh is one surface; its faces are told apart by
-asking the mesh, as above.
+tape does not report them: label within one expression. A mesh is one surface; its faces are its parts.
+
+``closestSurface(shape, p)`` is also a free function, for code templated on a shape: a collection answers as
+above, and any other shape with surface 0 and its part.
+
+.. _Sec:Parts:
+
+Parts: a face of a shape
+------------------------
+
+A shape can have parts: the pieces of its own surface its formula tells apart, a box's six faces, a cylinder's
+side and caps, a mesh's faces. ``SurfaceRef::m_part`` is the part of the deepest shape reached, read from the
+shape's own formula at the local point: the term that decides the value there. A part belongs to the shape,
+never to the composition: there is no boundary representation, so a box face that a difference cuts in two is
+one part, and two boxes whose faces line up into one flat face of the result are two surfaces.
+
+=====================================================  ===========================================================
+Shape                                                  Parts
+=====================================================  ===========================================================
+``BoxSDF``, ``RoundedBoxSDF``                          6: -x, +x, -y, +y, -z, +z
+``CylinderSDF``, ``CapsuleSDF``, ``CappedConeSDF``,    3: the side, the end at the first center, the end at the
+``RoundConeSDF``, ``RoundedCylinderSDF``               second (-y and +y for the rounded cylinder)
+``ConeSDF``                                            2: the side, the base
+``TubeSDF``                                            4: the outer wall, the inner wall, the two ends
+``PolygonPrismSDF``                                    the sides around the axis from the first vertex, then the
+                                                       two caps
+``CappedTorusSDF``                                     3: the tube, the two ends
+``CutSphereSDF``, ``CutHollowSphereSDF``               2: the sphere and the cut face; the shell and its rim
+``WedgeSDF``                                           2: the face on either side of the edge
+the mesh distance fields                               one per face: the face's id, its position in the file
+any other shape (a sphere, a torus, a fused part)      1: part 0
+=====================================================  ===========================================================
+
+A shape of your own gets parts by defining ``getNumParts()`` and ``closestPart(localPoint)`` (see
+`hasParts <doxygen/html/namespaceEBGeometry.html>`__). The part is computed only by ``closestSurface()`` and
+``firstSurface()``, once, for the deciding leaf; a mesh's costs one more closest-face search of that mesh.
 
 Labels
 ------
@@ -168,12 +203,34 @@ unlabeled leaf has no label (``LeafRef::None``). Several objects may share a nam
 
    const uint32_t label = tape.getLabel(tape.closestLeaf(p));   // or tape.getLabel(hit.m_primitive)
 
+**A mesh's named patches.** A mesh file can name groups of its faces: an OBJ file's ``g`` and ``o`` groups,
+an ASCII STL file's named solids. The readers keep them as
+`FaceGroups <doxygen/html/structEBGeometry_1_1FaceGroups.html>`__ (``PolygonSoup::getFaceGroups()``), and
+``Label(mesh, groups)`` labels each face by its group's name. A face's group label wins over every label
+above the mesh; a face in no group keeps those. The group names are numbered with the other labels, so
+``findLabel("inlet")`` works as for any name, and ``SurfaceRef::m_label`` is the face's label:
+
+.. code-block:: c++
+
+   const auto soup = Parser::readIntoPolygonSoup<T>("pump.obj");       // groups inlet, outlet, casing
+   const auto pump = Parser::readIntoTriMeshSDF<T>("pump.obj", pool);
+
+   const Expr<T> part = Difference(Label(pump, soup.getFaceGroups()), Label(bore, "bore"));
+
+   const Tape<T>       tape(pool, part);
+   const SurfaceRef<T> s = tape.closestSurface(p);   // s.m_label: inlet, outlet, casing or bore
+
+Any shape with parts can be labeled this way, with one group per part. ``Label(object, groups)`` takes one
+shape, not a composition: label it before translating or combining it.
+
 The tape reports a leaf's label with ``getLabel()``, on the host and inside a GPU kernel, so a kernel
 (a particle hitting a wall, say) looks up per-label data in an array of its own. The label is a number;
 the names live on the host, in an
 `ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression. Both
-number the labels in the order their names first appear in the expression, depth first, so the same
-expression gives the same numbers to both. A tape whose expression has no label stores none.
+number the labels in the order their names first appear in the expression, depth first (a mesh's group names
+after its own label), so the same expression gives the same numbers to both. ``getPartLabel(leaf, part)`` is
+a part's label. A tape whose expression has no label stores none, and one whose shapes' parts are not
+labeled stores no table of part labels.
 
 An ``ExprIndex`` also numbers the expression's nodes, depth first like the leaves, and gives each node its
 parent, its operation and the leaves below it. The leaves below a node are always a contiguous range of
@@ -188,20 +245,39 @@ them is labeled.
 Along a ray
 -----------
 
-A ray query (see :ref:`Chap:Rays`) reports which part it crossed in ``HitT::m_primitive``, with the same
-meaning: for a tape, the leaf whose surface the ray crossed, numbered as ``closestLeaf()`` numbers
-the leaves. Other shapes name what they can: a mesh distance field the id of the face crossed, a BVH union
-(not a smooth one) the member crossed, in the order its constructor was given them, and any other shape (an
-analytic shape, a fused composition) 0. ``closestSurface(hit.m_point)`` names the surface crossed, drilled
-into collections like any other point's. The renderer colors by this number with
+The point queries have ray counterparts (see :ref:`Chap:Rays`), named after what they find: ``closest...``
+asks about a point, ``first...`` about a ray.
+
+=========================================  =========================  ===============================
+Finds                                      At a point                 Along a ray
+=========================================  =========================  ===============================
+the value, or the crossing                 ``signedDistance(p)``      ``firstHit(ray)``
+the tape's leaf                            ``closestLeaf(p)``         ``firstHit(ray).m_primitive``
+the surface, drilled, its part and label   ``closestSurface(p)``      ``firstSurface(ray)``
+=========================================  =========================  ===============================
+
+``firstSurface(ray)`` (a member of ``Tape``, and a free function for any shape, with a segment form like
+``firstHit()``'s) returns a
+`SurfaceHitT <doxygen/html/structEBGeometry_1_1SurfaceHitT.html>`__: the crossing as ``firstHit()`` reports it
+(``m_hit``), and the surface crossed (``m_surface``), drilled into collections down to the member and its part,
+with its label. A miss costs what ``firstHit()`` costs; a hit, one more evaluation at the crossing. A kernel
+that bounces particles off a geometry reads the surface's label, the mesh face crossed and the sphere of a
+cloud from one call.
+
+``HitT::m_primitive`` is the finest thing a shape can name without drilling: for a tape, the leaf crossed,
+numbered as ``closestLeaf()`` numbers the leaves; for a mesh distance field, the face (its part); for a BVH
+union (not a smooth one), the member crossed (its surface), in the order its constructor was given them; for a
+sphere cloud, the sphere; and for any other shape (an analytic shape, a fused composition), 0. The renderer
+colors by this number with
 ``Render::ColorBy::Primitive``, from a table of colors of your own or a built-in palette, and a click in
 the viewer picks the part under the cursor by it (see :ref:`Chap:Rendering`).
 
 On the host and on a device
 ---------------------------
 
-``closestLeaf()``, ``closestSurface()``, ``getFirstSurface()``, ``isPrimitive()``, ``primitive()`` and
-``visitPrimitive()`` can be called on the host and inside a GPU kernel, like ``signedDistance()``. ``closestLeaf()`` evaluates the composition
+``closestLeaf()``, ``closestSurface()``, ``firstSurface()``, ``getFirstSurface()``, ``isPrimitive()``,
+``primitive()`` and ``visitPrimitive()`` can be called on the host and inside a GPU kernel, like
+``signedDistance()``. ``closestLeaf()`` evaluates the composition
 the way ``signedDistance()`` does, carrying the deciding leaf and its local point along with every
 intermediate value, so it costs somewhat more than ``signedDistance()``. The two are compiled
 separately: ``signedDistance()`` carries nothing extra, and a program that never asks for the deciding

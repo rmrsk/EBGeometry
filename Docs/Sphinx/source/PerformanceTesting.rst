@@ -43,6 +43,7 @@ What is in Performance/
      MeshCSG/main.cpp         a mesh in plain and smooth unions: rays and frames
      ClosestPrimitive/main.cpp  a tape's closestLeaf()
      ClosestSurface/main.cpp  a tape's closestSurface(), drilled into a collection
+     SurfaceParts/main.cpp    parts and labels of a tape's surfaces, and firstSurface()
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -534,6 +535,26 @@ Family                                Build  Measures
 ``<input>/closestSurface``            host   the surface, at 200,000 points in the box
 ``<input>/closestLeaf``               host   the leaf alone, at the same points
 ``<input>/<operation>``               GPU    each of the above at 1,048,576 points on both sides
+====================================  =====  =====================================================
+
+**SurfaceParts** (``Performance/SurfaceParts``): the parts of a tape's surfaces and their labels (see
+:ref:`Sec:Parts`): ``closestSurface()`` on a union of 4,096 boxes (drilled into the union, each box reporting
+its face) and on the drilled armadillo with its faces labeled in eight groups (each point's face found by a
+second search of the mesh), and ``firstSurface()`` along rays at that mesh. Each ``closestLeaf`` case names its
+``closestSurface`` case, and the ``firstHit`` case its ``firstSurface`` case, so that a comparison notes what
+the parts cost.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``boxes/closestSurface``,             host   the surface and its face, or the leaf alone, at
+``boxes/closestLeaf``                        200,000 points around the boxes
+``mesh-groups/closestSurface``,       host   the surface, its face and its group's label, or the
+``mesh-groups/closestLeaf``                  leaf alone, at 20,000 points around the mesh
+``mesh-groups/firstSurface``,         host   the crossing with its face and label, or the crossing
+``mesh-groups/firstHit``                     alone, along 20,000 rays at the mesh's center
+``<input>/<operation>``               GPU    each of the above at 1,048,576 points (262,144 for
+                                             the mesh) on both sides
 ====================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see

@@ -436,6 +436,16 @@ union in the order its constructor was given them (``getMemberIndex(place)`` map
 that, and ``getFirstSurface(member)`` gives each member's range when the members are collections too). All
 are device-callable. :ref:`Sec:Surfaces` explains the numbering.
 
+The surface also carries the part of the deepest shape reached (``m_part``), from the shape's
+``closestPart(localPoint)`` (a box's face, a cylinder's cap, a mesh's face id; ``getNumParts()`` counts them,
+and a shape without them has one part, 0). ``Label(shape, groups)`` labels a shape's parts by
+`FaceGroups <doxygen/html/structEBGeometry_1_1FaceGroups.html>`__, a mesh's from its file
+(``PolygonSoup::getFaceGroups()``), and ``m_label`` is then the part's label; ``ExprIndex::getPartLabel(leaf,
+part)`` gives the same on the host. Along a ray, ``firstSurface(ray)`` (and its segment form) returns the
+crossing and the drilled surface as a
+`SurfaceHitT <doxygen/html/structEBGeometry_1_1SurfaceHitT.html>`__; ``closestSurface(shape, p)`` and
+``firstSurface(shape, ...)`` are free functions for any shape. :ref:`Sec:Parts` lists each shape's parts.
+
 .. _Sec:BVHUnions:
 
 BVH-accelerated unions

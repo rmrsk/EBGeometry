@@ -56,6 +56,12 @@ leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
    * - ``m_exact``
      - Whether the crossing was found exactly (by a ray form) rather than by marching.
 
+``firstSurface(shape, ray, tMin, tMax)`` (and its segment form, and a member of ``Tape``) finds the crossing
+``firstHit()`` finds and, for a hit, the surface crossed, drilled into collections down to the member, its part
+and its label: a `SurfaceHitT <doxygen/html/structEBGeometry_1_1SurfaceHitT.html>`__ holding the ``HitT``
+(``m_hit``) and a ``SurfaceRef`` (``m_surface``; see :ref:`Sec:Surfaces`). A miss costs what ``firstHit()``
+costs.
+
 ``firstCrossing()`` finds the crossing ``firstHit()`` finds and returns it as a `CrossingT
 <doxygen/html/structEBGeometry_1_1CrossingT.html>`__: ``m_status``, ``m_t``, ``m_point``, ``m_entering`` and
 ``m_exact``, as above, without the normal or the primitive. Those are what a crossing costs after it is

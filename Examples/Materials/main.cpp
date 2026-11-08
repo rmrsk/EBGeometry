@@ -135,19 +135,21 @@ try {
               << ", " << material(s.m_label) << '\n';
   }
 
-  // firstHit() along a ray reports the leaf it crossed in HitT::m_primitive, with the point and the normal.
-  // Three rays: at the chest from in front, straight through the bore, and sideways from inside the bore.
+  // firstSurface() along a ray reports the crossing, with the point and the normal, and the surface crossed as
+  // closestSurface() names it: its label, and the part of the shape (the face of the mesh, the side of the
+  // bore). Three rays: at the chest from in front, straight through the bore, and sideways from inside the bore.
   std::cout << "Along a ray:\n";
 
   for (const EBGeometry::RayT<T>& ray : {EBGeometry::RayT<T>{Vec3(T(0), T(1.6), T(3)), Vec3(T(0), T(0), T(-1))},
                                          EBGeometry::RayT<T>{Vec3(T(0), T(1.22), T(3)), Vec3(T(0), T(0), T(-1))},
                                          EBGeometry::RayT<T>{Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(1), T(0), T(0))}}) {
-    const auto hit = EBGeometry::firstHit(tape, ray, T(0), T(6));
+    const EBGeometry::SurfaceHitT<T> hit = tape.firstSurface(ray, T(0), T(6));
 
     std::cout << "  from " << ray.m_origin << " towards " << ray.m_direction << ": ";
 
-    if (hit.m_status == EBGeometry::HitStatus::Hit) {
-      std::cout << "hit at " << hit.m_point << ", " << material(tape.getLabel(hit.m_primitive)) << '\n';
+    if (hit.m_hit.hit()) {
+      std::cout << "hit at " << hit.m_hit.m_point << ", " << material(hit.m_surface.m_label) << ", part "
+                << hit.m_surface.m_part << '\n';
     }
     else {
       std::cout << "no hit\n";

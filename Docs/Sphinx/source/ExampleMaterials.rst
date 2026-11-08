@@ -28,8 +28,8 @@ Labels
 ``getLabel()`` gives its label:
 
 * ``closestLeaf(p)``, the leaf the value at ``p`` comes from;
-* ``firstHit(shape, ray, tMin, tMax).m_primitive``, the leaf the ray crossed, with the point and the normal
-  (see :ref:`Chap:ImplemRays`).
+* ``tape.firstSurface(ray, tMin, tMax)``, the surface the ray crossed, with the point and the normal, its label
+  and its part: the mesh's face, or the bore's side (see :ref:`Sec:Parts` and :ref:`Chap:ImplemRays`).
 
 The label is a number the tape reports on the host and on a GPU alike. An ``ExprIndex`` built from the same
 expression numbers the labels the same way and holds their names, so a table of your own (material names
@@ -53,10 +53,10 @@ here; in an application, materials or boundary conditions) is filled by name and
      }
    }
 
-   const auto hit = firstHit(tape, ray, T(0), T(6));
+   const SurfaceHitT<T> hit = tape.firstSurface(ray, T(0), T(6));
 
-   if (hit.m_status == HitStatus::Hit) {
-     std::cout << materials[tape.getLabel(hit.m_primitive)] << '\n';
+   if (hit.m_hit.hit()) {
+     std::cout << materials[hit.m_surface.m_label] << ", part " << hit.m_surface.m_part << '\n';
    }
 
 An unlabeled leaf has no label (``LeafRef::None``), so check the number before indexing. A mesh is one
