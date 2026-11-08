@@ -25,6 +25,7 @@
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -987,7 +988,7 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST
   uint32_t
-  findLabel(std::string_view a_name) const noexcept;
+  findLabel(std::string_view a_name) const;
 
 private:
   /**
@@ -1009,6 +1010,11 @@ private:
    * @brief The labels' names.
    */
   std::vector<std::string> m_names;
+
+  /**
+   * @brief Each name's label.
+   */
+  std::unordered_map<std::string, uint32_t> m_labels;
 
   /**
    * @brief Number a node and those below it.

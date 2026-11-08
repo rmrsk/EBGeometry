@@ -41,8 +41,15 @@ here; in an application, materials or boundary conditions) is filled by name and
    const ExprIndex<T> index(object);
 
    std::vector<std::string> materials(tape.getNumLabels());
-   materials[index.findLabel("skin")] = "skin (the armadillo)";
-   materials[index.findLabel("bore")] = "machined (the cylinder's bore)";
+
+   for (const auto& [name, material] : {std::pair<const char*, const char*>{"skin", "skin (the armadillo)"},
+                                        {"bore", "machined (the cylinder's bore)"}}) {
+     const uint32_t label = index.findLabel(name);   // PrimitiveRef<T>::None for a name the expression lacks
+
+     if (label < materials.size()) {
+       materials[label] = material;
+     }
+   }
 
    const auto hit = firstHit(tape, ray, T(0), T(6));
 

@@ -122,7 +122,7 @@ unlabeled leaf has no label (``PrimitiveRef::None``). Several objects may share 
    const ExprIndex<T> index(part);
 
    std::vector<Wall> walls(tape.getNumLabels());   // per-label data of your own
-   walls[index.findLabel("wall")]  = ...;
+   walls[index.findLabel("wall")]  = ...;          // findLabel() is PrimitiveRef<T>::None for an unknown name
    walls[index.findLabel("bores")] = ...;
 
    const uint32_t label = tape.getLabel(tape.closestPrimitive(p));   // or tape.getLabel(hit.m_primitive)

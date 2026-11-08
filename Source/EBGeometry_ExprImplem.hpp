@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -968,13 +969,13 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
   uint32_t own = None;
 
   if (!a_node.m_label.empty()) {
-    own = this->findLabel(a_node.m_label);
+    const auto [entry, added] = m_labels.emplace(a_node.m_label, static_cast<uint32_t>(m_names.size()));
 
-    if (own == None) {
-      own = static_cast<uint32_t>(m_names.size());
-
+    if (added) {
       m_names.push_back(a_node.m_label);
     }
+
+    own = entry->second;
   }
 
   const uint32_t label = (own != None) ? own : a_label;
@@ -1073,15 +1074,11 @@ ExprIndex<T>::getLabelName(const uint32_t a_label) const
 
 template <class T>
 inline uint32_t
-ExprIndex<T>::findLabel(const std::string_view a_name) const noexcept
+ExprIndex<T>::findLabel(const std::string_view a_name) const
 {
-  for (size_t i = 0; i < m_names.size(); i++) {
-    if (m_names[i] == a_name) {
-      return static_cast<uint32_t>(i);
-    }
-  }
+  const auto entry = m_labels.find(std::string(a_name));
 
-  return None;
+  return (entry != m_labels.end()) ? entry->second : None;
 }
 
 } // namespace EBGeometry

@@ -75,8 +75,16 @@ try {
 
   std::vector<std::string> materials(tape.getNumLabels());
 
-  materials[index.findLabel("skin")] = "skin (the armadillo)";
-  materials[index.findLabel("bore")] = "machined (the cylinder's bore)";
+  const auto describe = [&index, &materials](const char* a_name, const char* a_material) {
+    const uint32_t label = index.findLabel(a_name);
+
+    if (label < materials.size()) {
+      materials[label] = a_material;
+    }
+  };
+
+  describe("skin", "skin (the armadillo)");
+  describe("bore", "machined (the cylinder's bore)");
 
   const auto material = [&materials](const uint32_t a_label) {
     return a_label < materials.size() ? materials[a_label] : std::string("none");
