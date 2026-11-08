@@ -390,7 +390,9 @@ the change can affect (picked by glob), no receipt, reported in a line or two; f
 `Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1` (a few minutes; one round
 shows times and judges none). Once the code is final, while the PR is still a draft and before it is promoted
 (see "Promote once" below), and again after any later push that changes the library or the probes, it runs
-the full comparison and records the receipt, as below. No hardening in between: no extra rounds, no repeated full runs while the code still
+the full comparison and records the receipt, as below. The code is final only once the `@claude review`
+rounds have converged (see "Human review" below): the receipt is recorded after them, never before or
+alongside them, since a fix from a round would make it stale. No hardening in between: no extra rounds, no repeated full runs while the code still
 moves. `Performance/` holds the
 probes (one program per component, many named cases, `component/input/operation/precision/side`);
 `Scripts/run-performance.sh` is the one way in (its logic is `Performance/RunPerformance.cmake` and
@@ -572,17 +574,22 @@ A pull request is handed to the maintainer for review when all of these hold:
 
 **Promote once.** A PR's full CI matrix runs when it leaves draft, and again on every push after that, so
 a push after promotion costs a whole run. Claude therefore finishes everything while the PR is a draft
-(where each push runs only the fast tier): the code, the docs audit, the receipt, and the `@claude review`
-rounds with their fixes. It promotes the PR once, at the end, and the full matrix runs once. A fix that is
+(where each push runs only the fast tier): the code, the docs audit, the `@claude review` rounds with their
+fixes until they converge, and then the receipt. It promotes the PR once, at the end, and the full matrix
+runs once. A fix that is
 still needed after promotion (a CI failure, a reviewer's comment) goes in one push, never several.
 
 **Marking it ready.** Claude marks a PR ready for review (`gh pr ready`) only when the maintainer asks for
 it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other
-conditions hold. When asked, Claude first makes sure the receipt measures the final code (recording it,
-which needs the maintainer's quiet-machine go, if it does not), then marks the PR ready, and hands it over
-once the full CI run that this starts has passed. Getting a PR ready for human review always includes
-promoting it out of draft: a PR that is still a draft has not been handed over, whatever else holds. It also
-includes labeling: Claude assigns the PR the labels, from the repository's existing set (`gh label list`;
+conditions hold. Getting a PR ready for human review always includes all of these, in this order:
+1. **the review sparring:** the `@claude review` rounds (below), until a round has no blocking finding;
+2. **the receipt**, recorded on the code the rounds converged on (which needs the maintainer's
+   quiet-machine go), committed and pushed, its report in the PR body;
+3. **promotion** out of draft, with the labels below;
+4. **a fully green CI:** the full matrix that promotion starts, `CI-passed` included.
+
+A PR that is still a draft, or whose full CI run has not passed, has not been handed over, whatever else
+holds. It also includes labeling: Claude assigns the PR the labels, from the repository's existing set (`gh label list`;
 never a new one), that say what it changes (`bug`, `performance`, `gpu`, `ray tracing`, `documentation`,
 ...), and the same to the issues it closes.
 
