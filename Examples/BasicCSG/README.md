@@ -6,7 +6,7 @@ The classic constructive solid geometry (CSG) solid: a cube with its corners rou
 
 The builder functions return an `Expr`, which describes the solid without evaluating it. A `Tape`
 compiles it into a `Pool`; the tape is a plain descriptor, evaluated on the host and, mirrored with its
-pool, on a GPU. `closestPrimitive()` names the leaf that decides the value at a point.
+pool, on a GPU. `closestLeaf()` names the leaf that decides the value at a point.
 
 Building
 --------

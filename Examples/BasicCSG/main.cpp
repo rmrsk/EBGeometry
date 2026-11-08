@@ -72,11 +72,11 @@ main(int argc, char* argv[])
             << tape.computeBoundingVolume() << ", "
             << (tape.getDistanceQuality() == EBGeometry::DistanceQuality::Exact ? "exact" : "a bound") << '\n';
 
-  // closestPrimitive() names the leaf the value comes from, numbered in expression order: the cube 0, the
+  // closestLeaf() names the leaf the value comes from, numbered in expression order: the cube 0, the
   // ball 1, the drills along x, y and z 2, 3 and 4.
   for (const Vec3& p : {Vec3::zeros(), Vec3(T(0.95), T(0.2), T(0.1)), Vec3(T(0.8), T(0.8), T(0.8)), Vec3(2, 0, 0)}) {
     std::cout << "  " << p << "   value " << std::setw(8) << tape.signedDistance(p) << "   leaf "
-              << tape.closestPrimitive(p).m_leaf << '\n';
+              << tape.closestLeaf(p).m_leaf << '\n';
   }
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────

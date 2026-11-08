@@ -331,6 +331,31 @@ SphereCloudBVH<T, K, W>::numSpheres() const noexcept
 
 template <class T, size_t K, size_t W>
 EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+SphereCloudBVH<T, K, W>::closestSurface(const Vec3T<T>& a_point) const noexcept
+{
+  const Hit hit = this->closestSphere(a_point);
+
+  SurfaceRef<T> surface;
+
+  if (hit.valid()) {
+    surface.m_surface    = hit.index;
+    surface.m_localPoint = a_point;
+  }
+
+  return surface;
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST
+inline uint32_t
+SphereCloudBVH<T, K, W>::getNumSurfaces() const noexcept
+{
+  return Math::max(this->maxSpheres(), this->numSpheres());
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
 inline typename SphereCloudBVH<T, K, W>::Sphere
 SphereCloudBVH<T, K, W>::sphere(const uint32_t a_index) const noexcept
 {

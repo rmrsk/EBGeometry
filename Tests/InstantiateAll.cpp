@@ -62,6 +62,9 @@ namespace EBGeometry {
   template class ExprIndex<PREC>;                                            \
   template class Tape<PREC>;                                                 \
   template class Tape<PREC, BVHUnion<PREC, 4, SphereSDF<PREC>>, MeshSDF<PREC, 8>>; \
+  template class Tape<PREC, SphereCloudBVH<PREC>>;                           \
+  template class BVHUnion<PREC, 4, SphereCloudBVH<PREC>>;                    \
+  template struct SurfaceRef<PREC>;                                          \
                                                                                \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \
@@ -337,6 +340,10 @@ instantiateFunctionTemplates()
 
     SphereCloudBVH<T> spheresBVH = SphereCloudBVH<T>::build(cloudPool, spheres, 16, 4);
 
+    (void)spheresBVH.closestSurface(Vec3T<T>::zeros());
+    (void)spheresBVH.getNumSurfaces();
+    (void)Tape<T, SphereCloudBVH<T>>(cloudPool, toExpr(spheresBVH)).closestSurface(Vec3T<T>::zeros());
+
     (void)SphereCloudBVH<T>::build(cloudPool, points, radii);
     (void)SphereCloudBVH<T>::build(
       parallelPool,
@@ -415,6 +422,11 @@ instantiateFunctionTemplates()
     (void)firstHit(tape, ray, T(0), T(10));
     (void)firstCrossing(tape, ray, T(0), T(10));
     (void)firstCrossing(bvhUnion, ray, T(0), T(10));
+    (void)bvhUnion.closestSurface(Vec3T<T>::zeros());
+    (void)bvhUnion.getNumSurfaces();
+    (void)bvhUnion.getFirstSurface(0U);
+    (void)bvhUnion.getNumMembers();
+    (void)bvhUnion.getMemberIndex(0U);
     (void)firstHit(Fused::Union(bvhUnion, tape), ray, T(0), T(10));
   }
 
@@ -466,8 +478,14 @@ instantiateFunctionTemplates()
     (void)tape.getLargestPlainUnion();
     (void)tape.getNumLabels();
     (void)tape.getLabel(0U);
-    (void)tape.getLabel(tape.closestPrimitive(Vec3T<T>::zeros()));
+    (void)tape.getLabel(tape.closestLeaf(Vec3T<T>::zeros()));
     (void)ExprIndex<T>(Label(expr, "all")).pathOf(0U);
+    (void)tape.closestSurface(Vec3T<T>::zeros());
+    (void)tape.getNumSurfaces();
+    (void)tape.getFirstSurface(0U);
+    (void)ExprIndex<T>(expr).getNumSurfaces();
+    (void)ExprIndex<T>(expr).getFirstSurface(0U);
+    (void)ExprIndex<T>(expr).getLeafOfSurface(0U);
     (void)tape.getCallDepth();
     (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
     (void)tape.rebasedView(meshPool);
@@ -480,7 +498,7 @@ instantiateFunctionTemplates()
     (void)exact.signedDistance(Vec3T<T>::zeros());
     (void)exact.firstHit(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
 
-    const PrimitiveRef<T> leaf = tape.closestPrimitive(Vec3T<T>::zeros());
+    const LeafRef<T> leaf = tape.closestLeaf(Vec3T<T>::zeros());
 
     (void)tape.template isPrimitive<SphereSDF<T>>(leaf);
     (void)tape.template primitive<SphereSDF<T>>(leaf);

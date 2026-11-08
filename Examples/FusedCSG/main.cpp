@@ -107,13 +107,13 @@ main(int argc, char* argv[])
   // ── Fused parts in a tape ──────────────────────────────────────────────────────────────────────────────
   //
   // A fused solid is one shape with one surface: listed after T, it is one leaf of a tape, so a scene
-  // known only at run time can place compiled parts. closestPrimitive() then names the part.
+  // known only at run time can place compiled parts. closestLeaf() then names the part.
   const EBGeometry::Tape<T, FusedSolid> scene(
     pool,
     EBGeometry::Union(Expr(fused), EBGeometry::Translate(EBGeometry::Rotate(fused, T(45), 1), Vec3(T(3), T(0), T(0)))));
 
   std::cout << "In a scene of two parts, the point (3.9, 0, 0) is decided by part "
-            << scene.closestPrimitive(Vec3(T(3.9), T(0), T(0))).m_leaf << '\n';
+            << scene.closestLeaf(Vec3(T(3.9), T(0), T(0))).m_leaf << '\n';
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
   //

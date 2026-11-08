@@ -56,26 +56,26 @@ struct HasClosestFace<S,
 };
 
 /**
- * @brief Whether a shape names the deciding leaf at a point (Tape::closestPrimitive()).
+ * @brief Whether a shape names the deciding leaf at a point (Tape::closestLeaf()).
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
  * @tparam T Floating-point precision.
  */
 template <class S, class T, class = void>
-struct HasClosestPrimitive : std::false_type
+struct HasClosestLeaf : std::false_type
 {
 };
 
 /**
- * @brief A shape with closestPrimitive(point).m_leaf.
+ * @brief A shape with closestLeaf(point).m_leaf.
  * @tparam S Shape type.
  * @tparam T Floating-point precision.
  */
 template <class S, class T>
-struct HasClosestPrimitive<
-  S,
-  T,
-  std::void_t<decltype(std::declval<const S&>().closestPrimitive(std::declval<Vec3T<T>>()).m_leaf)>> : std::true_type
+struct HasClosestLeaf<S,
+                      T,
+                      std::void_t<decltype(std::declval<const S&>().closestLeaf(std::declval<Vec3T<T>>()).m_leaf)>>
+  : std::true_type
 {
 };
 
@@ -352,8 +352,8 @@ EBGEOMETRY_DEVICE_NOINLINE
 inline uint32_t
 primitiveOf(const S& a_shape, const Vec3T<T>& a_point) noexcept
 {
-  if constexpr (HasClosestPrimitive<S, T>::value) {
-    return a_shape.closestPrimitive(a_point).m_leaf;
+  if constexpr (HasClosestLeaf<S, T>::value) {
+    return a_shape.closestLeaf(a_point).m_leaf;
   }
   else if constexpr (HasClosestFace<S, T>::value) {
     return a_shape.getClosestFace(a_point).faceId;

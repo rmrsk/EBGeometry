@@ -34,6 +34,7 @@
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_Pool.hpp"
+#include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -217,6 +218,11 @@ struct Leaf
    * @brief For a pool-resident shape: whether it lives in a given pool. Null otherwise.
    */
   bool (*m_isAttachedTo)(const void*, const Pool&) = nullptr;
+
+  /**
+   * @brief For a container (see hasSurfaces): how many surfaces it holds. Null for a shape with one surface.
+   */
+  uint32_t (*m_numSurfaces)(const void*) = nullptr;
 };
 
 /**
@@ -847,12 +853,14 @@ Label(const A& a_operand, std::string a_name);
 
 /**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
- * way from what a Tape reports (a leaf, see PrimitiveRef::m_leaf and HitT::m_primitive) back to the
+ * way from what a Tape reports (a leaf, see LeafRef::m_leaf and HitT::m_primitive) back to the
  * expression.
  * @details The nodes are numbered from 0 at the root, depth first, the operands in order, each occurrence of
  * a shared subexpression counted; the leaves (the shapes) are numbered the same way, as a Tape compiled from
  * the expression numbers them. So the leaves below a node are a contiguous range, [m_firstLeaf,
- * m_firstLeaf + m_numLeaves), and a group of surfaces can be handed to a device as two numbers. The nodes
+ * m_firstLeaf + m_numLeaves), and so are its surfaces, [m_firstSurface, m_firstSurface + m_numSurfaces): one
+ * per leaf, or all of a container leaf's (a sphere cloud's spheres, a BVH union's members). A group of surfaces
+ * can be handed to a device as two numbers. The nodes
  * are those the builder functions made: Difference(a, b) is an Intersection of a and a Complement of b,
  * and nested maps (Translate, Rotate, Scale, ...) are one Transform node.
  * @tparam T Floating-point precision.
@@ -885,6 +893,16 @@ public:
      * @brief How many leaves are below it (1 for a leaf).
      */
     uint32_t m_numLeaves = 0;
+
+    /**
+     * @brief The first surface below it (see Tape::closestSurface()).
+     */
+    uint32_t m_firstSurface = 0;
+
+    /**
+     * @brief How many surfaces are below it: one per leaf, or a container leaf's own count (see hasSurfaces).
+     */
+    uint32_t m_numSurfaces = 0;
 
     /**
      * @brief Its own label, or None (the label its leaves inherit from further up is getLabel()'s).
@@ -956,6 +974,33 @@ public:
   pathOf(uint32_t a_leaf) const;
 
   /**
+   * @brief The number of surfaces: Tape::getNumSurfaces() of a tape compiled from the expression.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumSurfaces() const noexcept;
+
+  /**
+   * @brief A leaf's first surface: the leaf covers [getFirstSurface(leaf), getFirstSurface(leaf + 1)), as
+   * Tape::getFirstSurface() numbers them.
+   * @param[in] a_leaf Leaf number, at most getNumLeaves() (which gives getNumSurfaces()).
+   * @return The surface.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getFirstSurface(uint32_t a_leaf) const;
+
+  /**
+   * @brief The leaf a surface belongs to: SurfaceRef::m_leaf of a tape's closestSurface() that reported it.
+   * @param[in] a_surface Surface (below getNumSurfaces()).
+   * @return The leaf number.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getLeafOfSurface(uint32_t a_surface) const;
+
+  /**
    * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included.
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
    * @return The label, or None if no node on the path has one.
@@ -1005,6 +1050,11 @@ private:
    * @brief Each leaf's label (see getLabel()).
    */
   std::vector<uint32_t> m_leafLabels;
+
+  /**
+   * @brief Each leaf's first surface, and the number of surfaces last.
+   */
+  std::vector<uint32_t> m_leafSurfaces;
 
   /**
    * @brief The labels' names.

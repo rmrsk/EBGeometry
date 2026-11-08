@@ -49,9 +49,9 @@ leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
      - Whether the ray enters the object there, rather than leaving it.
    * - ``m_primitive``
      - The finest part the shape can name: the face of a mesh SDF (its index in the file), the sphere crossed
-       for a ``SphereCloudBVH`` (its cloud index), the deciding leaf of a tape (``Tape::closestPrimitive()``),
-       the member crossed for a ``BVHUnion``
-       (its place in the union's storage, not the order given to the constructor), and 0 for any other shape (see
+       for a ``SphereCloudBVH`` (its cloud index), the deciding leaf of a tape (``Tape::closestLeaf()``),
+       the member crossed for a ``BVHUnion`` (in the order its constructor was given them), and 0 for any other
+       shape (see
        :ref:`Sec:RayTracedHits`).
    * - ``m_exact``
      - Whether the crossing was found exactly (by a ray form) rather than by marching.

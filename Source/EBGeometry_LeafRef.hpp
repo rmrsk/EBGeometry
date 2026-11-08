@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file   EBGeometry_PrimitiveRef.hpp
- * @brief  PrimitiveRef: which leaf of a composition decides its value at a point.
+ * @file   EBGeometry_LeafRef.hpp
+ * @brief  LeafRef: which leaf of a composition decides its value at a point.
  * @author Robert Marskar
  */
 
-#ifndef EBGEOMETRY_PRIMITIVEREF_HPP
-#define EBGEOMETRY_PRIMITIVEREF_HPP
+#ifndef EBGEOMETRY_LEAFREF_HPP
+#define EBGEOMETRY_LEAFREF_HPP
 
 // Std includes
 #include <cstdint>
@@ -22,14 +22,15 @@ namespace EBGeometry {
 
 /**
  * @brief The deciding leaf of a composition at a point: the primitive whose surface the composed value
- * comes from there, as Tape::closestPrimitive() reports it.
+ * comes from there, as Tape::closestLeaf() reports it.
  * @details A union or intersection takes the leaf of the operand whose value it takes; a smooth one the
  * more extreme operand's; a blur its center tap's, a mollification its heaviest tap's; a complement, offset,
  * annulus, map, elongation or repetition its operand's. For Difference(box, sphere), a point near the
  * carved cavity gets the sphere and a point near the box's outside gets the box. This is the leaf that
  * decides the value, not the geometrically nearest primitive, which could be one the composition removed.
  * A nested composite (a fused composition, which is one shape with one surface; a tape listed as a
- * primitive; a BVH union) is one leaf.
+ * primitive; a BVH union; a sphere cloud) is one leaf; Tape::closestSurface() goes on into the collections
+ * among them (see SurfaceRef).
  *
  * The tape that made the reference returns the primitive itself: isPrimitive<P>(ref), primitive<P>(ref)
  * (by value: the shape, or a pool-resident one's handle rebuilt with the tape's location) and
@@ -37,7 +38,7 @@ namespace EBGeometry {
  * @tparam T Floating-point precision.
  */
 template <class T>
-struct PrimitiveRef
+struct LeafRef
 {
   /**
    * @brief No leaf (an empty composition).

@@ -5,9 +5,9 @@ Which part of an object each cut cell lies on. The armadillo with a cylinder bor
 (`Difference`), compiled into a `Tape`, is handed to AMReX's EB2 grid generation, and each cut cell is
 labeled twice:
 
-* with the tape's leaf closest to it (`closestPrimitive()`), in expression order: the armadillo 0, the bore 1;
+* with the tape's leaf closest to it (`closestLeaf()`), in expression order: the armadillo 0, the bore 1;
 * on the armadillo, with the id of its closest mesh face (`getClosestFace()`, asked at the point in the
-  mesh's own frame that `closestPrimitive()` returns).
+  mesh's own frame that `closestLeaf()` returns).
 
 They are the indices into tables of your own, of per-part and per-face data such as boundary conditions or
 materials. It mirrors the [`Materials`](../../../Examples/Materials/README.md) example.

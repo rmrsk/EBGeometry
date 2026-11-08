@@ -393,36 +393,48 @@ same solid both ways.
 The deciding leaf
 -----------------
 
-A tape's ``closestPrimitive(p)`` names the leaf of the composition whose surface its value at ``p``
+A tape's ``closestLeaf(p)`` names the leaf of the composition whose surface its value at ``p``
 comes from, which is not always the geometrically nearest primitive; :ref:`Chap:ClosestPrimitive`
 explains which leaf each operation passes on and what it is for. It returns a
-`PrimitiveRef <doxygen/html/structEBGeometry_1_1PrimitiveRef.html>`__: the leaf's number in expression
-order (``m_leaf``, ``PrimitiveRef::None`` for none), the primitive's type and index in the tape
+`LeafRef <doxygen/html/structEBGeometry_1_1LeafRef.html>`__: the leaf's number in expression
+order (``m_leaf``, ``LeafRef::None`` for none), the primitive's type and index in the tape
 (``m_type``, ``m_index``), and the point in the leaf's own frame (``m_localPoint``). The tape returns
 the primitive itself with ``isPrimitive<P>(ref)`` (any ``P`` the tape cannot hold is a compile error),
 ``primitive<P>(ref)`` (the shape, or a pool-resident one's handle resolving against the tape's pool) and
 ``visitPrimitive(ref, f)``. All are device-callable, like ``signedDistance()``; in a CUDA or HIP
 translation unit, pass ``visitPrimitive()`` a functor whose call operator is ``EBGEOMETRY_HOST_DEVICE``,
 since the device compiler treats a lambda's as a host function there. A fused composition is one leaf
-and has no ``closestPrimitive()``.
+and has no ``closestLeaf()``.
 
 .. code-block:: c++
 
-   const PrimitiveRef<T> leaf = tape.closestPrimitive(p);
+   const LeafRef<T> leaf = tape.closestLeaf(p);
 
-   if (leaf.m_leaf != PrimitiveRef<T>::None && tape.isPrimitive<TriMeshSDF<T, 4, 4>>(leaf)) {
+   if (leaf.m_leaf != LeafRef<T>::None && tape.isPrimitive<TriMeshSDF<T, 4, 4>>(leaf)) {
      const auto mesh = tape.primitive<TriMeshSDF<T, 4, 4>>(leaf);   // resolves against the tape's pool
      const auto face = mesh.getClosestFace(leaf.m_localPoint);
    }
 
 A tape also reports a leaf's label, ``getLabel(leaf)`` or ``getLabel(ref)``, on the host and on a device
-(``PrimitiveRef::None`` for an unlabeled leaf), and ``getNumLabels()``. The names, and the expression's
+(``LeafRef::None`` for an unlabeled leaf), and ``getNumLabels()``. The names, and the expression's
 structure, are on the host in an
 `ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression:
 ``findLabel(name)`` and ``getLabelName(label)``; the nodes, numbered depth first, with ``getNode(node)``
 (its parent, operation, own label and the contiguous range of leaves below it); ``getLeafNode(leaf)``; and
 ``pathOf(leaf)``, the nodes from the root down to a leaf. Both number labels in the order their names
 first appear, so the same expression gives the same numbers to both.
+
+A tape's ``closestSurface(p)`` drills into a deciding leaf that is a collection (a ``SphereCloudBVH``, a
+``BVHUnion`` or ``BVHSmoothUnion``, a nested tape, or a shape of your own with ``getNumSurfaces()`` and
+``closestSurface()``) and returns a
+`SurfaceRef <doxygen/html/structEBGeometry_1_1SurfaceRef.html>`__: the surface, numbered across the scene
+(``m_surface``), its leaf and label, and the point in the deepest shape's frame. ``getNumSurfaces()`` and
+``getFirstSurface(leaf)`` give the numbering, a contiguous range per leaf; ``ExprIndex`` has the same, and
+each node's range (``m_firstSurface``, ``m_numSurfaces``) and ``getLeafOfSurface(surface)``. The
+collections answer ``closestSurface()`` themselves, numbering their members: a cloud by cloud index, a BVH
+union in the order its constructor was given them (``getMemberIndex(place)`` maps its storage order to
+that, and ``getFirstSurface(member)`` gives each member's range when the members are collections too). All
+are device-callable. :ref:`Sec:Surfaces` explains the numbering.
 
 .. _Sec:BVHUnions:
 

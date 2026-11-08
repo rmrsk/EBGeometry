@@ -67,9 +67,9 @@ public:
   void
   label(const Vec3& a_point, Real& a_leaf, Real& a_face) const noexcept
   {
-    const EBGeometry::PrimitiveRef<T> ref = tape().closestPrimitive(a_point);
+    const EBGeometry::LeafRef<T> ref = tape().closestLeaf(a_point);
 
-    a_leaf = (ref.m_leaf == EBGeometry::PrimitiveRef<T>::None) ? Real(-1) : Real(ref.m_leaf);
+    a_leaf = (ref.m_leaf == EBGeometry::LeafRef<T>::None) ? Real(-1) : Real(ref.m_leaf);
     a_face = Real(-1);
 
     // The reference holds the point in the primitive's own frame, so the mesh is asked there, after the

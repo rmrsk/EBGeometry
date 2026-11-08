@@ -147,6 +147,51 @@ struct Staging
    * @brief How many distinct labels the expression has.
    */
   uint32_t m_numLabels = 0;
+
+  /**
+   * @brief Each leaf's first surface, and the number of surfaces last; empty when no leaf is a container.
+   */
+  std::vector<uint32_t> m_surfaces;
+};
+
+/**
+ * @brief Drill into the deciding leaf, if it is a container (see Tape::closestSurface()): add the member's own
+ * surface to the leaf's first, and take the point in the member's frame.
+ * @details Internal helper; not part of the public API. A functor rather than a lambda, so that its call
+ * operator is a device function in a CUDA or HIP translation unit (see Tape::visitPrimitive()).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct Drill
+{
+  /**
+   * @brief The surface being reported, with the leaf's first surface and the point in the leaf's frame.
+   */
+  SurfaceRef<T>* m_surface;
+
+  /**
+   * @brief Drill into a primitive: a container reports its own surface; any other shape is one surface.
+   * @tparam P Primitive type.
+   * @param[in] a_primitive The deciding leaf's primitive.
+   */
+  template <class P>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  operator()([[maybe_unused]] const P& a_primitive) const noexcept
+  {
+    if constexpr (hasSurfaces<P, T>) {
+      const SurfaceRef<T> inner = SurfaceDetail::closestSurfaceOf<T>(a_primitive, m_surface->m_localPoint);
+
+      // An empty collection names no surface (it decides nothing unless the tape holds nothing else).
+      if (inner.m_surface != SurfaceRef<T>::None) {
+        m_surface->m_surface += inner.m_surface;
+        m_surface->m_localPoint = inner.m_localPoint;
+      }
+      else {
+        m_surface->m_surface = SurfaceRef<T>::None;
+      }
+    }
+  }
 };
 
 /**
@@ -430,7 +475,7 @@ private:
   uint32_t m_current = UINT32_MAX;
 
   /**
-   * @brief The number the next primitive leaf gets (see Tape::closestPrimitive()).
+   * @brief The number the next primitive leaf gets (see Tape::closestLeaf()).
    */
   uint32_t m_nextLeaf = 0;
 
@@ -1038,7 +1083,7 @@ private:
 
       // The leaf's number, in expression order (the compiler visits the expression depth first, the
       // operands of a BVH union and the sub-programs too), in the value clause's otherwise unused m_b, and
-      // in the ray Leaf clause's m_b: the number closestPrimitive() reports, which a hit reports as its
+      // in the ray Leaf clause's m_b: the number closestLeaf() reports, which a hit reports as its
       // primitive (the spans name a leaf by its ray clause's position instead).
       if (a_ray != nullptr) {
         // At a level set: the level in params[m_c], flagged in m_flags (see TapeDetail::RayOp::Leaf).
@@ -1396,18 +1441,32 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_numPrimitives     = compiler.numPrimitives();
   staging.m_largestPlainUnion = compiler.largestPlainUnion();
 
-  // The labels, numbered as ExprIndex numbers them; a tape without any stores none, and does not build the
-  // index (which allocates per node).
-  if (ExprDetail::hasLabel(a_expr.node())) {
+  // The labels and the surfaces, numbered as ExprIndex numbers them; a tape without labels stores none, one
+  // without a container leaf no surfaces, and one with neither does not build the index (which allocates per
+  // node).
+  const bool labeled    = ExprDetail::hasLabel(a_expr.node());
+  const bool containers = ExprDetail::hasContainer(a_expr.node());
+
+  if (labeled || containers) {
     const ExprIndex<T> index(a_expr);
 
     EBGEOMETRY_EXPECT(index.getNumLeaves() == staging.m_numPrimitives);
 
-    staging.m_numLabels = index.getNumLabels();
-    staging.m_labels.resize(index.getNumLeaves());
+    if (labeled) {
+      staging.m_numLabels = index.getNumLabels();
+      staging.m_labels.resize(index.getNumLeaves());
 
-    for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-      staging.m_labels[leaf] = index.getLabel(leaf);
+      for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
+        staging.m_labels[leaf] = index.getLabel(leaf);
+      }
+    }
+
+    if (containers) {
+      staging.m_surfaces.resize(index.getNumLeaves() + 1);
+
+      for (uint32_t leaf = 0; leaf <= index.getNumLeaves(); leaf++) {
+        staging.m_surfaces[leaf] = index.getFirstSurface(leaf);
+      }
     }
   }
 
@@ -1440,6 +1499,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_params.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_unions.size()));
   layout.m_labels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_labels.size()));
+  layout.m_surfaces.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaces.size()));
 
   TapeDetail::reserveStore<0>(a_pool, layout.m_primitives, a_staging.m_primitives);
 
@@ -1452,6 +1512,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_params.assign(base, a_staging.m_params.data(), static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.assign(base, a_staging.m_unions.data(), static_cast<uint32_t>(a_staging.m_unions.size()));
   layout.m_labels.assign(base, a_staging.m_labels.data(), static_cast<uint32_t>(a_staging.m_labels.size()));
+  layout.m_surfaces.assign(base, a_staging.m_surfaces.data(), static_cast<uint32_t>(a_staging.m_surfaces.size()));
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
@@ -1531,8 +1592,8 @@ Tape<T, UserPrimitives...>::intersects(const Vec3T<T>&      a_from,
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
-inline PrimitiveRef<T>
-Tape<T, UserPrimitives...>::closestPrimitive(const Vec3T<T>& a_point) const noexcept
+inline LeafRef<T>
+Tape<T, UserPrimitives...>::closestLeaf(const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
   EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
@@ -1546,7 +1607,7 @@ Tape<T, UserPrimitives...>::closestPrimitive(const Vec3T<T>& a_point) const noex
                     ? this->template evaluateBody<0, V>(0U, a_point, this->base(), this->location())
                     : this->template evaluate<MaxCallDepth, V>(0U, a_point, this->base(), this->location());
 
-  PrimitiveRef<T> ref;
+  LeafRef<T> ref;
 
   if (value.m_tag != CSGOps::NoTag) {
     const TapeDetail::Clause& c = m_layout.m_clauses.at(this->base(), value.m_tag);
@@ -1564,7 +1625,7 @@ template <class T, class... UserPrimitives>
 template <class P>
 EBGEOMETRY_HOST_DEVICE
 inline bool
-Tape<T, UserPrimitives...>::isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::isPrimitive(const LeafRef<T>& a_ref) const noexcept
 {
   constexpr size_t I = TapeDetail::IndexOf<P, Primitives>::value;
 
@@ -1577,7 +1638,7 @@ template <class T, class... UserPrimitives>
 template <class P>
 EBGEOMETRY_HOST_DEVICE
 inline P
-Tape<T, UserPrimitives...>::primitive(const PrimitiveRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::primitive(const LeafRef<T>& a_ref) const noexcept
 {
   constexpr size_t I = TapeDetail::IndexOf<P, Primitives>::value;
 
@@ -1600,7 +1661,7 @@ template <class T, class... UserPrimitives>
 template <class F>
 EBGEOMETRY_HOST_DEVICE
 inline void
-Tape<T, UserPrimitives...>::visitPrimitive(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
+Tape<T, UserPrimitives...>::visitPrimitive(const LeafRef<T>& a_ref, F&& a_f) const noexcept
 {
   EBGEOMETRY_EXPECT(a_ref.m_type < Primitives::size);
 
@@ -1611,7 +1672,7 @@ template <class T, class... UserPrimitives>
 template <size_t I, class F>
 EBGEOMETRY_HOST_DEVICE
 inline void
-Tape<T, UserPrimitives...>::dispatchVisit(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept
+Tape<T, UserPrimitives...>::dispatchVisit(const LeafRef<T>& a_ref, F&& a_f) const noexcept
 {
   if constexpr (I < Primitives::size) {
     if (a_ref.m_type == I) {
@@ -2188,7 +2249,7 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
 
   // A crossing found by marching a subtree is named by the leaf deciding the value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
-    hit.m_primitive = this->closestPrimitive(hit.m_point).m_leaf;
+    hit.m_primitive = this->closestLeaf(hit.m_point).m_leaf;
   }
 
   return hit;
@@ -2928,13 +2989,13 @@ EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getLabel(const uint32_t a_leaf) const noexcept
 {
-  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : PrimitiveRef<T>::None;
+  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : LeafRef<T>::None;
 }
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-Tape<T, UserPrimitives...>::getLabel(const PrimitiveRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::getLabel(const LeafRef<T>& a_ref) const noexcept
 {
   return this->getLabel(a_ref.m_leaf);
 }
@@ -2945,6 +3006,56 @@ inline uint32_t
 Tape<T, UserPrimitives...>::getNumLabels() const noexcept
 {
   return m_layout.m_numLabels;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexcept
+{
+  const LeafRef<T> ref = this->closestLeaf(a_point);
+
+  SurfaceRef<T> surface;
+
+  if (ref.m_leaf == LeafRef<T>::None) {
+    return surface;
+  }
+
+  surface.m_leaf       = ref.m_leaf;
+  surface.m_label      = this->getLabel(ref.m_leaf);
+  surface.m_surface    = this->getFirstSurface(ref.m_leaf);
+  surface.m_localPoint = ref.m_localPoint;
+
+  // A tape whose types include no container compiles no drilling at all.
+  if constexpr (TapeDetail::AnyContainer<T, Primitives>::value) {
+    if (m_layout.m_surfaces.size() > 0) {
+      this->visitPrimitive(ref, TapeDetail::Drill<T>{&surface});
+    }
+  }
+
+  return surface;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getNumSurfaces() const noexcept
+{
+  const uint32_t n = m_layout.m_surfaces.size();
+
+  return (n > 0) ? m_layout.m_surfaces.at(this->base(), n - 1) : m_layout.m_numPrimitives;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getFirstSurface(const uint32_t a_leaf) const noexcept
+{
+  if (m_layout.m_surfaces.size() > 0) {
+    return (a_leaf < m_layout.m_surfaces.size()) ? m_layout.m_surfaces.at(this->base(), a_leaf) : SurfaceRef<T>::None;
+  }
+
+  return (a_leaf <= m_layout.m_numPrimitives) ? a_leaf : SurfaceRef<T>::None;
 }
 
 template <class T, class... UserPrimitives>
@@ -3052,7 +3163,8 @@ Tape<T, UserPrimitives...>::rebasedView(const Pool& a_pool) const noexcept
   const uint64_t endByte =
     Math::max(Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
               Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
-                        Math::max(m_layout.m_labels.endByte(), TapeDetail::storeEndByte(m_layout.m_primitives))));
+                        Math::max(Math::max(m_layout.m_labels.endByte(), m_layout.m_surfaces.endByte()),
+                                  TapeDetail::storeEndByte(m_layout.m_primitives))));
 
   Tape view = *this;
 
@@ -3080,6 +3192,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     const auto params   = m_layout.m_params.bind(base);
     const auto unions   = m_layout.m_unions.bind(base);
     const auto labels   = m_layout.m_labels.bind(base);
+    const auto surfaces = m_layout.m_surfaces.bind(base);
 
     // The arrays are copied as they are laid out: the marched ranges overlap the sub-programs.
     staging.m_flatClauses.assign(clauses.begin(), clauses.end());
@@ -3090,6 +3203,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     staging.m_params.assign(params.begin(), params.end());
     staging.m_unions.assign(unions.begin(), unions.end());
     staging.m_labels.assign(labels.begin(), labels.end());
+    staging.m_surfaces.assign(surfaces.begin(), surfaces.end());
   }
 
   TapeDetail::deepCopyStore<0, Primitives>(m_layout.m_primitives, location, a_dstPool, staging.m_primitives);

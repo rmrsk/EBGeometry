@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Test suite for Tape::closestPrimitive() (EBGeometry_Tape.hpp, EBGeometry_PrimitiveRef.hpp): the deciding
+// Test suite for Tape::closestLeaf() (EBGeometry_Tape.hpp, EBGeometry_LeafRef.hpp): the deciding
 // leaf of unions, intersections and differences, through smooth blends, blurs, maps and repetitions, the
 // numbering of repeated leaves, meshes and fused parts as leaves, and device evaluation. Also the labels
 // of the leaves (Label(), Tape::getLabel()) and the numbering of an expression's nodes (ExprIndex).
@@ -56,10 +56,10 @@ struct LeafQuery
   TapeType m_tape;
 
   EBGEOMETRY_HOST_DEVICE
-  PrimitiveRef<T>
+  LeafRef<T>
   operator()(const Vec3T<T>& a_point) const noexcept
   {
-    return m_tape.closestPrimitive(a_point);
+    return m_tape.closestLeaf(a_point);
   }
 };
 
@@ -73,7 +73,7 @@ struct LabelQuery
   uint32_t
   operator()(const Vec3T<T>& a_point) const noexcept
   {
-    return m_tape.getLabel(m_tape.closestPrimitive(a_point));
+    return m_tape.getLabel(m_tape.closestLeaf(a_point));
   }
 };
 
@@ -94,7 +94,7 @@ labeledRow()
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Tape: closestPrimitive names the operand a union, intersection or difference takes its value from",
+TEMPLATE_TEST_CASE("Tape: closestLeaf names the operand a union, intersection or difference takes its value from",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -109,10 +109,10 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive names the operand a union, intersecti
   // The carved box: near the cavity the sphere decides, near the outside the box (leaves 0 and 1).
   const Tape<T> carved(pool, Difference(box, ball));
 
-  CHECK(carved.closestPrimitive(Vec3(T(0.3), T(0), T(0))).m_leaf == 1U);
-  CHECK(carved.closestPrimitive(Vec3(T(-1.2), T(0), T(0))).m_leaf == 0U);
-  CHECK(carved.template isPrimitive<SphereSDF<T>>(carved.closestPrimitive(Vec3(T(0.3), T(0), T(0)))));
-  CHECK(carved.template isPrimitive<BoxSDF<T>>(carved.closestPrimitive(Vec3(T(-1.2), T(0), T(0)))));
+  CHECK(carved.closestLeaf(Vec3(T(0.3), T(0), T(0))).m_leaf == 1U);
+  CHECK(carved.closestLeaf(Vec3(T(-1.2), T(0), T(0))).m_leaf == 0U);
+  CHECK(carved.template isPrimitive<SphereSDF<T>>(carved.closestLeaf(Vec3(T(0.3), T(0), T(0)))));
+  CHECK(carved.template isPrimitive<BoxSDF<T>>(carved.closestLeaf(Vec3(T(-1.2), T(0), T(0)))));
 
   // Against the brute-force choice: difference max(a, -b), union argmin and intersection argmax, the
   // union through the tape's BVH and operand by operand.
@@ -143,21 +143,20 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive names the operand a union, intersecti
       }
 
       INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
-      CHECK(unionBVH.closestPrimitive(p).m_leaf == smallest);
-      CHECK(unionLinear.closestPrimitive(p).m_leaf == smallest);
-      CHECK(intersection.closestPrimitive(p).m_leaf == largest);
+      CHECK(unionBVH.closestLeaf(p).m_leaf == smallest);
+      CHECK(unionLinear.closestLeaf(p).m_leaf == smallest);
+      CHECK(intersection.closestLeaf(p).m_leaf == largest);
 
       const uint32_t difference = (box.signedDistance(p) >= -ball.signedDistance(p)) ? 0U : 1U;
 
-      CHECK(carved.closestPrimitive(p).m_leaf == difference);
+      CHECK(carved.closestLeaf(p).m_leaf == difference);
     }
   }
 }
 
-TEMPLATE_TEST_CASE(
-  "Tape: closestPrimitive follows smooth blends, blurs, maps and repetitions to the leaf, in its frame",
-  "[Tape]",
-  EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Tape: closestLeaf follows smooth blends, blurs, maps and repetitions to the leaf, in its frame",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -188,12 +187,12 @@ TEMPLATE_TEST_CASE(
 
       const uint32_t smallest3 = (db < da) ? ((dc < db) ? 2U : 1U) : ((dc < da) ? 2U : 0U);
 
-      CHECK(smooth.closestPrimitive(p).m_leaf == smallest3);
-      CHECK(blurred.closestPrimitive(p).m_leaf == ((db < da) ? 1U : 0U));
+      CHECK(smooth.closestLeaf(p).m_leaf == smallest3);
+      CHECK(blurred.closestLeaf(p).m_leaf == ((db < da) ? 1U : 0U));
 
       // A map: the leaf sees (p - shift) / 2, and the primitive there gives the leaf's own value.
-      const Vec3            local = (p - shift) / T(2);
-      const PrimitiveRef<T> m     = moved.closestPrimitive(p);
+      const Vec3       local = (p - shift) / T(2);
+      const LeafRef<T> m     = moved.closestLeaf(p);
 
       CHECK(m.m_leaf == ((b.signedDistance(local) < a.signedDistance(local)) ? 1U : 0U));
       CHECK_THAT(m.m_localPoint[0], withinAbsT(local[0], tightMargin<T>()));
@@ -225,7 +224,7 @@ TEMPLATE_TEST_CASE(
         }
       }
 
-      const PrimitiveRef<T> r = tiled.closestPrimitive(p);
+      const LeafRef<T> r = tiled.closestLeaf(p);
 
       CHECK(r.m_leaf == bestLeaf);
       CHECK_THAT(tiled.template primitive<SphereSDF<T>>(r).signedDistance(r.m_localPoint),
@@ -235,7 +234,7 @@ TEMPLATE_TEST_CASE(
   }
 }
 
-TEMPLATE_TEST_CASE("Tape: closestPrimitive numbers each occurrence of a leaf, and returns a mesh as its handle",
+TEMPLATE_TEST_CASE("Tape: closestLeaf numbers each occurrence of a leaf, and returns a mesh as its handle",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -254,17 +253,17 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive numbers each occurrence of a leaf, an
   // The same sphere twice, moved apart: two leaves (1 and 2), one primitive in the tape's array.
   const Tape<T> tape(pool, Union(std::vector<Expr<T>>{tri, Translate(ball, Vec3(T(0), T(1.5), T(0))), ball}));
 
-  CHECK(tape.closestPrimitive(Vec3(T(1.5), T(1.6), T(0))).m_leaf == 1U);
-  CHECK(tape.closestPrimitive(Vec3(T(1.6), T(0), T(0))).m_leaf == 2U);
+  CHECK(tape.closestLeaf(Vec3(T(1.5), T(1.6), T(0))).m_leaf == 1U);
+  CHECK(tape.closestLeaf(Vec3(T(1.6), T(0), T(0))).m_leaf == 2U);
 
-  const PrimitiveRef<T> first  = tape.closestPrimitive(Vec3(T(1.5), T(1.6), T(0)));
-  const PrimitiveRef<T> second = tape.closestPrimitive(Vec3(T(1.6), T(0), T(0)));
+  const LeafRef<T> first  = tape.closestLeaf(Vec3(T(1.5), T(1.6), T(0)));
+  const LeafRef<T> second = tape.closestLeaf(Vec3(T(1.6), T(0), T(0)));
 
   CHECK(first.m_type == second.m_type);
 
   // A mesh leaf comes back as a handle that resolves against the tape's pool.
-  const Vec3            p(T(0.1), T(0.05), T(-0.2));
-  const PrimitiveRef<T> leaf = tape.closestPrimitive(p);
+  const Vec3       p(T(0.1), T(0.05), T(-0.2));
+  const LeafRef<T> leaf = tape.closestLeaf(p);
 
   REQUIRE(leaf.m_leaf == 0U);
   REQUIRE(tape.template isPrimitive<TriMeshSDF<T, K, W>>(leaf));
@@ -283,7 +282,7 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive numbers each occurrence of a leaf, an
   CHECK(visit.m_value == tri.signedDistance(p));
 }
 
-TEMPLATE_TEST_CASE("Tape: closestPrimitive treats a fused part as one leaf, the part a scene is made of",
+TEMPLATE_TEST_CASE("Tape: closestLeaf treats a fused part as one leaf, the part a scene is made of",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -313,7 +312,7 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive treats a fused part as one leaf, the 
 
       INFO("p = " << p[0] << ", " << p[1] << ", " << p[2]);
 
-      const PrimitiveRef<T> ref = scene.closestPrimitive(p);
+      const LeafRef<T> ref = scene.closestLeaf(p);
 
       // The part is decided as a whole: inside its drill hole too, where its value comes from the drill.
       REQUIRE(ref.m_leaf == ((dBall < dPart) ? 1U : 0U));
@@ -330,7 +329,7 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive treats a fused part as one leaf, the 
   CHECK(partLeaves > 0U);
 }
 
-TEMPLATE_TEST_CASE("Tape: closestPrimitive on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Tape: closestLeaf on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -370,8 +369,8 @@ TEMPLATE_TEST_CASE("Tape: closestPrimitive on a device matches the host", "[Tape
 
   const auto points = queryGrid<T>(Vec3(T(-2), T(-0.5), T(-0.5)), Vec3(T(2.5), T(1.5), T(0.5)), 9);
 
-  const auto onDevice = evaluateOnDevice<PrimitiveRef<T>>(LeafQuery<T, Tape<T>>{tape.rebasedView(device)}, points);
-  const auto onHost   = evaluateOnHost<PrimitiveRef<T>>(LeafQuery<T, Tape<T>>{tape}, points);
+  const auto onDevice = evaluateOnDevice<LeafRef<T>>(LeafQuery<T, Tape<T>>{tape.rebasedView(device)}, points);
+  const auto onHost   = evaluateOnHost<LeafRef<T>>(LeafQuery<T, Tape<T>>{tape}, points);
 
   size_t differ = 0;
 
@@ -540,14 +539,14 @@ TEMPLATE_TEST_CASE("Label: a labeled map is not merged into the maps around it, 
   }
 }
 
-TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestPrimitive and a ray hit report",
+TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestLeaf and a ray hit report",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  constexpr uint32_t None = PrimitiveRef<T>::None;
+  constexpr uint32_t None = LeafRef<T>::None;
 
   Pool pool(hostMemoryResource());
 
@@ -566,8 +565,8 @@ TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestPrimitive 
     const Vec3 center(T(3 * i), T(0), T(0));
 
     // Just outside sphere i, and two away from the others.
-    const PrimitiveRef<T> ref = tape.closestPrimitive(center + Vec3(T(0), T(1.1), T(0)));
-    const HitT<T>         hit = tape.firstHit(RayT<T>{center + Vec3(T(0), T(5), T(0)), Vec3(0, -1, 0)}, T(0), T(10));
+    const LeafRef<T> ref = tape.closestLeaf(center + Vec3(T(0), T(1.1), T(0)));
+    const HitT<T>    hit = tape.firstHit(RayT<T>{center + Vec3(T(0), T(5), T(0)), Vec3(0, -1, 0)}, T(0), T(10));
 
     REQUIRE(ref.m_leaf == i);
     REQUIRE(hit.hit());
@@ -639,9 +638,9 @@ TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH un
                                                  {Vec3(T(16), T(0.3), T(0)), 5}};
 
   for (const auto& [point, slot] : probes) {
-    const PrimitiveRef<T> ref = tape.closestPrimitive(point);
+    const LeafRef<T> ref = tape.closestLeaf(point);
 
-    REQUIRE(ref.m_leaf != PrimitiveRef<T>::None);
+    REQUIRE(ref.m_leaf != LeafRef<T>::None);
     CHECK(index.getLabelName(tape.getLabel(ref)) == "s" + std::to_string(slot));
   }
 }

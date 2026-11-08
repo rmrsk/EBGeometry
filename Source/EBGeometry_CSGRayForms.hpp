@@ -671,9 +671,9 @@ struct RayForm<Fused::Node<Op, Cs...>, std::enable_if_t<Fused::Detail::TracedExa
  * Exact where a primitive type has a ray form (and marched one primitive at a time otherwise), and
  * callable on a device.
  * @details Unless the ray starts inside a primitive, only the first crossings are needed, and the walk
- * stops at the first box beyond the nearest. HitT::m_primitive is the member crossed: its place in the
- * union's storage (the unbounded members first, then the BVH's order), not the order the constructor was
- * given. Each member is traced through its own type's ray form.
+ * stops at the first box beyond the nearest. HitT::m_primitive is the member crossed, in the order the
+ * constructor was given the primitives (BVHUnion::getMemberIndex()). Each member is traced through its own type's
+ * ray form.
  * @tparam T  Floating-point precision.
  * @tparam K  BVH branching factor.
  * @tparam Ps Primitive types.
@@ -897,7 +897,7 @@ struct RayForm<BVHUnion<T, K, Ps...>>
       // its members, as a tape's are its leaves.
       HitT<T> hit = RayDetail::leafHit(CSGDetail::fromStored<First>(stored, location), a_ray, a_t, a_options);
 
-      hit.m_primitive = a_leaf;
+      hit.m_primitive = a_shape.getMemberIndex(a_leaf);
 
       return hit;
     }
@@ -913,7 +913,7 @@ struct RayForm<BVHUnion<T, K, Ps...>>
       HitT<T> hit = a_shape.visit(
         stored, [&](const auto& a_member) noexcept { return RayDetail::leafHit(a_member, a_ray, a_t, a_options); });
 
-      hit.m_primitive = a_leaf;
+      hit.m_primitive = a_shape.getMemberIndex(a_leaf);
 
       return hit;
     }

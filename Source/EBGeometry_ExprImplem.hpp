@@ -12,6 +12,7 @@
 #define EBGEOMETRY_EXPRIMPLEM_HPP
 
 // Std includes
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -354,6 +355,20 @@ isAttachedTo(const void* a_object, const Pool& a_pool)
   return static_cast<const S*>(a_object)->isAttachedTo(a_pool);
 }
 
+/**
+ * @brief How many surfaces a container holds (see hasSurfaces).
+ * @details Internal helper; not part of the public API.
+ * @tparam S Container type.
+ * @param[in] a_object The shape.
+ * @return Its getNumSurfaces().
+ */
+template <class S>
+[[nodiscard]] inline uint32_t
+numSurfaces(const void* a_object)
+{
+  return static_cast<const S*>(a_object)->getNumSurfaces();
+}
+
 } // namespace ExprDetail
 
 template <class T>
@@ -376,6 +391,10 @@ Expr<T>::Expr(const S& a_shape)
 
   if constexpr (isPoolHandle<S>) {
     node->m_leaf.m_isAttachedTo = &ExprDetail::isAttachedTo<S>;
+  }
+
+  if constexpr (hasSurfaces<S, T>) {
+    node->m_leaf.m_numSurfaces = &ExprDetail::numSurfaces<S>;
   }
 
   m_node = std::move(node);
@@ -894,6 +913,30 @@ hasLabel(const Node<T>& a_node) noexcept
 }
 
 /**
+ * @brief Whether a node, or one below it, is a container leaf (see hasSurfaces).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node Node.
+ * @return True if one is.
+ */
+template <class T>
+[[nodiscard]] inline bool
+hasContainer(const Node<T>& a_node) noexcept
+{
+  if (a_node.m_leaf.m_numSurfaces != nullptr) {
+    return true;
+  }
+
+  for (const Expr<T>& child : a_node.m_children) {
+    if (hasContainer(child.node())) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * @brief What a node does, as ExprIndex::Node::m_operation names it.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
@@ -955,7 +998,7 @@ operationName(const Node<T>& a_node)
 } // namespace ExprDetail
 
 template <class T>
-inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr)
+inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr) : m_leafSurfaces{0U}
 {
   this->add(a_expr.node(), None, None);
 }
@@ -982,24 +1025,36 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
 
   Node node;
 
-  node.m_parent    = a_parent;
-  node.m_firstLeaf = static_cast<uint32_t>(m_leafNodes.size());
-  node.m_label     = own;
-  node.m_operation = ExprDetail::operationName(a_node);
+  node.m_parent       = a_parent;
+  node.m_firstLeaf    = static_cast<uint32_t>(m_leafNodes.size());
+  node.m_firstSurface = m_leafSurfaces.back();
+  node.m_label        = own;
+  node.m_operation    = ExprDetail::operationName(a_node);
 
   m_nodes.push_back(std::move(node));
 
   // Leaves are numbered in the order the tape compiler meets them: depth first, the operands in order.
   if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+    const ExprDetail::Leaf& leaf = a_node.m_leaf;
+
+    const uint64_t surfaces = (leaf.m_numSurfaces != nullptr) ? leaf.m_numSurfaces(leaf.m_object.get()) : 1U;
+    const uint64_t end      = uint64_t(m_leafSurfaces.back()) + surfaces;
+
+    EBGEOMETRY_REQUIRE(end < uint64_t(None),
+                       "ExprIndex: the expression holds %llu surfaces, more than 32-bit ids can number",
+                       static_cast<unsigned long long>(end));
+
     m_leafNodes.push_back(id);
     m_leafLabels.push_back(label);
+    m_leafSurfaces.push_back(static_cast<uint32_t>(end));
   }
 
   for (const Expr<T>& child : a_node.m_children) {
     this->add(child.node(), id, label);
   }
 
-  m_nodes[id].m_numLeaves = static_cast<uint32_t>(m_leafNodes.size()) - m_nodes[id].m_firstLeaf;
+  m_nodes[id].m_numLeaves   = static_cast<uint32_t>(m_leafNodes.size()) - m_nodes[id].m_firstLeaf;
+  m_nodes[id].m_numSurfaces = m_leafSurfaces.back() - m_nodes[id].m_firstSurface;
 }
 
 template <class T>
@@ -1045,6 +1100,39 @@ ExprIndex<T>::pathOf(const uint32_t a_leaf) const
   }
 
   return std::vector<uint32_t>(path.rbegin(), path.rend());
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumSurfaces() const noexcept
+{
+  return m_leafSurfaces.back();
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getFirstSurface(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(
+    a_leaf < m_leafSurfaces.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafSurfaces.size() - 1);
+
+  return m_leafSurfaces[a_leaf];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getLeafOfSurface(const uint32_t a_surface) const
+{
+  EBGEOMETRY_REQUIRE(a_surface < this->getNumSurfaces(),
+                     "ExprIndex: surface %u of %u",
+                     unsigned(a_surface),
+                     unsigned(this->getNumSurfaces()));
+
+  // The last leaf starting at or before the surface: a leaf with no surfaces (an empty cloud) starts where the
+  // next one does, and is passed over.
+  const auto next = std::upper_bound(m_leafSurfaces.begin(), m_leafSurfaces.end(), a_surface);
+
+  return static_cast<uint32_t>(std::distance(m_leafSurfaces.begin(), next)) - 1U;
 }
 
 template <class T>

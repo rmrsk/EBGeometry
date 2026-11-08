@@ -408,14 +408,21 @@ Test coverage
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
        managed memory evaluated on the device through its own pool.
    * - ``TestTapeClosest``
-     - ``closestPrimitive()``'s deciding leaf for a difference, a union (through the BVH and operand by
+     - ``closestLeaf()``'s deciding leaf for a difference, a union (through the BVH and operand by
        operand) and an intersection against the brute-force choice, followed through smooth blends,
        blurs, maps and repetitions to the leaf and its local point, each occurrence of a shared shape
        numbered, a mesh leaf returned as a handle, a fused part as one leaf of a scene, and the device
        against the host. Labels: ``ExprIndex``'s node and leaf numbering against a hand-numbered expression,
        inherited and replaced labels, labeled maps kept as nodes, values unchanged by labels, the label of
-       the leaf ``closestPrimitive()`` and a ray hit report (also after ``deepCopy()``, and on the device),
+       the leaf ``closestLeaf()`` and a ray hit report (also after ``deepCopy()``, and on the device),
        and the rejected empty name and numbers out of range.
+   * - ``TestTapeSurfaces``
+     - ``closestSurface()`` against brute force: a sphere cloud's sphere by cloud index, a BVH union's and a
+       smooth union's member in the order given (and a reordered storage mapped back), a union of several
+       types type by type with an unbounded member, a union of clouds through its first surfaces, a tape
+       drilling into a cloud leaf with the surfaces numbered across the scene (and ``ExprIndex`` agreeing,
+       and after ``deepCopy()``), a tape without a container where a surface is its leaf, a tape inside a
+       tape drilled down to the sphere; numbers out of range rejected; and the device against the host.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

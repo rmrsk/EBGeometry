@@ -39,13 +39,14 @@
 #include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_LeafRef.hpp"
 #include "EBGeometry_MeshDistanceFunctions.hpp"
 #include "EBGeometry_OffsetRayForms.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
-#include "EBGeometry_PrimitiveRef.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -376,6 +377,26 @@ struct TypeList
  */
 template <size_t I, class List>
 struct TypeAt;
+
+/**
+ * @brief Whether a TypeList holds a container (see hasSurfaces).
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision.
+ * @tparam List TypeList.
+ */
+template <class T, class List>
+struct AnyContainer;
+
+/**
+ * @brief Whether a TypeList holds a container (see hasSurfaces).
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Ps Types.
+ */
+template <class T, class... Ps>
+struct AnyContainer<T, TypeList<Ps...>> : std::bool_constant<(hasSurfaces<Ps, T> || ...)>
+{
+};
 
 /**
  * @brief The I-th type of a TypeList.
@@ -845,6 +866,12 @@ public:
     PODVector<uint32_t> m_labels;
 
     /**
+     * @brief Each leaf's first surface, and the number of surfaces last (see getFirstSurface()); empty when no
+     * leaf is a container, each leaf then being one surface, numbered as the leaf.
+     */
+    PODVector<uint32_t> m_surfaces;
+
+    /**
      * @brief How many distinct labels the expression has.
      */
     uint32_t m_numLabels = 0;
@@ -892,23 +919,23 @@ public:
 
   /**
    * @brief The deciding leaf at a point: the primitive whose surface the value comes from there (see
-   * PrimitiveRef), with the point in its own frame.
+   * LeafRef), with the point in its own frame.
    * @details Evaluates the tape as signedDistance() does, carrying with each value the leaf it comes from.
    * The leaves are numbered in expression order, depth first, each occurrence counted. A primitive that
    * is itself a composition (a fused one, a tape, a BVH union) is one leaf: the tape is the scene, its
-   * leaves the parts. Callable on a device, like signedDistance().
+   * leaves the parts. closestSurface() goes on into a leaf that is a collection. Callable on a device, like signedDistance().
    * @param[in] a_point Query point.
    * @return The leaf, its type and index in the tape, and the point in its frame.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline PrimitiveRef<T>
-  closestPrimitive(const Vec3T<T>& a_point) const noexcept;
+  inline LeafRef<T>
+  closestLeaf(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief The first crossing of the object's surface along a ray, entering or leaving.
    * @details The tape is traced along its ray program: exactly through its unions, intersections,
    * complements and affine maps of primitives with ray forms, and marched in the parts that have anything
-   * else (see EBGeometry_Ray.hpp). HitT::m_primitive is the leaf crossed (see closestPrimitive()). The same
+   * else (see EBGeometry_Ray.hpp). HitT::m_primitive is the leaf crossed (see closestLeaf()). The same
    * as the free function firstHit(). Callable on a device.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
@@ -969,26 +996,26 @@ public:
   /**
    * @brief Whether a reference's leaf is a primitive of type P.
    * @tparam P Primitive type (one of the tape's types).
-   * @param[in] a_ref Reference from closestPrimitive().
+   * @param[in] a_ref Reference from closestLeaf().
    * @return True if it is.
    */
   template <class P>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline bool
-  isPrimitive(const PrimitiveRef<T>& a_ref) const noexcept;
+  isPrimitive(const LeafRef<T>& a_ref) const noexcept;
 
   /**
    * @brief The primitive a reference names, by value: the shape itself, or for a pool-resident type (a
    * mesh SDF, a BVH union, a tape) its handle, rebuilt with the tape's location, so that it resolves
    * against the same pool (or mirror) the tape does.
    * @tparam P Primitive type; the leaf must be one (isPrimitive<P>()).
-   * @param[in] a_ref Reference from closestPrimitive().
+   * @param[in] a_ref Reference from closestLeaf().
    * @return The primitive.
    */
   template <class P>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline P
-  primitive(const PrimitiveRef<T>& a_ref) const noexcept;
+  primitive(const LeafRef<T>& a_ref) const noexcept;
 
   /**
    * @brief Call a function with the primitive a reference names, as primitive<P>() returns it, whatever
@@ -996,13 +1023,13 @@ public:
    * @tparam F Callable taking any of the tape's primitive types (a generic lambda in host code).
    * In a CUDA or HIP translation unit, pass a functor whose call operator is EBGEOMETRY_HOST_DEVICE: the
    * device compiler treats a lambda's call operator as a host function here.
-   * @param[in] a_ref Reference from closestPrimitive().
+   * @param[in] a_ref Reference from closestLeaf().
    * @param[in] a_f   Function.
    */
   template <class F>
   EBGEOMETRY_HOST_DEVICE
   inline void
-  visitPrimitive(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept;
+  visitPrimitive(const LeafRef<T>& a_ref, F&& a_f) const noexcept;
 
   /**
    * @brief A box enclosing the object.
@@ -1068,8 +1095,8 @@ public:
    * @details Labels are numbered from 0 in the order their names first appear in the expression, depth first,
    * as ExprIndex numbers them, which also holds the names. A device reads the label from the tape's pool, so
    * per-label data (a boundary condition, a restitution coefficient) is an array indexed by it.
-   * @param[in] a_leaf Leaf number: PrimitiveRef::m_leaf from closestPrimitive(), or HitT::m_primitive of a hit.
-   * @return The label, or PrimitiveRef<T>::None if the leaf has none (or is not a leaf of the tape).
+   * @param[in] a_leaf Leaf number: LeafRef::m_leaf from closestLeaf(), or HitT::m_primitive of a hit.
+   * @return The label, or LeafRef<T>::None if the leaf has none (or is not a leaf of the tape).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
@@ -1077,12 +1104,12 @@ public:
 
   /**
    * @brief The label of the leaf a reference names (see getLabel(uint32_t)).
-   * @param[in] a_ref Reference from closestPrimitive().
-   * @return The label, or PrimitiveRef<T>::None.
+   * @param[in] a_ref Reference from closestLeaf().
+   * @return The label, or LeafRef<T>::None.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  getLabel(const PrimitiveRef<T>& a_ref) const noexcept;
+  getLabel(const LeafRef<T>& a_ref) const noexcept;
 
   /**
    * @brief How many distinct labels the expression has (ExprIndex::getNumLabels()).
@@ -1091,6 +1118,41 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getNumLabels() const noexcept;
+
+  /**
+   * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when
+   * it is a container (a sphere cloud, a BVH union, a nested tape; see hasSurfaces) down to the member that
+   * decides there, at any depth.
+   * @details The surfaces are numbered across the scene: each leaf covers [getFirstSurface(leaf),
+   * getFirstSurface(leaf + 1)), one surface for a leaf that is not a container, and a container's are its own
+   * numbers (a cloud's cloud indices, a union's members in the order it was given them) after the leaf's first.
+   * A container costs one more query of that leaf (a second search of a cloud, say), paid only here; for a
+   * tape without one, the surface is the leaf. For a ray hit, closestSurface(hit.m_point) names the surface
+   * crossed. Labels of a nested tape are its own, not reported here. Callable on a device.
+   * @param[in] a_point Query point.
+   * @return The surface, its leaf and label, and the point in the frame of the deepest shape reached.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many surfaces the tape numbers (see closestSurface()).
+   * @return The count: the number of leaves when no leaf is a container.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumSurfaces() const noexcept;
+
+  /**
+   * @brief A leaf's first surface: the leaf covers [getFirstSurface(leaf), getFirstSurface(leaf + 1)), so
+   * per-member data of a container leaf (a sphere's) is an array indexed by SurfaceRef::m_surface minus it.
+   * @param[in] a_leaf Leaf number, at most getNumPrimitives() (which gives getNumSurfaces()).
+   * @return The surface, or SurfaceRef<T>::None past that.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getFirstSurface(uint32_t a_leaf) const noexcept;
 
   /**
    * @brief How deep sub-program calls nest (0 if the tape has no Blur, Mollify, FiniteRepetition or BVH union).
@@ -1135,7 +1197,7 @@ private:
   friend struct RayForm<Tape>;
 
   /**
-   * @brief The primitive of a crossing found by marching a subtree, which closestPrimitive() then names.
+   * @brief The primitive of a crossing found by marching a subtree, which closestLeaf() then names.
    */
   static constexpr uint32_t MarchedLeaf = UINT32_MAX;
 
@@ -1589,7 +1651,7 @@ private:
    * stack and saved registers, a few kilobytes per thread in all. A tape listed as another tape's primitive adds
    * its own levels on top.
    * @tparam D How deep the sub-program's own calls may still nest.
-   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_program  Sub-program.
    * @param[in] a_point    Point.
    * @param[in] a_base     The pool base.
@@ -1609,7 +1671,7 @@ private:
    * @brief The body of evaluate(), inlined into it, and into signedDistance() for a tape that calls no
    * sub-program (at depth 0 the evaluator calls no level below, so inlining it multiplies nothing).
    * @tparam D How deep the sub-program's own calls may still nest.
-   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_program  Sub-program.
    * @param[in] a_point    Point.
    * @param[in] a_base     The pool base.
@@ -1635,7 +1697,7 @@ private:
   template <size_t I, class F>
   EBGEOMETRY_HOST_DEVICE
   inline void
-  dispatchVisit(const PrimitiveRef<T>& a_ref, F&& a_f) const noexcept;
+  dispatchVisit(const LeafRef<T>& a_ref, F&& a_f) const noexcept;
 
   /**
    * @brief Evaluate a primitive, dispatching on its type index from I onwards.
@@ -1724,7 +1786,7 @@ private:
   /**
    * @brief Evaluate a Blur clause: the weighted average of its sub-program at 27 taps around the point.
    * @tparam D Call depth left for the sub-program.
-   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.
@@ -1747,7 +1809,7 @@ private:
    * @details Inline in a device pass, unlike evaluateBlur(): as a further out-of-line function between
    * two call levels, it raised a kernel that evaluates a tape in a loop to 255 registers (from 168).
    * @tparam D Call depth left for the sub-program.
-   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.
@@ -1769,7 +1831,7 @@ private:
    * TapeDetail::LeafProgram), as evaluateBody() would, without its stacks.
    * @details Out of line in a device pass: one copy of the shapes' dispatch per kernel, which every BVH union
    * at every call depth shares.
-   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_program  The sub-program.
    * @param[in] a_point    Point.
    * @param[in] a_base     The pool base.
@@ -1788,7 +1850,7 @@ private:
   /**
    * @brief Evaluate a BVH union clause.
    * @tparam D Call depth left for the operands.
-   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestPrimitive().
+   * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_clause   The clause.
    * @param[in] a_point    Point.
    * @param[in] a_params   The parameters.

@@ -699,8 +699,9 @@ with explicit permission), and may ask whether to act on follow-ups.
   BVH unions are in `EBGeometry_Blend.hpp`/`EBGeometry_BVHUnion.hpp`, the host-only expression builder
   (`Expr`, `Union`, `Translate`, ...) in `EBGeometry_Expr.hpp`, the `Tape` that compiles and evaluates
   an expression in `EBGeometry_Tape.hpp` (with `Affine3T` in `EBGeometry_Affine.hpp`), the fused
-  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, `PrimitiveRef` (the deciding leaf
-  `closestPrimitive()` returns) in `EBGeometry_PrimitiveRef.hpp`, each operation's arithmetic, shared by
+  operations (`Fused::Union`, ...) in `EBGeometry_Fused.hpp`, `LeafRef` (the deciding leaf
+  `closestLeaf()` returns) in `EBGeometry_LeafRef.hpp`, `SurfaceRef` (the drilled surface `closestSurface()`
+  returns) and the container protocol (`hasSurfaces`) in `EBGeometry_SurfaceRef.hpp`, each operation's arithmetic, shared by
   the tape and the fused operations, in `EBGeometry_CSGOps.hpp`, `EBGeometry_CSG.hpp` including all of
   them, and `operator<<` for `Vec3T`/`AABBT` in `EBGeometry_StreamOperators.hpp`. `EBGeometry_BVH.hpp`, `EBGeometry_CSG.hpp` and `EBGeometry.hpp`
   include the split headers, so older includes keep working.
@@ -714,7 +715,7 @@ with explicit permission), and may ask whether to act on follow-ups.
   the same values (to rounding: the compiler may fuse multiply-adds differently in the two, so a
   Release build differs in the last bit): change an operation there, never in one of the two alone,
   and keep `TestFused`'s comparison with the tape passing. `CSGOps` works on a plain value or on a
-  `CSGOps::Tagged` one (for the tape's `closestPrimitive()`; a fused composition is one shape with one
+  `CSGOps::Tagged` one (for the tape's `closestLeaf()`; a fused composition is one shape with one
   surface, a single leaf of a tape, and has none); keep each function's plain-`T` code written as it is,
   with the tagged handling in `if constexpr` branches or a `Tagged<T>` overload. An equivalent rewrite
   costs on both sides: of the plain Blur loop, a 16-evaluation float tape kernel went from 168 to 255

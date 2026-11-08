@@ -36,7 +36,7 @@ Fused parts in a tape
 ---------------------
 
 A fused solid is one shape with one surface. Listed after ``T`` it is one leaf of a tape, so a scene
-known only at run time can place compiled parts, and ``closestPrimitive()`` names the part:
+known only at run time can place compiled parts, and ``closestLeaf()`` names the part:
 
 .. code-block:: c++
 

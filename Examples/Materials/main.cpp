@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Which part of an object a query found: the armadillo with a cylinder bored through it, each part labeled,
-// and for a point or a ray, which of the two surfaces the answer comes from. The label indexes a table of your
-// own, such as materials or boundary conditions; the viewer colors by the leaf. See README.md.
+// Which part of an object a query found: the armadillo with a cylinder bored through it, standing in a ring of
+// pebbles, each part labeled, and for a point or a ray, which surface the answer comes from: the armadillo's
+// skin, the bore, or one pebble of the gravel. The label indexes a table of your own, such as materials or
+// boundary conditions, and a pebble's number one per pebble; the viewer colors by the leaf. See README.md.
 
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -18,10 +20,11 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using T    = EBGEOMETRY_PRECISION;
-using Vec3 = EBGeometry::Vec3T<T>;
-using Expr = EBGeometry::Expr<T>;
-using Tape = EBGeometry::Tape<T>;
+using T     = EBGEOMETRY_PRECISION;
+using Vec3  = EBGeometry::Vec3T<T>;
+using Expr  = EBGeometry::Expr<T>;
+using Cloud = EBGeometry::SphereCloudBVH<T>;
+using Tape  = EBGeometry::Tape<T, Cloud>; // a sphere cloud is not built into the tape, so it is listed
 
 // The function-try-block reports a mesh file that cannot be read, rather than letting the exception
 // terminate the program.
@@ -59,8 +62,23 @@ try {
 
   const EBGeometry::CylinderSDF<T> bore(Vec3(T(0), T(1.22), T(-2)), Vec3(T(0), T(1.22), T(2)), T(0.16));
 
+  // Forty pebbles in a ring around its feet, on a spiral, as one sphere cloud: one leaf of the tape.
+  std::vector<EBGeometry::SphereCloud::Sphere<T>> pebbles;
+
+  for (int i = 0; i < 40; i++) {
+    const T angle  = T(2.39996) * T(i);
+    const T radius = T(0.75) + T(0.25) * std::sqrt(T(i) / T(40));
+
+    pebbles.push_back(
+      {Vec3(radius * std::cos(angle), T(0.04), radius * std::sin(angle)), T(0.04) + T(0.005) * T(i % 5)});
+  }
+
+  const Cloud gravel = Cloud::build(pool, pebbles, 8);
+
   // Label each part: every leaf below a Label gets its name. Labels change nothing in the values.
-  const Expr object = EBGeometry::Difference(EBGeometry::Label(armadillo, "skin"), EBGeometry::Label(bore, "bore"));
+  const Expr object =
+    EBGeometry::Union(EBGeometry::Difference(EBGeometry::Label(armadillo, "skin"), EBGeometry::Label(bore, "bore")),
+                      EBGeometry::Label(gravel, "gravel"));
 
   const Tape tape(pool, object);
 
@@ -68,7 +86,7 @@ try {
   //
   // The tape stores each leaf's label, as a number it can report on the host and on a GPU. ExprIndex, built
   // from the same expression on the host, numbers the labels the same way and holds their names, so a table
-  // of your own, indexed by the label, can be filled by name. findLabel() returns PrimitiveRef::None for a
+  // of your own, indexed by the label, can be filled by name. findLabel() returns LeafRef::None for a
   // name the expression does not have, and a query finds no label for an unlabeled leaf, so check the number
   // before indexing.
   const EBGeometry::ExprIndex<T> index(object);
@@ -85,17 +103,36 @@ try {
 
   describe("skin", "skin (the armadillo)");
   describe("bore", "machined (the cylinder's bore)");
+  describe("gravel", "stone (a pebble)");
 
   const auto material = [&materials](const uint32_t a_label) {
     return a_label < materials.size() ? materials[a_label] : std::string("none");
   };
 
-  // closestPrimitive(p) names the leaf the value at p comes from, and getLabel() its label.
+  // closestLeaf(p) names the leaf the value at p comes from, and getLabel() its label.
   std::cout << std::fixed << std::setprecision(3) << "Near a point:\n";
 
   for (const Vec3& p : {Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(0.25), T(1.22), T(-0.2)), Vec3(T(0), T(0.4), T(0))}) {
     std::cout << "  " << p << "   value " << std::setw(7) << tape.signedDistance(p) << "   "
-              << material(tape.getLabel(tape.closestPrimitive(p))) << '\n';
+              << material(tape.getLabel(tape.closestLeaf(p))) << '\n';
+  }
+
+  // ── Which pebble: the surface ──────────────────────────────────────────────────────────────────────
+  //
+  // The whole cloud is one leaf, so closestLeaf() names the gravel, not a pebble. closestSurface() goes on
+  // into the cloud and names the pebble that decides: surfaces are numbered across the scene, each leaf a
+  // range of them starting at getFirstSurface(leaf), a cloud's in its own order. So data of your own per
+  // pebble is an array indexed by the surface minus the leaf's first, and no pebble needs a label.
+  std::cout << "Which pebble:\n";
+
+  for (const int k : {3, 17, 31}) {
+    const Vec3 p = pebbles[k].m_center + Vec3(T(0), T(0.1), T(0)); // just above pebble k
+
+    const EBGeometry::SurfaceRef<T> s = tape.closestSurface(p);
+
+    std::cout << "  above pebble " << std::setw(2) << k << ": surface " << std::setw(2) << s.m_surface << " of "
+              << tape.getNumSurfaces() << ", pebble " << std::setw(2) << (s.m_surface - tape.getFirstSurface(s.m_leaf))
+              << ", " << material(s.m_label) << '\n';
   }
 
   // firstHit() along a ray reports the leaf it crossed in HitT::m_primitive, with the point and the normal.
@@ -121,14 +158,16 @@ try {
   //
   // ColorBy::Primitive colors each surface by the leaf it belongs to, from the same HitT::m_primitive (built
   // with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why and returns). Leaves
-  // are numbered in expression order, the armadillo 0 and the cylinder 1. The table m_primitiveColors gives
-  // a leaf a color of its own, here the skin sand and the bore steel gray;
+  // are numbered in expression order, the armadillo 0, the cylinder 1 and the gravel 2. The table
+  // m_primitiveColors gives a leaf a color of its own, here the skin sand, the bore steel gray and the gravel
+  // slate;
   // a leaf not in it gets the built-in palette's. Given the pool, view() renders on the GPU in a GPU build
   // (G switches to the CPU and back).
   EBGeometry::Render::Settings<T> settings;
   settings.m_colorBy            = EBGeometry::Render::ColorBy::Primitive;
   settings.m_primitiveColors[0] = Vec3(T(0.78), T(0.62), T(0.42));
   settings.m_primitiveColors[1] = Vec3(T(0.55), T(0.57), T(0.60));
+  settings.m_primitiveColors[2] = Vec3(T(0.35), T(0.40), T(0.45));
 
   // The camera looks from low in front, where the bore shows.
   auto camera    = EBGeometry::Render::Camera<T>::fit(tape.computeBoundingVolume());
