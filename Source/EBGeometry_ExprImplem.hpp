@@ -869,6 +869,30 @@ Label(const A& a_operand, std::string a_name)
 namespace ExprDetail {
 
 /**
+ * @brief Whether a node or any node below it has a label.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node Node.
+ * @return True if some node is labeled.
+ */
+template <class T>
+[[nodiscard]] inline bool
+hasLabel(const Node<T>& a_node) noexcept
+{
+  if (!a_node.m_label.empty()) {
+    return true;
+  }
+
+  for (const Expr<T>& child : a_node.m_children) {
+    if (hasLabel(child.node())) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * @brief What a node does, as ExprIndex::Node::m_operation names it.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.

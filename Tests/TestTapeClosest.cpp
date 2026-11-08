@@ -595,6 +595,57 @@ TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestPrimitive 
   CHECK(plain.getLabel(0U) == None);
 }
 
+TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH unions, differences, maps and blurs",
+                   "[Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Every sphere is named by its own center's x, so a leaf's label name says which sphere it is, whatever
+  // number the tape gave the leaf. Each sphere sits in its own 4-wide slot along x.
+  const auto named = [](const int a_slot, const Vec3& a_center, const T a_radius) {
+    return Label(SphereSDF<T>(a_center, a_radius), "s" + std::to_string(a_slot));
+  };
+
+  std::vector<Expr<T>> bvhOperands;
+
+  // Rotated a half turn about z to (1, 0, 0), then translated back to the origin.
+  bvhOperands.push_back(Translate(Rotate(named(0, Vec3(T(-1), T(0), T(0)), T(1)), T(180), 2), Vec3(T(-1), T(0), T(0))));
+  bvhOperands.push_back(named(1, Vec3(T(4), T(0), T(0)), T(1)));
+  bvhOperands.push_back(Blur(named(2, Vec3(T(8), T(0), T(0)), T(1)), T(0.05)));
+  bvhOperands.push_back(Scale(named(3, Vec3(T(6), T(0), T(0)), T(0.5)), T(2))); // center 12, radius 1
+
+  // A ball with a cavity carved out of it, after the union: the cavity's wall is decided by the carving sphere.
+  const Expr<T> holed =
+    Difference(named(4, Vec3(T(16), T(0), T(0)), T(1.5)), named(5, Vec3(T(16), T(0), T(0)), T(0.5)));
+
+  const Expr<T>      expr = Union(Union(bvhOperands, Accelerate::BVH), holed);
+  const ExprIndex<T> index(expr);
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, expr);
+
+  REQUIRE(tape.getNumPrimitives() == index.getNumLeaves());
+  REQUIRE(tape.getNumLabels() == 6U);
+
+  // A point just outside each sphere (inside the cavity for the carving one), and the sphere it must name.
+  const std::vector<std::pair<Vec3, int>> probes{{Vec3(T(0), T(1.2), T(0)), 0},
+                                                 {Vec3(T(4), T(1.2), T(0)), 1},
+                                                 {Vec3(T(8), T(1.2), T(0)), 2},
+                                                 {Vec3(T(12), T(1.2), T(0)), 3},
+                                                 {Vec3(T(16), T(1.7), T(0)), 4},
+                                                 {Vec3(T(16), T(0.3), T(0)), 5}};
+
+  for (const auto& [point, slot] : probes) {
+    const PrimitiveRef<T> ref = tape.closestPrimitive(point);
+
+    REQUIRE(ref.m_leaf != PrimitiveRef<T>::None);
+    CHECK(index.getLabelName(tape.getLabel(ref)) == "s" + std::to_string(slot));
+  }
+}
+
 TEMPLATE_TEST_CASE("Label and ExprIndex: reject an empty name and numbers out of range",
                    "[ExprIndex]",
                    EBGEOMETRY_TEST_PRECISIONS)

@@ -833,7 +833,7 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
  * device (Tape::getLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
  * are numbered from 0 in the order their names first appear, depth first, so the same expression gives the
  * same numbers to both; several objects may share a name, and so a label. Labeling an object that already
- * has a label replaces it.
+ * has a label replaces it: the replaced name is gone, and gets no number unless another object has it.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand Object.
  * @param[in] a_name    Name (not empty).

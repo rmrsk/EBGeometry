@@ -1396,14 +1396,14 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_numPrimitives     = compiler.numPrimitives();
   staging.m_largestPlainUnion = compiler.largestPlainUnion();
 
-  // The labels, numbered as ExprIndex numbers them; a tape without any stores none.
-  const ExprIndex<T> index(a_expr);
+  // The labels, numbered as ExprIndex numbers them; a tape without any stores none, and does not build the
+  // index (which allocates per node).
+  if (ExprDetail::hasLabel(a_expr.node())) {
+    const ExprIndex<T> index(a_expr);
 
-  EBGEOMETRY_EXPECT(index.getNumLeaves() == staging.m_numPrimitives);
+    EBGEOMETRY_EXPECT(index.getNumLeaves() == staging.m_numPrimitives);
 
-  staging.m_numLabels = index.getNumLabels();
-
-  if (staging.m_numLabels > 0U) {
+    staging.m_numLabels = index.getNumLabels();
     staging.m_labels.resize(index.getNumLeaves());
 
     for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {

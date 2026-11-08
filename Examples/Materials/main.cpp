@@ -68,8 +68,9 @@ try {
   //
   // The tape stores each leaf's label, as a number it can report on the host and on a GPU. ExprIndex, built
   // from the same expression on the host, numbers the labels the same way and holds their names, so a table
-  // of your own, indexed by the label, can be filled by name. A query can find no label (PrimitiveRef::None,
-  // for an unlabeled leaf), so check the number before indexing.
+  // of your own, indexed by the label, can be filled by name. findLabel() returns PrimitiveRef::None for a
+  // name the expression does not have, and a query finds no label for an unlabeled leaf, so check the number
+  // before indexing.
   const EBGeometry::ExprIndex<T> index(object);
 
   std::vector<std::string> materials(tape.getNumLabels());
