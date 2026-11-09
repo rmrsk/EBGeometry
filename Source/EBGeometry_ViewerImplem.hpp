@@ -182,7 +182,8 @@ keys(const bool a_device, const bool a_regions = false)
     groups.insert(
       groups.end() - 1,
       KeyGroup{"Regions",
-               {{"K", "Color the regions by region, material, surface label, surface or part (P colors by it)"},
+               {{"K", "Color by region, material, surface label, surface, part or interface (P colors by it)"},
+                {"L", "Show only the picked surface (what it is follows K), or everything again"},
                 {"V", "Show one region at a time, in turn, then all"},
                 {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
                 {"Ctrl + V", "Show every region"}}});
@@ -951,13 +952,24 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         list += (list.empty() ? "" : ", ") + std::to_string(k);
       }
 
-      const char* colorings[] = {"region", "material", "surface label", "surface", "part"};
+      const char* colorings[] = {"region", "material", "surface label", "surface", "part", "interface"};
 
-      states.insert(states.end() - 1,
-                    {std::string("Colored by ") + colorings[static_cast<int>(shape.getColoring())],
-                     hiddenRegions.empty()
-                       ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
-                       : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions});
+      const auto keyName = [&shape, &colorings](const uint32_t a_key) {
+        if (shape.getColoring() == RegionColoring::Interface) {
+          return "interface regions " + std::to_string(a_key >> 16U) + " | " + std::to_string(a_key & 0xFFFFU);
+        }
+
+        return std::string(colorings[static_cast<int>(shape.getColoring())]) + " " + std::to_string(a_key);
+      };
+
+      states.insert(
+        states.end() - 1,
+        {std::string("Colored by ") + colorings[static_cast<int>(shape.getColoring())] +
+           ((shape.getOnlyKey() != S::None) ? "; showing only " + keyName(shape.getOnlyKey()) : std::string()),
+         picked ? "Picked: " + keyName(pick.m_primitive) : std::string("Nothing picked"),
+         hiddenRegions.empty()
+           ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
+           : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions});
     }
 
     std::vector<std::string> lines{
@@ -1592,9 +1604,22 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
+        case SDLK_l: {
+          if constexpr (hasRegionVisibility<S>) {
+            const uint32_t key = (shape.getOnlyKey() == S::None && picked) ? pick.m_primitive : S::None;
+
+            shape       = shape.withOnlyKey(key);
+            deviceShape = deviceShape.withOnlyKey(key);
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
         case SDLK_k: {
           if constexpr (hasRegionVisibility<S>) {
-            const auto next = static_cast<RegionColoring>((static_cast<int>(shape.getColoring()) + 1) % 5);
+            const auto next = static_cast<RegionColoring>((static_cast<int>(shape.getColoring()) + 1) % 6);
 
             shape       = shape.withColoring(next);
             deviceShape = deviceShape.withColoring(next);

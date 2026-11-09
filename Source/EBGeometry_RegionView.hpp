@@ -36,7 +36,8 @@ enum class RegionColoring : uint8_t
   Material,     ///< That region's material.
   SurfaceLabel, ///< The surface's label (SurfaceLabel()).
   Surface,      ///< The surface itself (SurfaceRef::m_surface): each shape, each member of a collection.
-  Part          ///< The surface's part: a box's face, a mesh's face.
+  Part,         ///< The surface's part: a box's face, a mesh's face.
+  Interface     ///< The pair of regions on its two sides there (see RegionView::interfaceKey()).
 };
 
 /**
@@ -49,7 +50,9 @@ enum class RegionColoring : uint8_t
  * region whose surface is seen. Its value (for a section plane, contours and shading) is the visible regions' phase
  * function, negative exactly in them and zero only on their outer surface. Each crossing is named by the coloring
  * (RegionColoring) in HitT::m_primitive, so a renderer coloring by primitive colors by region, material, surface
- * label, surface or part, and a viewer's pick reports it. Up to 64 regions can be hidden; later ones are always
+ * label, surface, part or interface (the pair of regions on its two sides), and a viewer's pick reports it; a view can
+ * show only the surfaces with one key (withOnlyKey()), the conductor's inner surface alone, say, passing the others
+ * through. Up to 64 regions can be hidden; later ones are always
  * shown. A value type: it holds the tape's handle, so the tape's pool must outlive it.
  * @tparam TapeType A Tape that lists TapeFeature::Regions.
  */
@@ -147,18 +150,25 @@ public:
       const uint32_t to   = change.m_surface.m_plusRegion;
 
       if (this->isVisible(from) || this->isVisible(to)) {
-        // The surface seen is the region entered's when it is visible, else the one left's.
-        const bool     entering = this->isVisible(to);
-        const uint32_t seen     = entering ? to : from;
+        // The surface crossed lies on the later region's operand (an interface is on the surface of the region on
+        // top), so it is that region's when it is visible, whichever way the ray goes, and else the other's. Named by
+        // the region entered, the core's far wall inside a jacket would be the jacket's, and vanish with it.
+        const uint32_t later    = Math::max(from, to);
+        const uint32_t seen     = this->isVisible(later) ? later : Math::min(from, to);
+        const bool     entering = (seen == to);
+        const uint32_t key      = this->keyOf(change.m_surface, seen);
 
-        HitT<T> hit = change.m_hit;
+        // Showing only one key, every other surface is passed through.
+        if (m_only == None || key == m_only) {
+          HitT<T> hit = change.m_hit;
 
-        // The crossing's normal points into the region entered: outward of the region left.
-        hit.m_normal    = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
-        hit.m_entering  = entering;
-        hit.m_primitive = this->keyOf(change.m_surface, seen);
+          // The crossing's normal points into the region entered: outward of the region left.
+          hit.m_normal    = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
+          hit.m_entering  = entering;
+          hit.m_primitive = key;
 
-        return hit;
+          return hit;
+        }
       }
 
       t = change.m_hit.m_t;
@@ -255,6 +265,53 @@ public:
   }
 
   /**
+   * @brief No key: every surface shown.
+   */
+  static constexpr uint32_t None = 0xFFFFFFFFU;
+
+  /**
+   * @brief The key of the interface between two regions (RegionColoring::Interface), the same whichever side it is
+   * seen from.
+   * @param[in] a_first  A region.
+   * @param[in] a_second The region on the other side.
+   * @return The key.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline uint32_t
+  interfaceKey(const uint32_t a_first, const uint32_t a_second) noexcept
+  {
+    return (Math::min(a_first, a_second) << 16U) | Math::max(a_first, a_second);
+  }
+
+  /**
+   * @brief The same view, showing only the surfaces with a key (by the coloring): the others are passed through,
+   * and cast no shadow. None shows them all.
+   * @param[in] a_key The key, as HitT::m_primitive reports it (a pick), or None.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline RegionView
+  withOnlyKey(const uint32_t a_key) const noexcept
+  {
+    RegionView view = *this;
+
+    view.m_only = a_key;
+
+    return view;
+  }
+
+  /**
+   * @brief The key shown alone, or None.
+   * @return The key.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getOnlyKey() const noexcept
+  {
+    return m_only;
+  }
+
+  /**
    * @brief What the view names a surface by.
    * @return The coloring.
    */
@@ -277,6 +334,7 @@ public:
     RegionView view = *this;
 
     view.m_coloring = a_coloring;
+    view.m_only     = None;
 
     return view;
   }
@@ -298,6 +356,11 @@ private:
   RegionColoring m_coloring = RegionColoring::Region;
 
   /**
+   * @brief The key shown alone, or None.
+   */
+  uint32_t m_only = None;
+
+  /**
    * @brief A surface's key, by the coloring.
    * @param[in] a_surface The surface.
    * @param[in] a_region  The region whose surface it is, as seen.
@@ -308,6 +371,9 @@ private:
   keyOf(const SurfaceRef<T>& a_surface, const uint32_t a_region) const noexcept
   {
     switch (m_coloring) {
+    case RegionColoring::Interface: {
+      return interfaceKey(a_surface.m_minusRegion, a_surface.m_plusRegion);
+    }
     case RegionColoring::Material: {
       return m_tape.getMaterialOf(a_region).value();
     }
@@ -381,7 +447,8 @@ inline constexpr bool
                                   decltype(std::declval<const S&>().withOnly(0U)),
                                   decltype(std::declval<const S&>().withAllVisible()),
                                   decltype(std::declval<const S&>().getColoring()),
-                                  decltype(std::declval<const S&>().withColoring(RegionColoring::Region))>> = true;
+                                  decltype(std::declval<const S&>().withColoring(RegionColoring::Region)),
+                                  decltype(std::declval<const S&>().withOnlyKey(0U))>> = true;
 
 } // namespace EBGeometry
 

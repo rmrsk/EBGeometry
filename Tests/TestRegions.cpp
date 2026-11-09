@@ -402,6 +402,25 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   CHECK(byMaterial.firstHit(intoCore, T(0), T(5), options).m_primitive == 2U);
   CHECK(byMaterial.firstHit(intoJacket, T(0), T(5), options).m_primitive == 1U);
 
+  // Colored by interface: the pair of regions on the surface's two sides; showing only the jacket | core interface,
+  // the jacket's outer surface (jacket | air) is passed through, and so is the core's cut face (core | air).
+  const RegionView<Tape> byInterface = all.withColoring(RegionColoring::Interface);
+  const uint32_t         inside      = RegionView<Tape>::interfaceKey(1, 2);
+
+  CHECK(byInterface.firstHit(along, outer.m_t, T(5), options).m_primitive == inside);
+  CHECK(RegionView<Tape>::interfaceKey(2, 1) == inside);
+
+  const RegionView<Tape> onlyInside = byInterface.withOnlyKey(inside);
+
+  const HitT<T> first = onlyInside.firstHit(along, T(0), T(5), options);
+
+  CHECK(first.m_primitive == inside);
+  CHECK_THAT(first.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
+  // Through the core's cut face (passed through), on to where the ray leaves the core for the jacket.
+  CHECK_THAT(onlyInside.firstHit(intoCore, T(0), T(5), options).m_t,
+             withinAbsT<T>(T(1.5) + std::sqrt(T(0.25) - T(0.05)), looseMargin<T>()));
+  CHECK(onlyInside.withOnlyKey(RegionView<Tape>::None).firstHit(intoCore, T(0), T(5), options).hit());
+
   // The value: the visible regions' phase function; a cut face's point names its region.
   Phases visible;
 
