@@ -189,8 +189,18 @@ opened with them.
    * - C; W
      - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
        save the full frame as a PPM image (``writeImage()``) in the working directory.
+   * - K; L
+     - For a view of regions (``RegionView``): color by region, material, surface label, surface, part or
+       interface (the pair of regions on its two sides); show only the surfaces of the picked surface's key,
+       or everything again.
+   * - V; Shift + V; Ctrl + V
+     - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
+       region.
+   * - Tab, Shift + Tab; F1 to F6
+     - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
+       window. Every key works whichever menu is shown.
    * - H; Esc, Q
-     - Show or hide the overlay and the axes; close the window.
+     - Show or hide the menu (the status lines and the axes stay); close the window.
 
 The window needs SDL2 and is compiled only on request (see :ref:`Sec:ConfigViewer`). Without it, and
 whenever no window should open -- the program was given ``--no-view``, there is no display, or SDL

@@ -12,7 +12,8 @@
  *
  * In the window, drag to orbit, drag with Ctrl held to pan, drag with the right button to move the light,
  * scroll to zoom, and click to pick the object under the cursor; keys change the camera, the shading and a
- * section plane. An overlay lists them with what they change (H hides it), they are printed when the window
+ * section plane. An overlay shows one menu of them at a time, with what they change (Tab steps through the
+ * menus, F1 to F6 show one, H hides it), they are printed when the window
  * opens, and the user guide's table of the viewer's keys (Sec:ViewerKeys) describes them. While the camera
  * moves the view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of
  * milliseconds; once the camera rests it is refined on a background thread, canceled as soon as the

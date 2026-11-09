@@ -108,6 +108,24 @@ struct Sectioned
   Vec3T<T> m_normal;
 
   /**
+   * @brief How far behind the plane, into the kept side, the cut asks what is there (two march tolerances): a face
+   * of the shape lying in the plane has value zero on it, so asking on the plane itself drew no cut face there.
+   */
+  T m_behind = T(0);
+
+  /**
+   * @brief A point moved behind the plane, into the kept side, where the cut face asks what is there.
+   * @param[in] a_point Point on the plane.
+   * @return The point behind it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  behind(const Vec3T<T>& a_point) const noexcept
+  {
+    return a_point - m_behind * m_normal;
+  }
+
+  /**
    * @brief The distance to the plane, positive on the removed side.
    * @param[in] a_point Point.
    * @return The distance.
@@ -361,7 +379,9 @@ public:
 
     m_scale = (a_settings.m_rays.m_scale > T(0)) ? a_settings.m_rays.m_scale : (bounded ? diagonal : a_view.m_distance);
     m_eps   = a_settings.m_rays.m_tolerance * m_scale;
-    m_far   = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
+
+    m_object.m_behind = T(2) * m_eps;
+    m_far             = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
 
     m_rays         = a_settings.m_rays;
     m_rays.m_scale = m_scale;
@@ -1284,13 +1304,20 @@ private:
       }
     }
 
-    const T value = m_object.shapeDistance(p);
     const T width = m_footprint + m_footprintPerLength * t;
     const T half  = T(0.5) * m_settings.m_contourWidth * width;
 
+    // What is there is asked a little behind the plane, into the kept side, by more than a contour line's half
+    // width: a face of the shape lying in the plane has value and field zero on it, so asked on the plane it was all
+    // contour (and outside the solid, under the sheet). A surface crossing the plane keeps its contour, moved by
+    // less than a line's width.
+    const Vec3T<T> q = p - (T(1.5) * half + m_object.m_behind) * m_object.m_normal;
+
+    const T value = m_object.shapeDistance(q);
+
     // The contours and the lines of equal distance follow the shape's contour field (a region view's is zero on its
     // interfaces too); which side of the surface the point is on follows its value.
-    const T field = RenderDetail::HasContourValue<S, T>::value ? m_object.contourDistance(p) : value;
+    const T field = RenderDetail::HasContourValue<S, T>::value ? m_object.contourDistance(q) : value;
 
     if (std::abs(field) < half) {
       return m_settings.m_contourColor;
@@ -1557,7 +1584,7 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       hit.m_status    = HitStatus::Hit;
       hit.m_t         = a_t;
       hit.m_point     = a_ray.at(a_t);
-      hit.m_primitive = a_cut.primitiveAt(hit.m_point);
+      hit.m_primitive = a_cut.primitiveAt(a_cut.behind(hit.m_point));
       hit.m_entering  = a_entering;
       hit.m_exact     = true;
       hit.m_normal    = a_cut.m_normal;
@@ -1565,13 +1592,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return hit;
     };
 
-    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
+    if (a > a_tMin && a_cut.shapeDistance(a_cut.behind(a_ray.at(a))) < T(0)) {
       return onPlane(a, true);
     }
 
     const HitT<T> hit = a_cut.shapeHit(a_ray, a, b, a_options);
 
-    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
+    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_cut.behind(a_ray.at(b))) < T(0)) {
       return onPlane(b, false);
     }
 
@@ -1635,13 +1662,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return crossing;
     };
 
-    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
+    if (a > a_tMin && a_cut.shapeDistance(a_cut.behind(a_ray.at(a))) < T(0)) {
       return onPlane(a, true);
     }
 
     const CrossingT<T> crossing = a_cut.shapeCrossing(a_ray, a, b, a_options);
 
-    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
+    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_cut.behind(a_ray.at(b))) < T(0)) {
       return onPlane(b, false);
     }
 

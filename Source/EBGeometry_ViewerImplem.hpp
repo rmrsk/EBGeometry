@@ -170,7 +170,9 @@ keys(const bool a_device, const bool a_regions = false)
                                {"Window",
                                 {{"C", "Print the camera and settings as C++"},
                                  {"W", "Save the full frame as a PPM image"},
-                                 {"H", "Show or hide this overlay and the axes"},
+                                 {"Tab, Shift + Tab", "Show the next or the previous menu"},
+                                 {"F1 to F6", "Show a menu: camera, rendering, section, picking, regions, window"},
+                                 {"H", "Show or hide the menu (the status lines and the axes stay)"},
                                  {"Esc, Q", "Close the window"}}}};
 
   if (a_device) {
@@ -579,7 +581,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   uint32_t     texHeight = 0;
 
   // The overlay: what the window shows and how, and the keys, drawn over the image's top left corner.
-  bool                  overlayOn     = true;
+  bool overlayOn = true;
+
+  // The menu the overlay shows (see keys()): one at a time, so that the overlay stays short.
+  std::size_t           menu          = 0;
   SDL_Texture*          overlay       = nullptr;
   int                   overlayWidth  = 0;
   int                   overlayHeight = 0;
@@ -627,13 +632,13 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       SDL_RenderCopy(screen, texture, nullptr, nullptr);
     }
 
-    if (overlayOn && overlay != nullptr) {
+    if (overlay != nullptr) {
       const SDL_Rect where{8, 8, overlayWidth, overlayHeight};
 
       SDL_RenderCopy(screen, overlay, nullptr, &where);
     }
 
-    if (overlayOn && axes != nullptr) {
+    if (axes != nullptr) {
       int outputWidth  = 0;
       int outputHeight = 0;
 
@@ -992,18 +997,34 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
     const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr, hasRegionVisibility<S>);
 
-    for (std::size_t g = 0; g < groups.size(); g++) {
-      lines.emplace_back("");
-      lines.emplace_back(groups[g].m_title);
+    // The status: what is picked, and the menus, the one shown in brackets. Every key works whichever is shown.
+    if (states.size() > 3 && !states[3].empty()) {
+      lines.emplace_back(states[3].front());
+    }
 
-      for (const std::string& state : states[g]) {
+    std::string tabs;
+
+    for (std::size_t g = 0; g < groups.size(); g++) {
+      const bool shown = overlayOn && g == menu;
+
+      tabs += (g > 0 ? "  " : "") + std::string(shown ? "[" : "") + "F" + std::to_string(g + 1) + " " +
+              groups[g].m_title + (shown ? "]" : "");
+    }
+
+    lines.emplace_back(tabs + (overlayOn ? "   (Tab: next, H: hide)" : "   (H: show)"));
+
+    if (overlayOn && menu < groups.size()) {
+      lines.emplace_back("");
+      lines.emplace_back(groups[menu].m_title);
+
+      for (const std::string& state : states[menu]) {
         lines.emplace_back("  " + state);
       }
 
-      for (const Key& key : groups[g].m_keys) {
+      for (const Key& key : groups[menu].m_keys) {
         char line[128];
 
-        std::snprintf(line, sizeof(line), "  %-14s %s", key.m_keys, key.m_what);
+        std::snprintf(line, sizeof(line), "  %-18s %s", key.m_keys, key.m_what);
         lines.emplace_back(line);
       }
     }
@@ -1528,10 +1549,40 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
+        case SDLK_TAB: {
+          const std::size_t count = keys(a_deviceShape != nullptr, hasRegionVisibility<S>).size();
+
+          menu      = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? (menu + count - 1) % count : (menu + 1) % count;
+          overlayOn = true;
+          changed   = pending;
+
+          drawOverlay();
+          present();
+
+          break;
+        }
+        case SDLK_F1:
+        case SDLK_F2:
+        case SDLK_F3:
+        case SDLK_F4:
+        case SDLK_F5:
+        case SDLK_F6: {
+          const std::size_t count = keys(a_deviceShape != nullptr, hasRegionVisibility<S>).size();
+
+          menu      = Math::min(static_cast<std::size_t>(event.key.keysym.sym - SDLK_F1), count - 1);
+          overlayOn = true;
+          changed   = pending;
+
+          drawOverlay();
+          present();
+
+          break;
+        }
         case SDLK_h: {
           overlayOn = !overlayOn;
           changed   = pending;
 
+          drawOverlay();
           present();
 
           break;
