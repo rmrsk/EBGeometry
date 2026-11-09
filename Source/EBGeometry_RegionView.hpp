@@ -458,7 +458,7 @@ public:
   }
 
   /**
-   * @brief The same view with a solver's scheme (RegionColoring::Group colors by its groups).
+   * @brief The same view with a solver's scheme (RegionColoring::SurfaceGroup colors by its groups).
    * @param[in] a_scheme The scheme.
    * @return The view.
    */
@@ -498,8 +498,8 @@ private:
     case RegionColoring::Interface: {
       return RegionSettings::interfaceKey(a_surface.m_insideRegion, a_surface.m_outsideRegion);
     }
-    case RegionColoring::Group: {
-      return m_settings.m_scheme.groupOf(a_surface);
+    case RegionColoring::SurfaceGroup: {
+      return m_settings.m_scheme.surfaceGroupOf(a_surface);
     }
     case RegionColoring::Material: {
       return m_tape.getMaterialOf(a_region).value();

@@ -231,82 +231,86 @@ struct SurfaceSelector
 };
 
 /**
- * @brief One solver's groups of surfaces: "no-slip" for a flow solver, "dirichlet" and "jump" for an electrostatic
+ * @brief One solver's surface groups: "no-slip" for a flow solver, "dirichlet" and "jump" for an electrostatic
  * one, each a list of selectors (SurfaceSelector), so that a cut cell's surface (Tape::closestSurface(p, phases,
- * phase)) gives its group, and the group its boundary condition.
- * @details At most MaxGroups groups and MaxSelectors selectors in all, so that a scheme is a plain value a kernel
- * takes (groupOf() is callable on a device). A surface is in the group of the first selector it matches, in the
- * order they were added. The groups' names are the caller's (a scheme holds numbers only).
+ * phase)) gives its surface group, and the surface group its boundary condition.
+ * @details At most MaxSurfaceGroups surface groups and MaxSelectors selectors in all, so that a scheme is a plain value a kernel
+ * takes (surfaceGroupOf() is callable on a device). A surface is in the surface group of the first selector it matches, in the
+ * order they were added. The surface groups' names are the caller's (a scheme holds numbers only).
  */
 class Scheme
 {
 public:
   /**
-   * @brief No group: a surface no selector matches.
+   * @brief No surface group: a surface no selector matches.
    */
   static constexpr uint32_t None = 0xFFFFFFFFU;
 
   /**
-   * @brief The most groups a scheme holds.
+   * @brief The most surface groups a scheme holds.
    */
-  static constexpr uint32_t MaxGroups = 8;
+  static constexpr uint32_t MaxSurfaceGroups = 8;
 
   /**
-   * @brief The most selectors a scheme holds, over all its groups.
+   * @brief The most selectors a scheme holds, over all its surface groups.
    */
   static constexpr uint32_t MaxSelectors = 32;
 
   /**
-   * @brief Add a group.
-   * @details Aborts with a message, in every build, beyond MaxGroups.
+   * @brief Add a surface group.
+   * @details Aborts with a message, in every build, beyond MaxSurfaceGroups.
    * @return Its number, from 0 in the order added.
    */
   EBGEOMETRY_HOST
   uint32_t
-  addGroup()
+  addSurfaceGroup()
   {
-    EBGEOMETRY_REQUIRE(m_numGroups < MaxGroups, "Scheme: a scheme holds at most %u groups", unsigned(MaxGroups));
+    EBGEOMETRY_REQUIRE(m_numSurfaceGroups < MaxSurfaceGroups,
+                       "Scheme: a scheme holds at most %u surface groups",
+                       unsigned(MaxSurfaceGroups));
 
-    return m_numGroups++;
+    return m_numSurfaceGroups++;
   }
 
   /**
-   * @brief Add a selector to a group.
-   * @details Aborts with a message, in every build, for a group not added or beyond MaxSelectors.
-   * @param[in] a_group    The group.
+   * @brief Add a selector to a surface group.
+   * @details Aborts with a message, in every build, for a surface group not added or beyond MaxSelectors.
+   * @param[in] a_group    The surface group.
    * @param[in] a_selector The selector.
    */
   EBGEOMETRY_HOST
   void
   add(const uint32_t a_group, const SurfaceSelector& a_selector)
   {
-    EBGEOMETRY_REQUIRE(a_group < m_numGroups, "Scheme: group %u of %u", unsigned(a_group), unsigned(m_numGroups));
+    EBGEOMETRY_REQUIRE(
+      a_group < m_numSurfaceGroups, "Scheme: surface group %u of %u", unsigned(a_group), unsigned(m_numSurfaceGroups));
     EBGEOMETRY_REQUIRE(
       m_numSelectors < MaxSelectors, "Scheme: a scheme holds at most %u selectors", unsigned(MaxSelectors));
 
-    m_selectors[m_numSelectors] = a_selector;
-    m_groups[m_numSelectors]    = a_group;
+    m_selectors[m_numSelectors]     = a_selector;
+    m_surfaceGroups[m_numSelectors] = a_group;
 
     m_numSelectors++;
   }
 
   /**
-   * @brief Remove a group and its selectors; the groups after it move down by one.
-   * @details Aborts with a message, in every build, for a group not added.
-   * @param[in] a_group The group.
+   * @brief Remove a surface group and its selectors; the surface groups after it move down by one.
+   * @details Aborts with a message, in every build, for a surface group not added.
+   * @param[in] a_group The surface group.
    */
   EBGEOMETRY_HOST
   void
-  removeGroup(const uint32_t a_group)
+  removeSurfaceGroup(const uint32_t a_group)
   {
-    EBGEOMETRY_REQUIRE(a_group < m_numGroups, "Scheme: group %u of %u", unsigned(a_group), unsigned(m_numGroups));
+    EBGEOMETRY_REQUIRE(
+      a_group < m_numSurfaceGroups, "Scheme: surface group %u of %u", unsigned(a_group), unsigned(m_numSurfaceGroups));
 
     uint32_t kept = 0;
 
     for (uint32_t i = 0; i < m_numSelectors; i++) {
-      if (m_groups[i] != a_group) {
-        m_selectors[kept] = m_selectors[i];
-        m_groups[kept]    = (m_groups[i] > a_group) ? m_groups[i] - 1U : m_groups[i];
+      if (m_surfaceGroups[i] != a_group) {
+        m_selectors[kept]     = m_selectors[i];
+        m_surfaceGroups[kept] = (m_surfaceGroups[i] > a_group) ? m_surfaceGroups[i] - 1U : m_surfaceGroups[i];
 
         kept++;
       }
@@ -314,12 +318,12 @@ public:
 
     m_numSelectors = kept;
 
-    m_numGroups--;
+    m_numSurfaceGroups--;
   }
 
   /**
-   * @brief Remove the selectors of a group that equal one (to undo a click).
-   * @param[in] a_group    The group.
+   * @brief Remove the selectors of a surface group that equal one (to undo a click).
+   * @param[in] a_group    The surface group.
    * @param[in] a_selector The selector.
    */
   EBGEOMETRY_HOST
@@ -331,14 +335,14 @@ public:
     for (uint32_t i = 0; i < m_numSelectors; i++) {
       const SurfaceSelector& s = m_selectors[i];
 
-      const bool same = m_groups[i] == a_group && s.m_surface == a_selector.m_surface &&
+      const bool same = m_surfaceGroups[i] == a_group && s.m_surface == a_selector.m_surface &&
                         s.m_part == a_selector.m_part && s.m_regionA == a_selector.m_regionA &&
                         s.m_regionB == a_selector.m_regionB && s.m_label == a_selector.m_label &&
                         s.m_materialA == a_selector.m_materialA && s.m_materialB == a_selector.m_materialB;
 
       if (!same) {
-        m_selectors[kept] = m_selectors[i];
-        m_groups[kept]    = m_groups[i];
+        m_selectors[kept]     = m_selectors[i];
+        m_surfaceGroups[kept] = m_surfaceGroups[i];
 
         kept++;
       }
@@ -348,18 +352,18 @@ public:
   }
 
   /**
-   * @brief How many groups there are.
+   * @brief How many surface groups there are.
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  getNumGroups() const noexcept
+  getNumSurfaceGroups() const noexcept
   {
-    return m_numGroups;
+    return m_numSurfaceGroups;
   }
 
   /**
-   * @brief How many selectors there are, over all groups.
+   * @brief How many selectors there are, over all surface groups.
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -384,34 +388,34 @@ public:
   }
 
   /**
-   * @brief The group of a selector.
+   * @brief The surface group of a selector.
    * @param[in] a_selector Its number (below getNumSelectors()).
-   * @return The group.
+   * @return The surface group.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  getGroupOfSelector(const uint32_t a_selector) const noexcept
+  getSurfaceGroupOfSelector(const uint32_t a_selector) const noexcept
   {
     EBGEOMETRY_EXPECT(a_selector < m_numSelectors);
 
-    return m_groups[a_selector];
+    return m_surfaceGroups[a_selector];
   }
 
   /**
-   * @brief The group a surface point is in: that of the first selector it matches.
+   * @brief The surface group a surface point is in: that of the first selector it matches.
    * @tparam T Floating-point precision.
    * @param[in] a_surface The surface, with its sides and their materials (Tape::closestSurface(p, phases, phase),
    * firstRegionChange()).
-   * @return The group, or None.
+   * @return The surface group, or None.
    */
   template <class T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  groupOf(const SurfaceRef<T>& a_surface) const noexcept
+  surfaceGroupOf(const SurfaceRef<T>& a_surface) const noexcept
   {
     for (uint32_t i = 0; i < m_numSelectors; i++) {
       if (m_selectors[i].matches(a_surface)) {
-        return m_groups[i];
+        return m_surfaceGroups[i];
       }
     }
 
@@ -425,9 +429,9 @@ private:
   SurfaceSelector m_selectors[MaxSelectors] = {};
 
   /**
-   * @brief Each selector's group.
+   * @brief Each selector's surface group.
    */
-  uint32_t m_groups[MaxSelectors] = {};
+  uint32_t m_surfaceGroups[MaxSelectors] = {};
 
   /**
    * @brief How many selectors are used.
@@ -435,9 +439,9 @@ private:
   uint32_t m_numSelectors = 0;
 
   /**
-   * @brief How many groups there are.
+   * @brief How many surface groups there are.
    */
-  uint32_t m_numGroups = 0;
+  uint32_t m_numSurfaceGroups = 0;
 };
 
 static_assert(std::is_trivially_copyable_v<Scheme>, "Scheme must be a plain value, for a kernel to take it");

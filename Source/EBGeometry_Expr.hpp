@@ -1052,7 +1052,7 @@ public:
     /**
      * @brief The innermost group (nested Overlay) it is in; None for the background and a whole object.
      */
-    uint32_t m_group = None;
+    uint32_t m_regionGroup = None;
 
     /**
      * @brief Its material: its operand's material label, or its group's, or none.
@@ -1064,7 +1064,7 @@ public:
    * @brief A group of regions: an Overlay, whose regions are a contiguous range (a nested Overlay a range inside
    * its parent's).
    */
-  struct Group
+  struct RegionGroup
   {
     /**
      * @brief The Overlay's node.
@@ -1269,12 +1269,12 @@ public:
 
   /**
    * @brief The regions of a group, for a phase (Phases::addPhase()).
-   * @param[in] a_group Group number (below getNumGroups()).
+   * @param[in] a_group Group number (below getNumRegionGroups()).
    * @return Its regions, a contiguous range.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::vector<uint32_t>
-  getRegionsOfGroup(uint32_t a_group) const;
+  getRegionsOfRegionGroup(uint32_t a_group) const;
 
   /**
    * @brief The regions of a material, for a phase (Phases::addPhase()).
@@ -1312,16 +1312,16 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST
   uint32_t
-  getNumGroups() const noexcept;
+  getNumRegionGroups() const noexcept;
 
   /**
    * @brief A group.
-   * @param[in] a_group Group number (below getNumGroups()).
+   * @param[in] a_group Group number (below getNumRegionGroups()).
    * @return The group.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  const Group&
-  getGroup(uint32_t a_group) const;
+  const RegionGroup&
+  getRegionGroup(uint32_t a_group) const;
 
   /**
    * @brief The number of distinct material labels.
@@ -1404,7 +1404,7 @@ private:
   /**
    * @brief The groups.
    */
-  std::vector<Group> m_groups;
+  std::vector<RegionGroup> m_regionGroups;
 
   /**
    * @brief Each leaf's region, or None.

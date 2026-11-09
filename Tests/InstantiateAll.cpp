@@ -501,8 +501,8 @@ instantiateFunctionTemplates()
       (void)index.getRegion(0U);
       (void)index.getRegionOfLeaf(0U);
       (void)index.getMaterialOf(0U);
-      (void)index.getNumGroups();
-      (void)index.getGroup(0U);
+      (void)index.getNumRegionGroups();
+      (void)index.getRegionGroup(0U);
       (void)index.getNumMaterialLabels();
       (void)index.getMaterialLabelName(index.findMaterialLabel("a"));
     }
@@ -530,8 +530,8 @@ instantiateFunctionTemplates()
 
       Scheme scheme;
 
-      scheme.add(scheme.addGroup(), SurfaceSelector::interface(0U, 1U));
-      (void)scheme.groupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::interface(0U, 1U));
+      (void)scheme.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)regions.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));

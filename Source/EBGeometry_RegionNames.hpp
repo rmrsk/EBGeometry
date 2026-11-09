@@ -78,26 +78,26 @@ public:
    */
   EBGEOMETRY_HOST
   void
-  setGroup(const uint32_t a_group, std::string a_name)
+  setSurfaceGroup(const uint32_t a_group, std::string a_name)
   {
-    if (m_groups.size() <= a_group) {
-      m_groups.resize(a_group + 1U);
+    if (m_surfaceGroups.size() <= a_group) {
+      m_surfaceGroups.resize(a_group + 1U);
     }
 
-    m_groups[a_group] = std::move(a_name);
+    m_surfaceGroups[a_group] = std::move(a_name);
   }
 
   /**
-   * @brief Forget a group's name; the names of the groups after it move down by one (as Scheme::removeGroup()
+   * @brief Forget a group's name; the names of the groups after it move down by one (as Scheme::removeSurfaceGroup()
    * numbers them).
    * @param[in] a_group The group.
    */
   EBGEOMETRY_HOST
   void
-  removeGroup(const uint32_t a_group)
+  removeSurfaceGroup(const uint32_t a_group)
   {
-    if (a_group < m_groups.size()) {
-      m_groups.erase(m_groups.begin() + static_cast<std::ptrdiff_t>(a_group));
+    if (a_group < m_surfaceGroups.size()) {
+      m_surfaceGroups.erase(m_surfaceGroups.begin() + static_cast<std::ptrdiff_t>(a_group));
     }
   }
 
@@ -150,15 +150,15 @@ public:
   }
 
   /**
-   * @brief A group's name, with its number: "0 dirichlet", or "group 0".
+   * @brief A surface group's name, with its number: "0 dirichlet", or "surface group 0".
    * @param[in] a_group The group.
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::string
-  group(const uint32_t a_group) const
+  surfaceGroup(const uint32_t a_group) const
   {
-    return named(m_groups, a_group, "group");
+    return named(m_surfaceGroups, a_group, "surface group");
   }
 
 protected:
@@ -185,7 +185,7 @@ protected:
   /**
    * @brief The groups' names.
    */
-  std::vector<std::string> m_groups;
+  std::vector<std::string> m_surfaceGroups;
 
   /**
    * @brief A name from a list, after its number, or the kind and the number.

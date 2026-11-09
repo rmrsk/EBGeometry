@@ -83,7 +83,7 @@ struct RegionQuery
     answer.m_minus   = surface.m_insideRegion;
     answer.m_plus    = surface.m_outsideRegion;
     answer.m_surface = surface.m_surface;
-    answer.m_group   = m_scheme.groupOf(surface);
+    answer.m_group   = m_scheme.surfaceGroupOf(surface);
 
     const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
 
@@ -126,12 +126,12 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, then the operands in pr
   CHECK(index.findMaterialLabel("copper").value() == 2U);
   CHECK(index.findMaterialLabel("steel").isNone());
 
-  REQUIRE(index.getNumGroups() == 1U);
-  CHECK(index.getGroup(0).m_node == 0U);
-  CHECK(index.getGroup(0).m_parent == None);
-  CHECK(index.getGroup(0).m_firstRegion == 1U);
-  CHECK(index.getGroup(0).m_numRegions == 2U);
-  CHECK(index.getRegion(1).m_group == 0U);
+  REQUIRE(index.getNumRegionGroups() == 1U);
+  CHECK(index.getRegionGroup(0).m_node == 0U);
+  CHECK(index.getRegionGroup(0).m_parent == None);
+  CHECK(index.getRegionGroup(0).m_firstRegion == 1U);
+  CHECK(index.getRegionGroup(0).m_numRegions == 2U);
+  CHECK(index.getRegion(1).m_regionGroup == 0U);
 
   CHECK(index.getRegionOfLeaf(0) == 1U);
   CHECK(index.getRegionOfLeaf(1) == 2U);
@@ -152,9 +152,9 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, then the operands in pr
 
   REQUIRE(plain.getNumRegions() == 2U);
   CHECK(plain.getRegion(1).m_node == 0U);
-  CHECK(plain.getRegion(1).m_group == None);
+  CHECK(plain.getRegion(1).m_regionGroup == None);
   CHECK(materialName(plain, 1) == "steel");
-  CHECK(plain.getNumGroups() == 0U);
+  CHECK(plain.getNumRegionGroups() == 0U);
 }
 
 TEMPLATE_TEST_CASE("Overlay: nested Overlays flatten into one priority order, kept as groups with default materials",
@@ -192,18 +192,18 @@ TEMPLATE_TEST_CASE("Overlay: nested Overlays flatten into one priority order, ke
   CHECK(materialName(index, 5) == "carbon");
 
   // Groups, depth first: the scene, then each particle, a contiguous range inside the scene's.
-  REQUIRE(index.getNumGroups() == 3U);
-  CHECK(index.getGroup(0).m_firstRegion == 1U);
-  CHECK(index.getGroup(0).m_numRegions == 5U);
-  CHECK(index.getGroup(0).m_parent == None);
-  CHECK(index.getGroup(1).m_firstRegion == 2U);
-  CHECK(index.getGroup(1).m_numRegions == 2U);
-  CHECK(index.getGroup(1).m_parent == 0U);
-  CHECK(index.getGroup(2).m_firstRegion == 4U);
-  CHECK(index.getGroup(2).m_numRegions == 2U);
-  CHECK(index.getRegion(1).m_group == 0U);
-  CHECK(index.getRegion(3).m_group == 1U);
-  CHECK(index.getRegion(5).m_group == 2U);
+  REQUIRE(index.getNumRegionGroups() == 3U);
+  CHECK(index.getRegionGroup(0).m_firstRegion == 1U);
+  CHECK(index.getRegionGroup(0).m_numRegions == 5U);
+  CHECK(index.getRegionGroup(0).m_parent == None);
+  CHECK(index.getRegionGroup(1).m_firstRegion == 2U);
+  CHECK(index.getRegionGroup(1).m_numRegions == 2U);
+  CHECK(index.getRegionGroup(1).m_parent == 0U);
+  CHECK(index.getRegionGroup(2).m_firstRegion == 4U);
+  CHECK(index.getRegionGroup(2).m_numRegions == 2U);
+  CHECK(index.getRegion(1).m_regionGroup == 0U);
+  CHECK(index.getRegion(3).m_regionGroup == 1U);
+  CHECK(index.getRegion(5).m_regionGroup == 2U);
 
   for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
     CHECK(index.getRegionOfLeaf(leaf) == leaf + 1U);
@@ -702,7 +702,7 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
 
   Phases solid;
 
-  (void)solid.addPhase(index.getRegionsOfGroup(0));
+  (void)solid.addPhase(index.getRegionsOfRegionGroup(0));
 
   CHECK(solid.getNumRanges() == 1U);
   CHECK(solid.role(inner) == SurfaceRole::Internal);
@@ -885,8 +885,8 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host",
   // An electrostatic scheme: every conductor surface (dirichlet), the jacket's outside (jump).
   Scheme scheme;
 
-  const uint32_t dirichlet = scheme.addGroup();
-  const uint32_t jump      = scheme.addGroup();
+  const uint32_t dirichlet = scheme.addSurfaceGroup();
+  const uint32_t jump      = scheme.addSurfaceGroup();
 
   scheme.add(dirichlet, SurfaceSelector::region(2));
   scheme.add(jump, SurfaceSelector::interface(0, 1));
@@ -976,24 +976,24 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   // (a jump).
   Scheme electrostatics;
 
-  const uint32_t dirichlet = electrostatics.addGroup();
-  const uint32_t jump      = electrostatics.addGroup();
+  const uint32_t dirichlet = electrostatics.addSurfaceGroup();
+  const uint32_t jump      = electrostatics.addSurfaceGroup();
 
   electrostatics.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
   electrostatics.add(jump, SurfaceSelector::interface(1, 0));
 
-  CHECK(electrostatics.groupOf(inner) == dirichlet);
-  CHECK(electrostatics.groupOf(outer) == jump);
+  CHECK(electrostatics.surfaceGroupOf(inner) == dirichlet);
+  CHECK(electrostatics.surfaceGroupOf(outer) == jump);
 
   // CFD in the air: every surface facing the air (no-slip); the inner one is no surface to it.
   Scheme cfd;
 
-  const uint32_t noSlip = cfd.addGroup();
+  const uint32_t noSlip = cfd.addSurfaceGroup();
 
   cfd.add(noSlip, SurfaceSelector::region(0));
 
-  CHECK(cfd.groupOf(outer) == noSlip);
-  CHECK(cfd.groupOf(inner) == Scheme::None);
+  CHECK(cfd.surfaceGroupOf(outer) == noSlip);
+  CHECK(cfd.surfaceGroupOf(inner) == Scheme::None);
 
   // The piece clicked matches itself; another part or other sides do not.
   const SurfaceSelector piece = SurfaceSelector::piece(inner);
@@ -1012,49 +1012,50 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   cfd.remove(noSlip, SurfaceSelector::region(0));
 
   CHECK(cfd.getNumSelectors() == 0U);
-  CHECK(cfd.groupOf(outer) == Scheme::None);
+  CHECK(cfd.surfaceGroupOf(outer) == Scheme::None);
 
   REQUIRE(abortsWith(
     [] {
       Scheme scheme;
 
-      for (uint32_t g = 0; g <= Scheme::MaxGroups; g++) {
-        (void)scheme.addGroup();
+      for (uint32_t g = 0; g <= Scheme::MaxSurfaceGroups; g++) {
+        (void)scheme.addSurfaceGroup();
       }
     },
-    "Scheme: a scheme holds at most 8 groups"));
-  REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: group 0 of 0"));
+    "Scheme: a scheme holds at most 8 surface groups"));
+  REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: surface group 0 of 0"));
 }
 
-TEST_CASE("Scheme: removing a group removes its selectors and renumbers the groups after it", "[Scheme]")
+TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers the surface groups after it",
+          "[Scheme]")
 {
   Scheme scheme;
 
-  const uint32_t first  = scheme.addGroup();
-  const uint32_t second = scheme.addGroup();
-  const uint32_t third  = scheme.addGroup();
+  const uint32_t first  = scheme.addSurfaceGroup();
+  const uint32_t second = scheme.addSurfaceGroup();
+  const uint32_t third  = scheme.addSurfaceGroup();
 
   scheme.add(first, SurfaceSelector::region(1));
   scheme.add(second, SurfaceSelector::region(2));
   scheme.add(third, SurfaceSelector::interface(0, 1));
 
-  scheme.removeGroup(second);
+  scheme.removeSurfaceGroup(second);
 
-  REQUIRE(scheme.getNumGroups() == 2U);
+  REQUIRE(scheme.getNumSurfaceGroups() == 2U);
   REQUIRE(scheme.getNumSelectors() == 2U);
-  CHECK(scheme.getGroupOfSelector(0) == 0U);
+  CHECK(scheme.getSurfaceGroupOfSelector(0) == 0U);
   CHECK(scheme.getSelector(0).m_regionA == 1U);
-  CHECK(scheme.getGroupOfSelector(1) == 1U);
+  CHECK(scheme.getSurfaceGroupOfSelector(1) == 1U);
   CHECK(scheme.getSelector(1).m_regionB == 1U);
 
   RegionNames names;
 
-  names.setGroup(0, "dirichlet");
-  names.setGroup(1, "neumann");
-  names.setGroup(2, "jump");
-  names.removeGroup(1);
+  names.setSurfaceGroup(0, "dirichlet");
+  names.setSurfaceGroup(1, "neumann");
+  names.setSurfaceGroup(2, "jump");
+  names.removeSurfaceGroup(1);
 
-  CHECK(names.group(1) == "1 jump");
+  CHECK(names.surfaceGroup(1) == "1 jump");
 }
 
 TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their labels, groups as named, else numbers",
@@ -1078,10 +1079,10 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
   CHECK(names.surface(1) == "1 conductor");
   CHECK(names.surfaceLabel(0) == "0 conductor");
 
-  names.setGroup(1, "jump");
+  names.setSurfaceGroup(1, "jump");
 
-  CHECK(names.group(0) == "group 0");
-  CHECK(names.group(1) == "1 jump");
+  CHECK(names.surfaceGroup(0) == "surface group 0");
+  CHECK(names.surfaceGroup(1) == "1 jump");
   CHECK(RegionNames().region(1) == "region 1");
 }
 
@@ -1120,8 +1121,8 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   // Colored by group: the core's surface in the first group, the jacket's outside in none.
   settings.m_regions.clearSeenThrough();
-  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addGroup(), SurfaceSelector::region(2));
-  settings.m_regions.m_coloring = RegionColoring::Group;
+  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addSurfaceGroup(), SurfaceSelector::region(2));
+  settings.m_regions.m_coloring = RegionColoring::SurfaceGroup;
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == Scheme::None);
 

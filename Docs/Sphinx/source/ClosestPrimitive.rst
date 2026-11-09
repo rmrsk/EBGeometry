@@ -269,7 +269,7 @@ volume's, apart from the surface labels above:
 An Overlay may be moved (``Translate``, ``Rotate``, ...), clipped or drilled as the first operand of an
 ``Intersection`` or a ``Difference`` (the other operands are plain solids that remove space from every
 region), and placed in another Overlay, where its regions take its place in the priority order and stay
-together as a group (`ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__'s ``getGroup()``); a
+together as a group (`ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__'s ``getRegionGroup()``); a
 material on the inner Overlay is the default of its regions. Anything else that would make it unclear which
 region a result belongs to (a union of an Overlay with a solid, an offset or a blend of one, a material on part
 of a solid) is rejected when the expression is built. A tape evaluates an Overlay as the whole object, so
@@ -297,7 +297,7 @@ and ``m_outsideRegion`` (the one across). The sides belong to the point, not to 
 another's surface faces the air on one half and the other sphere on the other.
 
 A solver says which regions it computes in with `Phases <doxygen/html/classEBGeometry_1_1Phases.html>`__, each
-phase a set of regions (usually one; ``ExprIndex::getRegionsOfGroup()`` and ``getRegionsOfMaterial()`` select
+phase a set of regions (usually one; ``ExprIndex::getRegionsOfRegionGroup()`` and ``getRegionsOfMaterial()`` select
 several). Each surface then has a role for it at a point, from its two sides: a **boundary** (one side solved,
 where its surface label gives the boundary condition), an **interface** (two phases meet), **internal** (two
 regions of the same phase touch), or none. A phase's own function, ``signedDistance(p, phases, phase)``, is the
@@ -316,23 +316,23 @@ distance bound, exact near a smooth piece of its surface:
    electrostatics.role(s);                        // the outer sphere: Interface; the inner one: Boundary
 
 A solver groups surfaces under its boundary conditions with a
-`Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight groups ("dirichlet", "jump", "no-slip"), each
+`Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight surface groups ("dirichlet", "jump", "no-slip"), each
 a list of `SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface
 point is. The finest, ``SurfaceSelector::piece(surface)``, is a shape's surface, its part and the regions on its
 two sides, the piece one clicks; broader ones select a whole surface, a surface label, an interface (two regions,
 either way round), a region (either side) or a pair of materials. Patches with the same attributes are one piece:
-the conditions say what a surface is, not where. ``scheme.groupOf(surface)`` gives the group of a surface reported
+the conditions say what a surface is, not where. ``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported
 with its sides, on the host and on a device, and the surface carries the materials of its two sides too.
 
 .. code-block:: c++
 
    Scheme electrostatics;
-   const uint32_t dirichlet = electrostatics.addGroup();   // every conductor surface, inside the jacket too
-   const uint32_t jump      = electrostatics.addGroup();   // the jacket's outside
+   const uint32_t dirichlet = electrostatics.addSurfaceGroup(); // every conductor surface, inside the jacket too
+   const uint32_t jump      = electrostatics.addSurfaceGroup(); // the jacket's outside
    electrostatics.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
    electrostatics.add(jump, SurfaceSelector::interface(1, 0));
 
-   electrostatics.groupOf(tape.closestSurface(p, phases, phase));   // at a cut cell, in a kernel
+   electrostatics.surfaceGroupOf(tape.closestSurface(p, phases, phase));   // at a cut cell, in a kernel
 
 ``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
 ``getSidesOfLeaf(leaf)`` those of one shape's surface: what a solver's setup can expect to meet.

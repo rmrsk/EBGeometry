@@ -32,7 +32,7 @@ enum class RegionColoring : uint8_t
   Surface,      ///< The surface itself (SurfaceRef::m_surface): each shape, each member of a collection.
   Part,         ///< The surface's part: a box's face, a mesh's face.
   Interface,    ///< The pair of regions on its two sides there (see RegionSettings::interfaceKey()).
-  Group         ///< The group of the scheme the surface is in (RegionSettings::m_scheme), or none.
+  SurfaceGroup  ///< The surface group of the scheme the surface is in (RegionSettings::m_scheme), or none.
 };
 
 /**
@@ -75,7 +75,7 @@ struct RegionSettings
   uint32_t m_through[MaxSeenThrough] = {None, None, None, None, None, None, None, None};
 
   /**
-   * @brief A solver's groups of surfaces (RegionColoring::Group colors by them).
+   * @brief A solver's groups of surfaces (RegionColoring::SurfaceGroup colors by them).
    */
   Scheme m_scheme;
 

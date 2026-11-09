@@ -115,8 +115,8 @@ main(int argc, char* argv[])
 
   EBGeometry::Scheme& scheme = settings.m_regions.m_scheme;
 
-  const uint32_t dirichlet = scheme.addGroup();
-  const uint32_t jump      = scheme.addGroup();
+  const uint32_t dirichlet = scheme.addSurfaceGroup();
+  const uint32_t jump      = scheme.addSurfaceGroup();
 
   scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
   scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
@@ -124,8 +124,8 @@ main(int argc, char* argv[])
   // The names the window shows: the regions by their materials, and the groups.
   EBGeometry::RegionNames names(index);
 
-  names.setGroup(dirichlet, "dirichlet");
-  names.setGroup(jump, "jump");
+  names.setSurfaceGroup(dirichlet, "dirichlet");
+  names.setSurfaceGroup(jump, "jump");
 
   const EBGeometry::RegionView<Tape> regions(tape);
 

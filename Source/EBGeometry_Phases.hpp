@@ -40,7 +40,7 @@ enum class SurfaceRole : uint8_t
  * @details Built on the host (addPhase()), then a plain value, trivially copyable, that a kernel takes like any
  * functor member: phaseOf() and role() are callable on a device. A phase's implicit function is the smallest of its
  * regions' functions (Tape::signedDistance(p, phases, phase)), what a cut-cell solver cuts for it. Regions are held
- * as ranges, so a group of regions (an Overlay, ExprIndex::getGroup()) is one; at most MaxRanges ranges in all.
+ * as ranges, so a group of regions (an Overlay, ExprIndex::getRegionGroup()) is one; at most MaxRanges ranges in all.
  */
 class Phases
 {

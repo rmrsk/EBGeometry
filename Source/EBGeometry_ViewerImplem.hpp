@@ -1130,8 +1130,8 @@ run(const S&           a_shape,
         case RegionColoring::Interface: {
           return "interface " + names.region(a_key >> 16U) + " | " + names.region(a_key & 0xFFFFU);
         }
-        case RegionColoring::Group: {
-          return names.group(a_key);
+        case RegionColoring::SurfaceGroup: {
+          return names.surfaceGroup(a_key);
         }
         default: {
           return "part " + std::to_string(a_key);
@@ -1159,8 +1159,9 @@ run(const S&           a_shape,
          hiddenRegions.empty()
            ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
            : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions,
-         (scheme.getNumGroups() == 0U) ? std::string("No surface groups (Enter starts one with the picked piece)")
-                                       : "Adding to surface group " + names.group(currentGroup) + " (J: next)"});
+         (scheme.getNumSurfaceGroups() == 0U)
+           ? std::string("No surface groups (Enter starts one with the picked piece)")
+           : "Adding to surface group " + names.surfaceGroup(currentGroup) + " (J: next)"});
 
       // The panel: each region, shown or hidden, and each group with its selectors; a click on a line acts on it.
       const std::vector<KeyGroup> menus = keys(a_deviceShape != nullptr, true);
@@ -1182,17 +1183,17 @@ run(const S&           a_shape,
         line("", PanelAction::None, 0U);
         line("Surface groups (click: select; Shift + click: delete)", PanelAction::None, 0U);
 
-        for (uint32_t g = 0; g < scheme.getNumGroups(); g++) {
-          line(std::string(g == currentGroup ? "  > " : "    ") + names.group(g), PanelAction::CurrentGroup, g);
+        for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+          line(std::string(g == currentGroup ? "  > " : "    ") + names.surfaceGroup(g), PanelAction::CurrentGroup, g);
 
           for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
-            if (scheme.getGroupOfSelector(i) == g) {
+            if (scheme.getSurfaceGroupOfSelector(i) == g) {
               line("      " + selectorName(scheme.getSelector(i)), PanelAction::Selector, i);
             }
           }
         }
 
-        if (scheme.getNumGroups() < Scheme::MaxGroups) {
+        if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
           line("    + new surface group", PanelAction::NewGroup, 0U);
         }
       }
@@ -1467,10 +1468,11 @@ run(const S&           a_shape,
                   case PanelAction::CurrentGroup: {
                     // Shift and a click deletes the group; a click makes it current.
                     if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
-                      scheme.removeGroup(value);
-                      names.removeGroup(value);
+                      scheme.removeSurfaceGroup(value);
+                      names.removeSurfaceGroup(value);
 
-                      if (currentGroup > value || (currentGroup == value && currentGroup >= scheme.getNumGroups())) {
+                      if (currentGroup > value ||
+                          (currentGroup == value && currentGroup >= scheme.getNumSurfaceGroups())) {
                         currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
                       }
                     }
@@ -1483,16 +1485,16 @@ run(const S&           a_shape,
                   case PanelAction::Selector: {
                     // Shift and a click removes the selector; a click selects its group.
                     if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
-                      scheme.remove(scheme.getGroupOfSelector(value), scheme.getSelector(value));
+                      scheme.remove(scheme.getSurfaceGroupOfSelector(value), scheme.getSelector(value));
                     }
                     else {
-                      currentGroup = scheme.getGroupOfSelector(value);
+                      currentGroup = scheme.getSurfaceGroupOfSelector(value);
                     }
 
                     break;
                   }
                   case PanelAction::NewGroup: {
-                    currentGroup = scheme.addGroup();
+                    currentGroup = scheme.addSurfaceGroup();
 
                     break;
                   }
@@ -1911,16 +1913,18 @@ run(const S&           a_shape,
           if constexpr (hasRegionVisibility<S>) {
             const Scheme& scheme = settings.m_regions.m_scheme;
 
-            if (scheme.getNumGroups() > 0U) {
+            if (scheme.getNumSurfaceGroups() > 0U) {
               std::printf("Scheme scheme;\n");
 
-              for (uint32_t g = 0; g < scheme.getNumGroups(); g++) {
-                std::printf("const uint32_t group%u = scheme.addGroup(); // %s\n", unsigned(g), names.group(g).c_str());
+              for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+                std::printf("const uint32_t group%u = scheme.addSurfaceGroup(); // %s\n",
+                            unsigned(g),
+                            names.surfaceGroup(g).c_str());
               }
 
               for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
                 std::printf("scheme.add(group%u, %s); // %s\n",
-                            unsigned(scheme.getGroupOfSelector(i)),
+                            unsigned(scheme.getSurfaceGroupOfSelector(i)),
                             selectorCode(scheme.getSelector(i)).c_str(),
                             selectorName(scheme.getSelector(i)).c_str());
               }
@@ -2031,7 +2035,7 @@ run(const S&           a_shape,
               for (uint32_t i = scheme.getNumSelectors(); i > 0U; i--) {
                 const SurfaceSelector selector = scheme.getSelector(i - 1U);
 
-                if (scheme.getGroupOfSelector(i - 1U) == currentGroup && selector.matches(piece)) {
+                if (scheme.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(piece)) {
                   scheme.remove(currentGroup, selector);
                 }
               }
@@ -2042,8 +2046,8 @@ run(const S&           a_shape,
                 : ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? SurfaceSelector::surface(exact.m_surface)
                                                              : exact;
 
-              if (scheme.getNumGroups() == 0U) {
-                currentGroup = scheme.addGroup();
+              if (scheme.getNumSurfaceGroups() == 0U) {
+                currentGroup = scheme.addSurfaceGroup();
               }
 
               if (scheme.getNumSelectors() < Scheme::MaxSelectors) {
@@ -2070,12 +2074,12 @@ run(const S&           a_shape,
           if constexpr (hasRegionVisibility<S>) {
             Scheme& scheme = settings.m_regions.m_scheme;
 
-            if (currentGroup < scheme.getNumGroups()) {
-              scheme.removeGroup(currentGroup);
-              names.removeGroup(currentGroup);
+            if (currentGroup < scheme.getNumSurfaceGroups()) {
+              scheme.removeSurfaceGroup(currentGroup);
+              names.removeSurfaceGroup(currentGroup);
 
               currentGroup =
-                (currentGroup > 0U && currentGroup >= scheme.getNumGroups()) ? currentGroup - 1U : currentGroup;
+                (currentGroup > 0U && currentGroup >= scheme.getNumSurfaceGroups()) ? currentGroup - 1U : currentGroup;
 
               rekeyPick();
             }
@@ -2093,11 +2097,11 @@ run(const S&           a_shape,
           if constexpr (hasRegionVisibility<S>) {
             Scheme& scheme = settings.m_regions.m_scheme;
 
-            if (currentGroup + 1U < scheme.getNumGroups()) {
+            if (currentGroup + 1U < scheme.getNumSurfaceGroups()) {
               currentGroup++;
             }
-            else if (scheme.getNumGroups() < Scheme::MaxGroups) {
-              currentGroup = scheme.addGroup();
+            else if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
+              currentGroup = scheme.addSurfaceGroup();
             }
             else {
               currentGroup = 0;
@@ -2112,7 +2116,7 @@ run(const S&           a_shape,
         case SDLK_k: {
           if constexpr (hasRegionVisibility<S>) {
             // Group only with a scheme to color by.
-            const int count = (settings.m_regions.m_scheme.getNumGroups() > 0U) ? 7 : 6;
+            const int count = (settings.m_regions.m_scheme.getNumSurfaceGroups() > 0U) ? 7 : 6;
 
             settings.m_regions.setColoring(
               static_cast<RegionColoring>((static_cast<int>(settings.m_regions.m_coloring) + 1) % count));

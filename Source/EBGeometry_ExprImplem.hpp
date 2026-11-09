@@ -1272,9 +1272,9 @@ ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const Ma
   if (!expr.m_partition) {
     Region region;
 
-    region.m_node     = a_node;
-    region.m_group    = a_group;
-    region.m_material = a_material;
+    region.m_node        = a_node;
+    region.m_regionGroup = a_group;
+    region.m_material    = a_material;
 
     for (uint32_t node = a_node;; node = m_operands[node].front()) {
       if (!m_nodes[node].m_materialLabel.isNone()) {
@@ -1304,22 +1304,23 @@ ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const Ma
     m_nodes[a_node].m_materialLabel.isNone() ? a_material : m_nodes[a_node].m_materialLabel;
 
   if (expr.m_overlay) {
-    Group group;
+    RegionGroup group;
 
     group.m_node        = a_node;
     group.m_parent      = a_group;
     group.m_firstRegion = static_cast<uint32_t>(m_regions.size());
     group.m_material    = material;
 
-    const auto number = static_cast<uint32_t>(m_groups.size());
+    const auto number = static_cast<uint32_t>(m_regionGroups.size());
 
-    m_groups.push_back(group);
+    m_regionGroups.push_back(group);
 
     for (const uint32_t operand : m_operands[a_node]) {
       this->addRegions(operand, number, material);
     }
 
-    m_groups[number].m_numRegions = static_cast<uint32_t>(m_regions.size()) - m_groups[number].m_firstRegion;
+    m_regionGroups[number].m_numRegions =
+      static_cast<uint32_t>(m_regions.size()) - m_regionGroups[number].m_firstRegion;
   }
   else {
     // A map of a partition, or one clipped by masks: the partition is its first operand, the masks belong to no
@@ -1728,9 +1729,9 @@ ExprIndex<T>::getMaterialOf(const uint32_t a_region) const
 
 template <class T>
 inline std::vector<uint32_t>
-ExprIndex<T>::getRegionsOfGroup(const uint32_t a_group) const
+ExprIndex<T>::getRegionsOfRegionGroup(const uint32_t a_group) const
 {
-  const Group& group = this->getGroup(a_group);
+  const RegionGroup& group = this->getRegionGroup(a_group);
 
   std::vector<uint32_t> regions(group.m_numRegions);
 
@@ -1758,18 +1759,19 @@ ExprIndex<T>::getRegionsOfMaterial(const MaterialLabelId a_material) const
 
 template <class T>
 inline uint32_t
-ExprIndex<T>::getNumGroups() const noexcept
+ExprIndex<T>::getNumRegionGroups() const noexcept
 {
-  return static_cast<uint32_t>(m_groups.size());
+  return static_cast<uint32_t>(m_regionGroups.size());
 }
 
 template <class T>
-inline const typename ExprIndex<T>::Group&
-ExprIndex<T>::getGroup(const uint32_t a_group) const
+inline const typename ExprIndex<T>::RegionGroup&
+ExprIndex<T>::getRegionGroup(const uint32_t a_group) const
 {
-  EBGEOMETRY_REQUIRE(a_group < m_groups.size(), "ExprIndex: group %u of %zu", unsigned(a_group), m_groups.size());
+  EBGEOMETRY_REQUIRE(
+    a_group < m_regionGroups.size(), "ExprIndex: region group %u of %zu", unsigned(a_group), m_regionGroups.size());
 
-  return m_groups[a_group];
+  return m_regionGroups[a_group];
 }
 
 template <class T>
