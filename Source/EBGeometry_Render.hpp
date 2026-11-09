@@ -34,6 +34,7 @@
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_RegionSettings.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -519,6 +520,13 @@ struct Settings
    * @brief The fill's color.
    */
   Vec3T<T> m_volumeColor = Vec3T<T>(T(0.10), T(0.75), T(1.0));
+
+  /**
+   * @brief How a view of regions (RegionView) is shown: the visible regions, what a surface is colored by, the
+   * surfaces shown alone or seen through, and a solver's scheme. The renderer gives them to the view; other shapes
+   * ignore them.
+   */
+  RegionSettings m_regions;
 
   /**
    * @brief The fill's opacity where the part is thickest along a ray, from 0 to 1.

@@ -1002,3 +1002,48 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
     "Scheme: a scheme holds at most 8 groups"));
   REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: group 0 of 0"));
 }
+
+TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",
+                   "[Overlay][RegionView][Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Tape = Tape<T, TapeFeature::Regions>;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape             tape(pool, cable<T>());
+  const RegionView<Tape> view(tape);
+
+  Render::Settings<T> settings;
+
+  settings.m_width  = 64;
+  settings.m_height = 64;
+
+  const Render::Camera<T> camera = Render::Camera<T>::fit(view.computeBoundingVolume());
+
+  // Through the middle of the image: the jacket first; with only the core shown, or the jacket seen through, the core.
+  const T middle = T(32);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 1U);
+
+  settings.m_regions.showOnly(2);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 2U);
+
+  settings.m_regions.m_hidden = 0U;
+  settings.m_regions.setSeenThrough(1, true);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 2U);
+
+  // Colored by group: the core's surface in the first group, the jacket's outside in none.
+  settings.m_regions.clearSeenThrough();
+  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addGroup(), SurfaceSelector::region(2));
+  settings.m_regions.m_coloring = RegionColoring::Group;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == Scheme::None);
+
+  settings.m_regions.showOnly(2);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 0U);
+}

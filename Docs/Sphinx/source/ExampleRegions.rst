@@ -64,7 +64,12 @@ Looking at the regions
 
 ``RegionView`` shows a tape's regions as a shape whose surfaces are the regions' own, the internal ones between
 two regions included: along a camera ray, its crossings are the changes of region that touch a visible region,
-found exactly (``firstRegionChange()``). Seeing through the jacket (click it, then T) shows the core's surface
-inside it; hiding a region removes it, shadows included. Each surface is colored by the view's coloring: by
-region, material, surface label, surface or part (``withColoring()``, or K in the viewer). V shows one region at a
-time, Shift + V hides the picked one, and Ctrl + V shows them all.
+found exactly (``firstRegionChange()``). What it shows is part of the render settings, ``Settings::m_regions``
+(`RegionSettings <doxygen/html/structEBGeometry_1_1RegionSettings.html>`__): the regions shown, what a surface is
+colored by (region, material, surface label, surface, part, interface, or the group of a solver's scheme), the
+surfaces shown alone or seen through, and the scheme itself. The example sets the electrostatic scheme: every
+conductor surface (dirichlet) and the jacket's outside (jump).
+
+In the viewer, K cycles the coloring; V shows one region at a time, Shift + V hides the picked one, and Ctrl + V
+shows them all; T sees through the picked surface (the core's surface inside the jacket shows), and L shows only
+the surfaces like the picked one. Hidden regions cast no shadow.

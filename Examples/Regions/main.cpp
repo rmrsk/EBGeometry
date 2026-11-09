@@ -103,11 +103,21 @@ main(int argc, char* argv[])
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // RegionView shows the regions as one shape whose primitives are the regions: color by primitive (P) for a
-  // color per region, V to show one region at a time, Shift + V to hide the picked one.
+  // RegionView shows the regions' surfaces, internal ones included. What it shows lives in the render settings
+  // (m_regions): the coloring (K), the regions shown (V), the surfaces seen through (T) or shown alone (L), and a
+  // solver's scheme, here the electrostatic one: every conductor surface (dirichlet), the jacket's outside (jump).
+  // K reaches the coloring by group.
   EBGeometry::Render::Settings<T> settings;
 
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
+
+  EBGeometry::Scheme& scheme = settings.m_regions.m_scheme;
+
+  const uint32_t dirichlet = scheme.addGroup();
+  const uint32_t jump      = scheme.addGroup();
+
+  scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
+  scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
 
   const EBGeometry::RegionView<Tape> regions(tape);
 

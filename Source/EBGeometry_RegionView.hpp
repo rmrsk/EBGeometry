@@ -23,22 +23,10 @@
 #include "EBGeometry_LeafRef.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_RegionSettings.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
-
-/**
- * @brief What a RegionView names a surface by, the key a renderer colors by (Render::ColorBy::Primitive).
- */
-enum class RegionColoring : uint8_t
-{
-  Region,       ///< The region the surface belongs to, as seen.
-  Material,     ///< That region's material.
-  SurfaceLabel, ///< The surface's label (SurfaceLabel()).
-  Surface,      ///< The surface itself (SurfaceRef::m_surface): each shape, each member of a collection.
-  Part,         ///< The surface's part: a box's face, a mesh's face.
-  Interface     ///< The pair of regions on its two sides there (see RegionView::interfaceKey()).
-};
 
 /**
  * @brief The visible regions of a tape that lists TapeFeature::Regions, as a shape to look at: its surfaces are the
@@ -52,8 +40,9 @@ enum class RegionColoring : uint8_t
  * (RegionColoring) in HitT::m_primitive, so a renderer coloring by primitive colors by region, material, surface
  * label, surface, part or interface (the pair of regions on its two sides), and a viewer's pick reports it; a view can
  * show only the surfaces with one key (withOnlyKey()), the conductor's inner surface alone, say, passing the others
- * through. Up to 64 regions can be hidden; later ones are always
- * shown. A value type: it holds the tape's handle, so the tape's pool must outlive it; rebasedView() views the same
+ * through. What is shown is a RegionSettings, which the renderer gives the view from its settings
+ * (Render::Settings::m_regions); the view's own (withSettings(), and the with... functions) serve where it is used
+ * outside a render. Up to 64 regions can be hidden; later ones are always shown. A value type: it holds the tape's handle, so the tape's pool must outlive it; rebasedView() views the same
  * tape on a mirror of its pool, so Render::view(view, pool, ...) renders it on a device.
  * @tparam TapeType A Tape that lists TapeFeature::Regions.
  */
@@ -189,7 +178,7 @@ public:
 
         const uint32_t key = this->keyOf(change.m_surface, seen);
 
-        if (this->isSeenThrough(key) || (m_only != None && key != m_only)) {
+        if (this->isSeenThrough(key) || (m_settings.m_only != None && key != m_settings.m_only)) {
           continue;
         }
 
@@ -251,6 +240,51 @@ public:
   }
 
   /**
+   * @brief What the view shows.
+   * @return The settings.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const RegionSettings&
+  getSettings() const noexcept
+  {
+    return m_settings;
+  }
+
+  /**
+   * @brief The same view, showing what other settings say (the renderer gives it its own, Render::Settings::m_regions).
+   * @param[in] a_settings The settings.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline RegionView
+  withSettings(const RegionSettings& a_settings) const noexcept
+  {
+    RegionView view = *this;
+
+    view.m_settings = a_settings;
+
+    return view;
+  }
+
+  /**
+   * @brief No key (RegionSettings::None).
+   */
+  static constexpr uint32_t None = RegionSettings::None;
+
+  /**
+   * @brief The key of the interface between two regions (RegionSettings::interfaceKey()).
+   * @param[in] a_first  A region.
+   * @param[in] a_second The region on the other side.
+   * @return The key.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline uint32_t
+  interfaceKey(const uint32_t a_first, const uint32_t a_second) noexcept
+  {
+    return RegionSettings::interfaceKey(a_first, a_second);
+  }
+
+  /**
    * @brief Whether a region is shown (the background never is).
    * @param[in] a_region Region.
    * @return True if visible.
@@ -259,13 +293,24 @@ public:
   inline bool
   isVisible(const uint32_t a_region) const noexcept
   {
-    return a_region > 0U && a_region < m_tape.getNumRegions() &&
-           (a_region >= 64U || ((m_hidden >> a_region) & 1U) == 0U);
+    return m_settings.isVisible(a_region, m_tape.getNumRegions());
   }
 
   /**
-   * @brief The same view with a region shown or hidden.
-   * @param[in] a_region  Region (1 to 63; others are always shown).
+   * @brief Whether the surfaces with a key are seen through.
+   * @param[in] a_key The key.
+   * @return True if they are.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isSeenThrough(const uint32_t a_key) const noexcept
+  {
+    return m_settings.isSeenThrough(a_key);
+  }
+
+  /**
+   * @brief The same view with a region shown or hidden (RegionSettings::setVisible()).
+   * @param[in] a_region  Region.
    * @param[in] a_visible Whether to show it.
    * @return The view.
    */
@@ -275,11 +320,7 @@ public:
   {
     RegionView view = *this;
 
-    if (a_region > 0U && a_region < 64U) {
-      const uint64_t bit = uint64_t(1) << a_region;
-
-      view.m_hidden = a_visible ? (m_hidden & ~bit) : (m_hidden | bit);
-    }
+    view.m_settings.setVisible(a_region, a_visible);
 
     return view;
   }
@@ -294,7 +335,7 @@ public:
   {
     RegionView view = *this;
 
-    view.m_hidden = 0U;
+    view.m_settings.m_hidden = 0U;
 
     return view;
   }
@@ -310,33 +351,13 @@ public:
   {
     RegionView view = *this;
 
-    view.m_hidden = ~uint64_t(0);
+    view.m_settings.showOnly(a_region);
 
-    return view.withVisible(a_region, true);
+    return view;
   }
 
   /**
-   * @brief No key: every surface shown.
-   */
-  static constexpr uint32_t None = 0xFFFFFFFFU;
-
-  /**
-   * @brief The key of the interface between two regions (RegionColoring::Interface), the same whichever side it is
-   * seen from.
-   * @param[in] a_first  A region.
-   * @param[in] a_second The region on the other side.
-   * @return The key.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  static inline uint32_t
-  interfaceKey(const uint32_t a_first, const uint32_t a_second) noexcept
-  {
-    return (Math::min(a_first, a_second) << 16U) | Math::max(a_first, a_second);
-  }
-
-  /**
-   * @brief The same view, showing only the surfaces with a key (by the coloring): the others are passed through,
-   * and cast no shadow. None shows them all.
+   * @brief The same view, showing only the surfaces with a key (by the coloring); None shows them all.
    * @param[in] a_key The key, as HitT::m_primitive reports it (a pick), or None.
    * @return The view.
    */
@@ -346,39 +367,14 @@ public:
   {
     RegionView view = *this;
 
-    view.m_only = a_key;
+    view.m_settings.m_only = a_key;
 
     return view;
   }
 
   /**
-   * @brief How many keys can be seen through at once.
-   */
-  static constexpr uint32_t MaxSeenThrough = 8;
-
-  /**
-   * @brief Whether the surfaces with a key are seen through.
-   * @param[in] a_key The key.
-   * @return True if they are.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline bool
-  isSeenThrough(const uint32_t a_key) const noexcept
-  {
-    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
-      if (m_through[i] == a_key && a_key != None) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * @brief The same view with the surfaces of a key seen through, or opaque again: a surface seen through is passed
-   * through and casts no shadow, and a surface between its region and another is shown as the other's (with the
-   * core seen through, the jacket's bore). At most MaxSeenThrough keys; beyond them, none is added.
-   * @param[in] a_key     The key, as HitT::m_primitive reports it (a pick).
+   * @brief The same view with the surfaces of a key seen through, or opaque again (RegionSettings::setSeenThrough()).
+   * @param[in] a_key     The key.
    * @param[in] a_through Whether to see through it.
    * @return The view.
    */
@@ -388,35 +384,9 @@ public:
   {
     RegionView view = *this;
 
-    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
-      if (view.m_through[i] == a_key) {
-        view.m_through[i] = None;
-      }
-    }
-
-    if (a_through) {
-      for (uint32_t i = 0; i < MaxSeenThrough; i++) {
-        if (view.m_through[i] == None) {
-          view.m_through[i] = a_key;
-
-          break;
-        }
-      }
-    }
+    view.m_settings.setSeenThrough(a_key, a_through);
 
     return view;
-  }
-
-  /**
-   * @brief An entry of the keys seen through.
-   * @param[in] a_entry Entry (below MaxSeenThrough).
-   * @return The key, or None for an unused entry.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline uint32_t
-  getSeenThrough(const uint32_t a_entry) const noexcept
-  {
-    return (a_entry < MaxSeenThrough) ? m_through[a_entry] : None;
   }
 
   /**
@@ -429,37 +399,13 @@ public:
   {
     RegionView view = *this;
 
-    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
-      view.m_through[i] = None;
-    }
+    view.m_settings.clearSeenThrough();
 
     return view;
   }
 
   /**
-   * @brief The key shown alone, or None.
-   * @return The key.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline uint32_t
-  getOnlyKey() const noexcept
-  {
-    return m_only;
-  }
-
-  /**
-   * @brief What the view names a surface by.
-   * @return The coloring.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline RegionColoring
-  getColoring() const noexcept
-  {
-    return m_coloring;
-  }
-
-  /**
-   * @brief The same view, naming surfaces by another key.
+   * @brief The same view, naming surfaces by another key (RegionSettings::setColoring()).
    * @param[in] a_coloring The coloring.
    * @return The view.
    */
@@ -469,11 +415,25 @@ public:
   {
     RegionView view = *this;
 
-    view.m_coloring = a_coloring;
-    view.m_only     = None;
+    view.m_settings.setColoring(a_coloring);
 
-    // Keys mean another thing under another coloring.
-    return view.withNoneSeenThrough();
+    return view;
+  }
+
+  /**
+   * @brief The same view with a solver's scheme (RegionColoring::Group colors by its groups).
+   * @param[in] a_scheme The scheme.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline RegionView
+  withScheme(const Scheme& a_scheme) const noexcept
+  {
+    RegionView view = *this;
+
+    view.m_settings.m_scheme = a_scheme;
+
+    return view;
   }
 
 private:
@@ -483,24 +443,9 @@ private:
   TapeType m_tape;
 
   /**
-   * @brief The hidden regions, a bit each (bit k for region k).
+   * @brief What is shown.
    */
-  uint64_t m_hidden = 0U;
-
-  /**
-   * @brief What a surface is named by.
-   */
-  RegionColoring m_coloring = RegionColoring::Region;
-
-  /**
-   * @brief The key shown alone, or None.
-   */
-  uint32_t m_only = None;
-
-  /**
-   * @brief The keys seen through; None marks an unused entry.
-   */
-  uint32_t m_through[MaxSeenThrough] = {None, None, None, None, None, None, None, None};
+  RegionSettings m_settings;
 
   /**
    * @brief A surface's key, by the coloring.
@@ -512,9 +457,12 @@ private:
   inline uint32_t
   keyOf(const SurfaceRef<T>& a_surface, const uint32_t a_region) const noexcept
   {
-    switch (m_coloring) {
+    switch (m_settings.m_coloring) {
     case RegionColoring::Interface: {
-      return interfaceKey(a_surface.m_insideRegion, a_surface.m_outsideRegion);
+      return RegionSettings::interfaceKey(a_surface.m_insideRegion, a_surface.m_outsideRegion);
+    }
+    case RegionColoring::Group: {
+      return m_settings.m_scheme.groupOf(a_surface);
     }
     case RegionColoring::Material: {
       return m_tape.getMaterialOf(a_region).value();
@@ -569,29 +517,23 @@ struct RayForm<RegionView<TapeType>>
 };
 
 /**
- * @brief Whether a shape's regions can be shown, hidden and colored (RegionView): the primary template is false.
+ * @brief Whether a shape's regions are shown by region settings (RegionView): the primary template is false.
  * @tparam S Shape type.
  */
 template <class S, class = void>
 inline constexpr bool hasRegionVisibility = false;
 
 /**
- * @brief A shape with getNumRegions(), isVisible(), withVisible(), withOnly(), withAllVisible(), getColoring() and
- * withColoring().
+ * @brief A shape with getNumRegions(), getSettings() and withSettings(): the renderer gives it Render::Settings's
+ * region settings, and the viewer edits those.
  * @tparam S Shape type.
  */
 template <class S>
-inline constexpr bool
-  hasRegionVisibility<S,
-                      std::void_t<decltype(std::declval<const S&>().getNumRegions()),
-                                  decltype(std::declval<const S&>().isVisible(0U)),
-                                  decltype(std::declval<const S&>().withVisible(0U, true)),
-                                  decltype(std::declval<const S&>().withOnly(0U)),
-                                  decltype(std::declval<const S&>().withAllVisible()),
-                                  decltype(std::declval<const S&>().getColoring()),
-                                  decltype(std::declval<const S&>().withColoring(RegionColoring::Region)),
-                                  decltype(std::declval<const S&>().withOnlyKey(0U)),
-                                  decltype(std::declval<const S&>().withSeenThrough(0U, true))>> = true;
+inline constexpr bool hasRegionVisibility<
+  S,
+  std::void_t<decltype(std::declval<const S&>().getNumRegions()),
+              decltype(std::declval<const S&>().getSettings()),
+              decltype(std::declval<const S&>().withSettings(std::declval<const RegionSettings&>()))>> = true;
 
 } // namespace EBGeometry
 

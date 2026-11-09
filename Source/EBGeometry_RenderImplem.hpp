@@ -32,6 +32,7 @@
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_RegionView.hpp"
 #include "EBGeometry_Render.hpp"
 
 namespace EBGeometry::Render {
@@ -83,6 +84,29 @@ struct HasContourValue<S, T, std::void_t<decltype(std::declval<const S&>().conto
   : std::true_type
 {
 };
+
+/**
+ * @brief The shape as the settings show it: a view of regions with the settings' region settings
+ * (Settings::m_regions), any other shape as it is.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape    The shape.
+ * @param[in] a_settings The settings.
+ * @return The shape to render.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline S
+shownAs(const S& a_shape, const Settings<T>& a_settings) noexcept
+{
+  if constexpr (hasRegionVisibility<S>) {
+    return a_shape.withSettings(a_settings.m_regions);
+  }
+  else {
+    return a_shape;
+  }
+}
 
 template <class T, class S>
 struct Sectioned
@@ -354,7 +378,10 @@ public:
    */
   EBGEOMETRY_HOST_DEVICE
   Shader(const S& a_shape, const CameraView<T>& a_view, const Settings<T>& a_settings) noexcept
-    : m_object{a_shape, a_settings.m_section, a_settings.m_sectionPoint, unit(a_settings.m_sectionNormal)},
+    : m_object{shownAs(a_shape, a_settings),
+               a_settings.m_section,
+               a_settings.m_sectionPoint,
+               unit(a_settings.m_sectionNormal)},
       m_settings(a_settings),
       m_eye(a_view.m_eye),
       m_up(a_view.m_axis),
