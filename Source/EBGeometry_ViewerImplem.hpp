@@ -473,7 +473,8 @@ enum class PanelAction : uint8_t
   HideDomain,         ///< Hide the active domain's regions.
   OnlyDomain,         ///< Show only the active domain's regions.
   ShowAllRegions,     ///< Show every region again.
-  SectionSubdomain    ///< Show a subdomain's function on the section plane, or stop.
+  SectionSubdomain,   ///< Show a subdomain's function on the section plane, or stop.
+  HighlightRegion     ///< Highlight a region's surfaces (those with it on either side), or stop.
 };
 
 /**
@@ -1019,7 +1020,7 @@ run(const S&           a_shape,
   };
 
   // All the regions (0 to 63, the background included) of a subdomain of the active domain, a bit each: its field.
-  const auto subdomainField = [&](const uint32_t a_subdomain) {
+  const auto subdomainAllRegions = [&](const uint32_t a_subdomain) {
     uint64_t mask = 0U;
 
     if (names.getNumDomains() > 0U) {
@@ -1724,15 +1725,15 @@ run(const S&           a_shape,
                                through.empty() ? std::string("Nothing seen through") : "Seen through: " + through},
                               {}});
 
-      // The section's field: a subdomain's function, or the visible regions'.
-      if (regions.m_fieldRegions != 0U) {
-        std::string field = "Field: the function of a set of regions";
+      // What the section plane shows: a subdomain's function, or the visible regions'.
+      if (regions.m_sectionRegions != 0U) {
+        std::string field = "Section shows: the function of a set of regions";
 
         for (uint32_t d = 0;
              names.getNumDomains() > 0U && d < names.getDomain(names.getActiveDomain()).m_subdomains.getNumSubdomains();
              d++) {
-          if (subdomainField(d) == regions.m_fieldRegions) {
-            field = "Field: the function of subdomain " + names.subdomain(d, details) + " of " +
+          if (subdomainAllRegions(d) == regions.m_sectionRegions) {
+            field = "Section shows: the function of subdomain " + names.subdomain(d, details) + " of " +
                     names.domainName(names.getActiveDomain());
           }
         }
@@ -1740,7 +1741,7 @@ run(const S&           a_shape,
         states[2].m_now.push_back(field);
       }
       else {
-        states[2].m_now.push_back("Field: the visible regions' function");
+        states[2].m_now.push_back("Section shows: the visible regions' function");
       }
 
       // In the status, the picked piece in words.
@@ -1802,8 +1803,10 @@ run(const S&           a_shape,
             }
           }
 
-          // The background alone is never drawn: nothing to hide or highlight.
+          // Its drawn regions (the background is never drawn: nothing of it to hide), and all of them, the
+          // background's included, whose surfaces a highlight lights.
           const uint64_t mask = subdomainRegions(d);
+          const uint64_t all  = subdomainAllRegions(d);
 
           bool hiddenAll = mask != 0U;
 
@@ -1816,27 +1819,29 @@ run(const S&           a_shape,
           line("  ");
 
           panelLines.back() += names.subdomain(d, details) + ": " + in +
-                               ((mask != 0U && regions.m_highlightRegions == mask) ? " (highlighted)" : "") +
+                               ((all != 0U && regions.m_highlightRegions == all) ? " (highlighted)" : "") +
                                (hiddenAll ? " (hidden)" : "");
 
-          // The background alone is never drawn, but its function is what a code computing outside the object cuts.
+          panelActions.back().push_back(PanelSpan{2, panelLines.back().size(), PanelAction::HighlightSubdomain, d});
+
+          // The background alone is never drawn, but its surfaces can be highlighted, and its function is what a code
+          // computing outside the object cuts.
           if (mask == 0U) {
             panelLines.back() += ", outside everything";
 
-            button((regions.m_fieldRegions != 0U && regions.m_fieldRegions == subdomainField(d)) ? "Section: on"
-                                                                                                 : "Section",
+            button((regions.m_sectionRegions != 0U && regions.m_sectionRegions == subdomainAllRegions(d))
+                     ? "Section: on"
+                     : "Section",
                    PanelAction::SectionSubdomain,
                    d);
 
             continue;
           }
 
-          panelActions.back().push_back(PanelSpan{2, panelLines.back().size(), PanelAction::HighlightSubdomain, d});
-
           button(hiddenAll ? "Show" : "Hide", PanelAction::HideSubdomain, d);
           button("Only", PanelAction::OnlySubdomain, d);
-          button((regions.m_fieldRegions != 0U && regions.m_fieldRegions == subdomainField(d)) ? "Section: on"
-                                                                                               : "Section",
+          button((regions.m_sectionRegions != 0U && regions.m_sectionRegions == subdomainAllRegions(d)) ? "Section: on"
+                                                                                                        : "Section",
                  PanelAction::SectionSubdomain,
                  d);
         }
@@ -1911,10 +1916,13 @@ run(const S&           a_shape,
       }
 
       line("");
-      line("Regions (click to show or hide)");
+      line("Regions (box: show or hide; name: highlight)");
 
       // The background, everything outside: never drawn, but named, with its material's color.
-      line("      " + region(0) + ", outside everything");
+      line("      " + region(0) + ", outside everything" +
+           (regions.isRegionHighlighted(0) && regions.m_highlightRegions == 1U ? " (highlighted)" : ""));
+
+      panelActions.back().push_back(PanelSpan{6, panelLines.back().size(), PanelAction::HighlightRegion, 0U});
 
       if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Material) {
         swatch(names.materialOf(0));
@@ -1923,10 +1931,13 @@ run(const S&           a_shape,
       for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
         const bool inDomain = names.getNumDomains() > 0U && names.getDomain(names.getActiveDomain()).computesIn(k);
 
-        clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k) +
-                    (inDomain ? ", in the domain" : ""),
-                  PanelAction::ToggleRegion,
-                  k);
+        // The box shows or hides the region; its name highlights its surfaces.
+        line(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k) +
+             (inDomain ? ", in the domain" : "") +
+             ((k < 64U && regions.m_highlightRegions == (uint64_t(1) << k)) ? " (highlighted)" : ""));
+
+        panelActions.back().push_back(PanelSpan{2, 5, PanelAction::ToggleRegion, k});
+        panelActions.back().push_back(PanelSpan{6, panelLines.back().size(), PanelAction::HighlightRegion, k});
 
         if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Region) {
           swatch(k);
@@ -2550,7 +2561,7 @@ run(const S&           a_shape,
                     scheme                   = names.getDomain(clicked.m_value).m_scheme;
                     currentGroup             = 0;
                     regions.m_hiddenGroups   = 0U;
-                    regions.m_fieldRegions   = 0U;
+                    regions.m_sectionRegions = 0U;
                     regions.m_highlightGroup = RegionSettings::None;
                     pieceIndex               = std::size_t(-1);
 
@@ -2562,7 +2573,14 @@ run(const S&           a_shape,
                   break;
                 }
                 case PanelAction::HighlightSubdomain: {
-                  const uint64_t mask = subdomainRegions(clicked.m_value);
+                  const uint64_t mask = subdomainAllRegions(clicked.m_value);
+
+                  highlight(RegionSettings::None, (regions.m_highlightRegions == mask) ? uint64_t(0) : mask);
+
+                  break;
+                }
+                case PanelAction::HighlightRegion: {
+                  const uint64_t mask = (clicked.m_value < 64U) ? (uint64_t(1) << clicked.m_value) : uint64_t(0);
 
                   highlight(RegionSettings::None, (regions.m_highlightRegions == mask) ? uint64_t(0) : mask);
 
@@ -2608,11 +2626,11 @@ run(const S&           a_shape,
                 case PanelAction::SectionSubdomain: {
                   // The section plane shows the subdomain's function, what a cut-cell code cuts (turned on across x
                   // if it was off); again, the visible regions' again.
-                  const uint64_t field = subdomainField(clicked.m_value);
+                  const uint64_t field = subdomainAllRegions(clicked.m_value);
 
-                  regions.m_fieldRegions = (regions.m_fieldRegions == field) ? uint64_t(0) : field;
+                  regions.m_sectionRegions = (regions.m_sectionRegions == field) ? uint64_t(0) : field;
 
-                  if (regions.m_fieldRegions != 0U && sectionMode == 0) {
+                  if (regions.m_sectionRegions != 0U && sectionMode == 0) {
                     sectionMode   = 2;
                     sectionOffset = T(0);
                   }
@@ -3396,7 +3414,7 @@ run(const S&           a_shape,
 
             settings.m_regions.m_highlightGroup   = RegionSettings::None;
             settings.m_regions.m_highlightRegions = 0U;
-            settings.m_regions.m_fieldRegions     = 0U;
+            settings.m_regions.m_sectionRegions   = 0U;
             settings.m_regions.m_hiddenGroups     = a_settings.m_regions.m_hiddenGroups;
 
             for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {

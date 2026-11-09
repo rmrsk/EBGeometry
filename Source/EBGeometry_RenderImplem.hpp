@@ -1087,7 +1087,7 @@ private:
    * @brief Where a ray goes on from past a crossing, to find the next one.
    * @details A crossing found exactly (by a ray form) is passed by a tenth of the tolerance; a marched one, placed
    * within the tolerance, by four. Four for both stepped over a surface that close behind an exact crossing: the
-   * core's wall just inside a jacket's end face, seen through the jacket.
+   * an inner region's wall just inside an outer region's end face, seen through the outer one.
    * @param[in] a_hit The crossing.
    * @return The distance along the ray.
    */

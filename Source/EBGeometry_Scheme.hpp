@@ -253,8 +253,8 @@ struct SurfaceSelector
 };
 
 /**
- * @brief One solver's surface groups: "no-slip" for a flow solver, "dirichlet" and "jump" for an electrostatic
- * one, each a list of selectors (SurfaceSelector), so that a cut cell's surface (Tape::closestSurface(p, subdomains,
+ * @brief One solver's surface groups ("inlet", "outlet" and "wall" for a flow code; "heated" and "insulated" for a
+ * heat one), each a list of selectors (SurfaceSelector), so that a cut cell's surface (Tape::closestSurface(p, subdomains,
  * subdomain)) gives its surface group, and the surface group its boundary condition.
  * @details At most MaxSurfaceGroups surface groups and MaxSelectors selectors in all, so that a scheme is a plain value a kernel
  * takes (surfaceGroupOf() is callable on a device). A surface is in the surface group of the first selector it matches, in the

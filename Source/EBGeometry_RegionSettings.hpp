@@ -91,8 +91,8 @@ struct RegionSettings
   uint32_t m_highlightGroup = None;
 
   /**
-   * @brief The highlighted regions, a bit each (bit k for region k): their surfaces are keyed Highlighted, whatever the
-   * coloring (a subdomain's, say).
+   * @brief The highlighted regions, a bit each (bit k for region k, the background's bit 0 included): every surface
+   * with one of them on either side is keyed Highlighted, whatever the coloring (a subdomain's boundary, say).
    */
   uint64_t m_highlightRegions = 0U;
 
@@ -109,11 +109,11 @@ struct RegionSettings
   }
 
   /**
-   * @brief The regions whose function the view's value is, a bit each (bit k for region k, the background's bit 0
-   * included): a subdomain's, what a cut-cell code cuts for it (Tape::signedDistance(p, subdomains, subdomain)), on a
-   * section plane and in its contours; 0 for the visible regions'.
+   * @brief The regions whose function the section plane shows (its fill and contours, and the value under a viewer's
+   * cursor), a bit each (bit k for region k, the background's bit 0 included): a subdomain's, what a cut-cell code
+   * cuts for it (Tape::signedDistance(p, subdomains, subdomain)); 0 for the visible regions'.
    */
-  uint64_t m_fieldRegions = 0U;
+  uint64_t m_sectionRegions = 0U;
 
   /**
    * @brief The hidden surface groups of the scheme, a bit each (bit g for surface group g): their surfaces are not

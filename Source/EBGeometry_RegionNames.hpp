@@ -44,7 +44,7 @@ public:
   RegionNames() = default;
 
   /**
-   * @brief The names an expression's index gives: a region by its name and its material ("2 core (copper)"), a
+   * @brief The names an expression's index gives: a region by its name and its material ("2 wall (steel)"), a
    * surface by its label (or its number).
    * @tparam T Floating-point precision.
    * @param[in] a_index The index of the expression the tape was compiled from.
@@ -83,7 +83,7 @@ public:
   /**
    * @brief Register a domain: its name, the regions it computes in and its surface groups (see Domain). The first
    * registered is the active one, whose surface groups the names name and a viewer shows.
-   * @param[in] a_name   Its name ("electrostatics").
+   * @param[in] a_name   Its name ("heat transfer").
    * @param[in] a_domain The domain.
    * @return Its number, from 0 in the order registered.
    */
@@ -203,7 +203,7 @@ public:
   }
 
   /**
-   * @brief Name a subdomain of a domain ("air", "jacket").
+   * @brief Name a subdomain of a domain ("fluid", "solid").
    * @param[in] a_domain    The domain (below getNumDomains()).
    * @param[in] a_subdomain The subdomain (its number in the domain's Subdomains).
    * @param[in] a_name      Its name.
@@ -225,7 +225,7 @@ public:
   }
 
   /**
-   * @brief A subdomain's name in the active domain, with its number or not: "1 jacket" or "jacket"; "subdomain 1".
+   * @brief A subdomain's name in the active domain, with its number or not: "1 solid" or "solid"; "subdomain 1".
    * @param[in] a_subdomain The subdomain.
    * @param[in] a_number    Whether to put its number first.
    * @return The name.
@@ -245,7 +245,7 @@ public:
   /**
    * @brief Give a name a color: a region's, a material's, a surface label's or a surface group's. Colored by that
    * kind of key, its surfaces take it; others take the palette's.
-   * @param[in] a_name  The name ("copper", "core", "dirichlet").
+   * @param[in] a_name  The name ("steel", "wall", "inlet").
    * @param[in] a_color Its color, linear RGB in [0, 1] (as Render::Settings::m_color).
    */
   EBGEOMETRY_HOST
@@ -378,7 +378,7 @@ public:
   }
 
   /**
-   * @brief A region's name and material, with its number or not: "2 core (copper)" or "core (copper)"; the
+   * @brief A region's name and material, with its number or not: "2 wall (steel)" or "wall (steel)"; the
    * background is "background", a region without a name "region 2".
    * @param[in] a_region The region.
    * @param[in] a_number Whether to put its number first.
@@ -444,7 +444,7 @@ public:
   }
 
   /**
-   * @brief A surface group's name, with its number or not: "0 dirichlet" or "dirichlet"; "surface group 0".
+   * @brief A surface group's name, with its number or not: "0 inlet" or "inlet"; "surface group 0".
    * @param[in] a_group  The group.
    * @param[in] a_number Whether to put its number first.
    * @return The name.

@@ -3606,8 +3606,8 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
   const uint32_t n = this->numRegionOperands();
 
   // A nudge past a crossing, to name the region beyond it and to start the next query: a hundredth of the march's
-  // tolerance at the object's scale. A whole tolerance named the region past a thin layer instead (where a jacket's
-  // end face meets the core, the core: a seam with the end face's normal) and stepped over crossings that close.
+  // tolerance at the object's scale. A whole tolerance named the region past a thin layer instead (where an outer
+  // region's end face meets an inner one passing through it, the inner one: a seam with the end face's normal) and stepped over crossings that close.
   const BoundingVolumes::AABBT<T> box = m_layout.m_boundingVolume;
 
   const T diagonal = (box.getHighCorner() - box.getLowCorner()).length();

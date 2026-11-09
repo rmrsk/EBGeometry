@@ -39,7 +39,7 @@ namespace EBGeometry {
  * function, negative exactly in them and zero only on their outer surface. Each crossing is named by the coloring
  * (RegionColoring) in HitT::m_primitive, so a renderer coloring by primitive colors by region, material, surface
  * label, surface, part or interface (the pair of regions on its two sides), and a viewer's pick reports it; a view can
- * show only the surfaces with one key (withOnlyKey()), the conductor's inner surface alone, say, passing the others
+ * show only the surfaces with one key (withOnlyKey()), the interface between two regions alone, say, passing the others
  * through. What is shown is a RegionSettings, which the renderer gives the view from its settings
  * (Render::Settings::m_regions); the view's own (withSettings(), and the with... functions) serve where it is used
  * outside a render. Up to 64 regions can be hidden; later ones are always shown. A value type: it holds the tape's handle, so the tape's pool must outlive it; rebasedView() views the same
@@ -64,7 +64,7 @@ public:
   {}
 
   /**
-   * @brief The value: the function of the field's regions (RegionSettings::m_fieldRegions) or, without them, of the
+   * @brief The value: the function of the section's regions (RegionSettings::m_sectionRegions) or, without them, of the
    * visible regions, as a subdomain's (see Tape::signedDistance(p, subdomains, subdomain)): half the difference of the
    * smallest function of a region in the set and of one not in it; the largest value when the set is empty.
    * @param[in] a_point Point.
@@ -78,12 +78,12 @@ public:
     T in  = Math::Limits<T>::max();
     T out = Math::Limits<T>::max();
 
-    const uint64_t field = m_settings.m_fieldRegions;
+    const uint64_t section = m_settings.m_sectionRegions;
 
     for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
       const T d = m_tape.signedDistance(a_point, k);
 
-      const bool member = (field != 0U) ? (k < 64U && ((field >> k) & 1U) != 0U) : this->isVisible(k);
+      const bool member = (section != 0U) ? (k < 64U && ((section >> k) & 1U) != 0U) : this->isVisible(k);
 
       if (member) {
         in = Math::min(in, d);
@@ -99,8 +99,8 @@ public:
   /**
    * @brief The field a section plane's contours are drawn from: the distance to the nearest surface of a visible
    * region (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces
-   * between two of them included, which the value (the visible regions' outer surface) does not have. With field
-   * regions set (RegionSettings::m_fieldRegions), the value's own zero set: the subdomain's boundary alone.
+   * between two of them included, which the value (the visible regions' outer surface) does not have. With section
+   * regions set (RegionSettings::m_sectionRegions), the value's own zero set: the subdomain's boundary alone.
    * @param[in] a_point Point.
    * @return The field.
    */
@@ -109,7 +109,7 @@ public:
   inline T
   contourValue(const Vec3T<T>& a_point) const noexcept
   {
-    if (m_settings.m_fieldRegions != 0U) {
+    if (m_settings.m_sectionRegions != 0U) {
       return std::abs(this->signedDistance(a_point));
     }
 
@@ -176,8 +176,8 @@ public:
 
       // The surface crossed lies on the later region's operand (an interface is on the surface of the region on
       // top), so it is shown as that region's, whichever way the ray goes; when that region is hidden, seen through or
-      // not the one shown alone, as the other region's. So with the core seen through, the core's wall inside a
-      // jacket is the jacket's bore; with the jacket seen through, the core's wall.
+      // not the one shown alone, as the other region's. So with an inner region seen through, its wall inside an outer
+      // one is the outer region's bore; with the outer one seen through, the inner one's wall.
       const uint32_t sides[2] = {Math::max(from, to), Math::min(from, to)};
 
       // The surface group the surface is in, when the settings hide or highlight one.
@@ -214,7 +214,7 @@ public:
 
         // The surfaces of the highlighted surface group, whatever the coloring.
         if ((m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) ||
-            m_settings.isRegionHighlighted(seen)) {
+            m_settings.isRegionHighlighted(from) || m_settings.isRegionHighlighted(to)) {
           hit.m_primitive = RegionSettings::Highlighted;
         }
 

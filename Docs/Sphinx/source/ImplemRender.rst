@@ -215,9 +215,10 @@ A view of regions also gets a panel at the top left, used with the mouse (the me
 click on the panel away from its buttons picks the surface behind it). It names things in words ("Surface 1,
 between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. With domains
 registered (``RegionNames::addDomain()``), a row of their names comes first, then the active one's subdomains: a
-click on one highlights its surfaces (``RegionSettings::m_highlightRegions`` in a program), its ``[Hide]`` and
+click on one highlights its boundary, every surface with one of its regions on either side, the background's
+subdomain included (``RegionSettings::m_highlightRegions`` in a program), its ``[Hide]`` and
 ``[Only]`` hide its regions or show only them, its ``[Section]`` shows its function on the section plane, what a
-cut-cell code cuts for it, the background's subdomain included (``RegionSettings::m_fieldRegions``), and ``[Hide domain]``, ``[Only this domain]`` and ``[Show all]`` do
+cut-cell code cuts for it, the background's subdomain included (``RegionSettings::m_sectionRegions``), and ``[Hide domain]``, ``[Only this domain]`` and ``[Show all]`` do
 the same for the whole domain. The active domain's surface groups are shown and edited, its regions marked, and the
 pieces counted those it touches. A "Color by" row sets what the surfaces
 are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),
@@ -226,7 +227,8 @@ and a swatch beside each region or surface group shows its color; colors given t
 the palette's. Below, it shows the picked piece (its surface,
 part, the regions inside and outside, and its surface group) with the ways to add it to the current surface group,
 each saying how many of the object's pieces it takes in: this piece only, all of its surface, all surfaces of its
-region, or everything between its two regions; and a button to remove it; the regions, each shown or hidden by a click (the background listed, never drawn); and the
+region, or everything between its two regions; and a button to remove it; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
+either side lights; the background is listed and highlighted so, never drawn); and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
 ``RegionSettings::m_highlightGroup`` does the same in a program), its ``[Hide]`` hides its surfaces (they are not

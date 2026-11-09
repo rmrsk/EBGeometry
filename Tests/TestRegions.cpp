@@ -519,7 +519,7 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
 
   RegionSettings outside = all.getSettings();
 
-  outside.m_fieldRegions = uint64_t(1);
+  outside.m_sectionRegions = uint64_t(1);
 
   const RegionView<Tape> airView = all.withSettings(outside);
 
@@ -1460,7 +1460,9 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 2U);
 
-  // Highlighted regions (a subdomain's): their surfaces keyed Highlighted, others not.
+  // Highlighted regions (a subdomain's): every surface with one of them on either side keyed Highlighted, others not.
+  // The jacket's outside (jacket | air) is lit by highlighting the jacket or the background; the core's surface alone
+  // (the core shown alone, inside the jacket: core | jacket) by the jacket too, not by the background.
   settings.m_regions.m_hidden           = 0U;
   settings.m_regions.m_highlightRegions = uint64_t(1) << 1U;
 
@@ -1470,5 +1472,13 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   settings.m_regions.showOnly(2);
 
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+
+  settings.m_regions.m_highlightRegions = uint64_t(1);
+
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive != RegionSettings::Highlighted);
+
+  settings.m_regions.m_hidden = 0U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
 }

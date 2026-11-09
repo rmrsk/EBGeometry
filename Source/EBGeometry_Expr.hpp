@@ -972,7 +972,7 @@ inline Expr<ExprPrecision<A>>
 MaterialLabel(const A& a_operand, std::string a_name);
 
 /**
- * @brief Name a region: an operand of an Overlay ("core", "jacket"), or a whole Overlay nested in another (its region
+ * @brief Name a region: an operand of an Overlay ("fluid", "wall"), or a whole Overlay nested in another (its region
  * group).
  * @details A region's name says which region it is, its material (MaterialLabel()) what it is made of: two regions of
  * the same material have names of their own. ExprIndex gives the names (Region::m_name, RegionGroup::m_name) and
