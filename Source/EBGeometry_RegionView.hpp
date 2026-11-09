@@ -218,6 +218,43 @@ public:
   }
 
   /**
+   * @brief The piece of surface at a point a ray met (firstHit()): the surface, its part and label, and the regions on
+   * its two sides there, the region whose surface was seen inside (SurfaceRef::m_insideRegion) and the one across
+   * outside, with their materials; what a click picks, for a scheme's selector (SurfaceSelector::piece()).
+   * @details The region seen is the one just behind the surface (against the normal, which points out of it) and the
+   * one across just in front, a small step away; the surface and its sides then come from Tape::closestSurface(p,
+   * region).
+   * @param[in] a_point  The point, on a visible surface.
+   * @param[in] a_normal The hit's normal there (outward of the region seen).
+   * @return The piece, or no surface when no visible region is behind the point.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  pieceAt(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
+  {
+    const BoundingVolumes::AABBT<T> box = m_tape.computeBoundingVolume();
+
+    const T size   = (box.getHighCorner() - box.getLowCorner()).length();
+    const T step   = (size > T(0) && size < Math::Limits<T>::max()) ? T(1e-4) * size : T(1e-4);
+    const T length = a_normal.length();
+
+    if (!(length > T(0))) {
+      return SurfaceRef<T>();
+    }
+
+    const Vec3T<T> n = a_normal / length;
+
+    uint32_t seen = m_tape.region(a_point - step * n);
+
+    // Seen from inside a region (its far wall), the region in front is the visible one.
+    if (!this->isVisible(seen)) {
+      seen = m_tape.region(a_point + step * n);
+    }
+
+    return this->isVisible(seen) ? m_tape.closestSurface(a_point, seen) : SurfaceRef<T>();
+  }
+
+  /**
    * @brief The tape's box.
    * @return The box.
    */
@@ -524,8 +561,8 @@ template <class S, class = void>
 inline constexpr bool hasRegionVisibility = false;
 
 /**
- * @brief A shape with getNumRegions(), getSettings() and withSettings(): the renderer gives it Render::Settings's
- * region settings, and the viewer edits those.
+ * @brief A shape with getNumRegions(), getSettings(), withSettings() and pieceAt(): the renderer gives it
+ * Render::Settings's region settings, and the viewer edits those and picks pieces of surface for a scheme.
  * @tparam S Shape type.
  */
 template <class S>
@@ -533,7 +570,9 @@ inline constexpr bool hasRegionVisibility<
   S,
   std::void_t<decltype(std::declval<const S&>().getNumRegions()),
               decltype(std::declval<const S&>().getSettings()),
-              decltype(std::declval<const S&>().withSettings(std::declval<const RegionSettings&>()))>> = true;
+              decltype(std::declval<const S&>().withSettings(std::declval<const RegionSettings&>())),
+              decltype(std::declval<const S&>().pieceAt(std::declval<const Vec3T<typename S::T>&>(),
+                                                        std::declval<const Vec3T<typename S::T>&>()))>> = true;
 
 } // namespace EBGeometry
 

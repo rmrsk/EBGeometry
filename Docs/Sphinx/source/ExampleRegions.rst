@@ -73,3 +73,9 @@ conductor surface (dirichlet) and the jacket's outside (jump).
 In the viewer, K cycles the coloring; V shows one region at a time, Shift + V hides the picked one, and Ctrl + V
 shows them all; T sees through the picked surface (the core's surface inside the jacket shows), and L shows only
 the surfaces like the picked one. Hidden regions cast no shadow.
+
+A click names the piece of surface under the cursor: its surface, part, and the regions on its two sides
+(``RegionView::pieceAt()`` gives it to a program). Enter adds the picked piece to the current group of the scheme,
+Shift + Enter the whole surface, Ctrl + Enter the interface between its two regions, and Backspace removes it; J
+moves to the next group, starting a new one past the last. The surfaces are then colored by group, and the status
+lines list the current group's selectors.

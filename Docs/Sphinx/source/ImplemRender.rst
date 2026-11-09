@@ -190,12 +190,18 @@ opened with them.
      - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
        save the full frame as a PPM image (``writeImage()``) in the working directory.
    * - K; L
-     - For a view of regions (``RegionView``): color by region, material, surface label, surface, part or
-       interface (the pair of regions on its two sides); show only the surfaces of the picked surface's key,
-       or everything again.
+     - For a view of regions (``RegionView``): color by region, material, surface label, surface, part,
+       interface (the pair of regions on its two sides) or group of the scheme; show only the surfaces of the
+       picked surface's key, or everything again.
    * - V; Shift + V; Ctrl + V
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
+   * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J
+     - For a view of regions, building the scheme's groups (``Settings::m_regions.m_scheme``): add the picked
+       piece (its surface, part and the regions on its two sides) to the current group; add the picked surface
+       whole; add the interface between the picked piece's two regions; remove what holds the picked piece from
+       the current group; make the next group current, or start a new one past the last. The status lines name
+       the picked piece and list the current group.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.

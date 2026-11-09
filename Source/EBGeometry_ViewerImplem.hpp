@@ -188,7 +188,12 @@ keys(const bool a_device, const bool a_regions = false)
                 {"L", "Show only the picked surface (what it is follows K), or everything again"},
                 {"V", "Show one region at a time, in turn, then all"},
                 {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
-                {"Ctrl + V", "Show every region"}}});
+                {"Ctrl + V", "Show every region"},
+                {"Enter", "Add the picked piece (its surface, part and the regions on its sides) to the current group"},
+                {"Shift + Enter", "Add the picked surface, all its parts and sides, to the current group"},
+                {"Ctrl + Enter", "Add the interface of the picked piece (its two regions) to the current group"},
+                {"Backspace", "Remove what holds the picked piece from the current group"},
+                {"J", "Make the next group current; past the last, start a new one"}}});
   }
 
   return groups;
@@ -499,8 +504,11 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   // The region shown alone (0: all), stepped through with V.
   uint32_t soloRegion = 0;
-  const T  diag       = (box.getHighCorner() - box.getLowCorner()).length();
-  const T  scale      = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
+
+  // The group of the scheme that Enter adds to (see RegionSettings::m_scheme).
+  uint32_t currentGroup = 0;
+  const T  diag         = (box.getHighCorner() - box.getLowCorner()).length();
+  const T  scale        = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
   // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
   // or z axis through the box's center (2 to 4); moved along its normal by an offset, and reversed (the
@@ -961,6 +969,49 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
       const char* colorings[] = {"region", "material", "surface label", "surface", "part", "interface", "group"};
 
+      // A piece of surface, and a selector, in words.
+      const auto number = [](const uint32_t a_value) {
+        return (a_value == SurfaceSelector::Any) ? std::string("any") : std::to_string(a_value);
+      };
+
+      const auto pieceName = [&number](const SurfaceRef<T>& a_piece) {
+        if (a_piece.m_surface == SurfaceRef<T>::None) {
+          return std::string("no surface");
+        }
+
+        return "surface " + std::to_string(a_piece.m_surface) + ", part " + std::to_string(a_piece.m_part) +
+               ", region " + number(a_piece.m_insideRegion) + " inside, region " + number(a_piece.m_outsideRegion) +
+               " outside";
+      };
+
+      const auto selectorName = [&number](const SurfaceSelector& a_selector) {
+        std::string name;
+
+        const auto add = [&name](const std::string& a_condition) { name += (name.empty() ? "" : ", ") + a_condition; };
+
+        if (a_selector.m_surface != SurfaceSelector::Any) {
+          add("surface " + number(a_selector.m_surface));
+        }
+        if (a_selector.m_part != SurfaceSelector::Any) {
+          add("part " + number(a_selector.m_part));
+        }
+        if (a_selector.m_regionA != SurfaceSelector::Any) {
+          add((a_selector.m_regionB != SurfaceSelector::Any)
+                ? "regions " + number(a_selector.m_regionA) + " | " + number(a_selector.m_regionB)
+                : "region " + number(a_selector.m_regionA));
+        }
+        if (a_selector.m_label != SurfaceSelector::Any) {
+          add("label " + number(a_selector.m_label));
+        }
+        if (a_selector.m_materialA != SurfaceSelector::Any) {
+          add((a_selector.m_materialB != SurfaceSelector::Any)
+                ? "materials " + number(a_selector.m_materialA) + " | " + number(a_selector.m_materialB)
+                : "material " + number(a_selector.m_materialA));
+        }
+
+        return name.empty() ? std::string("everything") : name;
+      };
+
       const auto keyName = [&regions, &colorings](const uint32_t a_key) {
         if (regions.m_coloring == RegionColoring::Interface) {
           return "interface regions " + std::to_string(a_key >> 16U) + " | " + std::to_string(a_key & 0xFFFFU);
@@ -977,7 +1028,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         states.end() - 1,
         {std::string("Colored by ") + colorings[static_cast<int>(regions.m_coloring)] +
            ((regions.m_only != RegionSettings::None) ? "; showing only " + keyName(regions.m_only) : std::string()),
-         picked ? "Picked: " + keyName(pick.m_primitive) : std::string("Nothing picked"),
+         picked ? "Picked: " + keyName(pick.m_primitive) + "; " + pieceName(shape.pieceAt(pick.m_point, pick.m_normal))
+                : std::string("Nothing picked"),
          [&regions, &keyName]() {
            std::string through;
 
@@ -991,7 +1043,25 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
          }(),
          hiddenRegions.empty()
            ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
-           : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions});
+           : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions,
+         [&regions, &selectorName, currentGroup]() {
+           const Scheme& scheme = regions.m_scheme;
+
+           if (scheme.getNumGroups() == 0U) {
+             return std::string("No groups (Enter starts one with the picked piece)");
+           }
+
+           std::string group = "Group " + std::to_string(currentGroup) + " of " + std::to_string(scheme.getNumGroups());
+           std::string held;
+
+           for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
+             if (scheme.getGroupOfSelector(i) == currentGroup) {
+               held += (held.empty() ? "" : "; ") + selectorName(scheme.getSelector(i));
+             }
+           }
+
+           return group + ": " + (held.empty() ? std::string("empty") : held);
+         }()});
     }
 
     std::vector<std::string> lines{
@@ -1678,6 +1748,85 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
             regions.m_only =
               (regions.m_only == RegionSettings::None && picked) ? pick.m_primitive : RegionSettings::None;
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
+        case SDLK_RETURN:
+        case SDLK_KP_ENTER:
+        case SDLK_BACKSPACE: {
+          if constexpr (hasRegionVisibility<S>) {
+            Scheme&             scheme = settings.m_regions.m_scheme;
+            const SurfaceRef<T> piece  = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
+
+            if (piece.m_surface == SurfaceRef<T>::None) {
+              changed = pending;
+
+              break;
+            }
+
+            const SurfaceSelector exact = SurfaceSelector::piece(piece);
+
+            if (event.key.keysym.sym == SDLK_BACKSPACE) {
+              // Every selector of the current group that holds the piece goes.
+              for (uint32_t i = scheme.getNumSelectors(); i > 0U; i--) {
+                const SurfaceSelector selector = scheme.getSelector(i - 1U);
+
+                if (scheme.getGroupOfSelector(i - 1U) == currentGroup && selector.matches(piece)) {
+                  scheme.remove(currentGroup, selector);
+                }
+              }
+            }
+            else {
+              const SurfaceSelector selector =
+                ((event.key.keysym.mod & KMOD_CTRL) != 0) ? SurfaceSelector::interface(exact.m_regionA, exact.m_regionB)
+                : ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? SurfaceSelector::surface(exact.m_surface)
+                                                             : exact;
+
+              if (scheme.getNumGroups() == 0U) {
+                currentGroup = scheme.addGroup();
+              }
+
+              if (scheme.getNumSelectors() < Scheme::MaxSelectors) {
+                scheme.remove(currentGroup, selector);
+                scheme.add(currentGroup, selector);
+              }
+              else {
+                std::printf("EBGeometry viewer: the scheme holds %u selectors already\n",
+                            unsigned(Scheme::MaxSelectors));
+                std::fflush(stdout);
+              }
+            }
+
+            // Show the groups.
+            if (settings.m_regions.m_coloring != RegionColoring::Group) {
+              settings.m_regions.setColoring(RegionColoring::Group);
+            }
+
+            settings.m_colorBy = ColorBy::Primitive;
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
+        case SDLK_j: {
+          if constexpr (hasRegionVisibility<S>) {
+            Scheme& scheme = settings.m_regions.m_scheme;
+
+            if (currentGroup + 1U < scheme.getNumGroups()) {
+              currentGroup++;
+            }
+            else if (scheme.getNumGroups() < Scheme::MaxGroups) {
+              currentGroup = scheme.addGroup();
+            }
+            else {
+              currentGroup = 0;
+            }
           }
           else {
             changed = pending;

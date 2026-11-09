@@ -498,6 +498,29 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
 
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);
 
+  // The piece a hit picks: the region seen inside, the one across outside (the core's cut face: core | air; the
+  // core's wall seen from the jacket: core | jacket; the jacket's outer surface: jacket | air).
+  const SurfaceRef<T> cutPiece  = all.pieceAt(coreFace.m_point, coreFace.m_normal);
+  const SurfaceRef<T> wallPiece = all.pieceAt(inner.m_point, inner.m_normal);
+  const SurfaceRef<T> skinPiece = all.pieceAt(outer.m_point, outer.m_normal);
+
+  CHECK(cutPiece.m_insideRegion == 2U);
+  CHECK(cutPiece.m_outsideRegion == 0U);
+  CHECK(wallPiece.m_insideRegion == 2U);
+  CHECK(wallPiece.m_outsideRegion == 1U);
+  CHECK(skinPiece.m_insideRegion == 1U);
+  CHECK(skinPiece.m_outsideRegion == 0U);
+  CHECK(wallPiece.m_surface != cutPiece.m_surface);
+  CHECK(SurfaceSelector::piece(wallPiece).matches(wallPiece));
+  CHECK(!SurfaceSelector::piece(wallPiece).matches(skinPiece));
+
+  // With the core hidden, its wall seen from the jacket is the jacket's bore: the jacket is the region seen.
+  const SurfaceRef<T> borePiece = all.withVisible(2, false).pieceAt(inner.m_point, inner.m_normal);
+
+  CHECK(borePiece.m_insideRegion == 1U);
+  CHECK(borePiece.m_outsideRegion == 2U);
+  CHECK(all.pieceAt(inner.m_point, Vec3::zeros()).m_surface == SurfaceRef<T>::None);
+
   CHECK(all.withVisible(1, false).isVisible(2));
   CHECK(!all.withVisible(1, false).isVisible(1));
   CHECK(all.withOnly(1).withAllVisible().isVisible(2));
