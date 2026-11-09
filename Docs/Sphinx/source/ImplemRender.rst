@@ -206,7 +206,10 @@ A view of regions also gets a panel at the top right, used with the mouse. It sh
 part, the regions inside and outside, and its surface group) with buttons to add it, its whole surface or its
 interface to the current surface group, or to remove it; the regions, each shown or hidden by a click; and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
-it current, and its ``[delete]`` and a selector's ``[x]`` remove them; ``[+ new surface group]`` starts one.
+it current, and its ``[delete]`` and a selector's ``[x]`` remove them; ``[+ new surface group]`` starts one. Last, it
+counts the object's pieces (``findSurfacePieces()``) and those in no surface group: ``[next unassigned]`` picks the
+next of these and turns the camera to it, and ``[list]`` lists every piece, a click picking it. Colored by surface
+group, a surface in none is gray.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.

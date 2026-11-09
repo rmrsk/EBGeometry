@@ -337,7 +337,10 @@ with its sides, on the host and on a device, and the surface carries the materia
    electrostatics.surfaceGroupOf(tape.closestSurface(p, phases, phase));   // at a cut cell, in a kernel
 
 ``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
-``getSidesOfLeaf(leaf)`` those of one shape's surface: what a solver's setup can expect to meet.
+``getSidesOfLeaf(leaf)`` those of one shape's surface: what a solver's setup can expect to meet. On the host,
+``findSurfacePieces(tape)`` finds the pieces the object actually has, each once, by crossing it with rays on a grid
+(a finer grid finds smaller pieces), and ``unassignedPieces(pieces, scheme)`` those no surface group holds: what a
+solver would meet without a boundary condition.
 
 Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
 finds the first point where the region changes, from inside any region: the crossing, with its normal pointing

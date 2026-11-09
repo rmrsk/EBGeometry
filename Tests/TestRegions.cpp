@@ -1058,6 +1058,64 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
   CHECK(names.surfaceGroup(1) == "1 jump");
 }
 
+TEMPLATE_TEST_CASE("findSurfacePieces: every surface and part between every pair of regions, once each",
+                   "[Overlay][SurfacePieces]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T, TapeFeature::Regions>;
+
+  // The cable (jacket radius 1, region 1; core radius 0.5, region 2; air 0) with x > 0, 0 < z < 1 cut away. By hand:
+  // the jacket's skin (1 | 0), the core's wall in the jacket (2 | 1), and the box's faces in the cut: x = 0 and
+  // z = 0 through both regions (1 | 0 and 2 | 0 each); the face z = 1 only touches the jacket at its top.
+  const Expr<T> cut = Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(0)), Vec3(T(2), T(2), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape tape(pool, cut);
+
+  const std::vector<SurfacePiece<T>> pieces = findSurfacePieces(tape, 32);
+
+  REQUIRE(pieces.size() == 6U);
+
+  uint32_t coreWall = 0;
+  uint32_t onCore   = 0;
+  uint32_t onAir    = 0;
+
+  for (const SurfacePiece<T>& piece : pieces) {
+    const SurfaceRef<T>& s = piece.m_surface;
+
+    // The later region inside, and the normal pointing out of it: the point a little along it is outside.
+    CHECK(s.m_insideRegion > s.m_outsideRegion);
+    CHECK(tape.region(piece.m_point + T(1e-3) * piece.m_normal) == s.m_outsideRegion);
+    CHECK(tape.region(piece.m_point - T(1e-3) * piece.m_normal) == s.m_insideRegion);
+    CHECK(piece.m_crossings > 0U);
+
+    coreWall += (s.m_insideRegion == 2U && s.m_outsideRegion == 1U) ? 1U : 0U;
+    onCore += (s.m_insideRegion == 2U) ? 1U : 0U;
+    onAir += (s.m_outsideRegion == 0U) ? 1U : 0U;
+  }
+
+  CHECK(coreWall == 1U);
+  CHECK(onCore == 3U);
+  CHECK(onAir == 5U);
+
+  // A finer grid finds the same pieces.
+  CHECK(findSurfacePieces(tape, 64).size() == 6U);
+
+  // Every surface of the core in a surface group: the pieces left are the three that do not touch it.
+  Scheme scheme;
+
+  scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::region(2));
+
+  CHECK(unassignedPieces(pieces, scheme).size() == 3U);
+
+  scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::region(1));
+
+  CHECK(unassignedPieces(pieces, scheme).empty());
+}
+
 TEMPLATE_TEST_CASE("RegionName: names a region apart from its material, unique, only where a region is",
                    "[Overlay][RegionName]",
                    EBGEOMETRY_TEST_PRECISIONS)

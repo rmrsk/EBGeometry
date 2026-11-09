@@ -255,6 +255,17 @@ public:
   }
 
   /**
+   * @brief The tape the view shows.
+   * @return The tape.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const TapeType&
+  getTape() const noexcept
+  {
+    return m_tape;
+  }
+
+  /**
    * @brief The tape's box.
    * @return The box.
    */
@@ -561,7 +572,7 @@ template <class S, class = void>
 inline constexpr bool hasRegionVisibility = false;
 
 /**
- * @brief A shape with getNumRegions(), getSettings(), withSettings() and pieceAt(): the renderer gives it
+ * @brief A shape with getNumRegions(), getSettings(), withSettings(), getTape() and pieceAt(): the renderer gives it
  * Render::Settings's region settings, and the viewer edits those and picks pieces of surface for a scheme.
  * @tparam S Shape type.
  */
@@ -571,6 +582,7 @@ inline constexpr bool hasRegionVisibility<
   std::void_t<decltype(std::declval<const S&>().getNumRegions()),
               decltype(std::declval<const S&>().getSettings()),
               decltype(std::declval<const S&>().withSettings(std::declval<const RegionSettings&>())),
+              decltype(std::declval<const S&>().getTape()),
               decltype(std::declval<const S&>().pieceAt(std::declval<const Vec3T<typename S::T>&>(),
                                                         std::declval<const Vec3T<typename S::T>&>()))>> = true;
 

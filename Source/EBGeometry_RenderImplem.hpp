@@ -1272,9 +1272,11 @@ private:
     if (m_settings.m_colorBy == ColorBy::Primitive) {
       const uint32_t id = a_hit.m_primitive;
 
+      // No key (a view of regions: a surface in no surface group, a region without a material) is a neutral gray.
       albedo = (id < Settings<T>::PrimitiveColors && m_settings.m_primitiveColors[id][0] >= T(0))
                  ? m_settings.m_primitiveColors[id]
-                 : palette<T>(id);
+               : (id == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
+                                                  : palette<T>(id);
     }
     else if (m_settings.m_colorBy == ColorBy::Normal) {
       albedo = T(0.5) * (n + Vec3T<T>::ones());

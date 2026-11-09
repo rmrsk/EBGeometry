@@ -35,6 +35,7 @@
 
 // Our includes
 #include "EBGeometry_GPUTransform.hpp"
+#include "EBGeometry_SurfacePieces.hpp"
 #include "EBGeometry_Viewer.hpp"
 
 #ifdef EBGEOMETRY_VIEWER_SDL2
@@ -442,7 +443,10 @@ enum class PanelAction : uint8_t
   CurrentGroup,   ///< Make a surface group the one added to.
   DeleteGroup,    ///< Delete a surface group.
   RemoveSelector, ///< Remove a selector.
-  NewGroup        ///< Start a surface group.
+  NewGroup,       ///< Start a surface group.
+  NextUnassigned, ///< Pick the next piece in no surface group.
+  ListPieces,     ///< Show or hide the list of pieces.
+  PickPiece       ///< Pick a piece of the list.
 };
 
 /**
@@ -560,6 +564,16 @@ run(const S&           a_shape,
 
   // The group of the scheme that Enter adds to (see RegionSettings::m_scheme).
   uint32_t currentGroup = 0;
+
+  // The pieces of surface of a view of regions, found once, the last one picked from them, and whether the panel
+  // lists them.
+  std::vector<SurfacePiece<T>> pieces;
+  std::size_t                  pieceIndex = std::size_t(-1);
+  bool                         listPieces = false;
+
+  if constexpr (hasRegionVisibility<S>) {
+    pieces = findSurfacePieces(a_shape.getTape());
+  }
 
   // The names of the regions, materials, surfaces and groups, as the program gave them.
   RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
@@ -1353,6 +1367,40 @@ run(const S&           a_shape,
         line("  ");
         button("+ new surface group", PanelAction::NewGroup, 0U);
       }
+
+      // The pieces of surface the object has, and those no surface group holds.
+      uint32_t unassigned = 0;
+
+      for (const SurfacePiece<T>& piece : pieces) {
+        unassigned += (scheme.surfaceGroupOf(piece.m_surface) == Scheme::None) ? 1U : 0U;
+      }
+
+      line("");
+      line("Pieces: " + std::to_string(pieces.size()) + ", " + std::to_string(unassigned) + " in no surface group");
+      line("  ");
+
+      if (unassigned > 0U) {
+        button("next unassigned", PanelAction::NextUnassigned, 0U);
+      }
+
+      button(listPieces ? "hide list" : "list", PanelAction::ListPieces, 0U);
+
+      if (listPieces) {
+        for (uint32_t i = 0; i < pieces.size() && i < 40U; i++) {
+          const SurfaceRef<T>& s     = pieces[i].m_surface;
+          const uint32_t       group = scheme.surfaceGroupOf(s);
+
+          clickable("  " + names.surface(s.m_surface) + " part " + std::to_string(s.m_part) + ": " +
+                      names.region(s.m_insideRegion) + " | " + names.region(s.m_outsideRegion) + " -> " +
+                      ((group == Scheme::None) ? std::string("none") : names.surfaceGroup(group)),
+                    PanelAction::PickPiece,
+                    i);
+        }
+
+        if (pieces.size() > 40U) {
+          line("  ... " + std::to_string(pieces.size() - 40U) + " more");
+        }
+      }
     }
 
     std::vector<std::string> lines{
@@ -1659,6 +1707,44 @@ run(const S&           a_shape,
                 }
                 case PanelAction::NewGroup: {
                   currentGroup = scheme.addSurfaceGroup();
+
+                  break;
+                }
+                case PanelAction::NextUnassigned:
+                case PanelAction::PickPiece: {
+                  // The next piece in no surface group after the last one picked from the pieces, or the one clicked.
+                  std::size_t index = pieces.size();
+
+                  if (clicked.m_action == PanelAction::PickPiece) {
+                    index = clicked.m_value;
+                  }
+                  else {
+                    for (std::size_t step = 1; step <= pieces.size(); step++) {
+                      const std::size_t i = (pieceIndex + step) % pieces.size();
+
+                      if (scheme.surfaceGroupOf(pieces[i].m_surface) == Scheme::None) {
+                        index = i;
+
+                        break;
+                      }
+                    }
+                  }
+
+                  if (index < pieces.size()) {
+                    pieceIndex = index;
+
+                    pick.m_point    = pieces[index].m_point;
+                    pick.m_normal   = pieces[index].m_normal;
+                    picked          = true;
+                    camera.m_target = pieces[index].m_point;
+
+                    rekeyPick();
+                  }
+
+                  break;
+                }
+                case PanelAction::ListPieces: {
+                  listPieces = !listPieces;
 
                   break;
                 }

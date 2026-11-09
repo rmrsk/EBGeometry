@@ -78,8 +78,9 @@ A click picks the piece of surface under the cursor: its surface, part, and the 
 (``RegionView::pieceAt()`` gives it to a program). The panel at the top right shows it, with buttons to add it to
 the current surface group of the scheme (the piece, its whole surface, or the interface between its two regions) or
 to remove it; below, the regions, each shown or hidden by a click, and the surface groups with their selectors, a
-click making one current, ``[delete]`` and ``[x]`` removing them, ``[+ new surface group]`` starting one. K colors
-the surfaces by surface group; C prints the scheme as C++, to paste into a program. The window names everything by the
+click making one current, ``[delete]`` and ``[x]`` removing them, ``[+ new surface group]`` starting one; last, the
+count of pieces and of those in no surface group, with ``[next unassigned]`` to go to the next of these, until
+every piece has a surface group. K colors the surfaces by surface group (those in none gray); C prints the scheme as C++, to paste into a program. The window names everything by the
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
 index (regions by their names and materials, "2 core (copper)", surfaces by their labels), with the surface groups
 named by the program.
