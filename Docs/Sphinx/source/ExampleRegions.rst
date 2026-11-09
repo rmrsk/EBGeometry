@@ -82,4 +82,5 @@ regions' menu is shown, a panel lists the regions and the surface groups with th
 hides a region, or selects a group, and Shift and a click deletes a group or a selector (Delete deletes the current
 group); C prints the scheme as C++, to paste into a program. The window names everything by the
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
-index (regions by their materials, surfaces by their labels), with the groups named by the program.
+index (regions by their names and materials, "2 core (copper)", surfaces by their labels), with the surface groups
+named by the program.

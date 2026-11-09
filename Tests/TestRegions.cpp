@@ -255,7 +255,7 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
   using Vec3 = Vec3T<T>;
 
   const char* partition = "an Overlay is a partition into regions, not a solid";
-  const char* material  = "MaterialLabel names the material of a region";
+  const char* material  = "MaterialLabel and RegionName name a region";
 
   REQUIRE(abortsWith([] { (void)Union(cable<T>(), SphereSDF<T>(Vec3::zeros(), T(2))); }, partition));
   REQUIRE(abortsWith([] { (void)Union(cable<T>(), cable<T>()); }, partition));
@@ -1058,6 +1058,49 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
   CHECK(names.surfaceGroup(1) == "1 jump");
 }
 
+TEMPLATE_TEST_CASE("RegionName: names a region apart from its material, unique, only where a region is",
+                   "[Overlay][RegionName]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const auto wire = [](const T a_x) {
+    return MaterialLabel(SphereSDF<T>(Vec3T<T>(a_x, T(0), T(0)), T(0.2)), "copper");
+  };
+
+  // Two copper wires, told apart by their names; a name under a map is the region's; a named region group.
+  const Expr<T> pair = RegionName(
+    Overlay(RegionName(wire(T(-1)), "left"), RegionName(Translate(wire(T(0)), Vec3T<T>(T(1), T(0), T(0))), "right")),
+    "wires");
+  const Expr<T> cable =
+    Overlay(MaterialLabel(BoxSDF<T>(Vec3T<T>(T(-2), T(-1), T(-1)), Vec3T<T>(T(2), T(1), T(1))), "PTFE"), pair, "air");
+
+  const ExprIndex<T> index(cable);
+
+  REQUIRE(index.getNumRegions() == 4U);
+  CHECK(index.getRegion(0).m_name.empty());
+  CHECK(index.getRegion(1).m_name.empty());
+  CHECK(index.getRegion(2).m_name == "left");
+  CHECK(index.getRegion(3).m_name == "right");
+  CHECK(index.getMaterialOf(2) == index.getMaterialOf(3));
+  CHECK(index.findRegion("right") == 3U);
+  CHECK(index.findRegion("PTFE") == ExprIndex<T>::None);
+  CHECK(index.getRegionGroup(1).m_name == "wires");
+
+  const RegionNames names{index};
+
+  CHECK(names.region(0) == "0 background (air)");
+  CHECK(names.region(1) == "region 1 (PTFE)");
+  CHECK(names.region(2) == "2 left (copper)");
+  CHECK(names.region(3) == "3 right (copper)");
+
+  // The same name twice; a name on part of a solid.
+  REQUIRE(abortsWith([&] { (void)ExprIndex<T>(Overlay(RegionName(wire(T(0)), "w"), RegionName(wire(T(1)), "w"))); },
+                     "ExprIndex: two regions are named \"w\""));
+  REQUIRE(abortsWith([&] { (void)Union(RegionName(wire(T(0)), "w"), wire(T(1))); },
+                     "Union: MaterialLabel and RegionName name a region"));
+}
+
 TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their labels, groups as named, else numbers",
                    "[Overlay][RegionNames]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1071,7 +1114,7 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
   RegionNames names{ExprIndex<T>(labeled)};
 
   CHECK(names.region(0) == "0 background");
-  CHECK(names.region(1) == "1 PTFE");
+  CHECK(names.region(1) == "region 1 (PTFE)");
   CHECK(names.region(2) == "region 2");
   CHECK(names.region(7) == "region 7");
   CHECK(names.material(0) == "0 PTFE");

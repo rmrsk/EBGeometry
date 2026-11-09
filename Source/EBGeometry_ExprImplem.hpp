@@ -255,8 +255,8 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
     }
     else if (child.m_carriesMaterial) {
       EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine,
-                         "%s: MaterialLabel names the material of a region (an operand of an Overlay) or of a whole "
-                         "object, not of a part of a solid; make the parts regions of an Overlay",
+                         "%s: MaterialLabel and RegionName name a region (an operand of an Overlay) or a whole "
+                         "object, not a part of a solid; make the parts regions of an Overlay",
                          kindName(a_kind));
     }
   }
@@ -369,7 +369,8 @@ affine(const Expr<T>& a_operand, const Affine3T<T>& a_map, const Affine3T<T>& a_
 
   // The outer map is applied to the query point first: the child sees inner(outer(p)). A labeled map stays
   // a node of its own, so that its label keeps the leaves it names.
-  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_surfaceLabel.empty() && inner.m_materialLabel.empty();
+  const bool fold = (inner.m_kind == Kind::Affine) && inner.m_surfaceLabel.empty() && inner.m_materialLabel.empty() &&
+                    inner.m_regionName.empty();
   const auto child = fold ? inner.m_children.front() : a_operand;
 
   auto node = makeNode<T>(Kind::Affine, {child});
@@ -1107,6 +1108,23 @@ MaterialLabel(const A& a_operand, std::string a_name)
   return Expr<T>(std::move(node));
 }
 
+template <class A>
+inline Expr<ExprPrecision<A>>
+RegionName(const A& a_operand, std::string a_name)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "RegionName: the name must not be empty");
+
+  // A copy of the node, so that other uses of the same subexpression keep their own name.
+  auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
+
+  node->m_regionName      = std::move(a_name);
+  node->m_carriesMaterial = true;
+
+  return Expr<T>(std::move(node));
+}
+
 namespace ExprDetail {
 
 /**
@@ -1276,17 +1294,26 @@ ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const Ma
     region.m_regionGroup = a_group;
     region.m_material    = a_material;
 
-    for (uint32_t node = a_node;; node = m_operands[node].front()) {
-      if (!m_nodes[node].m_materialLabel.isNone()) {
-        region.m_material = m_nodes[node].m_materialLabel;
+    bool hasMaterial = false;
 
-        break;
+    for (uint32_t node = a_node;; node = m_operands[node].front()) {
+      if (!hasMaterial && !m_nodes[node].m_materialLabel.isNone()) {
+        region.m_material = m_nodes[node].m_materialLabel;
+        hasMaterial       = true;
+      }
+
+      if (region.m_name.empty()) {
+        region.m_name = m_exprNodes[node]->m_regionName;
       }
 
       if (m_exprNodes[node]->m_kind != ExprDetail::Kind::Affine) {
         break;
       }
     }
+
+    EBGEOMETRY_REQUIRE(region.m_name.empty() || this->findRegion(region.m_name) == None,
+                       "ExprIndex: two regions are named \"%s\"; a region's name says which region it is",
+                       region.m_name.c_str());
 
     const auto number = static_cast<uint32_t>(m_regions.size());
 
@@ -1310,6 +1337,13 @@ ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const Ma
     group.m_parent      = a_group;
     group.m_firstRegion = static_cast<uint32_t>(m_regions.size());
     group.m_material    = material;
+    group.m_name        = expr.m_regionName;
+
+    for (const RegionGroup& other : m_regionGroups) {
+      EBGEOMETRY_REQUIRE(group.m_name.empty() || other.m_name != group.m_name,
+                         "ExprIndex: two region groups are named \"%s\"",
+                         group.m_name.c_str());
+    }
 
     const auto number = static_cast<uint32_t>(m_regionGroups.size());
 
@@ -1800,6 +1834,19 @@ ExprIndex<T>::findMaterialLabel(const std::string_view a_name) const
   const auto entry = m_materialLabelIds.find(std::string(a_name));
 
   return (entry != m_materialLabelIds.end()) ? entry->second : MaterialLabelId::none();
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::findRegion(const std::string_view a_name) const
+{
+  for (uint32_t k = 0; k < m_regions.size(); k++) {
+    if (!a_name.empty() && m_regions[k].m_name == a_name) {
+      return k;
+    }
+  }
+
+  return None;
 }
 
 } // namespace EBGeometry

@@ -39,8 +39,8 @@ public:
   RegionNames() = default;
 
   /**
-   * @brief The names an expression's index gives: a region by its material (the background "background" without
-   * one), a surface by its label (or its number).
+   * @brief The names an expression's index gives: a region by its name and its material ("2 core (copper)"), a
+   * surface by its label (or its number).
    * @tparam T Floating-point precision.
    * @param[in] a_index The index of the expression the tape was compiled from.
    */
@@ -56,12 +56,20 @@ public:
       m_surfaceLabels.push_back(a_index.getSurfaceLabelName(SurfaceLabelId(k)));
     }
 
+    // A region's name, then its material: "2 core (copper)", "0 background (air)", "region 3 (copper)".
     for (uint32_t k = 0; k < a_index.getNumRegions(); k++) {
       const MaterialLabelId material = a_index.getMaterialOf(k);
+      const std::string&    name     = a_index.getRegion(k).m_name;
 
-      m_regions.push_back(!material.isNone() ? m_materials[material.value()]
-                          : (k == 0U)        ? std::string("background")
-                                             : std::string());
+      std::string shown = !name.empty() ? std::to_string(k) + " " + name
+                          : (k == 0U)   ? std::to_string(k) + " background"
+                                        : "region " + std::to_string(k);
+
+      if (!material.isNone()) {
+        shown += " (" + m_materials[material.value()] + ")";
+      }
+
+      m_regions.push_back(shown);
     }
 
     for (uint32_t s = 0; s < a_index.getNumSurfaces(); s++) {
@@ -102,7 +110,7 @@ public:
   }
 
   /**
-   * @brief A region's name, with its number: "2 copper", or "region 2".
+   * @brief A region's name, with its number and material: "2 core (copper)", or "region 2".
    * @param[in] a_region The region.
    * @return The name.
    */
@@ -110,7 +118,7 @@ public:
   std::string
   region(const uint32_t a_region) const
   {
-    return named(m_regions, a_region, "region");
+    return (a_region < m_regions.size()) ? m_regions[a_region] : "region " + std::to_string(a_region);
   }
 
   /**

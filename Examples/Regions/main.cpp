@@ -30,10 +30,15 @@ main(int argc, char* argv[])
   //
   // A cable along z: the jacket, then the core on top of it (later operands win where they overlap), in air.
   // A union would make one solid of them, and the core's surface would vanish inside the jacket.
-  const auto jacket = EBGeometry::MaterialLabel(
-    EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)), "PTFE");
-  const auto core = EBGeometry::MaterialLabel(
-    EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)), "copper");
+  // Each region has a name (which region it is) and a material (what it is made of).
+  const auto jacket =
+    EBGeometry::RegionName(EBGeometry::MaterialLabel(
+                             EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)), "PTFE"),
+                           "jacket");
+  const auto core = EBGeometry::RegionName(
+    EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)),
+                              "copper"),
+    "core");
 
   const Expr cable = EBGeometry::Overlay(jacket, core, "air");
 
@@ -54,7 +59,10 @@ main(int argc, char* argv[])
   std::cout << index.getNumRegions() << " regions:\n";
 
   for (uint32_t k = 0; k < index.getNumRegions(); k++) {
-    std::cout << "  region " << k << ": " << index.getMaterialLabelName(index.getMaterialOf(k)) << '\n';
+    const std::string& name = index.getRegion(k).m_name;
+
+    std::cout << "  region " << k << ": " << (name.empty() ? std::string("outside") : name) << ", "
+              << index.getMaterialLabelName(index.getMaterialOf(k)) << '\n';
   }
 
   // ── Which region, and each region's function ───────────────────────────────────────────────────────
@@ -121,7 +129,7 @@ main(int argc, char* argv[])
   scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
   scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
 
-  // The names the window shows: the regions by their materials, and the groups.
+  // The names the window shows: the regions by their names and materials, and the surface groups.
   EBGeometry::RegionNames names(index);
 
   names.setSurfaceGroup(dirichlet, "dirichlet");

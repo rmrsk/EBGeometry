@@ -338,6 +338,11 @@ struct Node
   std::string m_materialLabel;
 
   /**
+   * @brief The name RegionName() gave the node; empty for none.
+   */
+  std::string m_regionName;
+
+  /**
    * @brief Whether this union is an Overlay: its operands are regions, later ones on top (see Overlay()). A Tape
    * evaluates it as the union of its operands, the whole object.
    */
@@ -355,7 +360,8 @@ struct Node
   bool m_partition = false;
 
   /**
-   * @brief Whether the node, or a chain of maps below it, has a material label (MaterialLabel()).
+   * @brief Whether the node, or a chain of maps below it, has a material label or a region name (MaterialLabel(),
+   * RegionName()): what only a region can have.
    */
   bool m_carriesMaterial = false;
 };
@@ -966,6 +972,24 @@ inline Expr<ExprPrecision<A>>
 MaterialLabel(const A& a_operand, std::string a_name);
 
 /**
+ * @brief Name a region: an operand of an Overlay ("core", "jacket"), or a whole Overlay nested in another (its region
+ * group).
+ * @details A region's name says which region it is, its material (MaterialLabel()) what it is made of: two regions of
+ * the same material have names of their own. ExprIndex gives the names (Region::m_name, RegionGroup::m_name) and
+ * finds a region by its name (findRegion()); names are unique among the regions, and among the region groups, or
+ * ExprIndex aborts with a message. A name on part of a solid aborts with a message, in every build, as a material
+ * label does. Naming a named object replaces its name.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operand Object.
+ * @param[in] a_name    Name (not empty).
+ * @return The named object.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+RegionName(const A& a_operand, std::string a_name);
+
+/**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
  * way from what a Tape reports (a leaf, see LeafRef::m_leaf and HitT::m_primitive) back to the
  * expression.
@@ -1058,6 +1082,11 @@ public:
      * @brief Its material: its operand's material label, or its group's, or none.
      */
     MaterialLabelId m_material;
+
+    /**
+     * @brief Its name (RegionName() on its operand, or on a map above it); empty for none and the background.
+     */
+    std::string m_name;
   };
 
   /**
@@ -1090,6 +1119,11 @@ public:
      * @brief Its material label, the default of its regions without one of their own; or none.
      */
     MaterialLabelId m_material;
+
+    /**
+     * @brief Its name (RegionName() on the Overlay); empty for none.
+     */
+    std::string m_name;
   };
 
   /**
@@ -1348,6 +1382,15 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   MaterialLabelId
   findMaterialLabel(std::string_view a_name) const;
+
+  /**
+   * @brief The region with a name (RegionName()).
+   * @param[in] a_name The name.
+   * @return Its number, or None if no region has it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  findRegion(std::string_view a_name) const;
 
 private:
   /**
