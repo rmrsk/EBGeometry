@@ -1026,6 +1026,37 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: group 0 of 0"));
 }
 
+TEST_CASE("Scheme: removing a group removes its selectors and renumbers the groups after it", "[Scheme]")
+{
+  Scheme scheme;
+
+  const uint32_t first  = scheme.addGroup();
+  const uint32_t second = scheme.addGroup();
+  const uint32_t third  = scheme.addGroup();
+
+  scheme.add(first, SurfaceSelector::region(1));
+  scheme.add(second, SurfaceSelector::region(2));
+  scheme.add(third, SurfaceSelector::interface(0, 1));
+
+  scheme.removeGroup(second);
+
+  REQUIRE(scheme.getNumGroups() == 2U);
+  REQUIRE(scheme.getNumSelectors() == 2U);
+  CHECK(scheme.getGroupOfSelector(0) == 0U);
+  CHECK(scheme.getSelector(0).m_regionA == 1U);
+  CHECK(scheme.getGroupOfSelector(1) == 1U);
+  CHECK(scheme.getSelector(1).m_regionB == 1U);
+
+  RegionNames names;
+
+  names.setGroup(0, "dirichlet");
+  names.setGroup(1, "neumann");
+  names.setGroup(2, "jump");
+  names.removeGroup(1);
+
+  CHECK(names.group(1) == "1 jump");
+}
+
 TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their labels, groups as named, else numbers",
                    "[Overlay][RegionNames]",
                    EBGEOMETRY_TEST_PRECISIONS)

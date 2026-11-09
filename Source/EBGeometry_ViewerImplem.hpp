@@ -137,7 +137,7 @@ keys(const bool a_device, const bool a_regions = false)
                                  {"Wheel", "Zoom"},
                                  {"1, 2, 3", "Look from the front, the side, the top"},
                                  {"O", "Switch between perspective and orthographic"},
-                                 {"R", "Reset the camera, the light and the picked surfaces"},
+                                 {"R", "Reset the camera, the light, the picked surfaces and what is shown"},
                                  {"Right drag", "Move the light"},
                                  {"+, -", "Narrower or wider field of view"},
                                  {"Double-click", "Center the camera on the point under the cursor"},
@@ -183,17 +183,20 @@ keys(const bool a_device, const bool a_regions = false)
   if (a_regions) {
     groups.insert(
       groups.end() - 1,
-      KeyGroup{"Regions",
-               {{"K", "Color by region, material, surface label, surface, part, interface or group (P colors by it)"},
-                {"L", "Show only the picked surface (what it is follows K), or everything again"},
-                {"V", "Show one region at a time, in turn, then all"},
-                {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
-                {"Ctrl + V", "Show every region"},
-                {"Enter", "Add the picked piece (its surface, part and the regions on its sides) to the current group"},
-                {"Shift + Enter", "Add the picked surface, all its parts and sides, to the current group"},
-                {"Ctrl + Enter", "Add the interface of the picked piece (its two regions) to the current group"},
-                {"Backspace", "Remove what holds the picked piece from the current group"},
-                {"J", "Make the next group current; past the last, start a new one"}}});
+      KeyGroup{
+        "Regions",
+        {{"K", "Color by region, material, surface label, surface, part, interface or surface group (P colors by it)"},
+         {"L", "Show only the picked surface (what it is follows K), or everything again"},
+         {"V", "Show one region at a time, in turn, then all"},
+         {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
+         {"Ctrl + V", "Show every region"},
+         {"Enter",
+          "Add the picked piece (its surface, part and the regions on its sides) to the current surface group"},
+         {"Shift + Enter", "Add the picked surface, all its parts and sides, to the current surface group"},
+         {"Ctrl + Enter", "Add the interface of the picked piece (its two regions) to the current surface group"},
+         {"Backspace", "Remove what holds the picked piece from the current surface group"},
+         {"J", "Make the next surface group current; past the last, start a new one"},
+         {"Delete", "Delete the current surface group"}}});
   }
 
   return groups;
@@ -430,11 +433,11 @@ struct Background
  */
 enum class PanelAction : uint8_t
 {
-  None,           ///< Nothing.
-  ToggleRegion,   ///< Show or hide a region.
-  CurrentGroup,   ///< Make a group the one added to.
-  RemoveSelector, ///< Remove a selector from the scheme.
-  NewGroup        ///< Start a group.
+  None,         ///< Nothing.
+  ToggleRegion, ///< Show or hide a region.
+  CurrentGroup, ///< Make a group the one added to.
+  Selector,     ///< Select a selector's group, or remove the selector.
+  NewGroup      ///< Start a group.
 };
 
 /**
@@ -527,7 +530,7 @@ run(const S&           a_shape,
   uint32_t currentGroup = 0;
 
   // The names of the regions, materials, surfaces and groups, as the program gave them.
-  const RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
+  RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
 
   // A scheme's selector, in words and as C++.
   const auto selectorName = [&names](const SurfaceSelector& a_selector) {
@@ -627,6 +630,30 @@ run(const S&           a_shape,
 
   bool    picked = false;
   HitT<T> pick;
+
+  // The picked surface's key under the region settings now (after the coloring or the scheme changed): a short ray
+  // into the picked point, along its normal, asks the view again; the highlight follows.
+  const auto rekeyPick = [&]() {
+    if constexpr (hasRegionVisibility<S>) {
+      if (picked) {
+        const BoundingVolumes::AABBT<T> box  = shape.computeBoundingVolume();
+        const T                         size = (box.getHighCorner() - box.getLowCorner()).length();
+        const T step = (size > T(0) && size < Math::Limits<T>::max()) ? T(1e-3) * size : T(1e-3);
+
+        const Vec3T<T> n   = pick.m_normal / Math::max(pick.m_normal.length(), Math::Limits<T>::min());
+        const HitT<T>  hit = RenderDetail::shownAs(shape, settings)
+                              .firstHit(RayT<T>{pick.m_point + step * n, -n}, T(0), T(2) * step, RayOptions<T>());
+
+        picked = hit.hit();
+
+        if (picked) {
+          pick.m_primitive = hit.m_primitive;
+        }
+
+        settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
+      }
+    }
+  };
 
   // Stepping through the surfaces under the cursor (Shift + wheel): the crossings there, front to back, the one
   // picked, and the primitives in front of it, seen through while stepping (a click ends it).
@@ -1070,7 +1097,8 @@ run(const S&           a_shape,
         list += (list.empty() ? "" : ", ") + names.region(k);
       }
 
-      const char* colorings[] = {"region", "material", "surface label", "surface", "part", "interface", "group"};
+      const char* colorings[] = {
+        "region", "material", "surface label", "surface", "part", "interface", "surface group"};
 
       const auto pieceName = [&](const SurfaceRef<T>& a_piece) {
         if (a_piece.m_surface == SurfaceRef<T>::None) {
@@ -1131,8 +1159,8 @@ run(const S&           a_shape,
          hiddenRegions.empty()
            ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
            : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions,
-         (scheme.getNumGroups() == 0U) ? std::string("No groups (Enter starts one with the picked piece)")
-                                       : "Adding to group " + names.group(currentGroup) + " (J: next)"});
+         (scheme.getNumGroups() == 0U) ? std::string("No surface groups (Enter starts one with the picked piece)")
+                                       : "Adding to surface group " + names.group(currentGroup) + " (J: next)"});
 
       // The panel: each region, shown or hidden, and each group with its selectors; a click on a line acts on it.
       const std::vector<KeyGroup> menus = keys(a_deviceShape != nullptr, true);
@@ -1152,20 +1180,20 @@ run(const S&           a_shape,
         }
 
         line("", PanelAction::None, 0U);
-        line("Groups (click: add to it; a selector: remove it)", PanelAction::None, 0U);
+        line("Surface groups (click: select; Shift + click: delete)", PanelAction::None, 0U);
 
         for (uint32_t g = 0; g < scheme.getNumGroups(); g++) {
           line(std::string(g == currentGroup ? "  > " : "    ") + names.group(g), PanelAction::CurrentGroup, g);
 
           for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
             if (scheme.getGroupOfSelector(i) == g) {
-              line("      " + selectorName(scheme.getSelector(i)), PanelAction::RemoveSelector, i);
+              line("      " + selectorName(scheme.getSelector(i)), PanelAction::Selector, i);
             }
           }
         }
 
         if (scheme.getNumGroups() < Scheme::MaxGroups) {
-          line("    + new group", PanelAction::NewGroup, 0U);
+          line("    + new surface group", PanelAction::NewGroup, 0U);
         }
       }
     }
@@ -1308,7 +1336,11 @@ run(const S&           a_shape,
     // that are not part of it turn gold. A mesh SDF is one object, whatever face a pixel shows.
     const uint32_t* pixels = a_image.m_pixels.data();
 
-    if (picked && a_image.m_primitives.size() == a_image.m_pixels.size()) {
+    // A pick with no key (a surface in no group, colored by group) has nothing to outline: the background has no key
+    // either.
+    const bool outline = picked && (primitivesAreFaces<S> || pick.m_primitive != 0xFFFFFFFFU);
+
+    if (outline && a_image.m_primitives.size() == a_image.m_pixels.size()) {
       const auto inside = [&](const int a_x, const int a_y) {
         const uint32_t id = a_image.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
 
@@ -1433,12 +1465,29 @@ run(const S&           a_shape,
                     break;
                   }
                   case PanelAction::CurrentGroup: {
-                    currentGroup = value;
+                    // Shift and a click deletes the group; a click makes it current.
+                    if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
+                      scheme.removeGroup(value);
+                      names.removeGroup(value);
+
+                      if (currentGroup > value || (currentGroup == value && currentGroup >= scheme.getNumGroups())) {
+                        currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
+                      }
+                    }
+                    else {
+                      currentGroup = value;
+                    }
 
                     break;
                   }
-                  case PanelAction::RemoveSelector: {
-                    scheme.remove(scheme.getGroupOfSelector(value), scheme.getSelector(value));
+                  case PanelAction::Selector: {
+                    // Shift and a click removes the selector; a click selects its group.
+                    if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
+                      scheme.remove(scheme.getGroupOfSelector(value), scheme.getSelector(value));
+                    }
+                    else {
+                      currentGroup = scheme.getGroupOfSelector(value);
+                    }
 
                     break;
                   }
@@ -1451,6 +1500,8 @@ run(const S&           a_shape,
                     break;
                   }
                   }
+
+                  rekeyPick();
                 }
 
                 dragging = false;
@@ -2006,12 +2057,31 @@ run(const S&           a_shape,
               }
             }
 
-            // Show the groups.
-            if (settings.m_regions.m_coloring != RegionColoring::Group) {
-              settings.m_regions.setColoring(RegionColoring::Group);
-            }
+            rekeyPick();
+          }
+          else {
+            changed = pending;
+          }
 
-            settings.m_colorBy = ColorBy::Primitive;
+          break;
+        }
+        case SDLK_DELETE: {
+          // Delete the current group (and its selectors).
+          if constexpr (hasRegionVisibility<S>) {
+            Scheme& scheme = settings.m_regions.m_scheme;
+
+            if (currentGroup < scheme.getNumGroups()) {
+              scheme.removeGroup(currentGroup);
+              names.removeGroup(currentGroup);
+
+              currentGroup =
+                (currentGroup > 0U && currentGroup >= scheme.getNumGroups()) ? currentGroup - 1U : currentGroup;
+
+              rekeyPick();
+            }
+            else {
+              changed = pending;
+            }
           }
           else {
             changed = pending;
@@ -2048,6 +2118,8 @@ run(const S&           a_shape,
               static_cast<RegionColoring>((static_cast<int>(settings.m_regions.m_coloring) + 1) % count));
 
             settings.m_colorBy = ColorBy::Primitive;
+
+            rekeyPick();
           }
           else {
             changed = pending;
@@ -2163,6 +2235,19 @@ run(const S&           a_shape,
 
           depthHits.clear();
           depthHidden.clear();
+
+          // A view of regions shows every region again, none alone and none seen through (its coloring and scheme
+          // stay).
+          if constexpr (hasRegionVisibility<S>) {
+            settings.m_regions.m_hidden = a_settings.m_regions.m_hidden;
+            settings.m_regions.m_only   = a_settings.m_regions.m_only;
+
+            for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+              settings.m_regions.m_through[i] = a_settings.m_regions.m_through[i];
+            }
+
+            soloRegion = 0;
+          }
 
           break;
         }

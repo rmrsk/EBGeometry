@@ -77,8 +77,9 @@ the surfaces like the picked one. Hidden regions cast no shadow.
 A click names the piece of surface under the cursor: its surface, part, and the regions on its two sides
 (``RegionView::pieceAt()`` gives it to a program). Enter adds the picked piece to the current group of the scheme,
 Shift + Enter the whole surface, Ctrl + Enter the interface between its two regions, and Backspace removes it; J
-moves to the next group, starting a new one past the last. The surfaces are then colored by group. While the
-regions' menu is shown, a panel lists the regions and the groups with their selectors, and a click on a line acts
-on it; C prints the scheme as C++, to paste into a program. The window names everything by the
+moves to the next group, starting a new one past the last; K colors the surfaces by surface group. While the
+regions' menu is shown, a panel lists the regions and the surface groups with their selectors: a click shows or
+hides a region, or selects a group, and Shift and a click deletes a group or a selector (Delete deletes the current
+group); C prints the scheme as C++, to paste into a program. The window names everything by the
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
 index (regions by their materials, surfaces by their labels), with the groups named by the program.

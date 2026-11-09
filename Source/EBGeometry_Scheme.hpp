@@ -291,6 +291,33 @@ public:
   }
 
   /**
+   * @brief Remove a group and its selectors; the groups after it move down by one.
+   * @details Aborts with a message, in every build, for a group not added.
+   * @param[in] a_group The group.
+   */
+  EBGEOMETRY_HOST
+  void
+  removeGroup(const uint32_t a_group)
+  {
+    EBGEOMETRY_REQUIRE(a_group < m_numGroups, "Scheme: group %u of %u", unsigned(a_group), unsigned(m_numGroups));
+
+    uint32_t kept = 0;
+
+    for (uint32_t i = 0; i < m_numSelectors; i++) {
+      if (m_groups[i] != a_group) {
+        m_selectors[kept] = m_selectors[i];
+        m_groups[kept]    = (m_groups[i] > a_group) ? m_groups[i] - 1U : m_groups[i];
+
+        kept++;
+      }
+    }
+
+    m_numSelectors = kept;
+
+    m_numGroups--;
+  }
+
+  /**
    * @brief Remove the selectors of a group that equal one (to undo a click).
    * @param[in] a_group    The group.
    * @param[in] a_selector The selector.

@@ -12,6 +12,7 @@
 #define EBGEOMETRY_REGIONNAMES_HPP
 
 // Std includes
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -84,6 +85,20 @@ public:
     }
 
     m_groups[a_group] = std::move(a_name);
+  }
+
+  /**
+   * @brief Forget a group's name; the names of the groups after it move down by one (as Scheme::removeGroup()
+   * numbers them).
+   * @param[in] a_group The group.
+   */
+  EBGEOMETRY_HOST
+  void
+  removeGroup(const uint32_t a_group)
+  {
+    if (a_group < m_groups.size()) {
+      m_groups.erase(m_groups.begin() + static_cast<std::ptrdiff_t>(a_group));
+    }
   }
 
   /**

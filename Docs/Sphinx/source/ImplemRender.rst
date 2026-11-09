@@ -196,14 +196,14 @@ opened with them.
    * - V; Shift + V; Ctrl + V
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
-   * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J
-     - For a view of regions, building the scheme's groups (``Settings::m_regions.m_scheme``): add the picked
+   * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
+     - For a view of regions, building the scheme's surface groups (``Settings::m_regions.m_scheme``): add the picked
        piece (its surface, part and the regions on its two sides) to the current group; add the picked surface
        whole; add the interface between the picked piece's two regions; remove what holds the picked piece from
-       the current group; make the next group current, or start a new one past the last. The status lines name
+       the current group; make the next group current, or start a new one past the last; delete the current group. The status lines name
        the picked piece; while the regions' menu is shown, a panel at the top right lists the regions (a click
-       shows or hides one) and the groups with their selectors (a click on a group makes it current, on a
-       selector removes it). C also prints the scheme as C++.
+       shows or hides one) and the surface groups with their selectors (a click on a group or a selector makes
+       that group current; Shift and a click deletes it). C also prints the scheme as C++.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.

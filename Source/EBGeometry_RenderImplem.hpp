@@ -646,7 +646,8 @@ public:
           const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
           const T shine = T(0.5) * m_settings.m_specular * std::pow(std::abs(dot(n, half)), m_settings.m_shininess);
 
-          const bool highlighted = hit.m_primitive == m_settings.m_highlightPrimitive ||
+          const bool highlighted = (hit.m_primitive == m_settings.m_highlightPrimitive &&
+                                    m_settings.m_highlightPrimitive != Settings<T>::NoPrimitive) ||
                                    m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives;
 
           const Vec3T<T> tint = highlighted ? T(2) * m_settings.m_highlightColor : Vec3T<T>::ones();
@@ -1284,7 +1285,10 @@ private:
       n = -n;
     }
 
-    if (a_hit.m_primitive == m_settings.m_highlightPrimitive ||
+    // A surface with no key (a view of regions colored by group shows a surface in no group so) is never the one
+    // highlighted.
+    if ((a_hit.m_primitive == m_settings.m_highlightPrimitive &&
+         m_settings.m_highlightPrimitive != Settings<T>::NoPrimitive) ||
         m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives) {
       albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColor;
     }
