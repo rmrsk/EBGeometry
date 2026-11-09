@@ -292,8 +292,8 @@ for that region. It is a distance bound, exact near a smooth piece of surface. A
 one region, and a tape without the feature compiles none of this.
 
 A region's surface at a point, ``closestSurface(p, region)``, is reported as any surface is (its leaf, part and
-surface label), with the regions on its two sides **at that point**: ``m_minusRegion`` (the region asked about)
-and ``m_plusRegion`` (the one across). The sides belong to the point, not to the surface: a sphere centered on
+surface label), with the regions on its two sides **at that point**: ``m_insideRegion`` (the region asked about)
+and ``m_outsideRegion`` (the one across). The sides belong to the point, not to the surface: a sphere centered on
 another's surface faces the air on one half and the other sphere on the other.
 
 A solver says which regions it computes in with `Phases <doxygen/html/classEBGeometry_1_1Phases.html>`__, each
@@ -339,8 +339,8 @@ with its sides, on the host and on a device, and the surface carries the materia
 
 Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
 finds the first point where the region changes, from inside any region: the crossing, with its normal pointing
-into the region entered, the surface crossed and its labels, and the regions left (``m_minusRegion``) and entered
-(``m_plusRegion``). The crossings are exact where the shapes have ray forms. A particle crossing several layers
+into the region entered, the surface crossed and its labels, and the regions left (``m_insideRegion``) and entered
+(``m_outsideRegion``). The crossings are exact where the shapes have ray forms. A particle crossing several layers
 asks again from the last crossing's ``t``; crossings closer than the march's tolerance to ``tMin`` are not
 reported, so layers thinner than that are passed over. ``firstSurface(ray, tMin, tMax, phases, phase)`` finds
 where the ray enters or leaves a phase, passing through the contacts between its regions: with the visible
@@ -351,7 +351,7 @@ regions as the phase, what a renderer needs to see through hidden ones.
    for (T t = 0;;) {                                          // a particle through the layers of the cable
      const SurfaceHitT<T> c = tape.firstRegionChange(ray, t, tMax);
      if (!c.m_hit.hit()) break;
-     // c.m_surface.m_minusRegion -> c.m_surface.m_plusRegion at c.m_hit.m_point
+     // c.m_surface.m_insideRegion -> c.m_surface.m_outsideRegion at c.m_hit.m_point
      t = c.m_hit.m_t;
    }
 

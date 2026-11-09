@@ -173,8 +173,8 @@ public:
         return change.m_hit;
       }
 
-      const uint32_t from = change.m_surface.m_minusRegion;
-      const uint32_t to   = change.m_surface.m_plusRegion;
+      const uint32_t from = change.m_surface.m_insideRegion;
+      const uint32_t to   = change.m_surface.m_outsideRegion;
 
       // The surface crossed lies on the later region's operand (an interface is on the surface of the region on
       // top), so it is shown as that region's, whichever way the ray goes; when that region is hidden, seen through or
@@ -514,7 +514,7 @@ private:
   {
     switch (m_coloring) {
     case RegionColoring::Interface: {
-      return interfaceKey(a_surface.m_minusRegion, a_surface.m_plusRegion);
+      return interfaceKey(a_surface.m_insideRegion, a_surface.m_outsideRegion);
     }
     case RegionColoring::Material: {
       return m_tape.getMaterialOf(a_region).value();

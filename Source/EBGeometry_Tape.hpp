@@ -1253,8 +1253,8 @@ public:
   /**
    * @brief The surface of a region that decides its function at a point (TapeFeature::Regions): the region's own
    * boundary, an interface with a later region, or a mask's cut; drilled, with its part and surface label, as
-   * closestSurface() reports a surface, and with the regions on its two sides at that point: m_minusRegion the
-   * region asked about (inside), m_plusRegion the region across. The sides belong to the point, not to the surface:
+   * closestSurface() reports a surface, and with the regions on its two sides at that point: m_insideRegion the
+   * region asked about (inside), m_outsideRegion the region across. The sides belong to the point, not to the surface:
    * one surface can face different regions in different places. For the background, the whole object's surface.
    * Callable on a device.
    * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
@@ -1307,7 +1307,7 @@ public:
    * layers, from inside any region, the background included. The crossing is the nearer of leaving the current
    * region's solid and entering a later one, each traced exactly where the operands have ray forms (and marched
    * where they do not). m_hit is the crossing, its normal pointing from the region left into the region entered;
-   * m_surface the surface crossed (leaf, part, surface label), its m_minusRegion the region left and m_plusRegion
+   * m_surface the surface crossed (leaf, part, surface label), its m_insideRegion the region left and m_outsideRegion
    * the region entered. The ray starts counting a hundredth of the march's tolerance at the object's scale past
    * a_tMin (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks
    * again from the last crossing's t, and layers thinner than that are passed over. Callable on a device.

@@ -65,24 +65,25 @@ struct SurfaceRef
   uint32_t m_part = 0;
 
   /**
-   * @brief Set by a tape's region queries (Tape::closestSurface(p, region)): the region on the inside of the surface
-   * at the queried point, or None.
+   * @brief Set by a tape's region queries: the region on the inside of the surface at the queried point (for
+   * Tape::closestSurface(p, region), the region asked about; for a crossing along a ray, the region the ray leaves),
+   * or None.
    */
-  uint32_t m_minusRegion = None;
+  uint32_t m_insideRegion = None;
 
   /**
-   * @brief Set by a tape's region queries: the region across the surface at the queried point (0 for the
-   * background), or None.
+   * @brief Set by a tape's region queries: the region on the outside, across the surface at the queried point (for a
+   * crossing along a ray, the region the ray enters; 0 for the background), or None.
    */
-  uint32_t m_plusRegion = None;
+  uint32_t m_outsideRegion = None;
 
   /**
-   * @brief Set with the sides: the material of the region on the inside (m_minusRegion, its MaterialLabel()), or none.
+   * @brief Set with the sides: the material of the region on the inside (m_insideRegion, its MaterialLabel()), or none.
    */
   MaterialLabelId m_insideMaterial;
 
   /**
-   * @brief Set with the sides: the material of the region on the outside, across (m_plusRegion), or none.
+   * @brief Set with the sides: the material of the region on the outside, across (m_outsideRegion), or none.
    */
   MaterialLabelId m_outsideMaterial;
 

@@ -80,16 +80,16 @@ struct RegionQuery
 
     const SurfaceRef<T> surface = m_tape.closestSurface(a_point, 1U);
 
-    answer.m_minus   = surface.m_minusRegion;
-    answer.m_plus    = surface.m_plusRegion;
+    answer.m_minus   = surface.m_insideRegion;
+    answer.m_plus    = surface.m_outsideRegion;
     answer.m_surface = surface.m_surface;
     answer.m_group   = m_scheme.groupOf(surface);
 
     const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
 
     answer.m_t    = change.m_hit.hit() ? change.m_hit.m_t : T(-1);
-    answer.m_from = change.m_surface.m_minusRegion;
-    answer.m_to   = change.m_surface.m_plusRegion;
+    answer.m_from = change.m_surface.m_insideRegion;
+    answer.m_to   = change.m_surface.m_outsideRegion;
 
     return answer;
   }
@@ -579,28 +579,28 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
   const SurfaceRef<T> jacketOuter = cableTape.closestSurface(outer, 1U);
 
   CHECK(jacketOuter.m_leaf == 0U);
-  CHECK(jacketOuter.m_minusRegion == 1U);
-  CHECK(jacketOuter.m_plusRegion == 0U);
+  CHECK(jacketOuter.m_insideRegion == 1U);
+  CHECK(jacketOuter.m_outsideRegion == 0U);
 
   // The inner sphere, from the jacket: an interface with the core, on the core's surface.
   const SurfaceRef<T> jacketInner = cableTape.closestSurface(inner, 1U);
 
   CHECK(jacketInner.m_leaf == 1U);
-  CHECK(jacketInner.m_minusRegion == 1U);
-  CHECK(jacketInner.m_plusRegion == 2U);
+  CHECK(jacketInner.m_insideRegion == 1U);
+  CHECK(jacketInner.m_outsideRegion == 2U);
 
   // The same interface from the core, and the outer sphere from the air.
   const SurfaceRef<T> core = cableTape.closestSurface(inner, 2U);
 
   CHECK(core.m_leaf == 1U);
-  CHECK(core.m_minusRegion == 2U);
-  CHECK(core.m_plusRegion == 1U);
+  CHECK(core.m_insideRegion == 2U);
+  CHECK(core.m_outsideRegion == 1U);
 
   const SurfaceRef<T> air = cableTape.closestSurface(outer, 0U);
 
   CHECK(air.m_leaf == 0U);
-  CHECK(air.m_minusRegion == 0U);
-  CHECK(air.m_plusRegion == 1U);
+  CHECK(air.m_insideRegion == 0U);
+  CHECK(air.m_outsideRegion == 1U);
 
   // A triple point: a sphere centered on another's surface faces the air on its outer half and the other sphere on
   // its inner half, so its sides belong to the point.
@@ -609,8 +609,8 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
 
   const Tape<T, TapeFeature::Regions> triple(pool, Overlay(big, small));
 
-  CHECK(triple.closestSurface(Vec3(T(1.3), T(0), T(0)), 2U).m_plusRegion == 0U);
-  CHECK(triple.closestSurface(Vec3(T(0.7), T(0), T(0)), 2U).m_plusRegion == 1U);
+  CHECK(triple.closestSurface(Vec3(T(1.3), T(0), T(0)), 2U).m_outsideRegion == 0U);
+  CHECK(triple.closestSurface(Vec3(T(0.7), T(0), T(0)), 2U).m_outsideRegion == 1U);
 
   // A mask's cut: the slab's face where it cuts the core is the slab's surface, with its label, the core inside
   // and the air across.
@@ -624,14 +624,14 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
 
   CHECK(face.m_leaf == 2U);
   CHECK(face.m_surfaceLabel == index.findSurfaceLabel("cut"));
-  CHECK(face.m_minusRegion == 2U);
-  CHECK(face.m_plusRegion == 0U);
+  CHECK(face.m_insideRegion == 2U);
+  CHECK(face.m_outsideRegion == 0U);
 
   // An object with no Overlay: its surface, between it and the background.
   const Tape<T, TapeFeature::Regions> one(pool, toExpr(big));
 
-  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_minusRegion == 1U);
-  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_plusRegion == 0U);
+  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_insideRegion == 1U);
+  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_outsideRegion == 0U);
 }
 
 TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and each phase a function",
@@ -709,8 +709,8 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
   // The phase's surface: from its region whose function is smallest.
   const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostatics, 1U);
 
-  CHECK(jacket.m_minusRegion == 1U);
-  CHECK(jacket.m_plusRegion == 2U);
+  CHECK(jacket.m_insideRegion == 1U);
+  CHECK(jacket.m_outsideRegion == 2U);
   CHECK(electrostatics.role(jacket) == SurfaceRole::Boundary);
 
   REQUIRE(abortsWith([] { (void)Phases().addPhase({}); }, "Phases: a phase needs at least one region"));
@@ -761,8 +761,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
       REQUIRE(change.m_hit.hit());
       CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(ts[i], looseMargin<T>()));
-      CHECK(change.m_surface.m_minusRegion == leftRegions[i]);
-      CHECK(change.m_surface.m_plusRegion == enteredRegions[i]);
+      CHECK(change.m_surface.m_insideRegion == leftRegions[i]);
+      CHECK(change.m_surface.m_outsideRegion == enteredRegions[i]);
       CHECK(change.m_surface.m_leaf == leaves[i]);
 
       // The normal points from the region left into the region entered: along the ray.
@@ -783,8 +783,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
     const SurfaceHitT<T> c = tape.firstRegionChange(ray, b.m_hit.m_t, T(5));
 
     CHECK_THAT(c.m_hit.m_t, withinAbsT<T>(T(2), looseMargin<T>()));
-    CHECK(c.m_surface.m_minusRegion == 2U);
-    CHECK(c.m_surface.m_plusRegion == 0U);
+    CHECK(c.m_surface.m_insideRegion == 2U);
+    CHECK(c.m_surface.m_outsideRegion == 0U);
     CHECK(c.m_surface.m_surfaceLabel == index.findSurfaceLabel("cut"));
     CHECK(!tape.firstRegionChange(ray, c.m_hit.m_t, T(5)).m_hit.hit());
   }
@@ -795,8 +795,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
     REQUIRE(fromCore.m_hit.hit());
     CHECK_THAT(fromCore.m_hit.m_t, withinAbsT<T>(T(0.5), looseMargin<T>()));
-    CHECK(fromCore.m_surface.m_minusRegion == 2U);
-    CHECK(fromCore.m_surface.m_plusRegion == 1U);
+    CHECK(fromCore.m_surface.m_insideRegion == 2U);
+    CHECK(fromCore.m_surface.m_outsideRegion == 1U);
   }
 
   // Rendering: the first entry into the visible regions, the others seen through.
@@ -817,14 +817,14 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
     CHECK_THAT(jacket.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.84)), looseMargin<T>()));
     CHECK_THAT(core.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
-    CHECK(core.m_surface.m_plusRegion == 2U);
-    CHECK(solid.m_surface.m_plusRegion == 1U);
+    CHECK(core.m_surface.m_outsideRegion == 2U);
+    CHECK(solid.m_surface.m_outsideRegion == 1U);
 
     // Leaving the solid: the contact between the jacket and the core is passed through.
     const SurfaceHitT<T> leave = tape.firstSurface(ray, solid.m_hit.m_t, T(5), both, 0U);
 
     CHECK_THAT(leave.m_hit.m_t, withinAbsT<T>(T(2) + std::sqrt(T(0.84)), looseMargin<T>()));
-    CHECK(leave.m_surface.m_plusRegion == 0U);
+    CHECK(leave.m_surface.m_outsideRegion == 0U);
   }
 }
 
