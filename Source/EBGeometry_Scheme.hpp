@@ -25,12 +25,13 @@ namespace EBGeometry {
 
 /**
  * @brief Conditions on a point of a surface, all of which must hold; an unset one (Any) matches anything.
- * @details The finest selector is a piece (piece()): a shape's surface, its part, and the regions on its two sides,
- * the smallest thing one clicks. Broader ones leave conditions unset: a whole surface (whatever its part and
- * sides), every surface with a label, every surface between two regions (an interface, either order), every
+ * @details A piece (piece()) is a shape's surface between two regions, what one clicks; a part of it (withPart(),
+ * a box's face, a mesh's face) is finer. Broader selectors leave conditions unset: a whole surface (whatever its part
+ * and sides), every surface with a label, every surface between two regions (an interface, either order), every
  * surface of a region (either side), or between two materials. Patches with the same attributes are one piece: the
- * conditions say what a surface is, not where. Matched against a SurfaceRef with its sides set (a tape's region
- * queries set them); a plain value, usable on a device.
+ * conditions say what a surface is, not where. The remaining surfaces (rest()) are what no other selector of a
+ * scheme holds. Matched against a SurfaceRef with its sides set (a tape's region queries set them); a plain value,
+ * usable on a device.
  */
 struct SurfaceSelector
 {
@@ -75,7 +76,13 @@ struct SurfaceSelector
   uint32_t m_materialB = Any;
 
   /**
-   * @brief The piece a surface point belongs to: its surface, part and the two regions on its sides.
+   * @brief Whether the selector holds the remaining surfaces (rest()): a scheme tries it after every other.
+   */
+  bool m_rest = false;
+
+  /**
+   * @brief The piece a surface point belongs to: its surface between the two regions on its sides, whatever the part
+   * (withPart() narrows it to one).
    * @tparam T Floating-point precision.
    * @param[in] a_surface A surface with its sides (from a tape's region queries).
    * @return The selector.
@@ -88,9 +95,24 @@ struct SurfaceSelector
     SurfaceSelector selector;
 
     selector.m_surface = a_surface.m_surface;
-    selector.m_part    = a_surface.m_part;
     selector.m_regionA = a_surface.m_insideRegion;
     selector.m_regionB = a_surface.m_outsideRegion;
+
+    return selector;
+  }
+
+  /**
+   * @brief The remaining surfaces: every surface no other selector of the scheme holds, whatever the order the
+   * selectors were added in.
+   * @return The selector.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline SurfaceSelector
+  rest() noexcept
+  {
+    SurfaceSelector selector;
+
+    selector.m_rest = true;
 
     return selector;
   }
@@ -236,7 +258,7 @@ struct SurfaceSelector
  * phase)) gives its surface group, and the surface group its boundary condition.
  * @details At most MaxSurfaceGroups surface groups and MaxSelectors selectors in all, so that a scheme is a plain value a kernel
  * takes (surfaceGroupOf() is callable on a device). A surface is in the surface group of the first selector it matches, in the
- * order they were added. The surface groups' names are the caller's (a scheme holds numbers only).
+ * order they were added, the remaining surfaces' (SurfaceSelector::rest()) tried last. The surface groups' names are the caller's (a scheme holds numbers only).
  */
 class Scheme
 {
@@ -338,7 +360,8 @@ public:
       const bool same = m_surfaceGroups[i] == a_group && s.m_surface == a_selector.m_surface &&
                         s.m_part == a_selector.m_part && s.m_regionA == a_selector.m_regionA &&
                         s.m_regionB == a_selector.m_regionB && s.m_label == a_selector.m_label &&
-                        s.m_materialA == a_selector.m_materialA && s.m_materialB == a_selector.m_materialB;
+                        s.m_materialA == a_selector.m_materialA && s.m_materialB == a_selector.m_materialB &&
+                        s.m_rest == a_selector.m_rest;
 
       if (!same) {
         m_selectors[kept]     = m_selectors[i];
@@ -402,7 +425,8 @@ public:
   }
 
   /**
-   * @brief The surface group a surface point is in: that of the first selector it matches.
+   * @brief The surface group a surface point is in: that of the first selector it matches, those of the remaining
+   * surfaces (SurfaceSelector::rest()) tried last.
    * @tparam T Floating-point precision.
    * @param[in] a_surface The surface, with its sides and their materials (Tape::closestSurface(p, phases, phase),
    * firstRegionChange()).
@@ -413,9 +437,12 @@ public:
   inline uint32_t
   surfaceGroupOf(const SurfaceRef<T>& a_surface) const noexcept
   {
-    for (uint32_t i = 0; i < m_numSelectors; i++) {
-      if (m_selectors[i].matches(a_surface)) {
-        return m_surfaceGroups[i];
+    // The remaining surfaces' selectors last.
+    for (int pass = 0; pass < 2; pass++) {
+      for (uint32_t i = 0; i < m_numSelectors; i++) {
+        if (m_selectors[i].m_rest == (pass == 1) && m_selectors[i].matches(a_surface)) {
+          return m_surfaceGroups[i];
+        }
       }
     }
 

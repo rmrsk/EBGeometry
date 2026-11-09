@@ -1557,6 +1557,11 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
     m_leafSurfaces.push_back(static_cast<uint32_t>(end));
     m_leafPartSurfaceLabels.emplace_back();
 
+    // A collection's parts are its members' (not counted here); a shape with parts has its own count, others one.
+    m_leafParts.push_back((leaf.m_numSurfaces != nullptr) ? 0U
+                          : (leaf.m_numParts != nullptr)  ? leaf.m_numParts(leaf.m_object.get())
+                                                          : 1U);
+
     // The parts' labels: a part's group wins over the label the leaf has.
     if (a_node.m_partGroups != nullptr) {
       const FaceGroups& groups = *a_node.m_partGroups;
@@ -1643,6 +1648,15 @@ ExprIndex<T>::getPartSurfaceLabel(const uint32_t a_leaf, const uint32_t a_part) 
   EBGEOMETRY_REQUIRE(a_part < parts.size(), "ExprIndex: part %u of %zu", unsigned(a_part), parts.size());
 
   return parts[a_part];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumPartsOfLeaf(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafParts.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafParts.size());
+
+  return m_leafParts[a_leaf];
 }
 
 template <class T>

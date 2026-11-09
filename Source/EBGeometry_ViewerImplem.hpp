@@ -450,6 +450,8 @@ enum class PanelAction : uint8_t
   AddSurface,     ///< Add the picked piece's whole surface.
   AddInterface,   ///< Add the interface between the picked piece's two regions.
   AddRegion,      ///< Add every surface of the picked piece's region (the one inside).
+  AddPart,        ///< Add the picked part only (a box's face, a mesh's face) of the picked piece.
+  AddRest,        ///< Add the remaining surfaces (those no other entry holds) to the current surface group.
   RemovePiece,    ///< Remove what holds the picked piece from the current surface group.
   ToggleRegion,   ///< Show or hide a region.
   CurrentGroup,   ///< Make a surface group the one added to.
@@ -673,6 +675,93 @@ run(const S&           a_shape,
   // The names of the regions, materials, surfaces and groups, as the program gave them.
   RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
 
+  // The pieces the object may have (from the index: a superset), each with the one found for it, if any (npos); a
+  // piece found that the index does not list (names not built from an index) is added, so that nothing found is left
+  // out.
+  const SurfaceInventory&    inventory = names.getInventory();
+  std::vector<PossiblePiece> possible  = possiblePieces(inventory);
+  std::vector<std::size_t>   foundOf(possible.size(), std::size_t(-1));
+  std::vector<bool>          listed(pieces.size(), false);
+
+  for (std::size_t c = 0; c < possible.size(); c++) {
+    for (std::size_t f = 0; f < pieces.size(); f++) {
+      const SurfaceRef<T>& s = pieces[f].m_surface;
+
+      if (s.m_surface == possible[c].m_surface && s.m_insideRegion == possible[c].m_insideRegion &&
+          s.m_outsideRegion == possible[c].m_outsideRegion) {
+        foundOf[c] = f;
+        listed[f]  = true;
+      }
+    }
+  }
+
+  for (std::size_t f = 0; f < pieces.size(); f++) {
+    if (!listed[f]) {
+      const SurfaceRef<T>& s = pieces[f].m_surface;
+
+      possible.push_back(PossiblePiece{s.m_surface, s.m_insideRegion, s.m_outsideRegion});
+      foundOf.push_back(f);
+    }
+  }
+
+  // How the scheme covers each possible piece, kept until the scheme changes. A piece the inventory does not hold is
+  // judged by the surface where it was found.
+  std::vector<PieceCoverage> coverage;
+  Scheme                     coveredScheme;
+  bool                       coverageKnown = false;
+
+  const auto sameScheme = [](const Scheme& a_first, const Scheme& a_second) {
+    if (a_first.getNumSurfaceGroups() != a_second.getNumSurfaceGroups() ||
+        a_first.getNumSelectors() != a_second.getNumSelectors()) {
+      return false;
+    }
+
+    for (uint32_t i = 0; i < a_first.getNumSelectors(); i++) {
+      const SurfaceSelector& x = a_first.getSelector(i);
+      const SurfaceSelector& y = a_second.getSelector(i);
+
+      if (a_first.getSurfaceGroupOfSelector(i) != a_second.getSurfaceGroupOfSelector(i) || x.m_surface != y.m_surface ||
+          x.m_part != y.m_part || x.m_regionA != y.m_regionA || x.m_regionB != y.m_regionB || x.m_label != y.m_label ||
+          x.m_materialA != y.m_materialA || x.m_materialB != y.m_materialB || x.m_rest != y.m_rest) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const auto coverageOfScheme = [&](const Scheme& a_scheme, const std::size_t a_piece) {
+    const PossiblePiece& piece = possible[a_piece];
+
+    if (piece.m_surface < inventory.getNumSurfaces()) {
+      return coverageOf(piece, inventory, a_scheme);
+    }
+
+    PieceCoverage judged;
+
+    judged.m_surfaceGroup = a_scheme.surfaceGroupOf(pieces[foundOf[a_piece]].m_surface);
+    judged.m_coverage     = (judged.m_surfaceGroup != Scheme::None) ? Coverage::Full : Coverage::None;
+
+    return judged;
+  };
+
+  const auto coverages = [&]() -> const std::vector<PieceCoverage>& {
+    const Scheme& scheme = settings.m_regions.m_scheme;
+
+    if (!coverageKnown || !sameScheme(scheme, coveredScheme)) {
+      coverage.clear();
+
+      for (std::size_t c = 0; c < possible.size(); c++) {
+        coverage.push_back(coverageOfScheme(scheme, c));
+      }
+
+      coveredScheme = scheme;
+      coverageKnown = true;
+    }
+
+    return coverage;
+  };
+
   // Start typing a surface group's name, or stop: keeping what was typed (unless nothing was), or not.
   const auto startRename = [&](const uint32_t a_group) {
     renaming = a_group;
@@ -872,18 +961,28 @@ run(const S&           a_shape,
     case PanelAction::AddInterface: {
       return SurfaceSelector::interface(a_piece.m_insideRegion, a_piece.m_outsideRegion);
     }
+    case PanelAction::AddPart: {
+      return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
+    }
+    case PanelAction::AddRest: {
+      return SurfaceSelector::rest();
+    }
     default: {
       return SurfaceSelector::piece(a_piece);
     }
     }
   };
 
-  // How many of the object's pieces a selector holds, in words.
+  // How many of the object's pieces (those found) a selector holds, all or part of, in words.
   const auto piecesOf = [&](const SurfaceSelector& a_selector) {
+    Scheme alone;
+
+    alone.add(alone.addSurfaceGroup(), a_selector);
+
     uint32_t count = 0;
 
-    for (const SurfacePiece<T>& p : pieces) {
-      count += a_selector.matches(p.m_surface) ? 1U : 0U;
+    for (std::size_t c = 0; c < possible.size(); c++) {
+      count += (foundOf[c] != std::size_t(-1) && coverageOfScheme(alone, c).m_coverage != Coverage::None) ? 1U : 0U;
     }
 
     return std::to_string(count) + ((count == 1U) ? " piece" : " pieces");
@@ -1454,6 +1553,10 @@ run(const S&           a_shape,
       const auto selectorWords = [&](const SurfaceSelector& a_selector) {
         constexpr uint32_t Any = SurfaceSelector::Any;
 
+        if (a_selector.m_rest) {
+          return std::string("All remaining surfaces (those no other entry holds)");
+        }
+
         const bool hasSurface = a_selector.m_surface != Any;
         const bool hasPart    = a_selector.m_part != Any && details;
         const bool hasRegions = a_selector.m_regionA != Any;
@@ -1616,6 +1719,12 @@ run(const S&           a_shape,
           panelLines.back() += "  " + piecesOf(selectorFor(action, piece));
         }
 
+        // A part (a box's face, a mesh's face) alone, with details.
+        if (details) {
+          line("    ");
+          button("Part " + std::to_string(piece.m_part) + " of this piece only", PanelAction::AddPart, 0U);
+        }
+
         if (scheme.getNumSurfaceGroups() > 0U) {
           line("  ");
           button("Remove from " + group(currentGroup), PanelAction::RemovePiece, 0U);
@@ -1678,42 +1787,94 @@ run(const S&           a_shape,
         }
       }
 
+      line("  ");
+
       if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
-        line("  ");
         button("+ New surface group", PanelAction::NewGroup, 0U);
       }
 
-      // The pieces of surface the object has, and those no surface group holds.
-      uint32_t unassigned = 0;
-
-      for (const SurfacePiece<T>& p : pieces) {
-        unassigned += (scheme.surfaceGroupOf(p.m_surface) == Scheme::None) ? 1U : 0U;
+      if (scheme.getNumSurfaceGroups() > 0U) {
+        button("Add remaining surfaces to " + group(currentGroup), PanelAction::AddRest, 0U);
       }
+
+      // The pieces the object may have: those found, those possible but not found, and how the scheme covers them.
+      const std::vector<PieceCoverage>& covered = coverages();
+
+      uint32_t found       = 0;
+      uint32_t unassigned  = 0;
+      uint32_t partly      = 0;
+      bool     findableGap = false;
+
+      for (std::size_t c = 0; c < possible.size(); c++) {
+        found += (foundOf[c] != std::size_t(-1)) ? 1U : 0U;
+        unassigned += (covered[c].m_coverage == Coverage::None) ? 1U : 0U;
+        partly += (covered[c].m_coverage == Coverage::Partly) ? 1U : 0U;
+        findableGap = findableGap || (covered[c].m_coverage != Coverage::Full && foundOf[c] != std::size_t(-1));
+      }
+
+      const auto notFound = static_cast<uint32_t>(possible.size()) - found;
 
       line("");
       line("Pieces of surface");
-      line("  " + std::to_string(pieces.size()) + " in all, " + std::to_string(unassigned) + " in no surface group");
+      line("  " + std::to_string(found) + " found" +
+           ((notFound > 0U) ? ", " + std::to_string(notFound) + " more possible but not found" : std::string()));
+      line((unassigned + partly == 0U) ? std::string("  All in a surface group")
+                                       : "  " + std::to_string(unassigned) + " in no surface group" +
+                                           ((partly > 0U) ? ", " + std::to_string(partly) + " partly" : std::string()));
+
+      if (details) {
+        line("  Found by 64 x 64 rays along each axis; possible ones from the expression");
+      }
+
       line("  ");
 
-      if (unassigned > 0U) {
+      if (findableGap) {
         button("Next unassigned", PanelAction::NextUnassigned, 0U);
       }
 
       button(listPieces ? "Hide list" : "List", PanelAction::ListPieces, 0U);
 
       if (listPieces) {
-        for (uint32_t i = 0; i < pieces.size() && i < 40U; i++) {
-          const uint32_t in = scheme.surfaceGroupOf(pieces[i].m_surface);
+        for (std::size_t c = 0; c < possible.size() && c < 40U; c++) {
+          SurfaceRef<T> s;
 
-          clickable("    " + pieceWords(pieces[i].m_surface) + ": " +
-                      ((in == Scheme::None) ? std::string("none") : group(in)) +
-                      (details ? ", crossed " + std::to_string(pieces[i].m_crossings) + " times" : std::string()),
-                    PanelAction::PickPiece,
-                    i);
+          s.m_surface       = possible[c].m_surface;
+          s.m_insideRegion  = possible[c].m_insideRegion;
+          s.m_outsideRegion = possible[c].m_outsideRegion;
+
+          const PieceCoverage& in   = covered[c];
+          const bool           seen = foundOf[c] != std::size_t(-1);
+          std::string          words =
+            surface(s.m_surface) + ", between " + region(s.m_insideRegion) + " and " + region(s.m_outsideRegion) + ": ";
+
+          words += (in.m_coverage == Coverage::None)     ? std::string("none")
+                   : (in.m_coverage == Coverage::Partly) ? std::string("partly")
+                   : (in.m_surfaceGroup != Scheme::None) ? group(in.m_surfaceGroup)
+                                                         : std::string("several surface groups");
+
+          if (!seen) {
+            words += " (possible, not found)";
+          }
+          else if (details) {
+            std::string parts;
+
+            for (const uint32_t part : pieces[foundOf[c]].m_parts) {
+              parts += (parts.empty() ? "" : ", ") + std::to_string(part);
+            }
+
+            words += " (parts " + parts + "; crossed " + std::to_string(pieces[foundOf[c]].m_crossings) + " times)";
+          }
+
+          if (seen) {
+            clickable("    " + words, PanelAction::PickPiece, static_cast<uint32_t>(c));
+          }
+          else {
+            line("    " + words);
+          }
         }
 
-        if (pieces.size() > 40U) {
-          line("    And " + std::to_string(pieces.size() - 40U) + " more");
+        if (possible.size() > 40U) {
+          line("    And " + std::to_string(possible.size() - 40U) + " more");
         }
       }
     }
@@ -2045,6 +2206,7 @@ run(const S&           a_shape,
                 case PanelAction::AddSurface:
                 case PanelAction::AddInterface:
                 case PanelAction::AddRegion:
+                case PanelAction::AddPart:
                 case PanelAction::RemovePiece: {
                   (void)editPicked(clicked.m_action);
 
@@ -2095,17 +2257,20 @@ run(const S&           a_shape,
                 }
                 case PanelAction::NextUnassigned:
                 case PanelAction::PickPiece: {
-                  // The next piece in no surface group after the last one picked from the pieces, or the one clicked.
-                  std::size_t index = pieces.size();
+                  // The next found piece not wholly in a surface group after the last one picked from the pieces, or
+                  // the one clicked.
+                  std::size_t index = possible.size();
 
                   if (clicked.m_action == PanelAction::PickPiece) {
                     index = clicked.m_value;
                   }
                   else {
-                    for (std::size_t step = 1; step <= pieces.size(); step++) {
-                      const std::size_t i = (pieceIndex + step) % pieces.size();
+                    const std::vector<PieceCoverage>& covered = coverages();
 
-                      if (scheme.surfaceGroupOf(pieces[i].m_surface) == Scheme::None) {
+                    for (std::size_t step = 1; step <= possible.size(); step++) {
+                      const std::size_t i = (pieceIndex + step) % possible.size();
+
+                      if (covered[i].m_coverage != Coverage::Full && foundOf[i] != std::size_t(-1)) {
                         index = i;
 
                         break;
@@ -2113,13 +2278,15 @@ run(const S&           a_shape,
                     }
                   }
 
-                  if (index < pieces.size()) {
+                  if (index < possible.size() && foundOf[index] != std::size_t(-1)) {
+                    const SurfacePiece<T>& piece = pieces[foundOf[index]];
+
                     pieceIndex = index;
 
-                    pick.m_point    = pieces[index].m_point;
-                    pick.m_normal   = pieces[index].m_normal;
+                    pick.m_point    = piece.m_point;
+                    pick.m_normal   = piece.m_normal;
                     picked          = true;
-                    camera.m_target = pieces[index].m_point;
+                    camera.m_target = piece.m_point;
 
                     rekeyPick();
                   }
@@ -2136,6 +2303,16 @@ run(const S&           a_shape,
                   }
 
                   applyColors();
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::AddRest: {
+                  if (scheme.getNumSelectors() < Scheme::MaxSelectors) {
+                    scheme.remove(currentGroup, SurfaceSelector::rest());
+                    scheme.add(currentGroup, SurfaceSelector::rest());
+                  }
+
                   rekeyPick();
 
                   break;

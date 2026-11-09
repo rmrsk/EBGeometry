@@ -534,7 +534,14 @@ instantiateFunctionTemplates()
       (void)scheme.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
-      (void)unassignedPieces(findSurfacePieces(regions, 4U), scheme);
+      (void)findSurfacePieces(regions, 4U);
+      {
+        const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
+
+        for (const PossiblePiece& piece : possiblePieces(inventory)) {
+          (void)coverageOf(piece, inventory, scheme);
+        }
+      }
       (void)ExprIndex<T>(Overlay(RegionName(expr, "a"), expr)).findRegion("a");
       (void)regions.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
       (void)regions.firstRegionChange(Vec3T<T>::zeros(), Vec3T<T>::ones());

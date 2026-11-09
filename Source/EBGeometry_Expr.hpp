@@ -1219,6 +1219,16 @@ public:
   getSurfaceLabel(uint32_t a_leaf) const;
 
   /**
+   * @brief How many parts a leaf's shape has (see hasParts): one for a shape without parts, a mesh's faces, a box's
+   * six; 0 for a collection (a cloud, a BVH union, a tape), whose surfaces are its members, each with its own parts.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The count, or 0.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumPartsOfLeaf(uint32_t a_leaf) const;
+
+  /**
    * @brief The label of a part of a leaf (see hasParts): its face group's label when SurfaceLabel(shape, FaceGroups)
    * put it in one, and otherwise the leaf's (getSurfaceLabel()).
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
@@ -1417,6 +1427,11 @@ private:
    * @brief Each leaf's part labels (see getPartSurfaceLabels()).
    */
   std::vector<std::vector<SurfaceLabelId>> m_leafPartSurfaceLabels;
+
+  /**
+   * @brief Each leaf's number of parts (see getNumPartsOfLeaf()).
+   */
+  std::vector<uint32_t> m_leafParts;
 
   /**
    * @brief The labels' names.

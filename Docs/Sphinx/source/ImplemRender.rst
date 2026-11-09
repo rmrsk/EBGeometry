@@ -225,9 +225,11 @@ surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selec
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
 ``RegionSettings::m_highlightGroup`` does the same in a program), its ``[Hide]`` hides its surfaces (they are not
 drawn and cast no shadow; ``RegionSettings::setSurfaceGroupHidden()`` in a program), its ``[Rename]`` lets its name be typed (Enter keeps it, Esc cancels), and its ``[Delete]`` and a
-selector's ``[x]`` remove them; ``[+ New surface group]`` starts one, its name typed first. Last, it
-counts the object's pieces (``findSurfacePieces()``) and those in no surface group: ``[Next unassigned]`` picks the
-next of these and turns the camera to it, and ``[List]`` lists every piece, a click picking it. Colored by surface
+selector's ``[x]`` remove them; ``[+ New surface group]`` starts one, its name typed first, and ``[Add remaining
+surfaces]`` puts every surface no other entry holds in the current one. Last, it counts the object's pieces, those
+found and those possible but not found, and those not, or only partly, in a surface group (``possiblePieces()``,
+``coverageOf()``, ``findSurfacePieces()``): ``[Next unassigned]`` picks the next of these found and turns the camera
+to it, and ``[List]`` lists every piece, a click picking a found one. Colored by surface
 group, a surface in none is gray.
 
 The window needs SDL2 and is compiled only on request (see :ref:`Sec:ConfigViewer`). Without it, and

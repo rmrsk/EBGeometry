@@ -11,6 +11,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -1056,9 +1057,31 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
   names.removeSurfaceGroup(1);
 
   CHECK(names.surfaceGroup(1) == "1 jump");
+
+  // The remaining surfaces are tried last, even when added first.
+  Scheme ordered;
+
+  const uint32_t other = ordered.addSurfaceGroup();
+  const uint32_t core  = ordered.addSurfaceGroup();
+
+  ordered.add(other, SurfaceSelector::rest());
+  ordered.add(core, SurfaceSelector::region(2));
+
+  SurfaceRef<double> wall;
+
+  wall.m_insideRegion  = 2;
+  wall.m_outsideRegion = 1;
+
+  SurfaceRef<double> skin;
+
+  skin.m_insideRegion  = 1;
+  skin.m_outsideRegion = 0;
+
+  CHECK(ordered.surfaceGroupOf(wall) == core);
+  CHECK(ordered.surfaceGroupOf(skin) == other);
 }
 
-TEMPLATE_TEST_CASE("findSurfacePieces: every surface and part between every pair of regions, once each",
+TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regions, once each, with its parts",
                    "[Overlay][SurfacePieces]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1067,8 +1090,9 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface and part between every pair
   using Tape = Tape<T, TapeFeature::Regions>;
 
   // The cable (jacket radius 1, region 1; core radius 0.5, region 2; air 0) with x > 0, 0 < z < 1 cut away. By hand:
-  // the jacket's skin (1 | 0), the core's wall in the jacket (2 | 1), and the box's faces in the cut: x = 0 and
-  // z = 0 through both regions (1 | 0 and 2 | 0 each); the face z = 1 only touches the jacket at its top.
+  // the jacket's skin (1 | 0), the core's wall in the jacket (2 | 1), and the box's cut faces, x = 0 and z = 0 (its
+  // parts), through both regions: one piece against each (1 | 0 and 2 | 0), each with those two parts. The face
+  // z = 1 only touches the jacket at its top.
   const Expr<T> cut = Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(0)), Vec3(T(2), T(2), T(1))));
 
   Pool pool(hostMemoryResource());
@@ -1077,7 +1101,7 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface and part between every pair
 
   const std::vector<SurfacePiece<T>> pieces = findSurfacePieces(tape, 32);
 
-  REQUIRE(pieces.size() == 6U);
+  REQUIRE(pieces.size() == 4U);
 
   uint32_t coreWall = 0;
   uint32_t onCore   = 0;
@@ -1092,28 +1116,79 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface and part between every pair
     CHECK(tape.region(piece.m_point - T(1e-3) * piece.m_normal) == s.m_insideRegion);
     CHECK(piece.m_crossings > 0U);
 
+    // The box's pieces cross two of its faces; the spheres have one part.
+    CHECK(piece.m_parts.size() == ((s.m_surface == 2U) ? 2U : 1U));
+
     coreWall += (s.m_insideRegion == 2U && s.m_outsideRegion == 1U) ? 1U : 0U;
     onCore += (s.m_insideRegion == 2U) ? 1U : 0U;
     onAir += (s.m_outsideRegion == 0U) ? 1U : 0U;
   }
 
   CHECK(coreWall == 1U);
-  CHECK(onCore == 3U);
-  CHECK(onAir == 5U);
+  CHECK(onCore == 2U);
+  CHECK(onAir == 3U);
 
   // A finer grid finds the same pieces.
-  CHECK(findSurfacePieces(tape, 64).size() == 6U);
+  CHECK(findSurfacePieces(tape, 64).size() == 4U);
 
-  // Every surface of the core in a surface group: the pieces left are the three that do not touch it.
+  // The pieces the index says the object may have hold every piece found.
+  const ExprIndex<T>               index(cut);
+  const SurfaceInventory           inventory(index);
+  const std::vector<PossiblePiece> possible = possiblePieces(inventory);
+
+  CHECK(inventory.getNumSurfaces() == 3U);
+  CHECK(inventory.getNumParts(0) == 1U);
+  CHECK(inventory.getNumParts(2) == 6U);
+  CHECK(index.getNumPartsOfLeaf(2) == 6U);
+
+  for (const SurfacePiece<T>& piece : pieces) {
+    const SurfaceRef<T>& s = piece.m_surface;
+
+    CHECK(std::any_of(possible.begin(), possible.end(), [&s](const PossiblePiece& a_possible) {
+      return a_possible.m_surface == s.m_surface && a_possible.m_insideRegion == s.m_insideRegion &&
+             a_possible.m_outsideRegion == s.m_outsideRegion;
+    }));
+  }
+
+  // How a scheme covers them: the core's surfaces wholly; one face of the box against the jacket partly.
+  const auto find = [&possible](const uint32_t a_surface, const uint32_t a_inside, const uint32_t a_outside) {
+    return *std::find_if(possible.begin(), possible.end(), [&](const PossiblePiece& a_possible) {
+      return a_possible.m_surface == a_surface && a_possible.m_insideRegion == a_inside &&
+             a_possible.m_outsideRegion == a_outside;
+    });
+  };
+
   Scheme scheme;
 
-  scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::region(2));
+  const uint32_t core = scheme.addSurfaceGroup();
+  const uint32_t face = scheme.addSurfaceGroup();
 
-  CHECK(unassignedPieces(pieces, scheme).size() == 3U);
+  scheme.add(core, SurfaceSelector::region(2));
 
-  scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::region(1));
+  SurfaceRef<T> boxOnJacket;
 
-  CHECK(unassignedPieces(pieces, scheme).empty());
+  boxOnJacket.m_surface       = 2;
+  boxOnJacket.m_part          = 0;
+  boxOnJacket.m_insideRegion  = 1;
+  boxOnJacket.m_outsideRegion = 0;
+
+  scheme.add(face, SurfaceSelector::piece(boxOnJacket).withPart(0));
+
+  CHECK(coverageOf(find(1, 2, 1), inventory, scheme).m_coverage == Coverage::Full);
+  CHECK(coverageOf(find(1, 2, 1), inventory, scheme).m_surfaceGroup == core);
+  CHECK(coverageOf(find(2, 1, 0), inventory, scheme).m_coverage == Coverage::Partly);
+  CHECK(coverageOf(find(0, 1, 0), inventory, scheme).m_coverage == Coverage::None);
+
+  // The remaining surfaces cover the rest, whatever the order they were added in; the core's stay the core's.
+  Scheme rest = scheme;
+
+  rest.add(face, SurfaceSelector::rest());
+
+  for (const PossiblePiece& piece : possible) {
+    CHECK(coverageOf(piece, inventory, rest).m_coverage == Coverage::Full);
+  }
+
+  CHECK(coverageOf(find(1, 2, 1), inventory, rest).m_surfaceGroup == core);
 }
 
 TEMPLATE_TEST_CASE("RegionName: names a region apart from its material, unique, only where a region is",

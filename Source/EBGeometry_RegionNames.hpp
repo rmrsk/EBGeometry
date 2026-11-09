@@ -23,6 +23,7 @@
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_RegionSettings.hpp"
+#include "EBGeometry_SurfacePieces.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -49,7 +50,7 @@ public:
    */
   template <class T>
   EBGEOMETRY_HOST
-  explicit RegionNames(const ExprIndex<T>& a_index)
+  explicit RegionNames(const ExprIndex<T>& a_index) : m_inventory(a_index)
   {
     for (uint32_t k = 0; k < a_index.getNumMaterialLabels(); k++) {
       m_materials.push_back(a_index.getMaterialLabelName(MaterialLabelId(k)));
@@ -153,6 +154,18 @@ public:
     a_color = color->second;
 
     return true;
+  }
+
+  /**
+   * @brief What the index says about the surfaces: every surface, its parts, the pairs of regions it may separate
+   * (see possiblePieces(), coverageOf()).
+   * @return The inventory; empty for names not built from an index.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const SurfaceInventory&
+  getInventory() const noexcept
+  {
+    return m_inventory;
   }
 
   /**
@@ -277,6 +290,11 @@ public:
   }
 
 protected:
+  /**
+   * @brief The surfaces, from the index.
+   */
+  SurfaceInventory m_inventory;
+
   /**
    * @brief The regions' own names (RegionName()), empty for none; the lists below too leave the unnamed empty.
    */

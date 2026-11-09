@@ -320,10 +320,12 @@ distance bound, exact near a smooth piece of its surface:
 A solver groups surfaces under its boundary conditions with a
 `Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight surface groups ("dirichlet", "jump", "no-slip"), each
 a list of `SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface
-point is. The finest, ``SurfaceSelector::piece(surface)``, is a shape's surface, its part and the regions on its
-two sides, the piece one clicks; broader ones select a whole surface, a surface label, an interface (two regions,
-either way round), a region (either side) or a pair of materials. Patches with the same attributes are one piece:
-the conditions say what a surface is, not where. ``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported
+point is. A piece, ``SurfaceSelector::piece(surface)``, is a shape's surface between the regions on its two sides,
+the piece one clicks (``.withPart(part)`` narrows it to one face of a box or a mesh); broader ones select a whole
+surface, a surface label, an interface (two regions, either way round), a region (either side) or a pair of
+materials, and ``SurfaceSelector::rest()`` the remaining surfaces, those no other selector holds, whatever the
+order they were added in. Patches with the same attributes are one piece: the conditions say what a surface is, not
+where. ``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported
 with its sides, on the host and on a device, and the surface carries the materials of its two sides too.
 
 .. code-block:: c++
@@ -337,10 +339,13 @@ with its sides, on the host and on a device, and the surface carries the materia
    electrostatics.surfaceGroupOf(tape.closestSurface(p, phases, phase));   // at a cut cell, in a kernel
 
 ``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
-``getSidesOfLeaf(leaf)`` those of one shape's surface: what a solver's setup can expect to meet. On the host,
-``findSurfacePieces(tape)`` finds the pieces the object actually has, each once, by crossing it with rays on a grid
-(a finer grid finds smaller pieces), and ``unassignedPieces(pieces, scheme)`` those no surface group holds: what a
-solver would meet without a boundary condition.
+``getSidesOfLeaf(leaf)`` those of one shape's surface: what a solver's setup can expect to meet. Whether a scheme
+leaves a surface without a boundary condition is checked from these, on the host: ``possiblePieces(inventory)``
+lists every piece the object may have (each surface between each pair of regions it may separate, from a
+``SurfaceInventory`` of the index: nothing is left out, and some may not occur), and ``coverageOf(piece, inventory,
+scheme)`` says whether the scheme's surface groups hold all of it, part of it (some faces of a box or a mesh) or
+none. ``findSurfacePieces(tape)`` finds which pieces the object actually has, with a point on each, by crossing it
+with rays on a grid; a piece too small for the grid is missed there, but not by the check.
 
 Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
 finds the first point where the region changes, from inside any region: the crossing, with its normal pointing
