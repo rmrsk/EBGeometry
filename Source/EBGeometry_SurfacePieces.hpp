@@ -71,7 +71,7 @@ struct SurfacePiece
  * with the axes are not grazed. Every piece found is real; a piece no ray crosses (smaller than a cell, or thinner
  * than one along all three axes) is missed, so the pieces an object may have are possiblePieces(), and these confirm
  * which of them it has. The cost is 3 a_resolution^2 rays.
- * @tparam TapeType A Tape that lists TapeFeature::Regions.
+ * @tparam TapeType A Tape.
  * @param[in] a_tape       The tape.
  * @param[in] a_resolution Rays per side of the grid along each axis.
  * @return The pieces.

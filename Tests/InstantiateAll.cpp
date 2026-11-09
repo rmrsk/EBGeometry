@@ -515,7 +515,7 @@ instantiateFunctionTemplates()
     // A tape with a feature (see TapeFeature), whose ray code compiles the feature's.
     const Tape<T, TapeFeature::ExactOffsets> exact(meshPool, expr);
     {
-      const Tape<T, TapeFeature::Regions> regions(meshPool, Overlay(expr, expr));
+      const Tape<T> regions(meshPool, Overlay(expr, expr));
 
       (void)regions.getNumRegions();
       (void)regions.region(Vec3T<T>::zeros());

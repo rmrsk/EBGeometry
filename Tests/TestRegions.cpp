@@ -327,9 +327,9 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
 
   Pool pool(hostMemoryResource());
 
-  const Tape<T, TapeFeature::Regions> tape(pool, scene);
-  const Tape<T>                       plain(pool, scene);
-  const ExprIndex<T>                  index(scene);
+  const Tape<T>      tape(pool, scene);
+  const Tape<T>      plain(pool, scene);
+  const ExprIndex<T> index(scene);
 
   REQUIRE(tape.getNumRegions() == 6U);
   REQUIRE(index.getNumRegions() == 6U);
@@ -337,7 +337,7 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
   // The region programs leave the leaves as the whole expression numbers them.
   CHECK(tape.getNumPrimitives() == plain.getNumPrimitives());
 
-  const Tape<T, TapeFeature::Regions> copy = tape.deepCopy(pool);
+  const Tape<T> copy = tape.deepCopy(pool);
 
   for (int i = -40; i <= 40; i++) {
     for (int j = -8; j <= 8; j++) {
@@ -382,7 +382,7 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
   }
 
   // An object with no Overlay is one region.
-  const Tape<T, TapeFeature::Regions> one(pool, Union(matrix, shell));
+  const Tape<T> one(pool, Union(matrix, shell));
 
   CHECK(one.getNumRegions() == 2U);
   CHECK(one.region(Vec3::zeros()) == 1U);
@@ -397,7 +397,7 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
-  using Tape = Tape<T, TapeFeature::Regions>;
+  using Tape = Tape<T>;
 
   // The cable (concentric spheres: jacket radius 1, region 1, PTFE; core radius 0.5, region 2, copper; air 0), its
   // half x > 0 cut away along 0 < z < 1.
@@ -542,7 +542,7 @@ TEMPLATE_TEST_CASE("Tape: a mask above two regions leaves no sheet of zeros on i
 
   Pool pool(hostMemoryResource());
 
-  const Tape<T, TapeFeature::Regions> tape(pool, Difference(cable<T>(), slab));
+  const Tape<T> tape(pool, Difference(cable<T>(), slab));
 
   // On the slab's end face z = 0.3, inside the core's radius (0.5): the jacket's function is the distance to the
   // core's surface, not zero (no sheet).
@@ -561,7 +561,7 @@ TEMPLATE_TEST_CASE("Tape: a mask above two regions leaves no sheet of zeros on i
   const SphereSDF<T> grain(Vec3::zeros(), T(0.4));
   const BoxSDF<T>    half(Vec3(T(-2), T(-2), T(-2)), Vec3(T(0), T(2), T(2)));
 
-  const Tape<T, TapeFeature::Regions> nested(pool, Overlay(matrix, Intersection(Overlay(shell, grain), half)));
+  const Tape<T> nested(pool, Overlay(matrix, Intersection(Overlay(shell, grain), half)));
 
   for (const Vec3& p : {Vec3(T(0.5), T(0), T(0)),
                         Vec3(T(-0.5), T(0), T(0)),
@@ -594,7 +594,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
 
   // The cable (concentric spheres: the jacket of radius 1, region 1, leaf 0; the core of radius 0.5, region 2,
   // leaf 1), in air (region 0).
-  const Tape<T, TapeFeature::Regions> cableTape(pool, cable<T>());
+  const Tape<T> cableTape(pool, cable<T>());
 
   const Vec3 outer(T(1), T(0), T(0));
   const Vec3 inner(T(0.5), T(0), T(0));
@@ -631,7 +631,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
   const SphereSDF<T> big(Vec3::zeros(), T(1));
   const SphereSDF<T> small(Vec3(T(1), T(0), T(0)), T(0.3));
 
-  const Tape<T, TapeFeature::Regions> triple(pool, Overlay(big, small));
+  const Tape<T> triple(pool, Overlay(big, small));
 
   CHECK(triple.closestSurface(Vec3(T(1.3), T(0), T(0)), 2U).m_outsideRegion == 0U);
   CHECK(triple.closestSurface(Vec3(T(0.7), T(0), T(0)), 2U).m_outsideRegion == 1U);
@@ -640,9 +640,9 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
   // and the air across.
   const BoxSDF<T> slab(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)));
 
-  const Expr<T>                       cut = Difference(cable<T>(), SurfaceLabel(slab, "cut"));
-  const Tape<T, TapeFeature::Regions> cutTape(pool, cut);
-  const ExprIndex<T>                  index(cut);
+  const Expr<T>      cut = Difference(cable<T>(), SurfaceLabel(slab, "cut"));
+  const Tape<T>      cutTape(pool, cut);
+  const ExprIndex<T> index(cut);
 
   const SurfaceRef<T> face = cutTape.closestSurface(Vec3(T(0.1), T(0), T(0.3)), 2U);
 
@@ -652,10 +652,23 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
   CHECK(face.m_outsideRegion == 0U);
 
   // An object with no Overlay: its surface, between it and the background.
-  const Tape<T, TapeFeature::Regions> one(pool, toExpr(big));
+  const Tape<T> one(pool, toExpr(big));
 
   CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_insideRegion == 1U);
   CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_outsideRegion == 0U);
+  CHECK(one.getNumRegions() == 2U);
+  CHECK(one.region(Vec3::zeros()) == 1U);
+  CHECK(one.region(Vec3(T(5), T(0), T(0))) == 0U);
+  CHECK(one.getMaterialOf(1).isNone());
+
+  // Its material, on it or on a map above it, numbered as the index numbers it (the first material).
+  const Expr<T>      labeled = Translate(MaterialLabel(big, "steel"), Vec3(T(1), T(0), T(0)));
+  const Tape<T>      steel(pool, labeled);
+  const ExprIndex<T> index2(labeled);
+
+  CHECK(steel.getMaterialOf(1).value() == 0U);
+  CHECK(index2.getMaterialOf(1) == steel.getMaterialOf(1));
+  CHECK(steel.getMaterialOf(0).isNone());
 }
 
 TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and each subdomain a function",
@@ -667,8 +680,8 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
 
   Pool pool(hostMemoryResource());
 
-  const Tape<T, TapeFeature::Regions> tape(pool, cable<T>());
-  const ExprIndex<T>                  index(cable<T>());
+  const Tape<T>      tape(pool, cable<T>());
+  const ExprIndex<T> index(cable<T>());
 
   const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the air
   const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
@@ -762,8 +775,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
   Pool pool(hostMemoryResource());
 
-  const Tape<T, TapeFeature::Regions> tape(pool, cut);
-  const ExprIndex<T>                  index(cut);
+  const Tape<T>      tape(pool, cut);
+  const ExprIndex<T> index(cut);
 
   // Along x at z = 0.4, above the cut: four changes, at the spheres' exact crossings.
   {
@@ -858,7 +871,7 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host",
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
-  using Tape = Tape<T, TapeFeature::Regions>;
+  using Tape = Tape<T>;
 
   using namespace EBGeometryTestGPU;
 
@@ -954,7 +967,7 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
-  using Tape = Tape<T, TapeFeature::Regions>;
+  using Tape = Tape<T>;
 
   // The cable: air 0, the jacket 1 (PTFE), the core 2 (copper), its surface labeled "conductor".
   const auto core   = MaterialLabel(SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "conductor"), "copper");
@@ -1133,7 +1146,7 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
-  using Tape = Tape<T, TapeFeature::Regions>;
+  using Tape = Tape<T>;
 
   // The cable (jacket radius 1, region 1; core radius 0.5, region 2; air 0) with x > 0, 0 < z < 1 cut away. By hand:
   // the jacket's skin (1 | 0), the core's wall in the jacket (2 | 1), and the box's cut faces, x = 0 and z = 0 (its
@@ -1328,7 +1341,7 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
-  using Tape = Tape<T, TapeFeature::Regions>;
+  using Tape = Tape<T>;
 
   Pool pool(hostMemoryResource());
 

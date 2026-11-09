@@ -159,7 +159,7 @@ struct Staging
   std::vector<uint32_t> m_partSurfaceLabels;
 
   /**
-   * @brief The regions' table (TapeFeature::Regions), laid out as Tape::Layout::m_regionPrograms; empty without the
+   * @brief The regions' table, laid out as Tape::Layout::m_regionPrograms; empty without the
    * feature or an Overlay.
    */
   std::vector<uint32_t> m_regionPrograms;
@@ -302,7 +302,7 @@ public:
   }
 
   /**
-   * @brief Compile a region's program (TapeFeature::Regions): a subexpression emitted again, with the leaves of
+   * @brief Compile a region's program: a subexpression emitted again, with the leaves of
    * the given subtrees numbered from the given leaves, as in the whole expression.
    * @param[in] a_node   The region's solid (its operand under the maps and masks above it).
    * @param[in] a_starts The first leaf of each subtree emitted again (the operand and the masks).
@@ -1495,7 +1495,7 @@ countLeaves(const ExprDetail::Node<T>& a_node) noexcept
 }
 
 /**
- * @brief A region's solids (TapeFeature::Regions): its operand under the maps and masks above it, once with every
+ * @brief A region's solids: its operand under the maps and masks above it, once with every
  * mask (level 0) and once more for each outer mask left out (level l without the l outermost), with the first leaf
  * of the operand and of each mask in the whole expression.
  * @details Internal helper; not part of the public API. A mask above two regions removes the same space from both,
@@ -1552,7 +1552,7 @@ withoutMaterial(const Expr<T>& a_operand)
 }
 
 /**
- * @brief The solids of the regions of a partition, in region order (TapeFeature::Regions).
+ * @brief The solids of the regions of a partition, in region order.
  * @details Internal helper; not part of the public API. Walks the partition depth first, as ExprIndex numbers the
  * regions: an Overlay's operands in order; a map or a clipping intersection wraps the solids below it in itself.
  * @tparam T Floating-point precision.
@@ -1690,13 +1690,34 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
 
   // Each region's program: its operand, under the maps and masks above it, with the leaves numbered as in the
   // whole expression.
-  if constexpr (hasFeature<TapeFeature::Regions>) {
+  //
+  // Without an Overlay the object is one region in the background, its material the label on it (or on a map above
+  // it), if any: the table is written directly, without numbering the whole expression (a large union's index would
+  // cost as much as the tape).
+  if (!a_expr.node().m_partition) {
+    std::vector<uint32_t>& table = staging.m_regionPrograms;
+
+    uint32_t material = MaterialLabelId::none().value();
+
+    for (const ExprDetail::Node<T>* node = &a_expr.node();; node = &node->m_children.front().node()) {
+      if (!node->m_materialLabel.empty()) {
+        material = 0U;
+
+        break;
+      }
+
+      if (node->m_kind != ExprDetail::Kind::Affine || node->m_children.empty()) {
+        break;
+      }
+    }
+
+    table = {0U, MaterialLabelId::none().value(), material};
+  }
+  else {
     std::vector<TapeDetail::RegionSolid<T>>                      solids;
     std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> path;
 
-    if (a_expr.node().m_partition) {
-      TapeDetail::regionSolids(a_expr, 0U, path, solids);
-    }
+    TapeDetail::regionSolids(a_expr, 0U, path, solids);
 
     // The table: the number of operands n, each operand's record's offset, each region's material (the background
     // first; two for an object with no Overlay), then the records: the number of masks above the region, their
@@ -3394,7 +3415,6 @@ Tape<T, UserPrimitives...>::numRegionOperands() const noexcept
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 inline MaterialLabelId
 Tape<T, UserPrimitives...>::getMaterialOf(const uint32_t a_region) const noexcept
@@ -3409,7 +3429,6 @@ Tape<T, UserPrimitives...>::getMaterialOf(const uint32_t a_region) const noexcep
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumRegions() const noexcept
@@ -3462,7 +3481,6 @@ Tape<T, UserPrimitives...>::sharedMasks(const uint32_t a_first, const uint32_t a
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline uint32_t
@@ -3486,7 +3504,6 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
@@ -3517,7 +3534,6 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
@@ -3548,7 +3564,6 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>&   a_point,
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceRef<T>
@@ -3578,7 +3593,6 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceHitT<T>
@@ -3677,7 +3691,6 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 inline SurfaceHitT<T>
 Tape<T, UserPrimitives...>::firstRegionChange(const Vec3T<T>&      a_from,
@@ -3696,7 +3709,6 @@ Tape<T, UserPrimitives...>::firstRegionChange(const Vec3T<T>&      a_from,
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceHitT<T>
@@ -3751,7 +3763,6 @@ Tape<T, UserPrimitives...>::regionSolidTagged(const uint32_t  a_region,
 }
 
 template <class T, class... UserPrimitives>
-template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceRef<T>

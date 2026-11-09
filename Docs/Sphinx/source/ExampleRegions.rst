@@ -30,13 +30,13 @@ material. A ``Difference`` with the Overlay first cuts every region at once.
 Which region, and each region's function
 ----------------------------------------
 
-A tape listing ``TapeFeature::Regions`` says which region a point is in, and gives each region's implicit
+A tape says which region a point is in, and gives each region's implicit
 function: negative inside the region, zero on its whole surface, the interface with the other regions included.
 That function is what a cut-cell code cuts for one region; the whole object is still ``signedDistance(p)``.
 
 .. code-block:: c++
 
-   const Tape<T, TapeFeature::Regions> tape(pool, object);
+   const Tape<T> tape(pool, object);
 
    tape.region(p);              // 0 air, 1 the jacket, 2 the core
    tape.signedDistance(p, 1);   // the jacket's function

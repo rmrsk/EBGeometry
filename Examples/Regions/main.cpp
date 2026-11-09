@@ -21,7 +21,7 @@
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 using Expr = EBGeometry::Expr<T>;
-using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::Regions>; // a tape that answers for its regions
+using Tape = EBGeometry::Tape<T>; // a tape answers for its regions too
 
 int
 main(int argc, char* argv[])

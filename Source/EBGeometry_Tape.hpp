@@ -123,15 +123,6 @@ struct ExactOffsets : Tag
 {
 };
 
-/**
- * @brief Regions (see Overlay()): the tape compiles one program per region of an Overlay, its operand under the
- * maps and masks above it, and answers region(), signedDistance(p, region) and getNumRegions(). Without an Overlay
- * the object is one region. A tape without the feature compiles none of it.
- */
-struct Regions : Tag
-{
-};
-
 } // namespace TapeFeature
 
 namespace TapeDetail {
@@ -909,7 +900,7 @@ public:
     PODVector<uint32_t> m_partSurfaceLabels;
 
     /**
-     * @brief The regions (TapeFeature::Regions): the number n of the Overlays' operands (0 without an Overlay), then
+     * @brief The regions: the number n of the Overlays' operands (0 without an Overlay), then
      * each operand's record's offset, then each region's material (the background first; two for an object with no
      * Overlay), then the records: the number m of masks above the region, their numbers (outermost first), and its
      * m + 1 programs, the solid with every mask and then with the outermost 1, 2, ..., m left out. Empty without the
@@ -1198,43 +1189,37 @@ public:
   getNumSurfaceLabels() const noexcept;
 
   /**
-   * @brief How many regions the object has (TapeFeature::Regions): the background (region 0) and one per operand of
+   * @brief How many regions the object has: the background (region 0) and one per operand of
    * its Overlays, numbered as ExprIndex numbers them; 2 for an object with no Overlay (the outside and the object).
    * @return The count.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getNumRegions() const noexcept;
 
   /**
-   * @brief A region's material (TapeFeature::Regions), as ExprIndex numbers the material labels. Callable on a device.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @brief A region's material, as ExprIndex numbers the material labels. Callable on a device.
    * @param[in] a_region Region.
    * @return The material, or none.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline MaterialLabelId
   getMaterialOf(uint32_t a_region) const noexcept;
 
   /**
-   * @brief The region a point is in (TapeFeature::Regions): the last operand of the Overlays whose solid holds it
+   * @brief The region a point is in: the last operand of the Overlays whose solid holds it
    * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region.
    * Callable on a device.
    * @param[in] a_point Point.
    * @return The region.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline uint32_t
   region(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief A region's implicit function (TapeFeature::Regions): negative exactly inside the region, its zero
+   * @brief A region's implicit function: negative exactly inside the region, its zero
    * contour the region's surface, interfaces with other regions included. For region k it is max(S_k, -min of the
    * later S_j), S_j being operand j's solid; for the background, minus signedDistance(). A distance bound, exact
    * near a smooth piece of surface of exact operands; what a cut-cell code cuts for one region. Callable on a
@@ -1242,68 +1227,60 @@ public:
    * @param[in] a_point  Point.
    * @param[in] a_region Region (below getNumRegions()).
    * @return The value.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline T
   signedDistance(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
   /**
-   * @brief The surface of a region that decides its function at a point (TapeFeature::Regions): the region's own
+   * @brief The surface of a region that decides its function at a point: the region's own
    * boundary, an interface with a later region, or a mask's cut; drilled, with its part and surface label, as
    * closestSurface() reports a surface, and with the regions on its two sides at that point: m_insideRegion the
    * region asked about (inside), m_outsideRegion the region across. The sides belong to the point, not to the surface:
    * one surface can face different regions in different places. For the background, the whole object's surface.
    * Callable on a device.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_point  Point, on or near the region's surface.
    * @param[in] a_region Region (below getNumRegions()).
    * @return The surface.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
   closestSurface(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
   /**
-   * @brief A subdomain's implicit function (TapeFeature::Regions): half the difference of the smallest function of a
+   * @brief A subdomain's implicit function: half the difference of the smallest function of a
    * region in the subdomain and the smallest of one not in it (the background included), negative exactly inside the
    * subdomain and zero only on its surface: where one of its regions meets a region not in it, never on the contact
    * between two of its own. A distance bound, exact near a smooth piece of surface; what a cut-cell solver cuts for
    * the subdomain, and the function of a union of materials (a subdomain of their regions). Callable on a device.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_point  Point.
    * @param[in] a_subdomains The subdomains (built from this tape's regions).
    * @param[in] a_subdomain  Subdomain (below a_subdomains.getNumSubdomains()).
    * @return The value.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline T
   signedDistance(const Vec3T<T>& a_point, const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
 
   /**
-   * @brief The surface of a subdomain that decides its function at a point (TapeFeature::Regions): that of its region
+   * @brief The surface of a subdomain that decides its function at a point: that of its region
    * whose function is smallest there (see closestSurface(p, region)), with the regions on its two sides; the
    * surface's role for the solver is a_subdomains.role(surface). Callable on a device.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_point  Point, on or near the subdomain's surface.
    * @param[in] a_subdomains The subdomains.
    * @param[in] a_subdomain  Subdomain.
    * @return The surface.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
   closestSurface(const Vec3T<T>& a_point, const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
 
   /**
-   * @brief The first point along a ray where the region changes (TapeFeature::Regions): for a particle crossing
+   * @brief The first point along a ray where the region changes: for a particle crossing
    * layers, from inside any region, the background included. The crossing is the nearer of leaving the current
    * region's solid and entering a later one, each traced exactly where the operands have ray forms (and marched
    * where they do not). m_hit is the crossing, its normal pointing from the region left into the region entered;
@@ -1311,14 +1288,12 @@ public:
    * the region entered. The ray starts counting a hundredth of the march's tolerance at the object's scale past
    * a_tMin (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks
    * again from the last crossing's t, and layers thinner than that are passed over. Callable on a device.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval.
    * @param[in] a_options How to march the parts without a ray form.
    * @return The crossing, or a miss.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceHitT<T>
@@ -1330,14 +1305,12 @@ public:
   /**
    * @brief The first change of region along a particle's step from one point to another (see
    * firstRegionChange(ray)), t measured from a_from.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_from    Start of the step.
    * @param[in] a_to      End of the step.
    * @param[in] a_tMin    Distance from a_from where the step starts counting.
    * @param[in] a_options How to march the parts without a ray form.
    * @return The crossing, or a miss.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline SurfaceHitT<T>
   firstRegionChange(const Vec3T<T>&      a_from,
@@ -1346,11 +1319,10 @@ public:
                     const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**
-   * @brief The first point along a ray where it crosses a subdomain's boundary (TapeFeature::Regions), entering or
+   * @brief The first point along a ray where it crosses a subdomain's boundary, entering or
    * leaving the subdomain: changes between two of its regions are passed through. For rendering, the subdomain is the set of
    * visible regions: hidden ones are seen through. Reported as firstRegionChange() reports a crossing. Callable on a
    * device.
-   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval.
@@ -1359,7 +1331,6 @@ public:
    * @param[in] a_options How to march the parts without a ray form.
    * @return The crossing, or a miss.
    */
-  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceHitT<T>
@@ -1548,7 +1519,7 @@ private:
 
   /**
    * @brief The first crossing along a ray of one program's value (the whole object's is program 0; a region's solid
-   * has its own, TapeFeature::Regions), from its ray program.
+   * has its own), from its ray program.
    * @param[in] a_program The program.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
@@ -1926,7 +1897,7 @@ private:
    * @return The value.
    */
   /**
-   * @brief The whole object's value, through the evaluator's out-of-line entry (TapeFeature::Regions): signedDistance()
+   * @brief The whole object's value, through the evaluator's out-of-line entry: signedDistance()
    * inlines the evaluator's body for a tape that calls no sub-program, which the region code would copy at each site.
    * @param[in] a_point Point.
    * @return The value.
@@ -1936,7 +1907,7 @@ private:
   wholeValue(const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief How many operands the Overlays have (TapeFeature::Regions): the regions but the background; 0 without
+   * @brief How many operands the Overlays have: the regions but the background; 0 without
    * an Overlay.
    * @return The count.
    */
@@ -1976,7 +1947,7 @@ private:
   regionSolidTagged(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief A region's solid (TapeFeature::Regions): its operand under the maps above it and its masks but the
+   * @brief A region's solid: its operand under the maps above it and its masks but the
    * outermost a_level.
    * @param[in] a_region Region (1 to the number of regions less one).
    * @param[in] a_level  How many of its outermost masks to leave out.
@@ -1989,7 +1960,7 @@ private:
   regionSolid(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
 
   /**
-   * @brief How many masks two regions share (TapeFeature::Regions): those above both, which region k's function
+   * @brief How many masks two regions share: those above both, which region k's function
    * applies once rather than to each later region too (see TapeDetail::RegionSolid).
    * @param[in] a_first  A region.
    * @param[in] a_second Another region.

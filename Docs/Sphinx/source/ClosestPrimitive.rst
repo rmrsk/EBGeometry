@@ -277,11 +277,12 @@ region a result belongs to (a union of an Overlay with a solid, an offset or a b
 region name on part of a solid) is rejected when the expression is built. A tape evaluates an Overlay as the whole object, so
 ``signedDistance()`` is the union of the regions.
 
-A tape that lists ``TapeFeature::Regions`` answers for each region, on the host and on a device:
+Every tape answers for each region, on the host and on a device (an object without an ``Overlay`` is one region,
+region 1, in the background):
 
 .. code-block:: c++
 
-   const Tape<T, TapeFeature::Regions> tape(pool, cable);
+   const Tape<T> tape(pool, cable);
 
    tape.getNumRegions();          // 3: the air, the jacket, the core
    tape.region(p);                // the region p is in

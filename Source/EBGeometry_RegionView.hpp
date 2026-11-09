@@ -29,7 +29,7 @@
 namespace EBGeometry {
 
 /**
- * @brief The visible regions of a tape that lists TapeFeature::Regions, as a shape to look at: its surfaces are the
+ * @brief The visible regions of a tape, as a shape to look at: its surfaces are the
  * regions' surfaces, the internal ones between two regions included, found exactly along a ray.
  * @details Along a ray, its crossings are the changes of region that touch a visible region: entering one, passing
  * from one visible region to another (an internal surface, reached by seeing through the one in front), and leaving
@@ -44,7 +44,7 @@ namespace EBGeometry {
  * (Render::Settings::m_regions); the view's own (withSettings(), and the with... functions) serve where it is used
  * outside a render. Up to 64 regions can be hidden; later ones are always shown. A value type: it holds the tape's handle, so the tape's pool must outlive it; rebasedView() views the same
  * tape on a mirror of its pool, so Render::view(view, pool, ...) renders it on a device.
- * @tparam TapeType A Tape that lists TapeFeature::Regions.
+ * @tparam TapeType A Tape.
  */
 template <class TapeType>
 class RegionView
@@ -551,7 +551,7 @@ private:
 
 /**
  * @brief A RegionView traced along a ray by its own firstHit() (see RegionView).
- * @tparam TapeType A Tape that lists TapeFeature::Regions.
+ * @tparam TapeType A Tape.
  */
 template <class TapeType>
 struct RayForm<RegionView<TapeType>>
