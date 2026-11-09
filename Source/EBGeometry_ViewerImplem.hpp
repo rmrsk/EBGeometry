@@ -96,7 +96,7 @@ displayAvailable() noexcept
 struct Key
 {
   /**
-   * @brief The key or keys, as written for a reader.
+   * @brief The key or keys, as written for a reader; null for a heading over the keys after it (m_what).
    */
   const char* m_keys;
 
@@ -118,7 +118,12 @@ struct KeyGroup
   const char* m_title;
 
   /**
-   * @brief The keys, in the order they are listed.
+   * @brief The title in the row of menus, short.
+   */
+  const char* m_short;
+
+  /**
+   * @brief The keys, in the order they are listed, with headings (see Key::m_keys).
    */
   std::vector<Key> m_keys;
 };
@@ -134,47 +139,52 @@ inline std::vector<KeyGroup>
 keys(const bool a_device, const bool a_regions = false)
 {
   std::vector<KeyGroup> groups{{"Camera and light",
-                                {{"Drag", "Orbit the camera"},
+                                "Camera",
+                                {{nullptr, "Camera"},
+                                 {"Drag", "Orbit the camera"},
                                  {"Ctrl + drag", "Pan the camera"},
                                  {"Wheel", "Zoom"},
+                                 {"Double-click", "Center the camera on the point under the cursor"},
                                  {"1, 2, 3", "Look from the front, the side, the top"},
                                  {"O", "Switch between perspective and orthographic"},
-                                 {"R", "Reset the camera, the light, the picked surfaces and what is shown"},
-                                 {"Right drag", "Move the light"},
                                  {"+, -", "Narrower or wider field of view"},
-                                 {"Double-click", "Center the camera on the point under the cursor"},
+                                 {"R", "Reset the camera, the light, what is picked and what is shown"},
+                                 {nullptr, "Light"},
+                                 {"Right drag", "Move the light"},
                                  {"Left, Right", "Weaker or stronger highlights"},
-                                 {"Shift + Left", "Broader highlights"},
-                                 {"Shift + Right", "Tighter highlights"}}},
+                                 {"Shift + Left, Right", "Broader or tighter highlights"}}},
                                {"Rendering",
-                                {{"M", "Cycle the view: shaded, depth, x-ray, cost of firstHit(), of firstCrossing()"},
-                                 {"Shift + M", "Cycle the view backwards"},
-                                 {"P", "Cycle the coloring: by normal, uniform, by primitive"},
-                                 {"S", "Turn shadows on or off"},
-                                 {"A", "Turn ambient occlusion on or off"},
-                                 {"F", "Turn the floor on or off"},
-                                 {"B", "Turn the sky on or off"},
-                                 {"Shift + Up", "More rays per pixel (up to 8 x 8)"},
-                                 {"Shift + Down", "Fewer rays per pixel (down to 1)"}}},
+                                "Rendering",
+                                {{"M, Shift + M", "Next or previous view: shaded, depth, x-ray, costs"},
+                                 {"P", "Next coloring: by normal, one color, by object"},
+                                 {"S", "Shadows on or off"},
+                                 {"A", "Ambient occlusion on or off"},
+                                 {"F", "Floor on or off"},
+                                 {"B", "Sky on or off"},
+                                 {"Shift + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
                                {"Section and contours",
+                                "Section",
                                 {{"X", "Cut across x, then y, then z"},
                                  {"Ctrl + X", "Remove the cut"},
-                                 {"N", "Reverse the cut (remove the other side)"},
-                                 {"I", "Lines of equal distance: off, as set, coarse, fine"},
+                                 {"N", "Reverse the cut (keep the other side)"},
+                                 {"Up, Down", "Move the plane in coarse steps"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
-                                 {"Up, Down", "Move the plane in coarse steps"}}},
+                                 {"I", "Lines of equal distance: off, as set, coarse, fine"}}},
                                {"Picking and measuring",
-                                {{"Click", "Pick the object under the cursor (the background clears it)"},
+                                "Picking",
+                                {{"Click", "Pick what is under the cursor (the background clears it)"},
                                  {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
                                  {"T", "See through the picked surface, or make it opaque again"},
                                  {"Shift + T", "Make every surface opaque again"},
                                  {"Shift + click", "Measure between two points (the background clears it)"}}},
                                {"Window",
-                                {{"C", "Print the camera and settings as C++"},
+                                "Window",
+                                {{"Tab, Shift + Tab", "Next or previous menu"},
+                                 {"F1 to F6", "Show a menu"},
+                                 {"H", "Hide or show the menu"},
+                                 {"D", "Show or hide details (numbers, coordinates, statistics)"},
+                                 {"C", "Print the camera and settings as C++"},
                                  {"W", "Save the full frame as a PPM image"},
-                                 {"Tab, Shift + Tab", "Show the next or the previous menu"},
-                                 {"F1 to F6", "Show a menu: camera, rendering, section, picking, regions, window"},
-                                 {"H", "Show or hide the menu (the status lines and the axes stay)"},
                                  {"Esc, Q", "Close the window"}}}};
 
   if (a_device) {
@@ -183,22 +193,22 @@ keys(const bool a_device, const bool a_regions = false)
 
   // A shape whose regions can be shown and hidden (see RegionView) gets a group of its own, before the window's.
   if (a_regions) {
-    groups.insert(
-      groups.end() - 1,
-      KeyGroup{
-        "Regions",
-        {{"K", "Color by region, material, surface label, surface, part, interface or surface group (P colors by it)"},
-         {"L", "Show only the picked surface (what it is follows K), or everything again"},
-         {"V", "Show one region at a time, in turn, then all"},
-         {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
-         {"Ctrl + V", "Show every region"},
-         {"Enter",
-          "Add the picked piece (its surface, part and the regions on its sides) to the current surface group"},
-         {"Shift + Enter", "Add the picked surface, all its parts and sides, to the current surface group"},
-         {"Ctrl + Enter", "Add the interface of the picked piece (its two regions) to the current surface group"},
-         {"Backspace", "Remove what holds the picked piece from the current surface group"},
-         {"J", "Make the next surface group current; past the last, start a new one"},
-         {"Delete", "Delete the current surface group"}}});
+    groups.insert(groups.end() - 1,
+                  KeyGroup{"Regions",
+                           "Regions",
+                           {{nullptr, "Coloring and showing"},
+                            {"K", "Color by the next kind (the panel's Color by sets one)"},
+                            {"L", "Show only surfaces like the picked one, or everything again"},
+                            {"V", "Show one region at a time, in turn, then all"},
+                            {"Shift + V", "Hide the picked region"},
+                            {"Ctrl + V", "Show every region"},
+                            {nullptr, "Surface groups (as the panel's buttons)"},
+                            {"Enter", "Add the picked piece to the current surface group"},
+                            {"Shift + Enter", "Add the whole picked surface"},
+                            {"Ctrl + Enter", "Add the interface between the picked piece's regions"},
+                            {"Backspace", "Remove the picked piece from the current surface group"},
+                            {"J", "Next surface group (past the last, a new one)"},
+                            {"Delete", "Delete the current surface group"}}});
   }
 
   return groups;
@@ -449,8 +459,38 @@ enum class PanelAction : uint8_t
   ListPieces,     ///< Show or hide the list of pieces.
   PickPiece,      ///< Pick a piece of the list.
   ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
-  RenameGroup     ///< Type a surface group's name.
+  RenameGroup,    ///< Type a surface group's name.
+  Details         ///< Show or hide details (numbers, coordinates, statistics).
 };
+
+/**
+ * @brief A line of the viewer's overlay or panel, leading with a capital letter: the first letter past its
+ * indentation and its markers ("> ", "[x] ", "[ ] ") is capitalized.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_line The line.
+ * @return The line.
+ */
+inline std::string
+sentenceCase(std::string a_line)
+{
+  std::size_t i = a_line.find_first_not_of(' ');
+
+  if (i == std::string::npos) {
+    return a_line;
+  }
+
+  for (const char* marker : {"> ", "[x] ", "[ ] "}) {
+    if (a_line.compare(i, std::strlen(marker), marker) == 0) {
+      i += std::strlen(marker);
+    }
+  }
+
+  if (i < a_line.size() && a_line[i] >= 'a' && a_line[i] <= 'z') {
+    a_line[i] = static_cast<char>(a_line[i] - 'a' + 'A');
+  }
+
+  return a_line;
+}
 
 /**
  * @brief What the viewer's panel offers to color a view of regions by: a kind of key (RegionColoring), or the normal,
@@ -479,15 +519,15 @@ struct ColorChoice
  * @brief The colorings the viewer's panel offers, in its order.
  * @details Internal helper; not part of the public API.
  */
-inline constexpr ColorChoice colorChoices[] = {{"material", ColorBy::Primitive, RegionColoring::Material},
-                                               {"region", ColorBy::Primitive, RegionColoring::Region},
-                                               {"surface group", ColorBy::Primitive, RegionColoring::SurfaceGroup},
-                                               {"surface label", ColorBy::Primitive, RegionColoring::SurfaceLabel},
-                                               {"surface", ColorBy::Primitive, RegionColoring::Surface},
-                                               {"part", ColorBy::Primitive, RegionColoring::Part},
-                                               {"interface", ColorBy::Primitive, RegionColoring::Interface},
-                                               {"normal", ColorBy::Normal, RegionColoring::Region},
-                                               {"one color", ColorBy::Uniform, RegionColoring::Region}};
+inline constexpr ColorChoice colorChoices[] = {{"Material", ColorBy::Primitive, RegionColoring::Material},
+                                               {"Region", ColorBy::Primitive, RegionColoring::Region},
+                                               {"Surface group", ColorBy::Primitive, RegionColoring::SurfaceGroup},
+                                               {"Surface label", ColorBy::Primitive, RegionColoring::SurfaceLabel},
+                                               {"Surface", ColorBy::Primitive, RegionColoring::Surface},
+                                               {"Part", ColorBy::Primitive, RegionColoring::Part},
+                                               {"Interface", ColorBy::Primitive, RegionColoring::Interface},
+                                               {"Normal", ColorBy::Normal, RegionColoring::Region},
+                                               {"One color", ColorBy::Uniform, RegionColoring::Region}};
 
 /**
  * @brief A clickable span of a line of the viewer's panel: columns [m_begin, m_end) and what a click there does.
@@ -581,7 +621,12 @@ run(const S&           a_shape,
     std::printf("\n%s\n", group.m_title);
 
     for (const Key& key : group.m_keys) {
-      std::printf("  %-14s %s\n", key.m_keys, key.m_what);
+      if (key.m_keys == nullptr) {
+        std::printf("  %s\n", key.m_what);
+      }
+      else {
+        std::printf("    %-20s %s\n", key.m_keys, key.m_what);
+      }
     }
   }
 
@@ -785,8 +830,8 @@ run(const S&           a_shape,
   const auto rekeyPick = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       if (picked) {
-        const BoundingVolumes::AABBT<T> box  = shape.computeBoundingVolume();
-        const T                         size = (box.getHighCorner() - box.getLowCorner()).length();
+        const BoundingVolumes::AABBT<T> bounds = shape.computeBoundingVolume();
+        const T                         size   = (bounds.getHighCorner() - bounds.getLowCorner()).length();
         const T step = (size > T(0) && size < Math::Limits<T>::max()) ? T(1e-3) * size : T(1e-3);
 
         // The key as the coloring gives it, not as a highlighted surface group's.
@@ -957,6 +1002,9 @@ run(const S&           a_shape,
 
   // The overlay: what the window shows and how, and the keys, drawn over the image's top left corner.
   bool overlayOn = true;
+
+  // Whether the overlay and the panel show details: numbers, coordinates, statistics (D).
+  bool details = false;
 
   // The menu the overlay shows (see keys()): one at a time, so that the overlay stays short.
   std::size_t           menu          = 0;
@@ -1261,8 +1309,8 @@ run(const S&           a_shape,
     };
 
     const char* coloring = (settings.m_colorBy == ColorBy::Normal)      ? "Colored by normal"
-                           : (settings.m_colorBy == ColorBy::Primitive) ? "Colored by primitive"
-                                                                        : "Colored uniformly";
+                           : (settings.m_colorBy == ColorBy::Primitive) ? "Colored by object"
+                                                                        : "Colored in one color";
 
     const bool costView = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
 
@@ -1290,77 +1338,111 @@ run(const S&           a_shape,
 
     const std::string object = primitivesAreFaces<S> ? "face" : "object";
 
-    // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
-    std::vector<std::vector<std::string>> states{
-      {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
-         fixed(double(camera.m_distance), 3),
-       "Target " + point(camera.m_target, 3),
-       "Field of view " + fixed(double(camera.m_fieldOfView), 1) + ", " +
-         (camera.m_orthographic ? "orthographic" : "perspective") + ", near clip " +
-         fixed(double(camera.m_nearClip), 3),
-       std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
-         point(settings.m_light, 2),
-       "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
-         fixed(double(settings.m_shininess), 0)},
-      {view,
-       std::string(coloring) + ", rendered on the " + (onDevice ? "GPU" : "CPU"),
-       "Supersampling " + std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) +
-         " (" + std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel)",
-       std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
-         ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
-      {std::string(sectionNames[sectionMode]) + ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
-                                                                        ", moved " + fixed(double(sectionOffset), 3)
-                                                                    : std::string()),
-       "Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
-         fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
-         fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque",
-       (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
-                                      : std::string("No lines of equal distance"),
-       cursorOn ? "Under the cursor " + point(cursorPoint, 3) + ", distance " + fixed(double(cursorValue), 4)
-                : std::string("Nothing under the cursor on the plane")},
-      {picked ? (primitivesAreFaces<S> ? "Object 0 (face " + std::to_string(pick.m_primitive) + ")"
-                                       : "Object " + std::to_string(pick.m_primitive)) +
-                  " at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
-              : std::string("Nothing picked"),
-       hidden.empty() ? std::string("Every surface opaque") : "Seen through: " + object + " " + hidden,
-       depthHits.empty() ? std::string("Not stepping through surfaces")
-                         : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
-                             " under the cursor",
-       (measured == 2) ? "Measured " + fixed(double((measureB - measureA).length()), 4) + ", along x, y, z " +
-                           point(measureB - measureA, 4)
-       : (measured == 1) ? "Measuring from " + point(measureA, 3) + "; Shift + click the second point"
-                         : std::string("Nothing measured")},
-      {}};
+    // Each menu's state, in the order of keys(): what a reader needs, and with details (D) the numbers behind it.
+    struct MenuState
+    {
+      std::vector<std::string> m_now;
+      std::vector<std::string> m_details;
+    };
 
-    // The regions shown and hidden, for a shape whose regions can be (see RegionView), and the panel of regions and
-    // groups while the regions' menu is shown.
+    const std::string pickedWhat =
+      !picked ? std::string("Nothing picked")
+              : (primitivesAreFaces<S> ? "Picked face " : "Picked object ") + std::to_string(pick.m_primitive);
+
+    std::vector<MenuState> states{
+      {{"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
+          fixed(double(camera.m_distance), 2),
+        std::string(camera.m_orthographic ? "Orthographic" : "Perspective") + ", field of view " +
+          fixed(double(camera.m_fieldOfView), 0)},
+       {"Target " + point(camera.m_target, 3) + ", near clip " + fixed(double(camera.m_nearClip), 3),
+        std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
+          point(settings.m_light, 2),
+        "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
+          fixed(double(settings.m_shininess), 0)}},
+      {{view + ", on the " + (onDevice ? "GPU" : "CPU"),
+        std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
+          ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
+       {std::string(coloring),
+        std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
+          std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
+      {{std::string("Cut: ") + sectionNames[sectionMode] +
+          ((sectionMode != 0)
+             ? std::string(sectionFlip ? ", reversed" : "") + ", moved " + fixed(double(sectionOffset), 3)
+             : std::string()),
+        (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
+                                       : std::string("No lines of equal distance")},
+       {"Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
+          fixed(100.0 * double(settings.m_sheetOpacity), 0) + "% opaque, cut face " +
+          fixed(100.0 * double(settings.m_cutOpacity), 0) + "% opaque",
+        cursorOn ? "Under the cursor " + point(cursorPoint, 3) + ", distance " + fixed(double(cursorValue), 4)
+                 : std::string("Nothing under the cursor on the plane")}},
+      {{pickedWhat,
+        hidden.empty() ? std::string("Every surface opaque") : "Seen through: " + object + " " + hidden,
+        (measured == 2)   ? "Measured " + fixed(double((measureB - measureA).length()), 4)
+        : (measured == 1) ? std::string("Measuring: Shift + click the second point")
+                          : std::string("Nothing measured")},
+       {picked ? "Picked at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
+               : std::string("No picked point"),
+        depthHits.empty() ? std::string("Not stepping through surfaces")
+                          : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
+                              " under the cursor",
+        (measured == 2) ? "Along x, y, z " + point(measureB - measureA, 4) + ", from " + point(measureA, 3)
+                        : std::string("No measurement")}},
+      {{}, {}}};
+
+    // The regions' menu and the panel, for a shape whose regions can be shown (see RegionView).
     panelLines.clear();
     panelSwatches.clear();
     panelActions.clear();
 
     if constexpr (hasRegionVisibility<S>) {
-      std::string shown;
-      std::string hiddenRegions;
-
       const RegionSettings& regions = settings.m_regions;
       const Scheme&         scheme  = regions.m_scheme;
 
-      for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
-        std::string& list = regions.isVisible(k, shape.getNumRegions()) ? shown : hiddenRegions;
+      // Names, with their numbers only with details.
+      const auto region  = [&](const uint32_t a_region) { return names.region(a_region, details); };
+      const auto surface = [&](const uint32_t a_surface) { return names.surface(a_surface, details); };
+      const auto group   = [&](const uint32_t a_group) { return names.surfaceGroup(a_group, details); };
 
-        list += (list.empty() ? "" : ", ") + names.region(k);
-      }
+      // A piece in words: its surface (and part, with details) between the regions inside and outside.
+      const auto pieceWords = [&](const SurfaceRef<T>& a_piece) {
+        return surface(a_piece.m_surface) + (details ? ", part " + std::to_string(a_piece.m_part) : std::string()) +
+               ", between " + region(a_piece.m_insideRegion) + " and " + region(a_piece.m_outsideRegion);
+      };
 
-      const char* colorings[] = {
-        "region", "material", "surface label", "surface", "part", "interface", "surface group"};
+      // A selector in words: what surfaces, then where.
+      const auto selectorWords = [&](const SurfaceSelector& a_selector) {
+        constexpr uint32_t Any = SurfaceSelector::Any;
 
-      const auto pieceName = [&](const SurfaceRef<T>& a_piece) {
-        if (a_piece.m_surface == SurfaceRef<T>::None) {
-          return std::string("no surface");
+        const bool hasSurface = a_selector.m_surface != Any;
+        const bool hasPart    = a_selector.m_part != Any && details;
+        const bool hasRegions = a_selector.m_regionA != Any;
+        const bool hasLabel   = a_selector.m_label != Any;
+        const bool hasMater   = a_selector.m_materialA != Any;
+
+        std::string words = hasSurface ? surface(a_selector.m_surface) +
+                                           (hasPart ? ", part " + std::to_string(a_selector.m_part) : std::string())
+                            : hasLabel ? "Surfaces labeled " + names.surfaceLabel(a_selector.m_label, details)
+                                       : std::string("All surfaces");
+
+        if (hasSurface && !hasRegions && !hasMater) {
+          return "All of " + words;
         }
 
-        return names.surface(a_piece.m_surface) + ", part " + std::to_string(a_piece.m_part) + ", inside " +
-               names.region(a_piece.m_insideRegion) + ", outside " + names.region(a_piece.m_outsideRegion);
+        if (hasRegions) {
+          words += (a_selector.m_regionB != Any)
+                     ? ", between " + region(a_selector.m_regionA) + " and " + region(a_selector.m_regionB)
+                     : " of " + region(a_selector.m_regionA);
+        }
+
+        if (hasMater) {
+          words += (a_selector.m_materialB != Any)
+                     ? ", between materials " + names.material(a_selector.m_materialA, details) + " and " +
+                         names.material(a_selector.m_materialB, details)
+                     : " of material " + names.material(a_selector.m_materialA, details);
+        }
+
+        return words;
       };
 
       const auto keyName = [&](const uint32_t a_key) {
@@ -1370,22 +1452,22 @@ run(const S&           a_shape,
 
         switch (regions.m_coloring) {
         case RegionColoring::Region: {
-          return names.region(a_key);
+          return region(a_key);
         }
         case RegionColoring::Material: {
-          return names.material(a_key);
+          return names.material(a_key, details);
         }
         case RegionColoring::SurfaceLabel: {
-          return names.surfaceLabel(a_key);
+          return names.surfaceLabel(a_key, details);
         }
         case RegionColoring::Surface: {
-          return names.surface(a_key);
+          return surface(a_key);
         }
         case RegionColoring::Interface: {
-          return "interface " + names.region(a_key >> 16U) + " | " + names.region(a_key & 0xFFFFU);
+          return "between " + region(a_key >> 16U) + " and " + region(a_key & 0xFFFFU);
         }
         case RegionColoring::SurfaceGroup: {
-          return names.surfaceGroup(a_key);
+          return group(a_key);
         }
         default: {
           return "part " + std::to_string(a_key);
@@ -1393,39 +1475,32 @@ run(const S&           a_shape,
         }
       };
 
-      states.insert(
-        states.end() - 1,
-        {std::string("Colored by ") + colorings[static_cast<int>(regions.m_coloring)] +
-           ((regions.m_only != RegionSettings::None) ? "; showing only " + keyName(regions.m_only) : std::string()),
-         picked ? "Picked: " + keyName(pick.m_primitive) + "; " + pieceName(shape.pieceAt(pick.m_point, pick.m_normal))
-                : std::string("Nothing picked"),
-         [&regions, &keyName]() {
-           std::string through;
+      // The regions' menu shows what the panel does not: what is shown alone or seen through.
+      std::string through;
 
-           for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
-             if (regions.m_through[i] != RegionSettings::None) {
-               through += (through.empty() ? "Seen through: " : ", ") + keyName(regions.m_through[i]);
-             }
-           }
+      for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+        if (regions.m_through[i] != RegionSettings::None) {
+          through += (through.empty() ? "" : "; ") + keyName(regions.m_through[i]);
+        }
+      }
 
-           return through.empty() ? std::string("Every surface opaque (T sees through the picked one)") : through;
-         }(),
-         hiddenRegions.empty()
-           ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
-           : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions,
-         (scheme.getNumSurfaceGroups() == 0U)
-           ? std::string("No surface groups (Enter starts one with the picked piece)")
-           : "Adding to surface group " + names.surfaceGroup(currentGroup) + " (J: next)"});
+      states.insert(states.end() - 1,
+                    MenuState{{(regions.m_only != RegionSettings::None) ? "Showing only " + keyName(regions.m_only)
+                                                                        : std::string("Showing everything visible"),
+                               through.empty() ? std::string("Nothing seen through") : "Seen through: " + through},
+                              {}});
 
-      // The panel: the picked piece with what can be done with it, each region, shown or hidden, and each surface
-      // group with its selectors; its buttons are clicked.
+      // In the status, the picked piece in words.
+      states[3].m_now.front() =
+        picked ? "Picked: " + pieceWords(shape.pieceAt(pick.m_point, pick.m_normal)) : std::string("Nothing picked");
+
+      // The panel: lines, buttons (clicked) and swatches (a key's color).
       const auto line = [&](const std::string& a_text) {
         panelLines.push_back(a_text);
         panelActions.emplace_back();
         panelSwatches.push_back(0U);
       };
 
-      // A swatch of a key's color at the start of the last line.
       const auto swatch = [&](const uint32_t a_key) { panelSwatches.back() = swatchOf(a_key); };
 
       const auto button = [&](const std::string& a_label, const PanelAction a_action, const uint32_t a_value) {
@@ -1447,10 +1522,12 @@ run(const S&           a_shape,
         panelActions.back().push_back(PanelSpan{0, std::size_t(-1), a_action, a_value});
       };
 
-      const SurfaceRef<T> piece = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
+      line("");
+      button(details ? "Hide details" : "Show details", PanelAction::Details, 0U);
 
+      line("");
       line("Color by");
-      line(" ");
+      line("  ");
 
       for (uint32_t c = 0; c < std::size(colorChoices); c++) {
         const ColorChoice& choice  = colorChoices[c];
@@ -1458,41 +1535,46 @@ run(const S&           a_shape,
                              (choice.m_colorBy != ColorBy::Primitive || regions.m_coloring == choice.m_coloring);
 
         if (c == 4U) {
-          line(" ");
+          line("  ");
         }
 
         button(std::string(current ? "* " : "") + choice.m_label, PanelAction::ColorBy, c);
       }
 
       line("");
-      line("Picked");
+      line("Picked surface");
+
+      const SurfaceRef<T> piece = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
 
       if (piece.m_surface == SurfaceRef<T>::None) {
-        line("  nothing: click a surface");
+        line("  Nothing picked: click a surface");
       }
       else {
         const uint32_t in = scheme.surfaceGroupOf(piece);
 
-        line("  " + names.surface(piece.m_surface) + ", part " + std::to_string(piece.m_part));
-        line("  inside  " + names.region(piece.m_insideRegion));
-        line("  outside " + names.region(piece.m_outsideRegion));
-        line("  in " + ((in == Scheme::None) ? std::string("no surface group") : names.surfaceGroup(in)));
+        line("  " + pieceWords(piece));
+        line((in == Scheme::None) ? std::string("  In no surface group") : "  In surface group " + group(in));
+
+        if (details) {
+          line("  At " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2));
+        }
+
         line("  ");
         button("Add piece", PanelAction::AddPiece, 0U);
         button("Add surface", PanelAction::AddSurface, 0U);
         button("Add interface", PanelAction::AddInterface, 0U);
         line("  ");
-        button("Remove from " + ((scheme.getNumSurfaceGroups() > 0U) ? names.surfaceGroup(currentGroup)
-                                                                     : std::string("surface group")),
+        button("Remove from " +
+                 ((scheme.getNumSurfaceGroups() > 0U) ? group(currentGroup) : std::string("surface group")),
                PanelAction::RemovePiece,
                0U);
       }
 
       line("");
-      line("Regions");
+      line("Regions (click to show or hide)");
 
       for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
-        clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + names.region(k),
+        clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k),
                   PanelAction::ToggleRegion,
                   k);
 
@@ -1505,31 +1587,31 @@ run(const S&           a_shape,
       }
 
       line("");
-      line("Surface groups");
+      line("Surface groups (click to select and highlight)");
 
       for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
         if (g == renaming) {
-          line("  > " + std::to_string(g) + " " + renameText + "_");
-          line("      type its name; Enter keeps it, Esc cancels");
+          line("  > " + renameText + "_");
+          line("      Type its name; Enter keeps it, Esc cancels");
 
           continue;
         }
 
         line(std::string(g == currentGroup ? "  > " : "    "));
 
-        panelLines.back() += names.surfaceGroup(g) + ((regions.m_highlightGroup == g) ? " (highlighted)" : "");
+        panelLines.back() += group(g) + ((regions.m_highlightGroup == g) ? " (highlighted)" : "");
         panelActions.back().push_back(PanelSpan{0, panelLines.back().size(), PanelAction::CurrentGroup, g});
 
         if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::SurfaceGroup) {
           swatch(g);
         }
 
-        button("rename", PanelAction::RenameGroup, g);
-        button("delete", PanelAction::DeleteGroup, g);
+        button("Rename", PanelAction::RenameGroup, g);
+        button("Delete", PanelAction::DeleteGroup, g);
 
         for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
           if (scheme.getSurfaceGroupOfSelector(i) == g) {
-            line("      " + selectorName(scheme.getSelector(i)));
+            line("        " + selectorWords(scheme.getSelector(i)));
             button("x", PanelAction::RemoveSelector, i);
           }
         }
@@ -1537,57 +1619,60 @@ run(const S&           a_shape,
 
       if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
         line("  ");
-        button("+ new surface group", PanelAction::NewGroup, 0U);
+        button("+ New surface group", PanelAction::NewGroup, 0U);
       }
 
       // The pieces of surface the object has, and those no surface group holds.
       uint32_t unassigned = 0;
 
-      for (const SurfacePiece<T>& piece : pieces) {
-        unassigned += (scheme.surfaceGroupOf(piece.m_surface) == Scheme::None) ? 1U : 0U;
+      for (const SurfacePiece<T>& p : pieces) {
+        unassigned += (scheme.surfaceGroupOf(p.m_surface) == Scheme::None) ? 1U : 0U;
       }
 
       line("");
-      line("Pieces: " + std::to_string(pieces.size()) + ", " + std::to_string(unassigned) + " in no surface group");
+      line("Pieces of surface");
+      line("  " + std::to_string(pieces.size()) + " in all, " + std::to_string(unassigned) + " in no surface group");
       line("  ");
 
       if (unassigned > 0U) {
-        button("next unassigned", PanelAction::NextUnassigned, 0U);
+        button("Next unassigned", PanelAction::NextUnassigned, 0U);
       }
 
-      button(listPieces ? "hide list" : "list", PanelAction::ListPieces, 0U);
+      button(listPieces ? "Hide list" : "List", PanelAction::ListPieces, 0U);
 
       if (listPieces) {
         for (uint32_t i = 0; i < pieces.size() && i < 40U; i++) {
-          const SurfaceRef<T>& s     = pieces[i].m_surface;
-          const uint32_t       group = scheme.surfaceGroupOf(s);
+          const uint32_t in = scheme.surfaceGroupOf(pieces[i].m_surface);
 
-          clickable("  " + names.surface(s.m_surface) + " part " + std::to_string(s.m_part) + ": " +
-                      names.region(s.m_insideRegion) + " | " + names.region(s.m_outsideRegion) + " -> " +
-                      ((group == Scheme::None) ? std::string("none") : names.surfaceGroup(group)),
+          clickable("    " + pieceWords(pieces[i].m_surface) + ": " +
+                      ((in == Scheme::None) ? std::string("none") : group(in)) +
+                      (details ? ", crossed " + std::to_string(pieces[i].m_crossings) + " times" : std::string()),
                     PanelAction::PickPiece,
                     i);
         }
 
         if (pieces.size() > 40U) {
-          line("  ... " + std::to_string(pieces.size() - 40U) + " more");
+          line("    And " + std::to_string(pieces.size() - 40U) + " more");
         }
       }
     }
 
-    std::vector<std::string> lines{
-      std::string("EBGeometry viewer: ") + shownWhat + ", " + std::to_string(shownWidth) + " x " +
-        std::to_string(shownHeight) + " pixels in " + fixed(1000.0 * shownSeconds, 0) + " ms",
-      "Rays " + std::to_string(shownStats.m_rays) + ", hits " + percent(shownStats.m_hits, shownStats.m_rays) +
-        ", seen from inside " + std::to_string(shownStats.m_insideHits) + ", unresolved " +
-        std::to_string(shownStats.m_unresolved)};
-
     const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr, hasRegionVisibility<S>);
 
-    // The status: what is picked, and the menus, the one shown in brackets. Every key works whichever is shown.
-    if (states.size() > 3 && !states[3].empty()) {
-      lines.emplace_back(states[3].front());
+    // The status: the frame, what is picked (and the frame's statistics, with details), then the row of menus, the
+    // one shown in brackets. Every key works whichever menu is shown.
+    std::vector<std::string> lines{std::string(shownWhat) + ", " + std::to_string(shownWidth) + " x " +
+                                   std::to_string(shownHeight) + " pixels in " + fixed(1000.0 * shownSeconds, 0) +
+                                   " ms on the " + (onDevice ? "GPU" : "CPU")};
+
+    if (details) {
+      lines.emplace_back("Rays " + std::to_string(shownStats.m_rays) + ", hits " +
+                         percent(shownStats.m_hits, shownStats.m_rays) + ", seen from inside " +
+                         std::to_string(shownStats.m_insideHits) + ", unresolved " +
+                         std::to_string(shownStats.m_unresolved));
     }
+
+    lines.emplace_back(states[3].m_now.front());
 
     std::string tabs;
 
@@ -1595,24 +1680,50 @@ run(const S&           a_shape,
       const bool shown = overlayOn && g == menu;
 
       tabs += (g > 0 ? "  " : "") + std::string(shown ? "[" : "") + "F" + std::to_string(g + 1) + " " +
-              groups[g].m_title + (shown ? "]" : "");
+              groups[g].m_short + (shown ? "]" : "");
     }
 
-    lines.emplace_back(tabs + (overlayOn ? "   (Tab: next, H: hide)" : "   (H: show)"));
+    lines.emplace_back(tabs);
+    lines.emplace_back(overlayOn ? "Tab: next menu, H: hide, D: details" : "H: show the menu, D: details");
 
+    // The menu shown: its state, then its keys under their headings.
     if (overlayOn && menu < groups.size()) {
       lines.emplace_back("");
       lines.emplace_back(groups[menu].m_title);
+      lines.emplace_back("  Now");
 
-      for (const std::string& state : states[menu]) {
-        lines.emplace_back("  " + state);
+      for (const std::string& state : states[menu].m_now) {
+        lines.emplace_back("    " + state);
+      }
+
+      if (details) {
+        for (const std::string& state : states[menu].m_details) {
+          lines.emplace_back("    " + state);
+        }
+      }
+
+      if (groups[menu].m_keys.empty() || groups[menu].m_keys.front().m_keys != nullptr) {
+        lines.emplace_back("  Keys");
       }
 
       for (const Key& key : groups[menu].m_keys) {
-        char line[128];
+        if (key.m_keys == nullptr) {
+          lines.emplace_back(std::string("  ") + key.m_what);
 
-        std::snprintf(line, sizeof(line), "  %-18s %s", key.m_keys, key.m_what);
-        lines.emplace_back(line);
+          continue;
+        }
+
+        char text[160];
+
+        std::snprintf(text, sizeof(text), "    %-20s %s", key.m_keys, key.m_what);
+        lines.emplace_back(text);
+      }
+    }
+
+    // Every line leads with a capital letter, past its indentation and markers.
+    for (std::vector<std::string>* text : {&lines, &panelLines}) {
+      for (std::string& l : *text) {
+        l = sentenceCase(l);
       }
     }
 
@@ -1961,6 +2072,11 @@ run(const S&           a_shape,
 
                   applyColors();
                   rekeyPick();
+
+                  break;
+                }
+                case PanelAction::Details: {
+                  details = !details;
 
                   break;
                 }
@@ -2405,6 +2521,15 @@ run(const S&           a_shape,
         case SDLK_h: {
           overlayOn = !overlayOn;
           changed   = pending;
+
+          drawOverlay();
+          present();
+
+          break;
+        }
+        case SDLK_d: {
+          details = !details;
+          changed = pending;
 
           drawOverlay();
           present();

@@ -59,23 +59,11 @@ public:
       m_surfaceLabels.push_back(a_index.getSurfaceLabelName(SurfaceLabelId(k)));
     }
 
-    // A region's name, then its material: "2 core (copper)", "0 background (air)", "region 3 (copper)".
     for (uint32_t k = 0; k < a_index.getNumRegions(); k++) {
       const MaterialLabelId material = a_index.getMaterialOf(k);
-      const std::string&    name     = a_index.getRegion(k).m_name;
 
-      m_regionNames.push_back(name);
+      m_regionNames.push_back(a_index.getRegion(k).m_name);
       m_regionMaterials.push_back(material.isNone() ? None : material.value());
-
-      std::string shown = !name.empty() ? std::to_string(k) + " " + name
-                          : (k == 0U)   ? std::to_string(k) + " background"
-                                        : "region " + std::to_string(k);
-
-      if (!material.isNone()) {
-        shown += " (" + m_materials[material.value()] + ")";
-      }
-
-      m_regions.push_back(shown);
     }
 
     for (uint32_t s = 0; s < a_index.getNumSurfaces(); s++) {
@@ -210,73 +198,87 @@ public:
   }
 
   /**
-   * @brief A region's name, with its number and material: "2 core (copper)", or "region 2".
+   * @brief A region's name and material, with its number or not: "2 core (copper)" or "core (copper)"; the
+   * background is "background", a region without a name "region 2".
    * @param[in] a_region The region.
+   * @param[in] a_number Whether to put its number first.
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::string
-  region(const uint32_t a_region) const
+  region(const uint32_t a_region, const bool a_number = true) const
   {
-    return (a_region < m_regions.size()) ? m_regions[a_region] : "region " + std::to_string(a_region);
+    const std::string number = std::to_string(a_region);
+    const bool        named  = a_region < m_regionNames.size() && !m_regionNames[a_region].empty();
+
+    std::string shown = named              ? (a_number ? number + " " : "") + m_regionNames[a_region]
+                        : (a_region == 0U) ? (a_number ? number + " " : "") + "background"
+                                           : "region " + number;
+
+    const uint32_t material = this->materialOf(a_region);
+
+    if (material < m_materials.size()) {
+      shown += " (" + m_materials[material] + ")";
+    }
+
+    return shown;
   }
 
   /**
-   * @brief A material's name, with its number.
+   * @brief A material's name, with its number or not.
    * @param[in] a_material The material label's number.
+   * @param[in] a_number   Whether to put its number first.
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::string
-  material(const uint32_t a_material) const
+  material(const uint32_t a_material, const bool a_number = true) const
   {
-    return named(m_materials, a_material, "material");
+    return named(m_materials, a_material, "material", a_number);
   }
 
   /**
-   * @brief A surface's name, with its number: its label's, or "surface 3".
+   * @brief A surface's name, with its number or not: its label's, or "surface 3".
    * @param[in] a_surface The surface (SurfaceRef::m_surface).
+   * @param[in] a_number  Whether to put its number first.
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::string
-  surface(const uint32_t a_surface) const
+  surface(const uint32_t a_surface, const bool a_number = true) const
   {
-    return named(m_surfaces, a_surface, "surface");
+    return named(m_surfaces, a_surface, "surface", a_number);
   }
 
   /**
-   * @brief A surface label's name, with its number.
-   * @param[in] a_label The label's number.
+   * @brief A surface label's name, with its number or not.
+   * @param[in] a_label  The label's number.
+   * @param[in] a_number Whether to put its number first.
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::string
-  surfaceLabel(const uint32_t a_label) const
+  surfaceLabel(const uint32_t a_label, const bool a_number = true) const
   {
-    return named(m_surfaceLabels, a_label, "label");
+    return named(m_surfaceLabels, a_label, "label", a_number);
   }
 
   /**
-   * @brief A surface group's name, with its number: "0 dirichlet", or "surface group 0".
-   * @param[in] a_group The group.
+   * @brief A surface group's name, with its number or not: "0 dirichlet" or "dirichlet"; "surface group 0".
+   * @param[in] a_group  The group.
+   * @param[in] a_number Whether to put its number first.
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   std::string
-  surfaceGroup(const uint32_t a_group) const
+  surfaceGroup(const uint32_t a_group, const bool a_number = true) const
   {
-    return named(m_surfaceGroups, a_group, "surface group");
+    return named(m_surfaceGroups, a_group, "surface group", a_number);
   }
 
 protected:
   /**
-   * @brief The names of the regions, materials, surfaces, surface labels and groups; an empty one is unnamed.
-   */
-  std::vector<std::string> m_regions;
-
-  /**
-   * @brief The regions' own names (RegionName()), empty for none.
+   * @brief The regions' own names (RegionName()), empty for none; the lists below too leave the unnamed empty.
    */
   std::vector<std::string> m_regionNames;
 
@@ -315,14 +317,15 @@ protected:
    * @param[in] a_names The list.
    * @param[in] a_index The number.
    * @param[in] a_kind  What it is.
+   * @param[in] a_number Whether to put the number before a name.
    * @return The name.
    */
   [[nodiscard]] static std::string
-  named(const std::vector<std::string>& a_names, const uint32_t a_index, const char* a_kind)
+  named(const std::vector<std::string>& a_names, const uint32_t a_index, const char* a_kind, const bool a_number)
   {
     const std::string number = std::to_string(a_index);
 
-    return (a_index < a_names.size() && !a_names[a_index].empty()) ? number + " " + a_names[a_index]
+    return (a_index < a_names.size() && !a_names[a_index].empty()) ? (a_number ? number + " " : "") + a_names[a_index]
                                                                    : std::string(a_kind) + " " + number;
   }
 };

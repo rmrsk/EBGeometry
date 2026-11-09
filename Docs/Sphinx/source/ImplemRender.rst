@@ -204,10 +204,15 @@ opened with them.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.
-   * - H; Esc, Q
-     - Show or hide the menu (the status lines and the axes stay); close the window.
+   * - H; D; Esc, Q
+     - Show or hide the menu (the status lines and the axes stay); show or hide details (numbers of regions,
+       surfaces and parts, coordinates, the frame's ray statistics); close the window.
 
-A view of regions also gets a panel at the top right, used with the mouse. A "Color by" row sets what the surfaces
+The overlay shows the frame and what is picked, then the row of menus (F1 to F6) and the menu shown: what its keys
+set now, then the keys, in groups.
+
+A view of regions also gets a panel at the top right, used with the mouse. It names things in words ("Surface 1,
+between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. A "Color by" row sets what the surfaces
 are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),
 and a swatch beside each region or surface group shows its color; colors given to names
 (``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
