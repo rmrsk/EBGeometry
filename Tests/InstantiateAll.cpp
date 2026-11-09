@@ -493,6 +493,19 @@ instantiateFunctionTemplates()
     (void)ExprIndex<T>(expr).getNumSurfaces();
     (void)ExprIndex<T>(expr).getFirstSurface(0U);
     (void)ExprIndex<T>(expr).getLeafOfSurface(0U);
+    {
+      const Expr<T>      regions = Overlay(MaterialLabel(expr, "a"), expr, "background");
+      const ExprIndex<T> index(regions);
+
+      (void)index.getNumRegions();
+      (void)index.getRegion(0U);
+      (void)index.getRegionOfLeaf(0U);
+      (void)index.getMaterialOf(0U);
+      (void)index.getNumGroups();
+      (void)index.getGroup(0U);
+      (void)index.getNumMaterialLabels();
+      (void)index.getMaterialLabelName(index.findMaterialLabel("a"));
+    }
     (void)tape.getCallDepth();
     (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
     (void)tape.rebasedView(meshPool);

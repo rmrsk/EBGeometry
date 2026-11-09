@@ -247,6 +247,34 @@ those the expression is built of: ``Difference(a, b)`` is an intersection of ``a
 ``b``, and translations, rotations and scalings applied one after another are one transform, unless one of
 them is labeled.
 
+Regions and materials
+---------------------
+
+A union is one solid: a core inside a jacket has no surface of its own. When the core is another material,
+the object is a set of **regions** instead, made with ``Overlay(operands, background)``: each operand is a
+region, later ones on top of earlier ones where they overlap, and the outside is the background. The regions
+tile the object, with no gaps and no overlaps. ``MaterialLabel(object, "name")`` names a region's material, a
+volume's, apart from the surface labels above:
+
+.. code-block:: c++
+
+   const auto core   = MaterialLabel(SphereSDF<T>(center, T(0.5)), "copper");
+   const auto jacket = MaterialLabel(SphereSDF<T>(center, T(1.0)), "PTFE");
+
+   const Expr<T> cable = Overlay(jacket, core, "air");   // region 0 air, 1 the jacket, 2 the core
+
+   const ExprIndex<T> index(cable);
+   index.getMaterialLabelName(index.getMaterialOf(2));   // "copper"
+
+An Overlay may be moved (``Translate``, ``Rotate``, ...), clipped or drilled as the first operand of an
+``Intersection`` or a ``Difference`` (the other operands are plain solids that remove space from every
+region), and placed in another Overlay, where its regions take its place in the priority order and stay
+together as a group (`ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__'s ``getGroup()``); a
+material on the inner Overlay is the default of its regions. Anything else that would make it unclear which
+region a result belongs to (a union of an Overlay with a solid, an offset or a blend of one, a material on part
+of a solid) is rejected when the expression is built. A tape evaluates an Overlay as the whole object, so
+``signedDistance()`` is the union of the regions.
+
 Along a ray
 -----------
 

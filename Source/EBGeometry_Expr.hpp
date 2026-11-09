@@ -331,6 +331,33 @@ struct Node
    * @brief For a primitive: the groups SurfaceLabel(shape, FaceGroups) put its parts in; null for none.
    */
   std::shared_ptr<const FaceGroups> m_partGroups;
+
+  /**
+   * @brief The name MaterialLabel() gave the node; empty for none.
+   */
+  std::string m_materialLabel;
+
+  /**
+   * @brief Whether this union is an Overlay: its operands are regions, later ones on top (see Overlay()). A Tape
+   * evaluates it as the union of its operands, the whole object.
+   */
+  bool m_overlay = false;
+
+  /**
+   * @brief For an Overlay: the material of its outside, the background; empty for void.
+   */
+  std::string m_background;
+
+  /**
+   * @brief Whether the node is a partition into regions: an Overlay, a map of one, or one clipped as the first
+   * operand of an intersection (a mask).
+   */
+  bool m_partition = false;
+
+  /**
+   * @brief Whether the node, or a chain of maps below it, has a material label (MaterialLabel()).
+   */
+  bool m_carriesMaterial = false;
 };
 
 /**
@@ -883,6 +910,62 @@ inline Expr<ExprPrecision<A>>
 SurfaceLabel(const A& a_operand, FaceGroups a_groups);
 
 /**
+ * @brief Regions by priority: each operand is a region of its own, later operands on top of earlier ones where they
+ * overlap, and the outside is the background.
+ * @details Region k is the part of operand k that no later operand covers, so the regions tile the object, with no
+ * gaps and no overlaps, by construction. Each region can have a material (MaterialLabel() on its operand), and the
+ * background one too (a_background). A Tape evaluates an Overlay as the union of its operands, the whole object, so
+ * signedDistance() is unchanged by it; ExprIndex lists its regions, groups and materials.
+ *
+ * Where an Overlay may appear: at the top of the expression, under maps (Translate, Rotate, ...), as the first
+ * operand of an Intersection or Difference whose other operands are plain solids (masks: they clip or drill every
+ * region), and as an operand of another Overlay, where its operands take its place in the outer priority order
+ * (it is kept as a group of regions). Anything else (a union with a solid or another Overlay, an offset, a blend, a
+ * repetition of an Overlay) aborts with a message, in every build: it would not be clear which region a result
+ * belongs to. Only the outermost Overlay names the background.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operands   The regions, in priority order (must not be empty).
+ * @param[in] a_background The material of the outside; empty for none.
+ * @return The partition.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Overlay(const std::vector<A>& a_operands, std::string a_background = {});
+
+/**
+ * @brief Regions by priority, of two operands: the second on top of the first (see Overlay()).
+ * @tparam A Shape or Expr type.
+ * @tparam B Shape or Expr type of the same precision.
+ * @param[in] a_first      The first region.
+ * @param[in] a_second     The second region, on top.
+ * @param[in] a_background The material of the outside; empty for none.
+ * @return The partition.
+ */
+template <class A, class B>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Overlay(const A& a_first, const B& a_second, std::string a_background = {});
+
+/**
+ * @brief Name the material of a region: an operand of an Overlay, a whole Overlay nested in another (a default for
+ * its regions without one of their own), or a whole object.
+ * @details Materials are not surface labels (SurfaceLabel()): a material belongs to a volume, a surface label to
+ * surfaces. ExprIndex numbers the material names, in the order they first appear, depth first, the background's
+ * first, as MaterialLabelId. A material label on part of a solid (an operand of a Union, an Intersection, ...)
+ * aborts with a message, in every build: a solid is one material; make the parts regions of an Overlay. Labeling an
+ * object that already has a material replaces it.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operand Object.
+ * @param[in] a_name    Name (not empty).
+ * @return The labeled object.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+MaterialLabel(const A& a_operand, std::string a_name);
+
+/**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
  * way from what a Tape reports (a leaf, see LeafRef::m_leaf and HitT::m_primitive) back to the
  * expression.
@@ -943,11 +1026,70 @@ public:
     SurfaceLabelId m_surfaceLabel;
 
     /**
+     * @brief Its own material label, or none (MaterialLabel()).
+     */
+    MaterialLabelId m_materialLabel;
+
+    /**
      * @brief What it does: Primitive, Transform, Elongate, Repeat, Complement, Offset, Annulus, Blur, Mollify,
-     * Union, Intersection, SmoothUnion or SmoothIntersection, with " (BVH)" after a union built with
+     * Union, Intersection, SmoothUnion, SmoothIntersection or Overlay, with " (BVH)" after a union built with
      * Accelerate::BVH.
      */
     std::string m_operation;
+  };
+
+  /**
+   * @brief One region of the object (see Overlay()): the background (region 0), an operand of an Overlay, or, for
+   * an expression with no Overlay, the whole object (region 1).
+   */
+  struct Region
+  {
+    /**
+     * @brief Its operand's node; None for the background.
+     */
+    uint32_t m_node = None;
+
+    /**
+     * @brief The innermost group (nested Overlay) it is in; None for the background and a whole object.
+     */
+    uint32_t m_group = None;
+
+    /**
+     * @brief Its material: its operand's material label, or its group's, or none.
+     */
+    MaterialLabelId m_material;
+  };
+
+  /**
+   * @brief A group of regions: an Overlay, whose regions are a contiguous range (a nested Overlay a range inside
+   * its parent's).
+   */
+  struct Group
+  {
+    /**
+     * @brief The Overlay's node.
+     */
+    uint32_t m_node = None;
+
+    /**
+     * @brief The group it is nested in; None for the outermost.
+     */
+    uint32_t m_parent = None;
+
+    /**
+     * @brief Its first region.
+     */
+    uint32_t m_firstRegion = 0;
+
+    /**
+     * @brief How many regions it has, those of nested groups included.
+     */
+    uint32_t m_numRegions = 0;
+
+    /**
+     * @brief Its material label, the default of its regions without one of their own; or none.
+     */
+    MaterialLabelId m_material;
   };
 
   /**
@@ -1089,6 +1231,85 @@ public:
   SurfaceLabelId
   findSurfaceLabel(std::string_view a_name) const;
 
+  /**
+   * @brief The number of regions: the background (region 0), and one per operand of the Overlays, flattened into one
+   * priority order depth first (later regions on top); an expression with no Overlay has one, the whole object.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumRegions() const noexcept;
+
+  /**
+   * @brief A region.
+   * @param[in] a_region Region number (below getNumRegions()).
+   * @return The region.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const Region&
+  getRegion(uint32_t a_region) const;
+
+  /**
+   * @brief The region a leaf belongs to: the region whose operand holds it.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The region, or None for a leaf of a mask (an operand that clips or drills the regions).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getRegionOfLeaf(uint32_t a_leaf) const;
+
+  /**
+   * @brief A region's material (see Region::m_material).
+   * @param[in] a_region Region number (below getNumRegions()).
+   * @return The material, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  MaterialLabelId
+  getMaterialOf(uint32_t a_region) const;
+
+  /**
+   * @brief The number of groups: one per Overlay, numbered depth first.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumGroups() const noexcept;
+
+  /**
+   * @brief A group.
+   * @param[in] a_group Group number (below getNumGroups()).
+   * @return The group.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const Group&
+  getGroup(uint32_t a_group) const;
+
+  /**
+   * @brief The number of distinct material labels.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumMaterialLabels() const noexcept;
+
+  /**
+   * @brief A material label's name.
+   * @param[in] a_label Label (below getNumMaterialLabels()).
+   * @return The name.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const std::string&
+  getMaterialLabelName(MaterialLabelId a_label) const;
+
+  /**
+   * @brief The material label of a name.
+   * @param[in] a_name Name.
+   * @return The label, or none if no region has that material.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  MaterialLabelId
+  findMaterialLabel(std::string_view a_name) const;
+
 private:
   /**
    * @brief The nodes.
@@ -1124,6 +1345,59 @@ private:
    * @brief Each name's label.
    */
   std::unordered_map<std::string, SurfaceLabelId> m_surfaceLabelIds;
+
+  /**
+   * @brief Each node's expression node, while the index is built (cleared after: the index does not hold the
+   * expression).
+   */
+  std::vector<const ExprDetail::Node<T>*> m_exprNodes;
+
+  /**
+   * @brief Each node's operands' numbers.
+   */
+  std::vector<std::vector<uint32_t>> m_operands;
+
+  /**
+   * @brief The regions.
+   */
+  std::vector<Region> m_regions;
+
+  /**
+   * @brief The groups.
+   */
+  std::vector<Group> m_groups;
+
+  /**
+   * @brief Each leaf's region, or None.
+   */
+  std::vector<uint32_t> m_leafRegions;
+
+  /**
+   * @brief The material labels' names.
+   */
+  std::vector<std::string> m_materialLabelNames;
+
+  /**
+   * @brief Each material name's label.
+   */
+  std::unordered_map<std::string, MaterialLabelId> m_materialLabelIds;
+
+  /**
+   * @brief The material label of a name, numbered if it is new.
+   * @param[in] a_name Name (not empty).
+   * @return The label.
+   */
+  MaterialLabelId
+  internMaterial(const std::string& a_name);
+
+  /**
+   * @brief Number the regions and groups at and below a node of a partition (see Overlay()).
+   * @param[in] a_node     Node number.
+   * @param[in] a_group    The group it is in, or None.
+   * @param[in] a_material The material its regions inherit, or none.
+   */
+  void
+  addRegions(uint32_t a_node, uint32_t a_group, MaterialLabelId a_material);
 
   /**
    * @brief Number a node and those below it.

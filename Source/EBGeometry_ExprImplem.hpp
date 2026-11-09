@@ -153,20 +153,123 @@ worse(const DistanceQuality a_first, const DistanceQuality a_second) noexcept
 }
 
 /**
- * @brief A new node of a given kind with the given children.
+ * @brief The name of an operation, for messages.
  * @details Internal helper; not part of the public API.
+ * @param[in] a_kind Kind.
+ * @return The builder function's name.
+ */
+[[nodiscard]] inline const char*
+kindName(const Kind a_kind) noexcept
+{
+  switch (a_kind) {
+  case Kind::Affine: {
+    return "Transform";
+  }
+  case Kind::Elongate: {
+    return "Elongate";
+  }
+  case Kind::Repeat: {
+    return "FiniteRepetition";
+  }
+  case Kind::Complement: {
+    return "Complement";
+  }
+  case Kind::Offset: {
+    return "Offset";
+  }
+  case Kind::Annular: {
+    return "Annular";
+  }
+  case Kind::Blur: {
+    return "Blur";
+  }
+  case Kind::Mollify: {
+    return "Mollify";
+  }
+  case Kind::Union: {
+    return "Union";
+  }
+  case Kind::Intersection: {
+    return "Intersection";
+  }
+  case Kind::SmoothUnion: {
+    return "SmoothUnion";
+  }
+  case Kind::SmoothIntersection: {
+    return "SmoothIntersection";
+  }
+  default: {
+    return "Expr";
+  }
+  }
+}
+
+/**
+ * @brief The Overlay a partition is made of: the node itself, or the one below its maps and masks.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node A partition (Node::m_partition).
+ * @return The Overlay's node.
+ */
+template <class T>
+[[nodiscard]] inline const Node<T>&
+overlayOf(const Node<T>& a_node) noexcept
+{
+  const Node<T>* node = &a_node;
+
+  while (!node->m_overlay) {
+    node = &node->m_children.front().node();
+  }
+
+  return *node;
+}
+
+/**
+ * @brief A new node of a given kind with the given children.
+ * @details Internal helper; not part of the public API. Checks where a partition (an Overlay) and a material label
+ * may be: a partition only in an Overlay, under a map, or as the first operand of an intersection (clipped by the
+ * others, plain solids); a material label only on an operand of an Overlay or under maps.
  * @tparam T Floating-point precision.
  * @param[in] a_kind     Kind.
  * @param[in] a_children Children.
+ * @param[in] a_overlay  Whether the node is an Overlay (a Union of regions).
  * @return The node.
  */
 template <class T>
 [[nodiscard]] inline std::shared_ptr<Node<T>>
-makeNode(const Kind a_kind, std::vector<Expr<T>> a_children)
+makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overlay = false)
 {
+  for (size_t i = 0; i < a_children.size(); i++) {
+    const Node<T>& child = a_children[i].node();
+
+    if (child.m_partition) {
+      const bool clipped = (a_kind == Kind::Intersection) && (i == 0);
+
+      EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine || clipped,
+                         "%s: an Overlay is a partition into regions, not a solid; it can be moved, clipped or drilled "
+                         "as the first operand of an Intersection or Difference, or placed in another Overlay",
+                         kindName(a_kind));
+      EBGEOMETRY_REQUIRE(!a_overlay || overlayOf(child).m_background.empty(),
+                         "Overlay: only the outermost Overlay names the background (an inner one's outside is a region "
+                         "of the outer)");
+    }
+    else if (child.m_carriesMaterial) {
+      EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine,
+                         "%s: MaterialLabel names the material of a region (an operand of an Overlay) or of a whole "
+                         "object, not of a part of a solid; make the parts regions of an Overlay",
+                         kindName(a_kind));
+    }
+  }
+
   auto node = std::make_shared<Node<T>>();
 
-  node->m_kind     = a_kind;
+  const bool firstIsPartition = !a_children.empty() && a_children.front().node().m_partition;
+
+  node->m_kind      = a_kind;
+  node->m_overlay   = a_overlay;
+  node->m_partition = a_overlay || ((a_kind == Kind::Affine || a_kind == Kind::Intersection) && firstIsPartition);
+  node->m_carriesMaterial =
+    (a_kind == Kind::Affine) && !a_children.empty() && a_children.front().node().m_carriesMaterial;
   node->m_children = std::move(a_children);
 
   return node;
@@ -266,7 +369,7 @@ affine(const Expr<T>& a_operand, const Affine3T<T>& a_map, const Affine3T<T>& a_
 
   // The outer map is applied to the query point first: the child sees inner(outer(p)). A labeled map stays
   // a node of its own, so that its label keeps the leaves it names.
-  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_surfaceLabel.empty();
+  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_surfaceLabel.empty() && inner.m_materialLabel.empty();
   const auto child = fold ? inner.m_children.front() : a_operand;
 
   auto node = makeNode<T>(Kind::Affine, {child});
@@ -950,6 +1053,60 @@ SurfaceLabel(const A& a_operand, FaceGroups a_groups)
   return Expr<T>(std::move(node));
 }
 
+template <class A>
+inline Expr<ExprPrecision<A>>
+Overlay(const std::vector<A>& a_operands, std::string a_background)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_operands.empty(), "Overlay: the list of regions must not be empty");
+
+  // A union with a flag: a Tape evaluates it as the union of its operands, the whole object.
+  auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Union, ExprDetail::toExprs(a_operands), true);
+
+  BoundingVolumes::AABBT<T> box;
+  DistanceQuality           quality = DistanceQuality::Bound;
+
+  for (const Expr<T>& child : node->m_children) {
+    box     = box.merged(child.computeBoundingVolume());
+    quality = ExprDetail::worse(quality, child.getDistanceQuality());
+  }
+
+  node->m_boundingVolume = box;
+  node->m_quality        = quality;
+  node->m_background     = std::move(a_background);
+
+  return Expr<T>(std::move(node));
+}
+
+template <class A, class B>
+inline Expr<ExprPrecision<A>>
+Overlay(const A& a_first, const B& a_second, std::string a_background)
+{
+  using T = ExprPrecision<A>;
+
+  static_assert(std::is_same_v<T, ExprPrecision<B>>, "Overlay: both operands must have the same precision");
+
+  return Overlay(std::vector<Expr<T>>{toExpr(a_first), toExpr(a_second)}, std::move(a_background));
+}
+
+template <class A>
+inline Expr<ExprPrecision<A>>
+MaterialLabel(const A& a_operand, std::string a_name)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "MaterialLabel: the name must not be empty");
+
+  // A copy of the node, so that other uses of the same subexpression keep their own material.
+  auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
+
+  node->m_materialLabel   = std::move(a_name);
+  node->m_carriesMaterial = true;
+
+  return Expr<T>(std::move(node));
+}
+
 namespace ExprDetail {
 
 /**
@@ -1042,7 +1199,7 @@ operationName(const Node<T>& a_node)
     return "Mollify";
   }
   case Kind::Union: {
-    return "Union" + bvh;
+    return a_node.m_overlay ? std::string("Overlay") : "Union" + bvh;
   }
   case Kind::Intersection: {
     return "Intersection";
@@ -1064,7 +1221,105 @@ operationName(const Node<T>& a_node)
 template <class T>
 inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr) : m_leafSurfaces{0U}
 {
-  this->add(a_expr.node(), None, SurfaceLabelId::none());
+  const ExprDetail::Node<T>& root = a_expr.node();
+
+  // The background is region 0, and its material is numbered first.
+  Region background;
+
+  if (root.m_partition && !ExprDetail::overlayOf(root).m_background.empty()) {
+    background.m_material = this->internMaterial(ExprDetail::overlayOf(root).m_background);
+  }
+
+  m_regions.push_back(background);
+
+  this->add(root, None, SurfaceLabelId::none());
+
+  m_leafRegions.assign(m_leafNodes.size(), None);
+
+  this->addRegions(0U, None, MaterialLabelId::none());
+
+  // The expression's nodes are not kept: the index does not hold the expression.
+  m_exprNodes.clear();
+  m_exprNodes.shrink_to_fit();
+}
+
+template <class T>
+inline MaterialLabelId
+ExprIndex<T>::internMaterial(const std::string& a_name)
+{
+  const auto [entry, added] =
+    m_materialLabelIds.emplace(a_name, MaterialLabelId(static_cast<uint32_t>(m_materialLabelNames.size())));
+
+  if (added) {
+    m_materialLabelNames.push_back(a_name);
+  }
+
+  return entry->second;
+}
+
+template <class T>
+inline void
+ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const MaterialLabelId a_material)
+{
+  const ExprDetail::Node<T>& expr = *m_exprNodes[a_node];
+
+  // An operand that is not a partition is a region: its material is the first along its maps, or its group's.
+  if (!expr.m_partition) {
+    Region region;
+
+    region.m_node     = a_node;
+    region.m_group    = a_group;
+    region.m_material = a_material;
+
+    for (uint32_t node = a_node;; node = m_operands[node].front()) {
+      if (!m_nodes[node].m_materialLabel.isNone()) {
+        region.m_material = m_nodes[node].m_materialLabel;
+
+        break;
+      }
+
+      if (m_exprNodes[node]->m_kind != ExprDetail::Kind::Affine) {
+        break;
+      }
+    }
+
+    const auto number = static_cast<uint32_t>(m_regions.size());
+
+    m_regions.push_back(region);
+
+    for (uint32_t leaf = 0; leaf < m_nodes[a_node].m_numLeaves; leaf++) {
+      m_leafRegions[m_nodes[a_node].m_firstLeaf + leaf] = number;
+    }
+
+    return;
+  }
+
+  const MaterialLabelId material =
+    m_nodes[a_node].m_materialLabel.isNone() ? a_material : m_nodes[a_node].m_materialLabel;
+
+  if (expr.m_overlay) {
+    Group group;
+
+    group.m_node        = a_node;
+    group.m_parent      = a_group;
+    group.m_firstRegion = static_cast<uint32_t>(m_regions.size());
+    group.m_material    = material;
+
+    const auto number = static_cast<uint32_t>(m_groups.size());
+
+    m_groups.push_back(group);
+
+    for (const uint32_t operand : m_operands[a_node]) {
+      this->addRegions(operand, number, material);
+    }
+
+    m_groups[number].m_numRegions = static_cast<uint32_t>(m_regions.size()) - m_groups[number].m_firstRegion;
+  }
+  else {
+    // A map of a partition, or one clipped by masks: the partition is its first operand, the masks belong to no
+    // region.
+    this->addRegions(m_operands[a_node].front(), a_group, material);
+  }
 }
 
 template <class T>
@@ -1097,7 +1352,17 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
   node.m_surfaceLabel = own;
   node.m_operation    = ExprDetail::operationName(a_node);
 
+  if (!a_node.m_materialLabel.empty()) {
+    node.m_materialLabel = this->internMaterial(a_node.m_materialLabel);
+  }
+
   m_nodes.push_back(std::move(node));
+  m_exprNodes.push_back(&a_node);
+  m_operands.emplace_back();
+
+  if (a_parent != None) {
+    m_operands[a_parent].push_back(id);
+  }
 
   // Leaves are numbered in the order the tape compiler meets them: depth first, the operands in order.
   if (a_node.m_kind == ExprDetail::Kind::Primitive) {
@@ -1284,6 +1549,83 @@ ExprIndex<T>::findSurfaceLabel(const std::string_view a_name) const
   const auto entry = m_surfaceLabelIds.find(std::string(a_name));
 
   return (entry != m_surfaceLabelIds.end()) ? entry->second : SurfaceLabelId::none();
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumRegions() const noexcept
+{
+  return static_cast<uint32_t>(m_regions.size());
+}
+
+template <class T>
+inline const typename ExprIndex<T>::Region&
+ExprIndex<T>::getRegion(const uint32_t a_region) const
+{
+  EBGEOMETRY_REQUIRE(a_region < m_regions.size(), "ExprIndex: region %u of %zu", unsigned(a_region), m_regions.size());
+
+  return m_regions[a_region];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getRegionOfLeaf(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(
+    a_leaf < m_leafRegions.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafRegions.size());
+
+  return m_leafRegions[a_leaf];
+}
+
+template <class T>
+inline MaterialLabelId
+ExprIndex<T>::getMaterialOf(const uint32_t a_region) const
+{
+  return this->getRegion(a_region).m_material;
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumGroups() const noexcept
+{
+  return static_cast<uint32_t>(m_groups.size());
+}
+
+template <class T>
+inline const typename ExprIndex<T>::Group&
+ExprIndex<T>::getGroup(const uint32_t a_group) const
+{
+  EBGEOMETRY_REQUIRE(a_group < m_groups.size(), "ExprIndex: group %u of %zu", unsigned(a_group), m_groups.size());
+
+  return m_groups[a_group];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumMaterialLabels() const noexcept
+{
+  return static_cast<uint32_t>(m_materialLabelNames.size());
+}
+
+template <class T>
+inline const std::string&
+ExprIndex<T>::getMaterialLabelName(const MaterialLabelId a_label) const
+{
+  EBGEOMETRY_REQUIRE(a_label.value() < m_materialLabelNames.size(),
+                     "ExprIndex: material label %u of %zu",
+                     unsigned(a_label.value()),
+                     m_materialLabelNames.size());
+
+  return m_materialLabelNames[a_label.value()];
+}
+
+template <class T>
+inline MaterialLabelId
+ExprIndex<T>::findMaterialLabel(const std::string_view a_name) const
+{
+  const auto entry = m_materialLabelIds.find(std::string(a_name));
+
+  return (entry != m_materialLabelIds.end()) ? entry->second : MaterialLabelId::none();
 }
 
 } // namespace EBGeometry
