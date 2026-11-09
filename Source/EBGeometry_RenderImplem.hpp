@@ -362,12 +362,15 @@ timeStamp() noexcept
 
 /**
  * @brief Everything one pixel's rays share: the cut shape, the scene's scale, the floor, the light.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. Aligned to a cache line: built on the stack for each pixel, its
+ * fields read for every ray, it otherwise straddled cache lines or not as each run's stack placed it, and host renders
+ * of a plain float tape ran in two speeds, up to 9% apart, from one run of the same binary to the next (a field added
+ * to Sectioned shifted the layout).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
 template <class T, class S>
-class Shader
+class alignas(64) Shader
 {
 public:
   /**
@@ -1100,6 +1103,9 @@ private:
 
   /**
    * @brief Whether a ray meets a surface that is not seen through (Settings::m_hidden) in an interval.
+   * @details With no surface seen through, one trace, as a plain shape's shadow and occlusion rays always were;
+   * stepping past surfaces seen through is blockedPastHidden(), out of line on the host: inlined into the lighting of
+   * every shaded pixel, it made host renders of a plain float tape 10% slower.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
    * @return True if it does.
@@ -1108,18 +1114,32 @@ private:
   inline bool
   blocked(const RayT<T>& a_ray, const T a_tMax) const noexcept
   {
-    HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
-
-    // A surface seen through casts no shadow: the ray goes on past it, as a camera ray does.
     if (m_settings.hidesAny()) {
-      for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
-        hit = this->trace(a_ray, this->past(hit), a_tMax);
-      }
-
-      return hit.hit() && !m_settings.hides(hit.m_primitive);
+      return this->blockedPastHidden(a_ray, a_tMax);
     }
 
-    return hit.hit();
+    return this->trace(a_ray, T(0), a_tMax).hit();
+  }
+
+  /**
+   * @brief Whether a ray meets a surface that is not seen through in an interval, some being seen through: a surface
+   * seen through casts no shadow, and the ray goes on past it, as a camera ray does.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMax End of the interval.
+   * @return True if it does.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  bool
+  blockedPastHidden(const RayT<T>& a_ray, const T a_tMax) const noexcept
+  {
+    HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
+
+    for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
+      hit = this->trace(a_ray, this->past(hit), a_tMax);
+    }
+
+    return hit.hit() && !m_settings.hides(hit.m_primitive);
   }
 
   /**
