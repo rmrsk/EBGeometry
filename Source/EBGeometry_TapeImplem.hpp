@@ -3480,19 +3480,26 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point,
                                            const Phases&   a_phases,
                                            const uint32_t  a_phase) const noexcept
 {
-  T value = Math::Limits<T>::max();
+  // Half the difference of the smallest function of a region in the phase and of one not in it: negative exactly in
+  // the phase, zero only where a region in it meets one not in it. The smallest member's function alone would be
+  // zero on the contact between two of its regions too (both functions are zero there), a sheet the phase's surface
+  // does not have; the other term is strictly positive there. Each term is at most the distance to the phase's
+  // boundary, so their average is a distance bound, exact where two regions' functions are.
+  T in  = Math::Limits<T>::max();
+  T out = Math::Limits<T>::max();
 
-  for (uint32_t r = 0; r < a_phases.getNumRanges(); r++) {
-    const Phases::Range& range = a_phases.getRange(r);
+  for (uint32_t k = 0; k < this->getNumRegions(); k++) {
+    const T d = this->signedDistance(a_point, k);
 
-    if (range.m_phase == a_phase) {
-      for (uint32_t k = range.m_first; k < range.m_first + range.m_count; k++) {
-        value = Math::min(value, this->signedDistance(a_point, k));
-      }
+    if (a_phases.phaseOf(k) == a_phase) {
+      in = Math::min(in, d);
+    }
+    else {
+      out = Math::min(out, d);
     }
   }
 
-  return value;
+  return T(0.5) * (in - out);
 }
 
 template <class T, class... UserPrimitives>

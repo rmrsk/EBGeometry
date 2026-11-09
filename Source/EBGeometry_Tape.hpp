@@ -1254,9 +1254,11 @@ public:
   closestSurface(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
   /**
-   * @brief A phase's implicit function (TapeFeature::Regions): the smallest of its regions' functions, negative
-   * exactly inside the phase, zero on its surface (the contacts between its own regions excluded); what a cut-cell
-   * solver cuts for the phase. Callable on a device.
+   * @brief A phase's implicit function (TapeFeature::Regions): half the difference of the smallest function of a
+   * region in the phase and the smallest of one not in it (the background included), negative exactly inside the
+   * phase and zero only on its surface: where one of its regions meets a region not in it, never on the contact
+   * between two of its own. A distance bound, exact near a smooth piece of surface; what a cut-cell solver cuts for
+   * the phase, and the function of a union of materials (a phase of their regions). Callable on a device.
    * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_point  Point.
    * @param[in] a_phases The phases (built from this tape's regions).

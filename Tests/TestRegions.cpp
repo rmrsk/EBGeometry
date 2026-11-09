@@ -575,6 +575,17 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
     CHECK((tape.signedDistance(p, electrostatics, 1U) < T(0)) == (tape.region(p) == 1U));
   }
 
+  // The jacket and the core as one phase: on their contact the function is not zero (no sheet inside the phase);
+  // across the outer sphere it is the distance, from both sides.
+  for (const T x : {T(0.5), T(0.45), T(0.55)}) {
+    INFO("x " << x);
+
+    CHECK(tape.signedDistance(Vec3(x, T(0), T(0)), solid, 0U) < -T(0.2));
+  }
+
+  CHECK_THAT(tape.signedDistance(Vec3(T(0.95), T(0), T(0)), solid, 0U), withinAbsT<T>(-T(0.05), tightMargin<T>()));
+  CHECK_THAT(tape.signedDistance(Vec3(T(1.05), T(0), T(0)), solid, 0U), withinAbsT<T>(T(0.05), tightMargin<T>()));
+
   // The phase's surface: from its region whose function is smallest.
   const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostatics, 1U);
 

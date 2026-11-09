@@ -301,7 +301,10 @@ phase a set of regions (usually one; ``ExprIndex::getRegionsOfGroup()`` and ``ge
 several). Each surface then has a role for it at a point, from its two sides: a **boundary** (one side solved,
 where its surface label gives the boundary condition), an **interface** (two phases meet), **internal** (two
 regions of the same phase touch), or none. A phase's own function, ``signedDistance(p, phases, phase)``, is the
-one to cut:
+one to cut, and the function of any union of regions or materials (a phase of their regions): negative exactly
+inside the phase and zero only where one of its regions meets one outside it, never on a contact between two of
+its own. It is half the difference of the smallest function of a region in the phase and of one outside it, a
+distance bound, exact near a smooth piece of its surface:
 
 .. code-block:: c++
 
