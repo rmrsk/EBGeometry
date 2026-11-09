@@ -592,3 +592,107 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
     },
     "Phases: region 2 is already in phase 0"));
 }
+
+TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regions, and firstSurface() a phase",
+                   "[Overlay][Tape][Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The cable (concentric spheres: jacket radius 1, region 1; core radius 0.5, region 2) in air, cut by a slab
+  // (x > 0, |z| < 0.3) labeled "cut".
+  const BoxSDF<T> slab(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)));
+  const Expr<T>   cut = Difference(cable<T>(), SurfaceLabel(slab, "cut"));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T, TapeFeature::Regions> tape(pool, cut);
+  const ExprIndex<T>                  index(cut);
+
+  // Along x at z = 0.4, above the cut: four changes, at the spheres' exact crossings.
+  {
+    const RayT<T> ray{Vec3(T(-2), T(0), T(0.4)), Vec3(T(1), T(0), T(0))};
+
+    const T        jacket           = std::sqrt(T(1) - T(0.16));
+    const T        core             = std::sqrt(T(0.25) - T(0.16));
+    const T        ts[]             = {T(2) - jacket, T(2) - core, T(2) + core, T(2) + jacket};
+    const uint32_t leftRegions[]    = {0, 1, 2, 1};
+    const uint32_t enteredRegions[] = {1, 2, 1, 0};
+    const uint32_t leaves[]         = {0, 1, 1, 0};
+
+    T t = T(0);
+
+    for (int i = 0; i < 4; i++) {
+      INFO("crossing " << i);
+
+      const SurfaceHitT<T> change = tape.firstRegionChange(ray, t, T(5));
+
+      REQUIRE(change.m_hit.hit());
+      CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(ts[i], looseMargin<T>()));
+      CHECK(change.m_surface.m_minusRegion == leftRegions[i]);
+      CHECK(change.m_surface.m_plusRegion == enteredRegions[i]);
+      CHECK(change.m_surface.m_leaf == leaves[i]);
+
+      // The normal points from the region left into the region entered: along the ray.
+      CHECK(dot(change.m_hit.m_normal, ray.m_direction) > T(0));
+
+      t = change.m_hit.m_t;
+    }
+
+    CHECK(!tape.firstRegionChange(ray, t, T(5)).m_hit.hit());
+  }
+
+  // Along x at z = 0, through the cut: the particle leaves the core into the air at the cut face.
+  {
+    const RayT<T> ray{Vec3(T(-2), T(0), T(0)), Vec3(T(1), T(0), T(0))};
+
+    const SurfaceHitT<T> a = tape.firstRegionChange(ray, T(0), T(5));
+    const SurfaceHitT<T> b = tape.firstRegionChange(ray, a.m_hit.m_t, T(5));
+    const SurfaceHitT<T> c = tape.firstRegionChange(ray, b.m_hit.m_t, T(5));
+
+    CHECK_THAT(c.m_hit.m_t, withinAbsT<T>(T(2), looseMargin<T>()));
+    CHECK(c.m_surface.m_minusRegion == 2U);
+    CHECK(c.m_surface.m_plusRegion == 0U);
+    CHECK(c.m_surface.m_surfaceLabel == index.findSurfaceLabel("cut"));
+    CHECK(!tape.firstRegionChange(ray, c.m_hit.m_t, T(5)).m_hit.hit());
+  }
+
+  // From inside the core, and as a particle's step.
+  {
+    const SurfaceHitT<T> fromCore = tape.firstRegionChange(Vec3(T(-0.2), T(0), T(0.4)), Vec3(T(2), T(0), T(0.4)));
+
+    REQUIRE(fromCore.m_hit.hit());
+    CHECK_THAT(fromCore.m_hit.m_t, withinAbsT<T>(T(0.5), looseMargin<T>()));
+    CHECK(fromCore.m_surface.m_minusRegion == 2U);
+    CHECK(fromCore.m_surface.m_plusRegion == 1U);
+  }
+
+  // Rendering: the first entry into the visible regions, the others seen through.
+  {
+    const RayT<T> ray{Vec3(T(-2), T(0), T(0.4)), Vec3(T(1), T(0), T(0))};
+
+    Phases jacketOnly;
+    Phases coreOnly;
+    Phases both;
+
+    (void)jacketOnly.addPhase({1});
+    (void)coreOnly.addPhase({2});
+    (void)both.addPhase({1, 2});
+
+    const SurfaceHitT<T> jacket = tape.firstSurface(ray, T(0), T(5), jacketOnly, 0U);
+    const SurfaceHitT<T> core   = tape.firstSurface(ray, T(0), T(5), coreOnly, 0U);
+    const SurfaceHitT<T> solid  = tape.firstSurface(ray, T(0), T(5), both, 0U);
+
+    CHECK_THAT(jacket.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.84)), looseMargin<T>()));
+    CHECK_THAT(core.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
+    CHECK(core.m_surface.m_plusRegion == 2U);
+    CHECK(solid.m_surface.m_plusRegion == 1U);
+
+    // Leaving the solid: the contact between the jacket and the core is passed through.
+    const SurfaceHitT<T> leave = tape.firstSurface(ray, solid.m_hit.m_t, T(5), both, 0U);
+
+    CHECK_THAT(leave.m_hit.m_t, withinAbsT<T>(T(2) + std::sqrt(T(0.84)), looseMargin<T>()));
+    CHECK(leave.m_surface.m_plusRegion == 0U);
+  }
+}

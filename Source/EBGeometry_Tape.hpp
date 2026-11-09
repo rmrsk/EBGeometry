@@ -1284,6 +1284,72 @@ public:
   closestSurface(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
 
   /**
+   * @brief The first point along a ray where the region changes (TapeFeature::Regions): for a particle crossing
+   * layers, from inside any region, the background included. The crossing is the nearer of leaving the current
+   * region's solid and entering a later one, each traced exactly where the operands have ray forms (and marched
+   * where they do not). m_hit is the crossing, its normal pointing from the region left into the region entered;
+   * m_surface the surface crossed (leaf, part, surface label), its m_minusRegion the region left and m_plusRegion
+   * the region entered. The ray starts counting at a_tMin plus the march's tolerance at the object's scale
+   * (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks again from
+   * the last crossing's t, and layers thinner than that are passed over. Callable on a device.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, or a miss.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceHitT<T>
+  firstRegionChange(const RayT<T>&       a_ray,
+                    T                    a_tMin,
+                    T                    a_tMax,
+                    const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first change of region along a particle's step from one point to another (see
+   * firstRegionChange(ray)), t measured from a_from.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_from    Start of the step.
+   * @param[in] a_to      End of the step.
+   * @param[in] a_tMin    Distance from a_from where the step starts counting.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, or a miss.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceHitT<T>
+  firstRegionChange(const Vec3T<T>&      a_from,
+                    const Vec3T<T>&      a_to,
+                    T                    a_tMin    = T(0),
+                    const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first point along a ray where it crosses a phase's boundary (TapeFeature::Regions), entering or
+   * leaving the phase: changes between two of its regions are passed through. For rendering, the phase is the set of
+   * visible regions: hidden ones are seen through. Reported as firstRegionChange() reports a crossing. Callable on a
+   * device.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_phases  The phases.
+   * @param[in] a_phase   Phase.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, or a miss.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceHitT<T>
+  firstSurface(const RayT<T>&       a_ray,
+               T                    a_tMin,
+               T                    a_tMax,
+               const Phases&        a_phases,
+               uint32_t             a_phase,
+               const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
    * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when
    * it is a container (a sphere cloud, a BVH union, a nested tape; see hasSurfaces) down to the member that
    * decides there, at any depth.
@@ -1458,6 +1524,21 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline HitT<T>
   traceRay(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
+
+  /**
+   * @brief The first crossing along a ray of one program's value (the whole object's is program 0; a region's solid
+   * has its own, TapeFeature::Regions), from its ray program.
+   * @param[in] a_program The program.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  traceProgram(
+    uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
 
   /**
    * @brief Where a ray is inside the object over an interval, from the ray program.

@@ -312,6 +312,24 @@ one to cut:
    const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
    electrostatics.role(s);                        // the outer sphere: Interface; the inner one: Boundary
 
+Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
+finds the first point where the region changes, from inside any region: the crossing, with its normal pointing
+into the region entered, the surface crossed and its labels, and the regions left (``m_minusRegion``) and entered
+(``m_plusRegion``). The crossings are exact where the shapes have ray forms. A particle crossing several layers
+asks again from the last crossing's ``t``; crossings closer than the march's tolerance to ``tMin`` are not
+reported, so layers thinner than that are passed over. ``firstSurface(ray, tMin, tMax, phases, phase)`` finds
+where the ray enters or leaves a phase, passing through the contacts between its regions: with the visible
+regions as the phase, what a renderer needs to see through hidden ones.
+
+.. code-block:: c++
+
+   for (T t = 0;;) {                                          // a particle through the layers of the cable
+     const SurfaceHitT<T> c = tape.firstRegionChange(ray, t, tMax);
+     if (!c.m_hit.hit()) break;
+     // c.m_surface.m_minusRegion -> c.m_surface.m_plusRegion at c.m_hit.m_point
+     t = c.m_hit.m_t;
+   }
+
 Along a ray
 -----------
 

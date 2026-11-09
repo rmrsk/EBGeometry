@@ -316,7 +316,10 @@ public:
 
     m_leafStarts = a_starts;
 
-    const uint32_t program = this->compileProgram(a_node, nullptr);
+    // Traced like the whole object, for the regions' ray queries.
+    const RayEmit ray{false, 0U};
+
+    const uint32_t program = this->compileProgram(a_node, &ray);
 
     m_leafStarts.clear();
 
@@ -2539,12 +2542,24 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
                                      const T              a_tMax,
                                      const RayOptions<T>& a_options) const noexcept
 {
+  return this->traceProgram(0U, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
+                                         const RayT<T>&       a_ray,
+                                         const T              a_tMin,
+                                         const T              a_tMax,
+                                         const RayOptions<T>& a_options) const noexcept
+{
   const void*        base     = this->base();
   const PoolLocation location = this->location();
 
-  const auto trace = [this, &a_ray, &a_options, base, &location](
+  const auto trace = [this, a_program, &a_ray, &a_options, base, &location](
                        const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
-    this->template rayEvaluate<MaxCallDepth>(0U, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
+    this->template rayEvaluate<MaxCallDepth>(a_program, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
   };
 
   HitT<T> hit;
@@ -2553,10 +2568,10 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     // A crossing on a level set is marked, and resolved once the trace is done (see resolveLevelHit()).
     uint32_t levelClause = 0U;
 
-    const auto resolve = [this, &a_ray, &a_options, base, &location, &levelClause](const T        a_t,
-                                                                                   const uint32_t a_leaf) noexcept {
+    const auto resolve = [this, a_program, &a_ray, &a_options, base, &location, &levelClause](
+                           const T a_t, const uint32_t a_leaf) noexcept {
       const HitT<T> leafHit =
-        this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+        this->template rayLeafHit<MaxCallDepth>(a_program, a_ray, a_t, a_leaf, a_options, base, location);
 
       if (leafHit.m_primitive == LevelLeaf) {
         levelClause = a_leaf;
@@ -2580,16 +2595,21 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     }
   }
   else {
-    const auto resolve = [this, &a_ray, &a_options, base, &location](const T a_t, const uint32_t a_leaf) noexcept {
-      return this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+    const auto resolve = [this, a_program, &a_ray, &a_options, base, &location](const T        a_t,
+                                                                                const uint32_t a_leaf) noexcept {
+      return this->template rayLeafHit<MaxCallDepth>(a_program, a_ray, a_t, a_leaf, a_options, base, location);
     };
 
     hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
   }
 
-  // A crossing found by marching a subtree is named by the leaf deciding the value there.
+  // A crossing found by marching a subtree is named by the leaf deciding the program's value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
-    hit.m_primitive = this->closestLeaf(hit.m_point).m_leaf;
+    hit.m_primitive =
+      (a_program == 0U)
+        ? this->closestLeaf(hit.m_point).m_leaf
+        : this->leafOf(this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(a_program, hit.m_point, base, location))
+            .m_leaf;
   }
 
   return hit;
@@ -3502,6 +3522,152 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point,
   }
 
   return (region != Phases::None) ? this->closestSurface(a_point, region) : SurfaceRef<T>();
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
+                                              const T              a_tMin,
+                                              const T              a_tMax,
+                                              const RayOptions<T>& a_options) const noexcept
+{
+  const void* base = this->base();
+
+  const uint32_t n = (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(base, 0U) : 0U;
+
+  // A step past a crossing, to name the region beyond it: the march's tolerance at the object's scale.
+  const BoundingVolumes::AABBT<T> box = m_layout.m_boundingVolume;
+
+  const T diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+  const T scale    = (a_options.m_scale > T(0))                               ? a_options.m_scale
+                     : (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal
+                                                                              : T(1);
+  const T step     = a_options.m_tolerance * scale;
+
+  SurfaceHitT<T> result;
+
+  // The ray starts counting a step past a_tMin, so that a ray asked again from a crossing's t, which sits on the
+  // surface, starts in the region beyond it and does not find the same crossing again.
+  const T t0 = a_tMin + step;
+
+  if (!(t0 < a_tMax)) {
+    return result;
+  }
+
+  // The program whose crossing comes first.
+  HitT<T>  first;
+  uint32_t program = 0U;
+
+  first.m_t = a_tMax;
+
+  uint32_t from = 0U;
+
+  if (n == 0U) {
+    // An object with no Overlay is one region: its crossings are the object's.
+    first = this->traceProgram(0U, a_ray, t0, a_tMax, a_options);
+    from  = (this->signedDistance(a_ray.m_origin + t0 * a_ray.m_direction) < T(0)) ? 1U : 0U;
+  }
+  else {
+    from = this->region(a_ray.m_origin + t0 * a_ray.m_direction);
+
+    // Leaving the current region's solid (with all its masks), or entering a later one's, whichever comes first.
+    for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
+      const uint32_t record = m_layout.m_regionPrograms.at(base, k);
+      const uint32_t solid =
+        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+
+      const HitT<T> hit = this->traceProgram(solid, a_ray, t0, first.m_t, a_options);
+
+      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
+        first   = hit;
+        program = solid;
+      }
+    }
+  }
+
+  if (!first.hit()) {
+    result.m_hit = first;
+
+    return result;
+  }
+
+  const Vec3T<T> beyond = first.m_point + step * a_ray.m_direction;
+
+  const uint32_t to = (n == 0U) ? ((this->signedDistance(beyond) < T(0)) ? 1U : 0U) : this->region(beyond);
+
+  // The surface crossed: the leaf deciding the traced program's value there, drilled.
+  const CSGOps::Tagged<T> value =
+    this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, first.m_point, base, this->location());
+
+  result.m_hit     = first;
+  result.m_surface = this->surfaceOf(this->leafOf(value));
+
+  // The normal from the region left into the region entered: the traced solid's outward normal where the ray leaves
+  // it, against it where the ray enters.
+  if (first.m_entering) {
+    result.m_hit.m_normal = -first.m_normal;
+  }
+
+  result.m_surface.m_minusRegion = from;
+  result.m_surface.m_plusRegion  = to;
+
+  return result;
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+Tape<T, UserPrimitives...>::firstRegionChange(const Vec3T<T>&      a_from,
+                                              const Vec3T<T>&      a_to,
+                                              const T              a_tMin,
+                                              const RayOptions<T>& a_options) const noexcept
+{
+  const Vec3T<T> segment = a_to - a_from;
+  const T        length  = segment.length();
+
+  if (!(length > T(0))) {
+    return SurfaceHitT<T>();
+  }
+
+  return this->firstRegionChange(RayT<T>{a_from, segment / length}, a_tMin, length, a_options);
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+Tape<T, UserPrimitives...>::firstSurface(const RayT<T>&       a_ray,
+                                         const T              a_tMin,
+                                         const T              a_tMax,
+                                         const Phases&        a_phases,
+                                         const uint32_t       a_phase,
+                                         const RayOptions<T>& a_options) const noexcept
+{
+  // Region by region along the ray, until it enters or leaves the phase: one region in it, the other not. Each
+  // query starts past the crossing before it (see firstRegionChange()).
+  T t = a_tMin;
+
+  for (uint32_t steps = 0; steps < a_options.m_maxSteps; steps++) {
+    const SurfaceHitT<T> change = this->firstRegionChange(a_ray, t, a_tMax, a_options);
+
+    if (!change.m_hit.hit()) {
+      return change;
+    }
+
+    const bool wasIn = a_phases.phaseOf(change.m_surface.m_minusRegion) == a_phase;
+    const bool isIn  = a_phases.phaseOf(change.m_surface.m_plusRegion) == a_phase;
+
+    if (wasIn != isIn) {
+      return change;
+    }
+
+    t = change.m_hit.m_t;
+  }
+
+  return SurfaceHitT<T>();
 }
 
 template <class T, class... UserPrimitives>
