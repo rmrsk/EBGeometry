@@ -1547,6 +1547,27 @@ private:
     uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
 
   /**
+   * @brief The body of traceRay() (the whole object, program 0, inlined into it) and of traceProgram() (any program,
+   * out of line).
+   * @details The whole object's trace compiles as it did before region programs existed: the program is the constant
+   * 0, and the naming of a marched crossing for another program is compiled out (if constexpr). Reached from
+   * traceRay() through an out-of-line traceProgram(), or with that naming merely reachable, a plain float tape's
+   * firstHit() kernel went from 40 to 255 registers and ran 12% slower on a device (sm_86).
+   * @tparam Whole Whether the program is the whole object's.
+   * @param[in] a_program The program (0 when Whole).
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  template <bool Whole>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  traceBody(
+    uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
+
+  /**
    * @brief Where a ray is inside the object over an interval, from the ray program.
    * @param[in]  a_ray       The ray, with a unit direction.
    * @param[in]  a_tMin      Start of the interval.

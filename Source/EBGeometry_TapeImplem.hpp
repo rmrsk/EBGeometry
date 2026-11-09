@@ -2570,7 +2570,7 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
                                      const T              a_tMax,
                                      const RayOptions<T>& a_options) const noexcept
 {
-  return this->traceProgram(0U, a_ray, a_tMin, a_tMax, a_options);
+  return this->template traceBody<true>(0U, a_ray, a_tMin, a_tMax, a_options);
 }
 
 template <class T, class... UserPrimitives>
@@ -2583,12 +2583,28 @@ Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
                                          const T              a_tMax,
                                          const RayOptions<T>& a_options) const noexcept
 {
+  return this->template traceBody<false>(a_program, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+template <bool Whole>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::traceBody(const uint32_t       a_program,
+                                      const RayT<T>&       a_ray,
+                                      const T              a_tMin,
+                                      const T              a_tMax,
+                                      const RayOptions<T>& a_options) const noexcept
+{
+  // The whole object's program is the constant 0.
+  const uint32_t program = Whole ? 0U : a_program;
+
   const void*        base     = this->base();
   const PoolLocation location = this->location();
 
-  const auto trace = [this, a_program, &a_ray, &a_options, base, &location](
+  const auto trace = [this, program, &a_ray, &a_options, base, &location](
                        const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
-    this->template rayEvaluate<MaxCallDepth>(a_program, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
+    this->template rayEvaluate<MaxCallDepth>(program, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
   };
 
   HitT<T> hit;
@@ -2597,17 +2613,17 @@ Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
     // A crossing on a level set is marked, and resolved once the trace is done (see resolveLevelHit()).
     uint32_t levelClause = 0U;
 
-    const auto resolve = [this, a_program, &a_ray, &a_options, base, &location, &levelClause](
-                           const T a_t, const uint32_t a_leaf) noexcept {
-      const HitT<T> leafHit =
-        this->template rayLeafHit<MaxCallDepth>(a_program, a_ray, a_t, a_leaf, a_options, base, location);
+    const auto resolve =
+      [this, program, &a_ray, &a_options, base, &location, &levelClause](const T a_t, const uint32_t a_leaf) noexcept {
+        const HitT<T> leafHit =
+          this->template rayLeafHit<MaxCallDepth>(program, a_ray, a_t, a_leaf, a_options, base, location);
 
-      if (leafHit.m_primitive == LevelLeaf) {
-        levelClause = a_leaf;
-      }
+        if (leafHit.m_primitive == LevelLeaf) {
+          levelClause = a_leaf;
+        }
 
-      return leafHit;
-    };
+        return leafHit;
+      };
 
     hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
 
@@ -2624,9 +2640,9 @@ Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
     }
   }
   else {
-    const auto resolve = [this, a_program, &a_ray, &a_options, base, &location](const T        a_t,
-                                                                                const uint32_t a_leaf) noexcept {
-      return this->template rayLeafHit<MaxCallDepth>(a_program, a_ray, a_t, a_leaf, a_options, base, location);
+    const auto resolve = [this, program, &a_ray, &a_options, base, &location](const T        a_t,
+                                                                              const uint32_t a_leaf) noexcept {
+      return this->template rayLeafHit<MaxCallDepth>(program, a_ray, a_t, a_leaf, a_options, base, location);
     };
 
     hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
@@ -2634,11 +2650,14 @@ Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
 
   // A crossing found by marching a subtree is named by the leaf deciding the program's value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
-    hit.m_primitive =
-      (a_program == 0U)
-        ? this->closestLeaf(hit.m_point).m_leaf
-        : this->leafOf(this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(a_program, hit.m_point, base, location))
-            .m_leaf;
+    if constexpr (Whole) {
+      hit.m_primitive = this->closestLeaf(hit.m_point).m_leaf;
+    }
+    else {
+      hit.m_primitive =
+        this->leafOf(this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, hit.m_point, base, location))
+          .m_leaf;
+    }
   }
 
   return hit;
