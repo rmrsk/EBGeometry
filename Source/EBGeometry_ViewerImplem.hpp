@@ -789,8 +789,13 @@ run(const S&           a_shape,
         const T                         size = (box.getHighCorner() - box.getLowCorner()).length();
         const T step = (size > T(0) && size < Math::Limits<T>::max()) ? T(1e-3) * size : T(1e-3);
 
+        // The key as the coloring gives it, not as a highlighted surface group's.
+        Settings<T> keyed = settings;
+
+        keyed.m_regions.m_highlightGroup = RegionSettings::None;
+
         const Vec3T<T> n   = pick.m_normal / Math::max(pick.m_normal.length(), Math::Limits<T>::min());
-        const HitT<T>  hit = RenderDetail::shownAs(shape, settings)
+        const HitT<T>  hit = RenderDetail::shownAs(shape, keyed)
                               .firstHit(RayT<T>{pick.m_point + step * n, -n}, T(0), T(2) * step, RayOptions<T>());
 
         picked = hit.hit();
@@ -799,8 +804,25 @@ run(const S&           a_shape,
           pick.m_primitive = hit.m_primitive;
         }
 
-        settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
+        if (settings.m_regions.m_highlightGroup == RegionSettings::None) {
+          settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
+        }
       }
+    }
+  };
+
+  // Highlight a surface group's surfaces (RegionSettings::Highlighted), or none (None): the picked surface's highlight
+  // comes back.
+  const auto highlightGroup = [&](const uint32_t a_group) {
+    if constexpr (hasRegionVisibility<S>) {
+      settings.m_regions.m_highlightGroup = a_group;
+
+      settings.m_highlightPrimitive = (a_group != RegionSettings::None) ? RegionSettings::Highlighted
+                                      : picked                          ? pick.m_primitive
+                                                                        : Settings<T>::NoPrimitive;
+    }
+    else {
+      (void)a_group;
     }
   };
 
@@ -869,6 +891,13 @@ run(const S&           a_shape,
 
         if (currentGroup > a_group || currentGroup >= scheme.getNumSurfaceGroups()) {
           currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
+        }
+
+        // The highlighted surface group moves down with the others, or goes with the one deleted.
+        const uint32_t highlighted = settings.m_regions.m_highlightGroup;
+
+        if (highlighted != RegionSettings::None && highlighted >= a_group) {
+          highlightGroup((highlighted == a_group) ? RegionSettings::None : highlighted - 1U);
         }
 
         rekeyPick();
@@ -1488,7 +1517,7 @@ run(const S&           a_shape,
 
         line(std::string(g == currentGroup ? "  > " : "    "));
 
-        panelLines.back() += names.surfaceGroup(g);
+        panelLines.back() += names.surfaceGroup(g) + ((regions.m_highlightGroup == g) ? " (highlighted)" : "");
         panelActions.back().push_back(PanelSpan{0, panelLines.back().size(), PanelAction::CurrentGroup, g});
 
         if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::SurfaceGroup) {
@@ -1853,7 +1882,11 @@ run(const S&           a_shape,
                   break;
                 }
                 case PanelAction::CurrentGroup: {
+                  // A click makes a surface group current and highlights its surfaces; again, it stops.
                   currentGroup = clicked.m_value;
+
+                  highlightGroup((regions.m_highlightGroup == clicked.m_value) ? RegionSettings::None
+                                                                               : clicked.m_value);
 
                   break;
                 }
@@ -1946,6 +1979,13 @@ run(const S&           a_shape,
                 changed  = true;
 
                 break;
+              }
+            }
+
+            // A click on the scene picks a surface: no surface group is highlighted then (a measuring click keeps it).
+            if constexpr (hasRegionVisibility<S>) {
+              if ((SDL_GetModState() & KMOD_SHIFT) == 0) {
+                highlightGroup(RegionSettings::None);
               }
             }
 
@@ -2114,6 +2154,10 @@ run(const S&           a_shape,
 
             SDL_GetWindowSize(window, &windowWidth, &windowHeight);
             SDL_GetMouseState(&mouseX, &mouseY);
+
+            if constexpr (hasRegionVisibility<S>) {
+              highlightGroup(RegionSettings::None);
+            }
 
             Settings<T> frame = stageSettings(2);
 
@@ -2661,6 +2705,8 @@ run(const S&           a_shape,
           if constexpr (hasRegionVisibility<S>) {
             settings.m_regions.m_hidden = a_settings.m_regions.m_hidden;
             settings.m_regions.m_only   = a_settings.m_regions.m_only;
+
+            settings.m_regions.m_highlightGroup = RegionSettings::None;
 
             for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
               settings.m_regions.m_through[i] = a_settings.m_regions.m_through[i];

@@ -1245,4 +1245,14 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
   settings.m_regions.showOnly(2);
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 0U);
+
+  // The highlighted surface group's surfaces are keyed Highlighted whatever the coloring; others keep their keys.
+  settings.m_regions.m_highlightGroup = 0U;
+  settings.m_regions.m_coloring       = RegionColoring::Region;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+
+  settings.m_regions.m_hidden = 0U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 1U);
 }

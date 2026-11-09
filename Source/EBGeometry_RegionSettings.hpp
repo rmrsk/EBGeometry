@@ -55,6 +55,12 @@ struct RegionSettings
   static constexpr uint32_t MaxSeenThrough = 8;
 
   /**
+   * @brief The key a view of regions gives the surfaces of the highlighted surface group (m_highlightGroup), whatever
+   * the coloring, for a renderer to highlight (Render::Settings::m_highlightPrimitive).
+   */
+  static constexpr uint32_t Highlighted = 0xFFFFFFFDU;
+
+  /**
    * @brief The hidden regions, a bit each (bit k for region k); regions from 64 on are always shown.
    */
   uint64_t m_hidden = 0U;
@@ -78,6 +84,11 @@ struct RegionSettings
    * @brief A solver's groups of surfaces (RegionColoring::SurfaceGroup colors by them).
    */
   Scheme m_scheme;
+
+  /**
+   * @brief The surface group of the scheme whose surfaces are highlighted (keyed Highlighted), or None.
+   */
+  uint32_t m_highlightGroup = None;
 
   /**
    * @brief The key of the interface between two regions, the same whichever side it is seen from.

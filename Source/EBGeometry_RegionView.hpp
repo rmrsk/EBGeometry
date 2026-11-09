@@ -191,6 +191,12 @@ public:
         hit.m_entering  = entering;
         hit.m_primitive = key;
 
+        // The surfaces of the highlighted surface group, whatever the coloring.
+        if (m_settings.m_highlightGroup != None &&
+            m_settings.m_scheme.surfaceGroupOf(change.m_surface) == m_settings.m_highlightGroup) {
+          hit.m_primitive = RegionSettings::Highlighted;
+        }
+
         return hit;
       }
 
