@@ -23,9 +23,9 @@ with a cylinder bored through its chest, standing in a ring of pebbles. The sour
 Labels
 ------
 
-``Label(object, "name")`` names a part; every leaf below it gets the label (see
+``SurfaceLabel(object, "name")`` names a part; every leaf below it gets the label (see
 :ref:`Chap:ClosestPrimitive`). Two queries name the leaf a part of the answer comes from, and the tape's
-``getLabel()`` gives its label:
+``getSurfaceLabel()`` gives its label:
 
 * ``closestLeaf(p)``, the leaf the value at ``p`` comes from;
 * ``tape.firstSurface(ray, tMin, tMax)``, the surface the ray crossed, with the point and the normal, its label
@@ -37,29 +37,29 @@ here; in an application, materials or boundary conditions) is filled by name and
 
 .. code-block:: c++
 
-   const Expr<T> object = Union(Difference(Label(armadillo, "skin"), Label(bore, "bore")), Label(gravel, "gravel"));
+   const Expr<T> object = Union(Difference(SurfaceLabel(armadillo, "skin"), SurfaceLabel(bore, "bore")), SurfaceLabel(gravel, "gravel"));
 
    const Tape<T, SphereCloudBVH<T>> tape(pool, object);   // a cloud is listed: it is not built into the tape
    const ExprIndex<T>               index(object);
 
-   std::vector<std::string> materials(tape.getNumLabels());
+   std::vector<std::string> materials(tape.getNumSurfaceLabels());
 
    for (const auto& [name, material] : {std::pair<const char*, const char*>{"skin", "skin (the armadillo)"},
                                         {"bore", "machined (the cylinder's bore)"}}) {
-     const uint32_t label = index.findLabel(name);   // LeafRef<T>::None for a name the expression lacks
+     const SurfaceLabelId label = index.findSurfaceLabel(name);   // none for a name the expression lacks
 
-     if (label < materials.size()) {
-       materials[label] = material;
+     if (label.value() < materials.size()) {
+       materials[label.value()] = material;
      }
    }
 
    const SurfaceHitT<T> hit = tape.firstSurface(ray, T(0), T(6));
 
    if (hit.m_hit.hit()) {
-     std::cout << materials[hit.m_surface.m_label] << ", part " << hit.m_surface.m_part << '\n';
+     std::cout << materials[hit.m_surface.m_surfaceLabel.value()] << ", part " << hit.m_surface.m_part << '\n';
    }
 
-An unlabeled leaf has no label (``LeafRef::None``), so check the number before indexing. A mesh is one
+An unlabeled leaf has no label (``SurfaceLabelId::none()``), so check the number before indexing. A mesh is one
 leaf; its faces are told apart by ``getClosestFace()`` on the mesh itself (see
 :ref:`Chap:ExampleMeshSDF`).
 
@@ -76,7 +76,7 @@ in cloud order, so data of your own per pebble needs no label:
    const SurfaceRef<T> s = tape.closestSurface(p);
 
    const uint32_t pebble = s.m_surface - tape.getFirstSurface(s.m_leaf);   // the pebble's cloud index
-   materials[s.m_label];                                                    // and the gravel's label
+   materials[s.m_surfaceLabel];                                                    // and the gravel's label
 
 The program prints the value and material at three points, the pebble found just above three pebbles, and
 what three rays hit: the chest from in front, nothing straight through the bore, and the bore's wall

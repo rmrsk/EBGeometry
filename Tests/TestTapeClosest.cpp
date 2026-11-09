@@ -4,7 +4,7 @@
 // Test suite for Tape::closestLeaf() (EBGeometry_Tape.hpp, EBGeometry_LeafRef.hpp): the deciding
 // leaf of unions, intersections and differences, through smooth blends, blurs, maps and repetitions, the
 // numbering of repeated leaves, meshes and fused parts as leaves, and device evaluation. Also the labels
-// of the leaves (Label(), Tape::getLabel()) and the numbering of an expression's nodes (ExprIndex).
+// of the leaves (SurfaceLabel(), Tape::getSurfaceLabel()) and the numbering of an expression's nodes (ExprIndex).
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
@@ -73,7 +73,7 @@ struct LabelQuery
   uint32_t
   operator()(const Vec3T<T>& a_point) const noexcept
   {
-    return m_tape.getLabel(m_tape.closestLeaf(a_point));
+    return m_tape.getSurfaceLabel(m_tape.closestLeaf(a_point)).value();
   }
 };
 
@@ -89,7 +89,8 @@ labeledRow()
     s.emplace_back(Vec3T<T>(T(3 * i), T(0), T(0)), T(1));
   }
 
-  return Union(std::vector<Expr<T>>{Label(s[0], "left"), Label(Union(s[1], s[2]), "right"), s[3], Label(s[4], "left")});
+  return Union(std::vector<Expr<T>>{
+    SurfaceLabel(s[0], "left"), SurfaceLabel(Union(s[1], s[2]), "right"), s[3], SurfaceLabel(s[4], "left")});
 }
 
 } // namespace
@@ -404,7 +405,7 @@ TEMPLATE_TEST_CASE("ExprIndex: numbers nodes and leaves depth first, each node's
 
   // Difference(a, b) is Intersection(a, Complement(b)).
   const ExprIndex<T> index(
-    Difference(Intersection(Label(box, "wall"), sphere), Label(Union(holes, Accelerate::BVH), "bores")));
+    Difference(Intersection(SurfaceLabel(box, "wall"), sphere), SurfaceLabel(Union(holes, Accelerate::BVH), "bores")));
 
   // Node: parent, first leaf, leaves, own label, operation.
   const std::vector<std::tuple<N, N, N, N, std::string>> expected{{None, 0, 5, None, "Intersection"},
@@ -428,7 +429,7 @@ TEMPLATE_TEST_CASE("ExprIndex: numbers nodes and leaves depth first, each node's
     CHECK(node.m_parent == std::get<0>(expected[n]));
     CHECK(node.m_firstLeaf == std::get<1>(expected[n]));
     CHECK(node.m_numLeaves == std::get<2>(expected[n]));
-    CHECK(node.m_label == std::get<3>(expected[n]));
+    CHECK(node.m_surfaceLabel.value() == std::get<3>(expected[n]));
     CHECK(node.m_operation == std::get<4>(expected[n]));
   }
 
@@ -439,17 +440,17 @@ TEMPLATE_TEST_CASE("ExprIndex: numbers nodes and leaves depth first, each node's
   CHECK(index.pathOf(0) == std::vector<N>{0, 1, 2});
   CHECK(index.pathOf(3) == std::vector<N>{0, 4, 5, 8, 9});
 
-  REQUIRE(index.getNumLabels() == 2U);
+  REQUIRE(index.getNumSurfaceLabels() == 2U);
 
-  CHECK(index.getLabelName(0) == "wall");
-  CHECK(index.getLabelName(1) == "bores");
-  CHECK(index.findLabel("bores") == 1U);
-  CHECK(index.findLabel("inlet") == None);
-  CHECK(index.getLabel(0) == 0U);
-  CHECK(index.getLabel(1) == None);
+  CHECK(index.getSurfaceLabelName(SurfaceLabelId(0)) == "wall");
+  CHECK(index.getSurfaceLabelName(SurfaceLabelId(1)) == "bores");
+  CHECK(index.findSurfaceLabel("bores").value() == 1U);
+  CHECK(index.findSurfaceLabel("inlet").isNone());
+  CHECK(index.getSurfaceLabel(0).value() == 0U);
+  CHECK(index.getSurfaceLabel(1).isNone());
 
   for (N leaf = 2; leaf < 5; leaf++) {
-    CHECK(index.getLabel(leaf) == 1U);
+    CHECK(index.getSurfaceLabel(leaf).value() == 1U);
   }
 }
 
@@ -460,40 +461,38 @@ TEMPLATE_TEST_CASE("ExprIndex: the innermost label wins, a relabel replaces, and
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  constexpr uint32_t None = ExprIndex<T>::None;
-
   const SphereSDF<T> a(Vec3::zeros(), T(1));
   const SphereSDF<T> b(Vec3::ones(), T(1));
 
-  const ExprIndex<T> nested(Label(Union(Label(a, "inner"), b), "outer"));
+  const ExprIndex<T> nested(SurfaceLabel(Union(SurfaceLabel(a, "inner"), b), "outer"));
 
   // Names are numbered as they first appear, depth first: the outer union comes first.
-  CHECK(nested.getLabelName(0) == "outer");
-  CHECK(nested.getLabel(0) == nested.findLabel("inner"));
-  CHECK(nested.getLabel(1) == nested.findLabel("outer"));
+  CHECK(nested.getSurfaceLabelName(SurfaceLabelId(0)) == "outer");
+  CHECK(nested.getSurfaceLabel(0) == nested.findSurfaceLabel("inner"));
+  CHECK(nested.getSurfaceLabel(1) == nested.findSurfaceLabel("outer"));
 
-  const ExprIndex<T> relabeled(Label(Label(a, "x"), "y"));
+  const ExprIndex<T> relabeled(SurfaceLabel(SurfaceLabel(a, "x"), "y"));
 
-  CHECK(relabeled.getNumLabels() == 1U);
-  CHECK(relabeled.findLabel("x") == None);
-  CHECK(relabeled.getLabel(0) == relabeled.findLabel("y"));
+  CHECK(relabeled.getNumSurfaceLabels() == 1U);
+  CHECK(relabeled.findSurfaceLabel("x").isNone());
+  CHECK(relabeled.getSurfaceLabel(0) == relabeled.findSurfaceLabel("y"));
 
-  // A subexpression used twice is numbered at each use; its label is shared, and the copy Label() makes leaves
+  // A subexpression used twice is numbered at each use; its label is shared, and the copy SurfaceLabel() makes leaves
   // the unlabeled use alone.
   const Expr<T>      pair = Union(a, b);
   const ExprIndex<T> shared(
-    Union(std::vector<Expr<T>>{Label(pair, "p"), Translate(pair, Vec3::ones()), Label(b, "p")}));
+    Union(std::vector<Expr<T>>{SurfaceLabel(pair, "p"), Translate(pair, Vec3::ones()), SurfaceLabel(b, "p")}));
 
   CHECK(shared.getNumLeaves() == 5U);
-  CHECK(shared.getNumLabels() == 1U);
-  CHECK(shared.getLabel(0) == 0U);
-  CHECK(shared.getLabel(1) == 0U);
-  CHECK(shared.getLabel(2) == None);
-  CHECK(shared.getLabel(3) == None);
-  CHECK(shared.getLabel(4) == 0U);
+  CHECK(shared.getNumSurfaceLabels() == 1U);
+  CHECK(shared.getSurfaceLabel(0).value() == 0U);
+  CHECK(shared.getSurfaceLabel(1).value() == 0U);
+  CHECK(shared.getSurfaceLabel(2).isNone());
+  CHECK(shared.getSurfaceLabel(3).isNone());
+  CHECK(shared.getSurfaceLabel(4).value() == 0U);
 }
 
-TEMPLATE_TEST_CASE("Label: a labeled map is not merged into the maps around it, and the value does not change",
+TEMPLATE_TEST_CASE("SurfaceLabel: a labeled map is not merged into the maps around it, and the value does not change",
                    "[ExprIndex]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -505,7 +504,7 @@ TEMPLATE_TEST_CASE("Label: a labeled map is not merged into the maps around it, 
   const Vec3         w(T(0), T(2), T(0));
 
   const Expr<T> plain   = Translate(Translate(sphere, v), w);
-  const Expr<T> labeled = Translate(Label(Translate(sphere, v), "moved"), w);
+  const Expr<T> labeled = Translate(SurfaceLabel(Translate(sphere, v), "moved"), w);
 
   CHECK(ExprIndex<T>(plain).getNumNodes() == 2U);
   CHECK(ExprIndex<T>(labeled).getNumNodes() == 3U);
@@ -539,26 +538,24 @@ TEMPLATE_TEST_CASE("Label: a labeled map is not merged into the maps around it, 
   }
 }
 
-TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestLeaf and a ray hit report",
+TEMPLATE_TEST_CASE("Tape: getSurfaceLabel names the label of the leaf closestLeaf and a ray hit report",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
 
-  constexpr uint32_t None = LeafRef<T>::None;
-
   Pool pool(hostMemoryResource());
 
   const Tape<T>      tape(pool, labeledRow<T>());
   const ExprIndex<T> index(labeledRow<T>());
 
-  const uint32_t left  = index.findLabel("left");
-  const uint32_t right = index.findLabel("right");
+  const SurfaceLabelId left  = index.findSurfaceLabel("left");
+  const SurfaceLabelId right = index.findSurfaceLabel("right");
 
-  const std::vector<uint32_t> expected{left, right, right, None, left};
+  const std::vector<SurfaceLabelId> expected{left, right, right, SurfaceLabelId::none(), left};
 
-  REQUIRE(tape.getNumLabels() == 2U);
+  REQUIRE(tape.getNumSurfaceLabels() == 2U);
   REQUIRE(tape.getNumPrimitives() == 5U);
 
   for (uint32_t i = 0; i < 5; i++) {
@@ -572,26 +569,26 @@ TEMPLATE_TEST_CASE("Tape: getLabel names the label of the leaf closestLeaf and a
     REQUIRE(hit.hit());
     REQUIRE(hit.m_primitive == i);
 
-    CHECK(tape.getLabel(ref) == expected[i]);
-    CHECK(tape.getLabel(hit.m_primitive) == expected[i]);
-    CHECK(index.getLabel(i) == expected[i]);
+    CHECK(tape.getSurfaceLabel(ref) == expected[i]);
+    CHECK(tape.getSurfaceLabel(hit.m_primitive) == expected[i]);
+    CHECK(index.getSurfaceLabel(i) == expected[i]);
   }
 
-  CHECK(tape.getLabel(5U) == None);
+  CHECK(tape.getSurfaceLabel(5U).isNone());
 
   const Tape<T> copy = tape.deepCopy(pool);
 
-  CHECK(copy.getNumLabels() == 2U);
+  CHECK(copy.getNumSurfaceLabels() == 2U);
 
   for (uint32_t i = 0; i < 5; i++) {
-    CHECK(copy.getLabel(i) == expected[i]);
+    CHECK(copy.getSurfaceLabel(i) == expected[i]);
   }
 
   // A tape without labels stores none.
   const Tape<T> plain(pool, Union(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::ones(), T(1))));
 
-  CHECK(plain.getNumLabels() == 0U);
-  CHECK(plain.getLabel(0U) == None);
+  CHECK(plain.getNumSurfaceLabels() == 0U);
+  CHECK(plain.getSurfaceLabel(0U).isNone());
 }
 
 TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH unions, differences, maps and blurs",
@@ -604,7 +601,7 @@ TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH un
   // Every sphere is named by its own center's x, so a leaf's label name says which sphere it is, whatever
   // number the tape gave the leaf. Each sphere sits in its own 4-wide slot along x.
   const auto named = [](const int a_slot, const Vec3& a_center, const T a_radius) {
-    return Label(SphereSDF<T>(a_center, a_radius), "s" + std::to_string(a_slot));
+    return SurfaceLabel(SphereSDF<T>(a_center, a_radius), "s" + std::to_string(a_slot));
   };
 
   std::vector<Expr<T>> bvhOperands;
@@ -627,7 +624,7 @@ TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH un
   const Tape<T> tape(pool, expr);
 
   REQUIRE(tape.getNumPrimitives() == index.getNumLeaves());
-  REQUIRE(tape.getNumLabels() == 6U);
+  REQUIRE(tape.getNumSurfaceLabels() == 6U);
 
   // A point just outside each sphere (inside the cavity for the carving one), and the sphere it must name.
   const std::vector<std::pair<Vec3, int>> probes{{Vec3(T(0), T(1.2), T(0)), 0},
@@ -641,7 +638,7 @@ TEMPLATE_TEST_CASE("Tape: labels follow the tape's leaf numbering through BVH un
     const LeafRef<T> ref = tape.closestLeaf(point);
 
     REQUIRE(ref.m_leaf != LeafRef<T>::None);
-    CHECK(index.getLabelName(tape.getLabel(ref)) == "s" + std::to_string(slot));
+    CHECK(index.getSurfaceLabelName(tape.getSurfaceLabel(ref)) == "s" + std::to_string(slot));
   }
 }
 
@@ -651,8 +648,8 @@ TEMPLATE_TEST_CASE("Label and ExprIndex: reject an empty name and numbers out of
 {
   using T = TestType;
 
-  REQUIRE(
-    abortsWith([] { (void)Label(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), ""); }, "Label: the name must not be empty"));
+  REQUIRE(abortsWith([] { (void)SurfaceLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), ""); },
+                     "SurfaceLabel: the name must not be empty"));
   REQUIRE(abortsWith(
     [] {
       const ExprIndex<T> index(toExpr(SphereSDF<T>(Vec3T<T>::zeros(), T(1))));
@@ -669,7 +666,7 @@ TEMPLATE_TEST_CASE("Label and ExprIndex: reject an empty name and numbers out of
     "ExprIndex: leaf 1 of 1"));
 }
 
-TEMPLATE_TEST_CASE("Tape: getLabel on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("Tape: getSurfaceLabel on a device matches the host", "[Tape][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;

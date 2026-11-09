@@ -882,9 +882,9 @@ public:
     uint32_t m_rayPrograms = 0;
 
     /**
-     * @brief Each leaf's label (see getLabel()); empty when the expression has no Label.
+     * @brief Each leaf's label (see getSurfaceLabel()); empty when the expression has no Label.
      */
-    PODVector<uint32_t> m_labels;
+    PODVector<uint32_t> m_surfaceLabels;
 
     /**
      * @brief Each leaf's first surface, and the number of surfaces last (see getFirstSurface()); empty when no
@@ -893,10 +893,10 @@ public:
     PODVector<uint32_t> m_surfaces;
 
     /**
-     * @brief The part labels (see Label(shape, FaceGroups)): first, per leaf, where its parts' labels begin in
+     * @brief The part labels (see SurfaceLabel(shape, FaceGroups)): first, per leaf, where its parts' labels begin in
      * this array (None for a leaf whose parts are not named); then those labels. Empty when no leaf's parts are.
      */
-    PODVector<uint32_t> m_partLabels;
+    PODVector<uint32_t> m_partSurfaceLabels;
 
     /**
      * @brief How many distinct labels the expression has.
@@ -1150,33 +1150,33 @@ public:
   getLargestPlainUnion() const noexcept;
 
   /**
-   * @brief A leaf's label: that of the nearest node above it, or of the leaf itself, that Label() named.
+   * @brief A leaf's label: that of the nearest node above it, or of the leaf itself, that SurfaceLabel() named.
    * @details Labels are numbered from 0 in the order their names first appear in the expression, depth first,
    * as ExprIndex numbers them, which also holds the names. A device reads the label from the tape's pool, so
    * per-label data (a boundary condition, a restitution coefficient) is an array indexed by it.
    * @param[in] a_leaf Leaf number: LeafRef::m_leaf from closestLeaf(), or HitT::m_primitive of a hit.
-   * @return The label, or LeafRef<T>::None if the leaf has none (or is not a leaf of the tape).
+   * @return The label, or SurfaceLabelId::none() if the leaf has none (or is not a leaf of the tape).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline uint32_t
-  getLabel(uint32_t a_leaf) const noexcept;
+  inline SurfaceLabelId
+  getSurfaceLabel(uint32_t a_leaf) const noexcept;
 
   /**
-   * @brief The label of the leaf a reference names (see getLabel(uint32_t)).
+   * @brief The label of the leaf a reference names (see getSurfaceLabel(uint32_t)).
    * @param[in] a_ref Reference from closestLeaf().
-   * @return The label, or LeafRef<T>::None.
+   * @return The label, or SurfaceLabelId::none().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline uint32_t
-  getLabel(const LeafRef<T>& a_ref) const noexcept;
+  inline SurfaceLabelId
+  getSurfaceLabel(const LeafRef<T>& a_ref) const noexcept;
 
   /**
-   * @brief How many distinct labels the expression has (ExprIndex::getNumLabels()).
+   * @brief How many distinct labels the expression has (ExprIndex::getNumSurfaceLabels()).
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  getNumLabels() const noexcept;
+  getNumSurfaceLabels() const noexcept;
 
   /**
    * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when

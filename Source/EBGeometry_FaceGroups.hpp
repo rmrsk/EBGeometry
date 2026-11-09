@@ -22,7 +22,7 @@ namespace EBGeometry {
  * @brief Named groups of a mesh's faces: an OBJ file's `g` and `o` groups, or the named solids of an ASCII STL
  * file, as the readers keep them (PolygonSoup::getFaceGroups()).
  * @details Face i is in group m_group[i], whose name is m_names[m_group[i]], or in none (None). A face belongs to
- * one group at most: in an OBJ file the last `g` or `o` line before it. Label(shape, groups) turns the groups into
+ * one group at most: in an OBJ file the last `g` or `o` line before it. SurfaceLabel(shape, groups) turns the groups into
  * labels of the mesh's parts, its faces (see hasParts).
  */
 struct FaceGroups

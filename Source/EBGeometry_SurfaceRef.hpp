@@ -19,6 +19,7 @@
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_LabelId.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -52,10 +53,10 @@ struct SurfaceRef
   uint32_t m_leaf = None;
 
   /**
-   * @brief Set by a tape: the surface's label, or None. A part labeled through face groups (Label(shape,
-   * FaceGroups)) has its group's label; any other the leaf's (Tape::getLabel()).
+   * @brief Set by a tape: the surface's label, or none. A part labeled through face groups (SurfaceLabel(shape,
+   * FaceGroups)) has its group's label; any other the leaf's (Tape::getSurfaceLabel()).
    */
-  uint32_t m_label = None;
+  SurfaceLabelId m_surfaceLabel;
 
   /**
    * @brief The part of the deepest shape reached, read from its own formula at the local point (see hasParts): a

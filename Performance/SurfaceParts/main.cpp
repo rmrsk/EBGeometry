@@ -103,7 +103,7 @@ struct PointQuery
     if constexpr (Drill) {
       const EBGeometry::SurfaceRef<T> s = m_tape.closestSurface(a_point);
 
-      return PartHit<T>{s.m_surface + 7U * s.m_part + 131U * s.m_label, m_tape.signedDistance(a_point)};
+      return PartHit<T>{s.m_surface + 7U * s.m_part + 131U * s.m_surfaceLabel.value(), m_tape.signedDistance(a_point)};
     }
     else {
       return PartHit<T>{m_tape.closestLeaf(a_point).m_leaf, m_tape.signedDistance(a_point)};
@@ -128,7 +128,8 @@ struct RayQuery
     if constexpr (Drill) {
       const EBGeometry::SurfaceHitT<T> h = m_tape.firstSurface(ray, T(0), T(1e3));
 
-      return PartHit<T>{h.m_hit.hit() ? h.m_surface.m_part + 131U * h.m_surface.m_label : 0U, h.m_hit.m_t};
+      return PartHit<T>{h.m_hit.hit() ? h.m_surface.m_part + 131U * h.m_surface.m_surfaceLabel.value() : 0U,
+                        h.m_hit.m_t};
     }
     else {
       const EBGeometry::HitT<T> h = m_tape.firstHit(ray, T(0), T(1e3));
@@ -306,7 +307,8 @@ addPrecision(Perf::Suite& a_suite)
     c.param("groups", MeshGroups);
 
     return std::make_pair(
-      EBGeometry::Tape<T, Mesh<T>>(a_pool, EBGeometry::Difference(EBGeometry::Label(shape, groups), drill)), box);
+      EBGeometry::Tape<T, Mesh<T>>(a_pool, EBGeometry::Difference(EBGeometry::SurfaceLabel(shape, groups), drill)),
+      box);
   };
 
   addOperation<T, Operation::ClosestSurface>(a_suite, "mesh-groups", MeshHostQueries, MeshPairQueries, "", "", mesh);

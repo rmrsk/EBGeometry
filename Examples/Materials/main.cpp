@@ -76,9 +76,9 @@ try {
   const Cloud gravel = Cloud::build(pool, pebbles, 8);
 
   // Label each part: every leaf below a Label gets its name. Labels change nothing in the values.
-  const Expr object =
-    EBGeometry::Union(EBGeometry::Difference(EBGeometry::Label(armadillo, "skin"), EBGeometry::Label(bore, "bore")),
-                      EBGeometry::Label(gravel, "gravel"));
+  const Expr object = EBGeometry::Union(
+    EBGeometry::Difference(EBGeometry::SurfaceLabel(armadillo, "skin"), EBGeometry::SurfaceLabel(bore, "bore")),
+    EBGeometry::SurfaceLabel(gravel, "gravel"));
 
   const Tape tape(pool, object);
 
@@ -86,18 +86,18 @@ try {
   //
   // The tape stores each leaf's label, as a number it can report on the host and on a GPU. ExprIndex, built
   // from the same expression on the host, numbers the labels the same way and holds their names, so a table
-  // of your own, indexed by the label, can be filled by name. findLabel() returns LeafRef::None for a
-  // name the expression does not have, and a query finds no label for an unlabeled leaf, so check the number
-  // before indexing.
+  // of your own, indexed by the label's value(), can be filled by name. findSurfaceLabel() returns no label
+  // (SurfaceLabelId::none()) for a name the expression does not have, and a query finds none for an unlabeled
+  // leaf, so check before indexing.
   const EBGeometry::ExprIndex<T> index(object);
 
-  std::vector<std::string> materials(tape.getNumLabels());
+  std::vector<std::string> materials(tape.getNumSurfaceLabels());
 
   const auto describe = [&index, &materials](const char* a_name, const char* a_material) {
-    const uint32_t label = index.findLabel(a_name);
+    const EBGeometry::SurfaceLabelId label = index.findSurfaceLabel(a_name);
 
-    if (label < materials.size()) {
-      materials[label] = a_material;
+    if (label.value() < materials.size()) {
+      materials[label.value()] = a_material;
     }
   };
 
@@ -105,16 +105,16 @@ try {
   describe("bore", "machined (the cylinder's bore)");
   describe("gravel", "stone (a pebble)");
 
-  const auto material = [&materials](const uint32_t a_label) {
-    return a_label < materials.size() ? materials[a_label] : std::string("none");
+  const auto material = [&materials](const EBGeometry::SurfaceLabelId a_label) {
+    return a_label.value() < materials.size() ? materials[a_label.value()] : std::string("none");
   };
 
-  // closestLeaf(p) names the leaf the value at p comes from, and getLabel() its label.
+  // closestLeaf(p) names the leaf the value at p comes from, and getSurfaceLabel() its label.
   std::cout << std::fixed << std::setprecision(3) << "Near a point:\n";
 
   for (const Vec3& p : {Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(0.25), T(1.22), T(-0.2)), Vec3(T(0), T(0.4), T(0))}) {
     std::cout << "  " << p << "   value " << std::setw(7) << tape.signedDistance(p) << "   "
-              << material(tape.getLabel(tape.closestLeaf(p))) << '\n';
+              << material(tape.getSurfaceLabel(tape.closestLeaf(p))) << '\n';
   }
 
   // ── Which pebble: the surface ──────────────────────────────────────────────────────────────────────
@@ -132,7 +132,7 @@ try {
 
     std::cout << "  above pebble " << std::setw(2) << k << ": surface " << std::setw(2) << s.m_surface << " of "
               << tape.getNumSurfaces() << ", pebble " << std::setw(2) << (s.m_surface - tape.getFirstSurface(s.m_leaf))
-              << ", " << material(s.m_label) << '\n';
+              << ", " << material(s.m_surfaceLabel) << '\n';
   }
 
   // firstSurface() along a ray reports the crossing, with the point and the normal, and the surface crossed as
@@ -148,7 +148,7 @@ try {
     std::cout << "  from " << ray.m_origin << " towards " << ray.m_direction << ": ";
 
     if (hit.m_hit.hit()) {
-      std::cout << "hit at " << hit.m_hit.m_point << ", " << material(hit.m_surface.m_label) << ", part "
+      std::cout << "hit at " << hit.m_hit.m_point << ", " << material(hit.m_surface.m_surfaceLabel) << ", part "
                 << hit.m_surface.m_part << '\n';
     }
     else {

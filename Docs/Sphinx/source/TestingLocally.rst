@@ -426,7 +426,7 @@ Test coverage
    * - ``TestSurfaceParts``
      - Each built-in shape's parts at points beside each face (a box's six, a cylinder's side and caps, a
        polygon prism's sides in turn around the axis, ...), a mesh's part as the face a point is beside for all
-       three mesh distance fields, OBJ groups and every STL solid kept as face groups, ``Label(mesh, groups)``
+       three mesh distance fields, OBJ groups and every STL solid kept as face groups, ``SurfaceLabel(mesh, groups)``
        numbered by ``ExprIndex`` and reported by a tape's ``closestSurface()`` and ``firstSurface()`` (a face
        in no group keeping the leaf's label; also after ``deepCopy()``), the free ``closestSurface()`` and
        ``firstSurface()`` on a box and a union of boxes, the rejected groups and numbers, and the device

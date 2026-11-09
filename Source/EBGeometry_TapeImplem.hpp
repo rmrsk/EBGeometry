@@ -141,7 +141,7 @@ struct Staging
   /**
    * @brief Each leaf's label; empty when the expression has none.
    */
-  std::vector<uint32_t> m_labels;
+  std::vector<uint32_t> m_surfaceLabels;
 
   /**
    * @brief How many distinct labels the expression has.
@@ -154,9 +154,9 @@ struct Staging
   std::vector<uint32_t> m_surfaces;
 
   /**
-   * @brief The part labels, laid out as Tape::Layout::m_partLabels; empty when no leaf's parts are named.
+   * @brief The part labels, laid out as Tape::Layout::m_partSurfaceLabels; empty when no leaf's parts are named.
    */
-  std::vector<uint32_t> m_partLabels;
+  std::vector<uint32_t> m_partSurfaceLabels;
 };
 
 /**
@@ -1453,7 +1453,7 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   // The labels and the surfaces, numbered as ExprIndex numbers them; a tape without labels stores none, one
   // without a container leaf no surfaces, and one with neither does not build the index (which allocates per
   // node).
-  const bool labeled    = ExprDetail::hasLabel(a_expr.node());
+  const bool labeled    = ExprDetail::hasSurfaceLabel(a_expr.node());
   const bool containers = ExprDetail::hasContainer(a_expr.node());
 
   if (labeled || containers) {
@@ -1462,11 +1462,11 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     EBGEOMETRY_EXPECT(index.getNumLeaves() == staging.m_numPrimitives);
 
     if (labeled) {
-      staging.m_numLabels = index.getNumLabels();
-      staging.m_labels.resize(index.getNumLeaves());
+      staging.m_numLabels = index.getNumSurfaceLabels();
+      staging.m_surfaceLabels.resize(index.getNumLeaves());
 
       for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-        staging.m_labels[leaf] = index.getLabel(leaf);
+        staging.m_surfaceLabels[leaf] = index.getSurfaceLabel(leaf).value();
       }
     }
 
@@ -1482,21 +1482,23 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     bool partsNamed = false;
 
     for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-      partsNamed = partsNamed || !index.getPartLabels(leaf).empty();
+      partsNamed = partsNamed || !index.getPartSurfaceLabels(leaf).empty();
     }
 
     if (partsNamed) {
-      std::vector<uint32_t>& table = staging.m_partLabels;
+      std::vector<uint32_t>& table = staging.m_partSurfaceLabels;
 
       table.assign(index.getNumLeaves(), SurfaceRef<T>::None);
 
       for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-        const std::vector<uint32_t>& parts = index.getPartLabels(leaf);
+        const std::vector<SurfaceLabelId>& parts = index.getPartSurfaceLabels(leaf);
 
         if (!parts.empty()) {
           table[leaf] = static_cast<uint32_t>(table.size());
 
-          table.insert(table.end(), parts.begin(), parts.end());
+          for (const SurfaceLabelId part : parts) {
+            table.push_back(part.value());
+          }
         }
       }
     }
@@ -1530,9 +1532,9 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_programs.reserveFrom(a_pool, static_cast<uint32_t>(programs.size()));
   layout.m_params.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_unions.size()));
-  layout.m_labels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_labels.size()));
+  layout.m_surfaceLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaceLabels.size()));
   layout.m_surfaces.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaces.size()));
-  layout.m_partLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_partLabels.size()));
+  layout.m_partSurfaceLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_partSurfaceLabels.size()));
 
   TapeDetail::reserveStore<0>(a_pool, layout.m_primitives, a_staging.m_primitives);
 
@@ -1544,9 +1546,11 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_programs.assign(base, programs.data(), static_cast<uint32_t>(programs.size()));
   layout.m_params.assign(base, a_staging.m_params.data(), static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.assign(base, a_staging.m_unions.data(), static_cast<uint32_t>(a_staging.m_unions.size()));
-  layout.m_labels.assign(base, a_staging.m_labels.data(), static_cast<uint32_t>(a_staging.m_labels.size()));
+  layout.m_surfaceLabels.assign(
+    base, a_staging.m_surfaceLabels.data(), static_cast<uint32_t>(a_staging.m_surfaceLabels.size()));
   layout.m_surfaces.assign(base, a_staging.m_surfaces.data(), static_cast<uint32_t>(a_staging.m_surfaces.size()));
-  layout.m_partLabels.assign(base, a_staging.m_partLabels.data(), static_cast<uint32_t>(a_staging.m_partLabels.size()));
+  layout.m_partSurfaceLabels.assign(
+    base, a_staging.m_partSurfaceLabels.data(), static_cast<uint32_t>(a_staging.m_partSurfaceLabels.size()));
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
@@ -3042,24 +3046,25 @@ Tape<T, UserPrimitives...>::getLargestPlainUnion() const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
-inline uint32_t
-Tape<T, UserPrimitives...>::getLabel(const uint32_t a_leaf) const noexcept
+inline SurfaceLabelId
+Tape<T, UserPrimitives...>::getSurfaceLabel(const uint32_t a_leaf) const noexcept
 {
-  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : LeafRef<T>::None;
+  return (a_leaf < m_layout.m_surfaceLabels.size()) ? SurfaceLabelId(m_layout.m_surfaceLabels.at(this->base(), a_leaf))
+                                                    : SurfaceLabelId::none();
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceLabelId
+Tape<T, UserPrimitives...>::getSurfaceLabel(const LeafRef<T>& a_ref) const noexcept
+{
+  return this->getSurfaceLabel(a_ref.m_leaf);
 }
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-Tape<T, UserPrimitives...>::getLabel(const LeafRef<T>& a_ref) const noexcept
-{
-  return this->getLabel(a_ref.m_leaf);
-}
-
-template <class T, class... UserPrimitives>
-EBGEOMETRY_HOST_DEVICE
-inline uint32_t
-Tape<T, UserPrimitives...>::getNumLabels() const noexcept
+Tape<T, UserPrimitives...>::getNumSurfaceLabels() const noexcept
 {
   return m_layout.m_numLabels;
 }
@@ -3077,10 +3082,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexce
     return surface;
   }
 
-  surface.m_leaf       = ref.m_leaf;
-  surface.m_label      = this->getLabel(ref.m_leaf);
-  surface.m_surface    = this->getFirstSurface(ref.m_leaf);
-  surface.m_localPoint = ref.m_localPoint;
+  surface.m_leaf         = ref.m_leaf;
+  surface.m_surfaceLabel = this->getSurfaceLabel(ref.m_leaf);
+  surface.m_surface      = this->getFirstSurface(ref.m_leaf);
+  surface.m_localPoint   = ref.m_localPoint;
 
   // A tape whose types include no container and no shape with parts compiles no drilling at all.
   if constexpr (TapeDetail::AnyDrill<T, Primitives>::value) {
@@ -3089,15 +3094,15 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexce
 
   // A part whose face group named it has that label, over the leaf's. The table starts with one entry per leaf:
   // where the leaf's labels begin, or None for a leaf whose parts are not labeled. Only a single shape's parts are
-  // (Label() rejects a collection), so the part indexes the leaf's own labels; a label there may itself be None,
+  // (SurfaceLabel() rejects a collection), so the part indexes the leaf's own labels; a label there may itself be None,
   // for a part in no group under an unlabeled leaf.
-  if (m_layout.m_partLabels.size() > 0) {
-    const uint32_t begin = m_layout.m_partLabels.at(this->base(), ref.m_leaf);
+  if (m_layout.m_partSurfaceLabels.size() > 0) {
+    const uint32_t begin = m_layout.m_partSurfaceLabels.at(this->base(), ref.m_leaf);
 
     if (begin != SurfaceRef<T>::None) {
-      EBGEOMETRY_EXPECT(begin + surface.m_part < m_layout.m_partLabels.size());
+      EBGEOMETRY_EXPECT(begin + surface.m_part < m_layout.m_partSurfaceLabels.size());
 
-      surface.m_label = m_layout.m_partLabels.at(this->base(), begin + surface.m_part);
+      surface.m_surfaceLabel = SurfaceLabelId(m_layout.m_partSurfaceLabels.at(this->base(), begin + surface.m_part));
     }
   }
 
@@ -3228,12 +3233,12 @@ Tape<T, UserPrimitives...>::rebasedView(const Pool& a_pool) const noexcept
     [[maybe_unused]] const UnionRoot unbounded = UnionRoot(parts.m_unbounded, location).rebasedView(a_pool);
   }
 
-  const uint64_t endByte =
-    Math::max(Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
-              Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
-                        Math::max(Math::max(Math::max(m_layout.m_labels.endByte(), m_layout.m_surfaces.endByte()),
-                                            m_layout.m_partLabels.endByte()),
-                                  TapeDetail::storeEndByte(m_layout.m_primitives))));
+  const uint64_t endByte = Math::max(
+    Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
+    Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
+              Math::max(Math::max(Math::max(m_layout.m_surfaceLabels.endByte(), m_layout.m_surfaces.endByte()),
+                                  m_layout.m_partSurfaceLabels.endByte()),
+                        TapeDetail::storeEndByte(m_layout.m_primitives))));
 
   Tape view = *this;
 
@@ -3260,9 +3265,9 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     const auto programs = m_layout.m_programs.bind(base);
     const auto params   = m_layout.m_params.bind(base);
     const auto unions   = m_layout.m_unions.bind(base);
-    const auto labels   = m_layout.m_labels.bind(base);
+    const auto labels   = m_layout.m_surfaceLabels.bind(base);
     const auto surfaces = m_layout.m_surfaces.bind(base);
-    const auto parts    = m_layout.m_partLabels.bind(base);
+    const auto parts    = m_layout.m_partSurfaceLabels.bind(base);
 
     // The arrays are copied as they are laid out: the marched ranges overlap the sub-programs.
     staging.m_flatClauses.assign(clauses.begin(), clauses.end());
@@ -3272,9 +3277,9 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
 
     staging.m_params.assign(params.begin(), params.end());
     staging.m_unions.assign(unions.begin(), unions.end());
-    staging.m_labels.assign(labels.begin(), labels.end());
+    staging.m_surfaceLabels.assign(labels.begin(), labels.end());
     staging.m_surfaces.assign(surfaces.begin(), surfaces.end());
-    staging.m_partLabels.assign(parts.begin(), parts.end());
+    staging.m_partSurfaceLabels.assign(parts.begin(), parts.end());
   }
 
   TapeDetail::deepCopyStore<0, Primitives>(m_layout.m_primitives, location, a_dstPool, staging.m_primitives);

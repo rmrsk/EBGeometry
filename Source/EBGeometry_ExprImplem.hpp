@@ -266,7 +266,7 @@ affine(const Expr<T>& a_operand, const Affine3T<T>& a_map, const Affine3T<T>& a_
 
   // The outer map is applied to the query point first: the child sees inner(outer(p)). A labeled map stays
   // a node of its own, so that its label keeps the leaves it names.
-  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_label.empty();
+  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_surfaceLabel.empty();
   const auto child = fold ? inner.m_children.front() : a_operand;
 
   auto node = makeNode<T>(Kind::Affine, {child});
@@ -890,55 +890,56 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, std::string a_name)
+SurfaceLabel(const A& a_operand, std::string a_name)
 {
   using T = ExprPrecision<A>;
 
-  EBGEOMETRY_REQUIRE(!a_name.empty(), "Label: the name must not be empty");
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "SurfaceLabel: the name must not be empty");
 
   // A copy of the node, so that other uses of the same subexpression keep their own label.
   auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
 
-  node->m_label = std::move(a_name);
+  node->m_surfaceLabel = std::move(a_name);
 
   return Expr<T>(std::move(node));
 }
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, FaceGroups a_groups)
+SurfaceLabel(const A& a_operand, FaceGroups a_groups)
 {
   using T = ExprPrecision<A>;
 
   const Expr<T> operand = toExpr(a_operand);
 
   EBGEOMETRY_REQUIRE(operand.node().m_kind == ExprDetail::Kind::Primitive,
-                     "Label: face groups label the parts of one shape, not of a composition (label it first)");
+                     "SurfaceLabel: face groups label the parts of one shape, not of a composition (label it first)");
 
   const ExprDetail::Leaf& leaf = operand.node().m_leaf;
 
   // A collection's parts are its members' (closestSurface() reports the member's part), not the leaf's own, so its
   // parts cannot be labeled by one table.
-  EBGEOMETRY_REQUIRE(leaf.m_numSurfaces == nullptr,
-                     "Label: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)");
+  EBGEOMETRY_REQUIRE(
+    leaf.m_numSurfaces == nullptr,
+    "SurfaceLabel: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)");
 
   const uint32_t parts = (leaf.m_numParts != nullptr) ? leaf.m_numParts(leaf.m_object.get()) : 1U;
 
   EBGEOMETRY_REQUIRE(a_groups.m_group.size() == parts,
-                     "Label: the face groups name %zu parts of a shape with %u",
+                     "SurfaceLabel: the face groups name %zu parts of a shape with %u",
                      a_groups.m_group.size(),
                      unsigned(parts));
 
   for (size_t p = 0; p < a_groups.m_group.size(); p++) {
     EBGEOMETRY_REQUIRE(a_groups.m_group[p] == FaceGroups::None || a_groups.m_group[p] < a_groups.m_names.size(),
-                       "Label: part %zu is in group %u of %zu",
+                       "SurfaceLabel: part %zu is in group %u of %zu",
                        p,
                        unsigned(a_groups.m_group[p]),
                        a_groups.m_names.size());
   }
 
   for (const std::string& name : a_groups.m_names) {
-    EBGEOMETRY_REQUIRE(!name.empty(), "Label: the name must not be empty");
+    EBGEOMETRY_REQUIRE(!name.empty(), "SurfaceLabel: the name must not be empty");
   }
 
   // A copy of the node, so that other uses of the same shape keep their own labels.
@@ -960,14 +961,14 @@ namespace ExprDetail {
  */
 template <class T>
 [[nodiscard]] inline bool
-hasLabel(const Node<T>& a_node) noexcept
+hasSurfaceLabel(const Node<T>& a_node) noexcept
 {
-  if (!a_node.m_label.empty() || a_node.m_partGroups != nullptr) {
+  if (!a_node.m_surfaceLabel.empty() || a_node.m_partGroups != nullptr) {
     return true;
   }
 
   for (const Expr<T>& child : a_node.m_children) {
-    if (hasLabel(child.node())) {
+    if (hasSurfaceLabel(child.node())) {
       return true;
     }
   }
@@ -1063,36 +1064,37 @@ operationName(const Node<T>& a_node)
 template <class T>
 inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr) : m_leafSurfaces{0U}
 {
-  this->add(a_expr.node(), None, None);
+  this->add(a_expr.node(), None, SurfaceLabelId::none());
 }
 
 template <class T>
 inline void
-ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, const uint32_t a_label)
+ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, const SurfaceLabelId a_label)
 {
   const auto id = static_cast<uint32_t>(m_nodes.size());
 
   // A name's label: the next number for a name not seen before.
   const auto intern = [this](const std::string& a_name) {
-    const auto [entry, added] = m_labels.emplace(a_name, static_cast<uint32_t>(m_names.size()));
+    const auto [entry, added] =
+      m_surfaceLabelIds.emplace(a_name, SurfaceLabelId(static_cast<uint32_t>(m_surfaceLabelNames.size())));
 
     if (added) {
-      m_names.push_back(a_name);
+      m_surfaceLabelNames.push_back(a_name);
     }
 
     return entry->second;
   };
 
-  const uint32_t own = a_node.m_label.empty() ? None : intern(a_node.m_label);
+  const SurfaceLabelId own = a_node.m_surfaceLabel.empty() ? SurfaceLabelId::none() : intern(a_node.m_surfaceLabel);
 
-  const uint32_t label = (own != None) ? own : a_label;
+  const SurfaceLabelId label = own.isNone() ? a_label : own;
 
   Node node;
 
   node.m_parent       = a_parent;
   node.m_firstLeaf    = static_cast<uint32_t>(m_leafNodes.size());
   node.m_firstSurface = m_leafSurfaces.back();
-  node.m_label        = own;
+  node.m_surfaceLabel = own;
   node.m_operation    = ExprDetail::operationName(a_node);
 
   m_nodes.push_back(std::move(node));
@@ -1109,21 +1111,21 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
                        static_cast<unsigned long long>(end));
 
     m_leafNodes.push_back(id);
-    m_leafLabels.push_back(label);
+    m_leafSurfaceLabels.push_back(label);
     m_leafSurfaces.push_back(static_cast<uint32_t>(end));
-    m_leafPartLabels.emplace_back();
+    m_leafPartSurfaceLabels.emplace_back();
 
     // The parts' labels: a part's group wins over the label the leaf has.
     if (a_node.m_partGroups != nullptr) {
       const FaceGroups& groups = *a_node.m_partGroups;
 
-      std::vector<uint32_t> named;
+      std::vector<SurfaceLabelId> named;
 
       for (const std::string& name : groups.m_names) {
         named.push_back(intern(name));
       }
 
-      std::vector<uint32_t>& parts = m_leafPartLabels.back();
+      std::vector<SurfaceLabelId>& parts = m_leafPartSurfaceLabels.back();
 
       parts.reserve(groups.m_group.size());
 
@@ -1187,13 +1189,13 @@ ExprIndex<T>::pathOf(const uint32_t a_leaf) const
 }
 
 template <class T>
-inline uint32_t
-ExprIndex<T>::getPartLabel(const uint32_t a_leaf, const uint32_t a_part) const
+inline SurfaceLabelId
+ExprIndex<T>::getPartSurfaceLabel(const uint32_t a_leaf, const uint32_t a_part) const
 {
-  const std::vector<uint32_t>& parts = this->getPartLabels(a_leaf);
+  const std::vector<SurfaceLabelId>& parts = this->getPartSurfaceLabels(a_leaf);
 
   if (parts.empty()) {
-    return m_leafLabels[a_leaf];
+    return m_leafSurfaceLabels[a_leaf];
   }
 
   EBGEOMETRY_REQUIRE(a_part < parts.size(), "ExprIndex: part %u of %zu", unsigned(a_part), parts.size());
@@ -1202,13 +1204,15 @@ ExprIndex<T>::getPartLabel(const uint32_t a_leaf, const uint32_t a_part) const
 }
 
 template <class T>
-inline const std::vector<uint32_t>&
-ExprIndex<T>::getPartLabels(const uint32_t a_leaf) const
+inline const std::vector<SurfaceLabelId>&
+ExprIndex<T>::getPartSurfaceLabels(const uint32_t a_leaf) const
 {
-  EBGEOMETRY_REQUIRE(
-    a_leaf < m_leafPartLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafPartLabels.size());
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafPartSurfaceLabels.size(),
+                     "ExprIndex: leaf %u of %zu",
+                     unsigned(a_leaf),
+                     m_leafPartSurfaceLabels.size());
 
-  return m_leafPartLabels[a_leaf];
+  return m_leafPartSurfaceLabels[a_leaf];
 }
 
 template <class T>
@@ -1245,37 +1249,41 @@ ExprIndex<T>::getLeafOfSurface(const uint32_t a_surface) const
 }
 
 template <class T>
-inline uint32_t
-ExprIndex<T>::getLabel(const uint32_t a_leaf) const
+inline SurfaceLabelId
+ExprIndex<T>::getSurfaceLabel(const uint32_t a_leaf) const
 {
-  EBGEOMETRY_REQUIRE(a_leaf < m_leafLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafLabels.size());
+  EBGEOMETRY_REQUIRE(
+    a_leaf < m_leafSurfaceLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafSurfaceLabels.size());
 
-  return m_leafLabels[a_leaf];
+  return m_leafSurfaceLabels[a_leaf];
 }
 
 template <class T>
 inline uint32_t
-ExprIndex<T>::getNumLabels() const noexcept
+ExprIndex<T>::getNumSurfaceLabels() const noexcept
 {
-  return static_cast<uint32_t>(m_names.size());
+  return static_cast<uint32_t>(m_surfaceLabelNames.size());
 }
 
 template <class T>
 inline const std::string&
-ExprIndex<T>::getLabelName(const uint32_t a_label) const
+ExprIndex<T>::getSurfaceLabelName(const SurfaceLabelId a_label) const
 {
-  EBGEOMETRY_REQUIRE(a_label < m_names.size(), "ExprIndex: label %u of %zu", unsigned(a_label), m_names.size());
+  EBGEOMETRY_REQUIRE(a_label.value() < m_surfaceLabelNames.size(),
+                     "ExprIndex: surface label %u of %zu",
+                     unsigned(a_label.value()),
+                     m_surfaceLabelNames.size());
 
-  return m_names[a_label];
+  return m_surfaceLabelNames[a_label.value()];
 }
 
 template <class T>
-inline uint32_t
-ExprIndex<T>::findLabel(const std::string_view a_name) const
+inline SurfaceLabelId
+ExprIndex<T>::findSurfaceLabel(const std::string_view a_name) const
 {
-  const auto entry = m_labels.find(std::string(a_name));
+  const auto entry = m_surfaceLabelIds.find(std::string(a_name));
 
-  return (entry != m_labels.end()) ? entry->second : None;
+  return (entry != m_surfaceLabelIds.end()) ? entry->second : SurfaceLabelId::none();
 }
 
 } // namespace EBGeometry

@@ -125,17 +125,17 @@ union inside a nested tape). It returns a
   constructor was given them). ``getFirstSurface(leaf)`` is where a leaf's range starts, so data of your
   own per member (per sphere, say) is an array indexed by ``m_surface - getFirstSurface(m_leaf)``: no
   sphere needs a label.
-* ``m_leaf`` and ``m_label``: the leaf, as ``closestLeaf()`` numbers it, and the surface's label (see below).
+* ``m_leaf`` and ``m_surfaceLabel``: the leaf, as ``closestLeaf()`` numbers it, and the surface's label (see below).
 * ``m_part``: the part of the deepest shape reached, a box's face or a mesh's face (see :ref:`Sec:Parts`).
 * ``m_localPoint``: the point in the frame of the deepest shape reached.
 
 .. code-block:: c++
 
-   const Tape<T, SphereCloudBVH<T>> tape(pool, Difference(Label(box, "wall"), Label(cloud, "particles")));
+   const Tape<T, SphereCloudBVH<T>> tape(pool, Difference(SurfaceLabel(box, "wall"), SurfaceLabel(cloud, "particles")));
 
    const SurfaceRef<T> s = tape.closestSurface(p);   // on a device too
 
-   restitution[s.m_label];                                     // per-label data
+   restitution[s.m_surfaceLabel];                                     // per-label data
    sphereData[s.m_surface - tape.getFirstSurface(s.m_leaf)];   // per-sphere data, in cloud order
 
 A collection costs one more query of the deciding leaf for each level drilled (a second search of the cloud,
@@ -181,54 +181,59 @@ A shape of your own gets parts by defining ``getNumParts()`` and ``closestPart(l
 `hasParts <doxygen/html/namespaceEBGeometry.html>`__). The part is computed only by ``closestSurface()`` and
 ``firstSurface()``, once, for the deciding leaf; a mesh's costs one more closest-face search of that mesh.
 
-Labels
-------
+Surface labels
+--------------
 
 A leaf number is fine for a program that builds its expression itself, but it depends on the expression's
 order: an edit earlier in the expression renumbers everything after it. A name does not.
-``Label(object, "name")`` names an object, and every leaf below it gets the label, unless a label nearer the
-leaf names it. Labels change nothing in how the object is evaluated, and nothing has to be labeled: an
-unlabeled leaf has no label (``LeafRef::None``). Several objects may share a name, and so a label.
+``SurfaceLabel(object, "name")`` names the surfaces of an object, and every leaf below it gets the label, unless
+a label nearer the leaf names it. Labels change nothing in how the object is evaluated, and nothing has to be
+labeled: an unlabeled leaf has no label (``SurfaceLabelId::none()``). Several objects may share a name, and so
+a label.
+
+A label is a
+`SurfaceLabelId <doxygen/html/structEBGeometry_1_1LabelId.html>`__, a number typed by what it labels, so it
+cannot be mixed up with another kind of number; ``value()`` is the number, for indexing an array of your own.
 
 .. code-block:: c++
 
-   const Expr<T> part = Difference(Intersection(Label(box, "wall"), ball), Label(Union(drills), "bores"));
+   const Expr<T> part = Difference(Intersection(SurfaceLabel(box, "wall"), ball), SurfaceLabel(Union(drills), "bores"));
 
    const Tape<T>      tape(pool, part);
    const ExprIndex<T> index(part);
 
-   std::vector<Wall> walls(tape.getNumLabels());   // per-label data of your own
-   walls[index.findLabel("wall")]  = ...;          // findLabel() is LeafRef<T>::None for an unknown name
-   walls[index.findLabel("bores")] = ...;
+   std::vector<Wall> walls(tape.getNumSurfaceLabels());   // per-label data of your own
+   walls[index.findSurfaceLabel("wall").value()]  = ...;   // findSurfaceLabel() is none for an unknown name
+   walls[index.findSurfaceLabel("bores").value()] = ...;
 
-   const uint32_t label = tape.getLabel(tape.closestLeaf(p));   // or tape.getLabel(hit.m_primitive)
+   const SurfaceLabelId label = tape.getSurfaceLabel(tape.closestLeaf(p));   // or tape.getSurfaceLabel(hit.m_primitive)
 
 **A mesh's named patches.** A mesh file can name groups of its faces: an OBJ file's ``g`` and ``o`` groups,
 an ASCII STL file's named solids. The readers keep them as
 `FaceGroups <doxygen/html/structEBGeometry_1_1FaceGroups.html>`__ (``PolygonSoup::getFaceGroups()``), and
-``Label(mesh, groups)`` labels each face by its group's name. A face's group label wins over every label
+``SurfaceLabel(mesh, groups)`` labels each face by its group's name. A face's group label wins over every label
 above the mesh; a face in no group keeps those. The group names are numbered with the other labels, so
-``findLabel("inlet")`` works as for any name, and ``SurfaceRef::m_label`` is the face's label:
+``findSurfaceLabel("inlet")`` works as for any name, and ``SurfaceRef::m_surfaceLabel`` is the face's label:
 
 .. code-block:: c++
 
    const auto soup = Parser::readIntoPolygonSoup<T>("pump.obj");       // groups inlet, outlet, casing
    const auto pump = Parser::readIntoTriMeshSDF<T>("pump.obj", pool);
 
-   const Expr<T> part = Difference(Label(pump, soup.getFaceGroups()), Label(bore, "bore"));
+   const Expr<T> part = Difference(SurfaceLabel(pump, soup.getFaceGroups()), SurfaceLabel(bore, "bore"));
 
    const Tape<T>       tape(pool, part);
-   const SurfaceRef<T> s = tape.closestSurface(p);   // s.m_label: inlet, outlet, casing or bore
+   const SurfaceRef<T> s = tape.closestSurface(p);   // s.m_surfaceLabel: inlet, outlet, casing or bore
 
-Any shape with parts can be labeled this way, with one group per part. ``Label(object, groups)`` takes one
+Any shape with parts can be labeled this way, with one group per part. ``SurfaceLabel(object, groups)`` takes one
 shape, not a composition: label it before translating or combining it.
 
-The tape reports a leaf's label with ``getLabel()``, on the host and inside a GPU kernel, so a kernel
+The tape reports a leaf's label with ``getSurfaceLabel()``, on the host and inside a GPU kernel, so a kernel
 (a particle hitting a wall, say) looks up per-label data in an array of its own. The label is a number;
 the names live on the host, in an
 `ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression. Both
 number the labels in the order their names first appear in the expression, depth first (a mesh's group names
-after its own label), so the same expression gives the same numbers to both. ``getPartLabel(leaf, part)`` is
+after its own label), so the same expression gives the same numbers to both. ``getPartSurfaceLabel(leaf, part)`` is
 a part's label. A tape whose expression has no label stores none, and one whose shapes' parts are not
 labeled stores no table of part labels.
 

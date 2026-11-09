@@ -323,12 +323,12 @@ struct Node
   DistanceQuality m_quality = DistanceQuality::Exact;
 
   /**
-   * @brief The name Label() gave the node; empty for none.
+   * @brief The name SurfaceLabel() gave the node; empty for none.
    */
-  std::string m_label;
+  std::string m_surfaceLabel;
 
   /**
-   * @brief For a primitive: the groups Label(shape, FaceGroups) put its parts in; null for none.
+   * @brief For a primitive: the groups SurfaceLabel(shape, FaceGroups) put its parts in; null for none.
    */
   std::shared_ptr<const FaceGroups> m_partGroups;
 };
@@ -848,7 +848,7 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
  * @brief Name an object: every leaf below it gets the label, unless a label nearer the leaf names it.
  * @details Labels change nothing in how the object is evaluated; they say which surfaces belong together,
  * for boundary conditions, per-surface data and picking. A Tape reports a leaf's label on the host and on a
- * device (Tape::getLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
+ * device (Tape::getSurfaceLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
  * are numbered from 0 in the order their names first appear, depth first, so the same expression gives the
  * same numbers to both; several objects may share a name, and so a label. Labeling an object that already
  * has a label replaces it: the replaced name is gone, and gets no number unless another object has it.
@@ -860,18 +860,18 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, std::string a_name);
+SurfaceLabel(const A& a_operand, std::string a_name);
 
 /**
  * @brief Name a shape's parts by group (see hasParts): each part in a group gets the label of the group's name,
  * which wins over any label above it; a part in no group keeps those.
  * @details For a mesh read from a file, the groups are its face groups (PolygonSoup::getFaceGroups()): an OBJ
  * file's `g` and `o` groups, or an ASCII STL file's named solids, so that a mesh's patches (inlet, outlet, wall)
- * become labels. The names are numbered with every other label's (see Label()), in the order they first appear.
+ * become labels. The names are numbered with every other label's (see SurfaceLabel()), in the order they first appear.
  * The operand must be one shape, not a composition (label it before translating or combining it) nor a collection
  * (a BVH union, a sphere cloud, a tape), with as many parts as the groups have faces; anything else aborts with a
  * message, in every build. A Tape reports the label in
- * SurfaceRef::m_label, from closestSurface() and firstSurface(), on the host and on a device.
+ * SurfaceRef::m_surfaceLabel, from closestSurface() and firstSurface(), on the host and on a device.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand A shape with parts (a mesh SDF, a box, ...).
  * @param[in] a_groups  The group of each part, and the groups' names.
@@ -880,7 +880,7 @@ Label(const A& a_operand, std::string a_name);
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, FaceGroups a_groups);
+SurfaceLabel(const A& a_operand, FaceGroups a_groups);
 
 /**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
@@ -892,7 +892,7 @@ Label(const A& a_operand, FaceGroups a_groups);
  * m_firstLeaf + m_numLeaves), and so are its surfaces, [m_firstSurface, m_firstSurface + m_numSurfaces): one
  * per leaf, or all of a container leaf's (a sphere cloud's spheres, a BVH union's members). A group of surfaces
  * can be handed to a device as two numbers. The nodes
- * The labels are numbered in the order their names first appear, depth first, a leaf's face groups (Label(shape,
+ * The labels are numbered in the order their names first appear, depth first, a leaf's face groups (SurfaceLabel(shape,
  * FaceGroups)) after the leaf's own label. The nodes
  * are those the builder functions made: Difference(a, b) is an Intersection of a and a Complement of b,
  * and nested maps (Translate, Rotate, Scale, ...) are one Transform node.
@@ -938,9 +938,9 @@ public:
     uint32_t m_numSurfaces = 0;
 
     /**
-     * @brief Its own label, or None (the label its leaves inherit from further up is getLabel()'s).
+     * @brief Its own surface label, or none (the label its leaves inherit from further up is getSurfaceLabel()'s).
      */
-    uint32_t m_label = None;
+    SurfaceLabelId m_surfaceLabel;
 
     /**
      * @brief What it does: Primitive, Transform, Elongate, Repeat, Complement, Offset, Annulus, Blur, Mollify,
@@ -1036,32 +1036,32 @@ public:
   /**
    * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included.
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
-   * @return The label, or None if no node on the path has one.
+   * @return The label, or none if no node on the path has one.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  uint32_t
-  getLabel(uint32_t a_leaf) const;
+  SurfaceLabelId
+  getSurfaceLabel(uint32_t a_leaf) const;
 
   /**
-   * @brief The label of a part of a leaf (see hasParts): its face group's label when Label(shape, FaceGroups)
-   * put it in one, and otherwise the leaf's (getLabel()).
+   * @brief The label of a part of a leaf (see hasParts): its face group's label when SurfaceLabel(shape, FaceGroups)
+   * put it in one, and otherwise the leaf's (getSurfaceLabel()).
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
    * @param[in] a_part Part of the leaf's shape (SurfaceRef::m_part).
-   * @return The label, or None.
+   * @return The label, or none.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  uint32_t
-  getPartLabel(uint32_t a_leaf, uint32_t a_part) const;
+  SurfaceLabelId
+  getPartSurfaceLabel(uint32_t a_leaf, uint32_t a_part) const;
 
   /**
-   * @brief The labels of a leaf's parts, one per part, as getPartLabel() gives them; empty for a leaf whose parts
-   * Label(shape, FaceGroups) did not name.
+   * @brief The labels of a leaf's parts, one per part, as getPartSurfaceLabel() gives them; empty for a leaf whose parts
+   * SurfaceLabel(shape, FaceGroups) did not name.
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
    * @return The labels.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  const std::vector<uint32_t>&
-  getPartLabels(uint32_t a_leaf) const;
+  const std::vector<SurfaceLabelId>&
+  getPartSurfaceLabels(uint32_t a_leaf) const;
 
   /**
    * @brief The number of distinct labels.
@@ -1069,25 +1069,25 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST
   uint32_t
-  getNumLabels() const noexcept;
+  getNumSurfaceLabels() const noexcept;
 
   /**
    * @brief A label's name.
-   * @param[in] a_label Label (below getNumLabels()).
+   * @param[in] a_label Label (below getNumSurfaceLabels()).
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   const std::string&
-  getLabelName(uint32_t a_label) const;
+  getSurfaceLabelName(SurfaceLabelId a_label) const;
 
   /**
    * @brief The label of a name.
    * @param[in] a_name Name.
-   * @return The label, or None if no node has that name.
+   * @return The label, or none if no node has that name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  uint32_t
-  findLabel(std::string_view a_name) const;
+  SurfaceLabelId
+  findSurfaceLabel(std::string_view a_name) const;
 
 private:
   /**
@@ -1101,9 +1101,9 @@ private:
   std::vector<uint32_t> m_leafNodes;
 
   /**
-   * @brief Each leaf's label (see getLabel()).
+   * @brief Each leaf's label (see getSurfaceLabel()).
    */
-  std::vector<uint32_t> m_leafLabels;
+  std::vector<SurfaceLabelId> m_leafSurfaceLabels;
 
   /**
    * @brief Each leaf's first surface, and the number of surfaces last.
@@ -1111,28 +1111,28 @@ private:
   std::vector<uint32_t> m_leafSurfaces;
 
   /**
-   * @brief Each leaf's part labels (see getPartLabels()).
+   * @brief Each leaf's part labels (see getPartSurfaceLabels()).
    */
-  std::vector<std::vector<uint32_t>> m_leafPartLabels;
+  std::vector<std::vector<SurfaceLabelId>> m_leafPartSurfaceLabels;
 
   /**
    * @brief The labels' names.
    */
-  std::vector<std::string> m_names;
+  std::vector<std::string> m_surfaceLabelNames;
 
   /**
    * @brief Each name's label.
    */
-  std::unordered_map<std::string, uint32_t> m_labels;
+  std::unordered_map<std::string, SurfaceLabelId> m_surfaceLabelIds;
 
   /**
    * @brief Number a node and those below it.
    * @param[in] a_node   Node.
    * @param[in] a_parent Its parent's number, or None.
-   * @param[in] a_label  The label it inherits, or None.
+   * @param[in] a_label  The label it inherits, or none.
    */
   void
-  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, uint32_t a_label);
+  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, SurfaceLabelId a_label);
 };
 
 } // namespace EBGeometry
