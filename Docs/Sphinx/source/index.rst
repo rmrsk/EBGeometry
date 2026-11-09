@@ -138,6 +138,7 @@ Examples
    ExampleMeshCSG.rst
    ExampleShell.rst
    ExampleMaterials.rst
+   ExampleRegions.rst
    ExampleNestedBVH.rst
    ExampleManyObjects.rst
    ExamplePackedSpheres.rst

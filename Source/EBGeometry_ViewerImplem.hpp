@@ -129,7 +129,7 @@ struct KeyGroup
  * @return The groups.
  */
 inline std::vector<KeyGroup>
-keys(const bool a_device)
+keys(const bool a_device, const bool a_regions = false)
 {
   std::vector<KeyGroup> groups{{"Camera and light",
                                 {{"Drag", "Orbit the camera"},
@@ -175,6 +175,15 @@ keys(const bool a_device)
 
   if (a_device) {
     groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
+  }
+
+  // A shape whose regions can be shown and hidden (see RegionView) gets a group of its own, before the window's.
+  if (a_regions) {
+    groups.insert(groups.end() - 1,
+                  KeyGroup{"Regions",
+                           {{"V", "Show one region at a time, in turn, then all"},
+                            {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
+                            {"Ctrl + V", "Show every region"}}});
   }
 
   return groups;
@@ -458,7 +467,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   std::printf("EBGeometry viewer keys\n");
 
-  for (const KeyGroup& group : keys(a_deviceShape != nullptr)) {
+  for (const KeyGroup& group : keys(a_deviceShape != nullptr, hasRegionVisibility<S>)) {
     std::printf("\n%s\n", group.m_title);
 
     for (const Key& key : group.m_keys) {
@@ -476,9 +485,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
   settings.m_recordPrimitives = true;
 
   // The scene's length scale, for moving the section plane.
-  const auto box   = a_shape.computeBoundingVolume();
-  const T    diag  = (box.getHighCorner() - box.getLowCorner()).length();
-  const T    scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
+  const auto box = a_shape.computeBoundingVolume();
+
+  // The shapes shown: copies, so that showing and hiding regions (see RegionView) changes them; every render is
+  // given the ones current when it starts, as it is the settings and the camera.
+  S shape       = a_shape;
+  S deviceShape = (a_deviceShape != nullptr) ? *a_deviceShape : a_shape;
+
+  // The region shown alone (0: all), stepped through with V.
+  uint32_t soloRegion = 0;
+  const T  diag       = (box.getHighCorner() - box.getLowCorner()).length();
+  const T  scale      = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
   // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
   // or z axis through the box's center (2 to 4); moved along its normal by an offset, and reversed (the
@@ -764,23 +781,27 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   // Everything a render reads is passed by value, so that a background render never sees the camera or
   // the settings change under it.
-  const auto render =
-    [&a_shape, a_deviceShape](
-      const Settings<T>& a_frame, const Camera<T> a_view, const bool a_onDevice, Image& a_image, Background* a_job) {
-      const Renderer<T> renderer(a_frame);
+  const auto render = [](const S&           a_host,
+                         const S&           a_device,
+                         const Settings<T>& a_frame,
+                         const Camera<T>    a_view,
+                         const bool         a_onDevice,
+                         Image&             a_image,
+                         Background*        a_job) {
+    const Renderer<T> renderer(a_frame);
 
-      if (a_onDevice && a_job != nullptr) {
-        return renderer.renderOnDevice(*a_deviceShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
-      }
-      if (a_onDevice) {
-        return renderer.renderOnDevice(*a_deviceShape, a_view, a_image);
-      }
-      if (a_job != nullptr) {
-        return renderer.render(a_shape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
-      }
+    if (a_onDevice && a_job != nullptr) {
+      return renderer.renderOnDevice(a_device, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+    }
+    if (a_onDevice) {
+      return renderer.renderOnDevice(a_device, a_view, a_image);
+    }
+    if (a_job != nullptr) {
+      return renderer.render(a_host, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+    }
 
-      return renderer.render(a_shape, a_view, a_image);
-    };
+    return renderer.render(a_host, a_view, a_image);
+  };
 
   // The point under the cursor (window coordinates) on the section plane, within the shape's box, and the
   // shape's value there: the ray PixelQuery casts through it, met with the plane.
@@ -827,7 +848,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
       if (cursorOn) {
         cursorPoint = p;
-        cursorValue = a_shape.signedDistance(p);
+        cursorValue = shape.signedDistance(p);
       }
     }
   };
@@ -876,7 +897,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     const std::string object = primitivesAreFaces<S> ? "face" : "object";
 
     // Each group's state, in the order of keys(): the camera and the light, rendering, the section, picking.
-    const std::vector<std::vector<std::string>> states{
+    std::vector<std::vector<std::string>> states{
       {"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
          fixed(double(camera.m_distance), 3),
        "Target " + point(camera.m_target, 3),
@@ -917,6 +938,23 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                          : std::string("Nothing measured")},
       {}};
 
+    // The regions shown and hidden, for a shape whose regions can be (see RegionView).
+    if constexpr (hasRegionVisibility<S>) {
+      std::string shown;
+      std::string hiddenRegions;
+
+      for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
+        std::string& list = shape.isVisible(k) ? shown : hiddenRegions;
+
+        list += (list.empty() ? "" : ", ") + std::to_string(k);
+      }
+
+      states.insert(states.end() - 1,
+                    {hiddenRegions.empty()
+                       ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
+                       : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions});
+    }
+
     std::vector<std::string> lines{
       std::string("EBGeometry viewer: ") + shownWhat + ", " + std::to_string(shownWidth) + " x " +
         std::to_string(shownHeight) + " pixels in " + fixed(1000.0 * shownSeconds, 0) + " ms",
@@ -924,7 +962,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         ", seen from inside " + std::to_string(shownStats.m_insideHits) + ", unresolved " +
         std::to_string(shownStats.m_unresolved)};
 
-    const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr);
+    const std::vector<KeyGroup> groups = keys(a_deviceShape != nullptr, hasRegionVisibility<S>);
 
     for (std::size_t g = 0; g < groups.size(); g++) {
       lines.emplace_back("");
@@ -1118,7 +1156,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
             const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
 
-            const HitT<T> hit = Renderer<T>(frame).pick(a_shape, camera, column, row);
+            const HitT<T> hit = Renderer<T>(frame).pick(shape, camera, column, row);
 
             // Shift and a click marks a point to measure from or to, not a pick.
             if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
@@ -1289,7 +1327,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             const T row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
 
             if (depthHits.empty()) {
-              depthHits  = Renderer<T>(frame).pickAll(a_shape, camera, column, row);
+              depthHits  = Renderer<T>(frame).pickAll(shape, camera, column, row);
               depthIndex = 0;
             }
             else if (event.wheel.y < 0 && depthIndex + 1 < depthHits.size()) {
@@ -1430,7 +1468,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           Image             image;
           const Settings<T> frame = stageSettings(2);
 
-          (void)render(frame, camera, onDevice, image, nullptr);
+          (void)render(shape, deviceShape, frame, camera, onDevice, image, nullptr);
 
           // The next name not taken, so that an earlier run's images are kept.
           const auto taken = [](const std::string& a_name) {
@@ -1549,6 +1587,37 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
+        case SDLK_v: {
+          if constexpr (hasRegionVisibility<S>) {
+            if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+              soloRegion = 0;
+              shape      = shape.withAllVisible();
+            }
+            else if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+              if (picked && pick.m_primitive < shape.getNumRegions()) {
+                shape  = shape.withVisible(pick.m_primitive, false);
+                picked = false;
+              }
+            }
+            else {
+              soloRegion = (soloRegion + 1U < shape.getNumRegions()) ? soloRegion + 1U : 0U;
+              shape      = (soloRegion == 0U) ? shape.withAllVisible() : shape.withOnly(soloRegion);
+            }
+
+            deviceShape = (a_deviceShape != nullptr) ? deviceShape.withAllVisible() : shape;
+
+            if (a_deviceShape != nullptr) {
+              for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
+                deviceShape = deviceShape.withVisible(k, shape.isVisible(k));
+              }
+            }
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
         case SDLK_t: {
           // Shift and T make every surface opaque again; T alone toggles the picked surface.
           if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
@@ -1639,7 +1708,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       // What was under the cursor may have moved with the camera or the plane; read again on the next move.
       cursorOn = false;
 
-      const Stats stats   = render(stageSettings(0), camera, onDevice, image, nullptr);
+      const Stats stats   = render(shape, deviceShape, stageSettings(0), camera, onDevice, image, nullptr);
       const auto  seconds = std::chrono::duration<double>(Clock::now() - start).count();
 
       // Keep previews between about 10 and 40 ms.
@@ -1666,13 +1735,14 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
       next->m_stage  = pending;
       next->m_height = stageSettings(pending).m_height;
-      next->m_thread = std::thread([next, render, stage = stageSettings(pending), camera, onDevice]() {
-        const auto start = Clock::now();
+      next->m_thread =
+        std::thread([next, render, shape, deviceShape, stage = stageSettings(pending), camera, onDevice]() {
+          const auto start = Clock::now();
 
-        next->m_stats   = render(stage, camera, onDevice, next->m_image, next);
-        next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
-        next->m_done    = true;
-      });
+          next->m_stats   = render(shape, deviceShape, stage, camera, onDevice, next->m_image, next);
+          next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
+          next->m_done    = true;
+        });
 
       pending = 0;
     }

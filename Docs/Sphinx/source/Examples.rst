@@ -51,6 +51,7 @@ The examples build on each other. A new user can read them in this order:
 #. :ref:`Chap:ExampleMeshCSG`: a mesh joined to analytic shapes, the dragon on a table.
 #. :ref:`Chap:ExampleShell`: a thin shell around a mesh (Lucy), cut open.
 #. :ref:`Chap:ExampleMaterials`: which part of an object a query found, and a material table indexed by it.
+#. :ref:`Chap:ExampleRegions`: several materials in one object, as regions, and each region's own function.
 #. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
 #. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
    plain loop.

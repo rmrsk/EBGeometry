@@ -26,6 +26,7 @@
 
 // Our includes
 #include "EBGeometry_Expr.hpp"
+#include "EBGeometry_RegionView.hpp"
 #include "EBGeometry_Render.hpp"
 
 namespace EBGeometry::Render {

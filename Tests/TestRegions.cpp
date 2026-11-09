@@ -334,3 +334,51 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
   CHECK(one.signedDistance(Vec3::zeros(), 1U) == one.signedDistance(Vec3::zeros()));
   CHECK(one.signedDistance(Vec3::zeros(), 0U) == -one.signedDistance(Vec3::zeros()));
 }
+
+TEMPLATE_TEST_CASE("RegionView: the visible regions as one shape, named by the region a surface point belongs to",
+                   "[Overlay][RegionView]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T, TapeFeature::Regions>;
+
+  constexpr uint32_t None = LeafRef<T>::None;
+
+  // The cable (concentric spheres), its half x > 0 cut away along 0 < z < 1: the cut face at x = 0 is the
+  // jacket's and the core's.
+  const Expr<T> cut = Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(0)), Vec3(T(2), T(2), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape             tape(pool, cut);
+  const RegionView<Tape> all(tape);
+
+  REQUIRE(all.getNumRegions() == 3U);
+  CHECK(!all.isVisible(0));
+  CHECK(all.isVisible(1));
+  CHECK(all.isVisible(2));
+
+  for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
+    CHECK(all.signedDistance(p) == Math::min(tape.signedDistance(p, 1), tape.signedDistance(p, 2)));
+  }
+
+  // On the cut face, inside the core's radius (0.5), the surface is the core's; outside it, the jacket's.
+  CHECK(all.closestLeaf(Vec3(T(0), T(0.1), T(0.2))).m_leaf == 2U);
+  CHECK(all.closestLeaf(Vec3(T(0), T(0.8), T(0.5))).m_leaf == 1U);
+
+  // The core alone: its value is the core's function; the jacket hidden is named nowhere.
+  const RegionView<Tape> core = all.withOnly(2);
+
+  CHECK(!core.isVisible(1));
+  CHECK(core.isVisible(2));
+  CHECK(core.signedDistance(Vec3(T(0.7), T(0), T(-0.5))) == tape.signedDistance(Vec3(T(0.7), T(0), T(-0.5)), 2));
+  CHECK(core.closestLeaf(Vec3(T(-0.3), T(0), T(-0.4))).m_leaf == 2U);
+  CHECK(core.closestLeaf(Vec3(T(-1), T(0), T(-0.5))).m_leaf == None);
+
+  CHECK(all.withVisible(1, false).isVisible(2));
+  CHECK(!all.withVisible(1, false).isVisible(1));
+  CHECK(all.withOnly(1).withAllVisible().isVisible(2));
+  CHECK(hasRegionVisibility<RegionView<Tape>>);
+  CHECK(!hasRegionVisibility<Tape>);
+}
