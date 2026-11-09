@@ -428,16 +428,48 @@ struct Background
 };
 
 /**
- * @brief What a click on a line of the viewer's panel of regions and groups does.
+ * @brief What a click on a button of the viewer's panel (the picked piece, the regions, the surface groups) does.
  * @details Internal helper; not part of the public API.
  */
 enum class PanelAction : uint8_t
 {
-  None,         ///< Nothing.
-  ToggleRegion, ///< Show or hide a region.
-  CurrentGroup, ///< Make a group the one added to.
-  Selector,     ///< Select a selector's group, or remove the selector.
-  NewGroup      ///< Start a group.
+  None,           ///< Nothing.
+  AddPiece,       ///< Add the picked piece to the current surface group.
+  AddSurface,     ///< Add the picked piece's whole surface.
+  AddInterface,   ///< Add the interface between the picked piece's two regions.
+  RemovePiece,    ///< Remove what holds the picked piece from the current surface group.
+  ToggleRegion,   ///< Show or hide a region.
+  CurrentGroup,   ///< Make a surface group the one added to.
+  DeleteGroup,    ///< Delete a surface group.
+  RemoveSelector, ///< Remove a selector.
+  NewGroup        ///< Start a surface group.
+};
+
+/**
+ * @brief A clickable span of a line of the viewer's panel: columns [m_begin, m_end) and what a click there does.
+ * @details Internal helper; not part of the public API.
+ */
+struct PanelSpan
+{
+  /**
+   * @brief The first column.
+   */
+  std::size_t m_begin = 0;
+
+  /**
+   * @brief One past the last column.
+   */
+  std::size_t m_end = 0;
+
+  /**
+   * @brief What a click does.
+   */
+  PanelAction m_action = PanelAction::None;
+
+  /**
+   * @brief Its argument: a region, a surface group, a selector.
+   */
+  uint32_t m_value = 0;
 };
 
 /**
@@ -590,15 +622,15 @@ run(const S&           a_shape,
 
   // The panel of regions and groups, drawn over the image's top right corner while the regions' menu is shown: its
   // lines, and what a click on each does.
-  std::vector<std::string>                      panelLines;
-  std::vector<std::pair<PanelAction, uint32_t>> panelActions;
-  SDL_Texture*                                  panel       = nullptr;
-  int                                           panelWidth  = 0;
-  int                                           panelHeight = 0;
-  int                                           panelScale  = 1;
-  std::vector<uint32_t>                         panelPixels;
-  const T                                       diag  = (box.getHighCorner() - box.getLowCorner()).length();
-  const T                                       scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
+  std::vector<std::string>            panelLines;
+  std::vector<std::vector<PanelSpan>> panelActions;
+  SDL_Texture*                        panel       = nullptr;
+  int                                 panelWidth  = 0;
+  int                                 panelHeight = 0;
+  int                                 panelScale  = 1;
+  std::vector<uint32_t>               panelPixels;
+  const T                             diag  = (box.getHighCorner() - box.getLowCorner()).length();
+  const T                             scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
   // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
   // or z axis through the box's center (2 to 4); moved along its normal by an offset, and reversed (the
@@ -652,6 +684,81 @@ run(const S&           a_shape,
 
         settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
       }
+    }
+  };
+
+  // Add the picked piece (or its whole surface, or the interface of its two regions) to the current surface group, or
+  // remove what holds it there; false when nothing is picked.
+  const auto editPicked = [&](const PanelAction a_action) {
+    if constexpr (hasRegionVisibility<S>) {
+      Scheme&             scheme = settings.m_regions.m_scheme;
+      const SurfaceRef<T> piece  = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
+
+      if (piece.m_surface == SurfaceRef<T>::None) {
+        return false;
+      }
+
+      const SurfaceSelector exact = SurfaceSelector::piece(piece);
+
+      if (a_action == PanelAction::RemovePiece) {
+        // Every selector of the current surface group that holds the piece goes.
+        for (uint32_t i = scheme.getNumSelectors(); i > 0U; i--) {
+          const SurfaceSelector selector = scheme.getSelector(i - 1U);
+
+          if (scheme.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(piece)) {
+            scheme.remove(currentGroup, selector);
+          }
+        }
+      }
+      else {
+        const SurfaceSelector selector =
+          (a_action == PanelAction::AddInterface) ? SurfaceSelector::interface(exact.m_regionA, exact.m_regionB)
+          : (a_action == PanelAction::AddSurface) ? SurfaceSelector::surface(exact.m_surface)
+                                                  : exact;
+
+        if (scheme.getNumSurfaceGroups() == 0U) {
+          currentGroup = scheme.addSurfaceGroup();
+        }
+
+        if (scheme.getNumSelectors() < Scheme::MaxSelectors) {
+          scheme.remove(currentGroup, selector);
+          scheme.add(currentGroup, selector);
+        }
+        else {
+          std::printf("EBGeometry viewer: the scheme holds %u selectors already\n", unsigned(Scheme::MaxSelectors));
+          std::fflush(stdout);
+        }
+      }
+
+      rekeyPick();
+
+      return true;
+    }
+    else {
+      (void)a_action;
+
+      return false;
+    }
+  };
+
+  // Delete a surface group, keeping the current one where it was.
+  const auto deleteGroup = [&](const uint32_t a_group) {
+    if constexpr (hasRegionVisibility<S>) {
+      Scheme& scheme = settings.m_regions.m_scheme;
+
+      if (a_group < scheme.getNumSurfaceGroups()) {
+        scheme.removeSurfaceGroup(a_group);
+        names.removeSurfaceGroup(a_group);
+
+        if (currentGroup > a_group || currentGroup >= scheme.getNumSurfaceGroups()) {
+          currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
+        }
+
+        rekeyPick();
+      }
+    }
+    else {
+      (void)a_group;
     }
   };
 
@@ -1163,39 +1270,88 @@ run(const S&           a_shape,
            ? std::string("No surface groups (Enter starts one with the picked piece)")
            : "Adding to surface group " + names.surfaceGroup(currentGroup) + " (J: next)"});
 
-      // The panel: each region, shown or hidden, and each group with its selectors; a click on a line acts on it.
-      const std::vector<KeyGroup> menus = keys(a_deviceShape != nullptr, true);
+      // The panel: the picked piece with what can be done with it, each region, shown or hidden, and each surface
+      // group with its selectors; its buttons are clicked.
+      const auto line = [&](const std::string& a_text) {
+        panelLines.push_back(a_text);
+        panelActions.emplace_back();
+      };
 
-      if (overlayOn && menu < menus.size() && std::string(menus[menu].m_title) == "Regions") {
-        const auto line = [&](const std::string& a_text, const PanelAction a_action, const uint32_t a_value) {
-          panelLines.push_back(a_text);
-          panelActions.emplace_back(a_action, a_value);
-        };
+      const auto button = [&](const std::string& a_label, const PanelAction a_action, const uint32_t a_value) {
+        std::string& text = panelLines.back();
 
-        line("Regions (click: show or hide)", PanelAction::None, 0U);
+        text += (text.empty() || text.back() == ' ') ? "" : " ";
 
-        for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
-          line(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + names.region(k),
-               PanelAction::ToggleRegion,
-               k);
-        }
+        const std::size_t begin = text.size();
 
-        line("", PanelAction::None, 0U);
-        line("Surface groups (click: select; Shift + click: delete)", PanelAction::None, 0U);
+        text += "[" + a_label + "]";
 
-        for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
-          line(std::string(g == currentGroup ? "  > " : "    ") + names.surfaceGroup(g), PanelAction::CurrentGroup, g);
+        panelActions.back().push_back(PanelSpan{begin, text.size(), a_action, a_value});
+      };
 
-          for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
-            if (scheme.getSurfaceGroupOfSelector(i) == g) {
-              line("      " + selectorName(scheme.getSelector(i)), PanelAction::Selector, i);
-            }
+      // A whole line that acts when clicked anywhere on it.
+      const auto clickable = [&](const std::string& a_text, const PanelAction a_action, const uint32_t a_value) {
+        line(a_text);
+
+        panelActions.back().push_back(PanelSpan{0, std::size_t(-1), a_action, a_value});
+      };
+
+      const SurfaceRef<T> piece = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
+
+      line("Picked");
+
+      if (piece.m_surface == SurfaceRef<T>::None) {
+        line("  nothing: click a surface");
+      }
+      else {
+        const uint32_t in = scheme.surfaceGroupOf(piece);
+
+        line("  " + names.surface(piece.m_surface) + ", part " + std::to_string(piece.m_part));
+        line("  inside  " + names.region(piece.m_insideRegion));
+        line("  outside " + names.region(piece.m_outsideRegion));
+        line("  in " + ((in == Scheme::None) ? std::string("no surface group") : names.surfaceGroup(in)));
+        line("  ");
+        button("Add piece", PanelAction::AddPiece, 0U);
+        button("Add surface", PanelAction::AddSurface, 0U);
+        button("Add interface", PanelAction::AddInterface, 0U);
+        line("  ");
+        button("Remove from " + ((scheme.getNumSurfaceGroups() > 0U) ? names.surfaceGroup(currentGroup)
+                                                                     : std::string("surface group")),
+               PanelAction::RemovePiece,
+               0U);
+      }
+
+      line("");
+      line("Regions");
+
+      for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
+        clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + names.region(k),
+                  PanelAction::ToggleRegion,
+                  k);
+      }
+
+      line("");
+      line("Surface groups");
+
+      for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+        line(std::string(g == currentGroup ? "  > " : "    "));
+
+        panelLines.back() += names.surfaceGroup(g);
+        panelActions.back().push_back(PanelSpan{0, panelLines.back().size(), PanelAction::CurrentGroup, g});
+
+        button("delete", PanelAction::DeleteGroup, g);
+
+        for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
+          if (scheme.getSurfaceGroupOfSelector(i) == g) {
+            line("      " + selectorName(scheme.getSelector(i)));
+            button("x", PanelAction::RemoveSelector, i);
           }
         }
+      }
 
-        if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
-          line("    + new surface group", PanelAction::NewGroup, 0U);
-        }
+      if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
+        line("  ");
+        button("+ new surface group", PanelAction::NewGroup, 0U);
       }
     }
 
@@ -1449,61 +1605,66 @@ run(const S&           a_shape,
               const int x = event.button.x * outputWidth / Math::max(windowWidth, 1);
               const int y = event.button.y * outputHeight / Math::max(windowHeight, 1);
 
-              const int left = outputWidth - panelWidth - 8;
-              const int row  = (y - 8 - 6 * panelScale) / (GlyphHeight * panelScale);
+              const int left   = outputWidth - panelWidth - 8;
+              const int row    = (y - 8 - 6 * panelScale) / (GlyphHeight * panelScale);
+              const int column = (x - left - 6 * panelScale) / (GlyphWidth * panelScale);
 
               if (!panelLines.empty() && x >= left && x < left + panelWidth && y >= 8 && y < 8 + panelHeight) {
-                if (y >= 8 + 6 * panelScale && row >= 0 && std::size_t(row) < panelActions.size()) {
-                  RegionSettings& regions = settings.m_regions;
-                  Scheme&         scheme  = regions.m_scheme;
+                PanelSpan clicked;
 
-                  const uint32_t value = panelActions[std::size_t(row)].second;
-
-                  switch (panelActions[std::size_t(row)].first) {
-                  case PanelAction::ToggleRegion: {
-                    regions.setVisible(value, !regions.isVisible(value, shape.getNumRegions()));
-
-                    break;
-                  }
-                  case PanelAction::CurrentGroup: {
-                    // Shift and a click deletes the group; a click makes it current.
-                    if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
-                      scheme.removeSurfaceGroup(value);
-                      names.removeSurfaceGroup(value);
-
-                      if (currentGroup > value ||
-                          (currentGroup == value && currentGroup >= scheme.getNumSurfaceGroups())) {
-                        currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
-                      }
+                if (y >= 8 + 6 * panelScale && x >= left + 6 * panelScale && row >= 0 &&
+                    std::size_t(row) < panelActions.size()) {
+                  for (const PanelSpan& span : panelActions[std::size_t(row)]) {
+                    if (std::size_t(column) >= span.m_begin && std::size_t(column) < span.m_end) {
+                      clicked = span;
                     }
-                    else {
-                      currentGroup = value;
-                    }
+                  }
+                }
 
-                    break;
-                  }
-                  case PanelAction::Selector: {
-                    // Shift and a click removes the selector; a click selects its group.
-                    if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
-                      scheme.remove(scheme.getSurfaceGroupOfSelector(value), scheme.getSelector(value));
-                    }
-                    else {
-                      currentGroup = scheme.getSurfaceGroupOfSelector(value);
-                    }
+                RegionSettings& regions = settings.m_regions;
+                Scheme&         scheme  = regions.m_scheme;
 
-                    break;
-                  }
-                  case PanelAction::NewGroup: {
-                    currentGroup = scheme.addSurfaceGroup();
+                switch (clicked.m_action) {
+                case PanelAction::AddPiece:
+                case PanelAction::AddSurface:
+                case PanelAction::AddInterface:
+                case PanelAction::RemovePiece: {
+                  (void)editPicked(clicked.m_action);
 
-                    break;
-                  }
-                  default: {
-                    break;
-                  }
-                  }
+                  break;
+                }
+                case PanelAction::ToggleRegion: {
+                  regions.setVisible(clicked.m_value, !regions.isVisible(clicked.m_value, shape.getNumRegions()));
 
                   rekeyPick();
+
+                  break;
+                }
+                case PanelAction::CurrentGroup: {
+                  currentGroup = clicked.m_value;
+
+                  break;
+                }
+                case PanelAction::DeleteGroup: {
+                  deleteGroup(clicked.m_value);
+
+                  break;
+                }
+                case PanelAction::RemoveSelector: {
+                  scheme.remove(scheme.getSurfaceGroupOfSelector(clicked.m_value), scheme.getSelector(clicked.m_value));
+
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::NewGroup: {
+                  currentGroup = scheme.addSurfaceGroup();
+
+                  break;
+                }
+                default: {
+                  break;
+                }
                 }
 
                 dragging = false;
@@ -2018,74 +2179,22 @@ run(const S&           a_shape,
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
         case SDLK_BACKSPACE: {
-          if constexpr (hasRegionVisibility<S>) {
-            Scheme&             scheme = settings.m_regions.m_scheme;
-            const SurfaceRef<T> piece  = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
+          // The panel's buttons for the picked piece, as keys.
+          const PanelAction action = (event.key.keysym.sym == SDLK_BACKSPACE)     ? PanelAction::RemovePiece
+                                     : ((event.key.keysym.mod & KMOD_CTRL) != 0)  ? PanelAction::AddInterface
+                                     : ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? PanelAction::AddSurface
+                                                                                  : PanelAction::AddPiece;
 
-            if (piece.m_surface == SurfaceRef<T>::None) {
-              changed = pending;
-
-              break;
-            }
-
-            const SurfaceSelector exact = SurfaceSelector::piece(piece);
-
-            if (event.key.keysym.sym == SDLK_BACKSPACE) {
-              // Every selector of the current group that holds the piece goes.
-              for (uint32_t i = scheme.getNumSelectors(); i > 0U; i--) {
-                const SurfaceSelector selector = scheme.getSelector(i - 1U);
-
-                if (scheme.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(piece)) {
-                  scheme.remove(currentGroup, selector);
-                }
-              }
-            }
-            else {
-              const SurfaceSelector selector =
-                ((event.key.keysym.mod & KMOD_CTRL) != 0) ? SurfaceSelector::interface(exact.m_regionA, exact.m_regionB)
-                : ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? SurfaceSelector::surface(exact.m_surface)
-                                                             : exact;
-
-              if (scheme.getNumSurfaceGroups() == 0U) {
-                currentGroup = scheme.addSurfaceGroup();
-              }
-
-              if (scheme.getNumSelectors() < Scheme::MaxSelectors) {
-                scheme.remove(currentGroup, selector);
-                scheme.add(currentGroup, selector);
-              }
-              else {
-                std::printf("EBGeometry viewer: the scheme holds %u selectors already\n",
-                            unsigned(Scheme::MaxSelectors));
-                std::fflush(stdout);
-              }
-            }
-
-            rekeyPick();
-          }
-          else {
+          if (!editPicked(action)) {
             changed = pending;
           }
 
           break;
         }
         case SDLK_DELETE: {
-          // Delete the current group (and its selectors).
+          // Delete the current surface group (and its selectors).
           if constexpr (hasRegionVisibility<S>) {
-            Scheme& scheme = settings.m_regions.m_scheme;
-
-            if (currentGroup < scheme.getNumSurfaceGroups()) {
-              scheme.removeSurfaceGroup(currentGroup);
-              names.removeSurfaceGroup(currentGroup);
-
-              currentGroup =
-                (currentGroup > 0U && currentGroup >= scheme.getNumSurfaceGroups()) ? currentGroup - 1U : currentGroup;
-
-              rekeyPick();
-            }
-            else {
-              changed = pending;
-            }
+            deleteGroup(currentGroup);
           }
           else {
             changed = pending;

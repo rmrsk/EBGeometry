@@ -197,13 +197,16 @@ opened with them.
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
    * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
-     - For a view of regions, building the scheme's surface groups (``Settings::m_regions.m_scheme``): add the picked
-       piece (its surface, part and the regions on its two sides) to the current group; add the picked surface
-       whole; add the interface between the picked piece's two regions; remove what holds the picked piece from
-       the current group; make the next group current, or start a new one past the last; delete the current group. The status lines name
-       the picked piece; while the regions' menu is shown, a panel at the top right lists the regions (a click
-       shows or hides one) and the surface groups with their selectors (a click on a group or a selector makes
-       that group current; Shift and a click deletes it). C also prints the scheme as C++.
+     - For a view of regions, shortcuts for the panel's buttons (below): add the picked piece to the current
+       surface group; add its whole surface; add the interface between its two regions; remove it from the
+       current surface group; make the next surface group current, or start one past the last; delete the
+       current surface group. C also prints the scheme as C++.
+
+A view of regions also gets a panel at the top right, used with the mouse. It shows the picked piece (its surface,
+part, the regions inside and outside, and its surface group) with buttons to add it, its whole surface or its
+interface to the current surface group, or to remove it; the regions, each shown or hidden by a click; and the
+surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
+it current, and its ``[delete]`` and a selector's ``[x]`` remove them; ``[+ new surface group]`` starts one.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.
