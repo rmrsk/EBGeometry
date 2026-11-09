@@ -91,6 +91,40 @@ struct RegionSettings
   uint32_t m_highlightGroup = None;
 
   /**
+   * @brief The hidden surface groups of the scheme, a bit each (bit g for surface group g): their surfaces are not
+   * drawn, and cast no shadow.
+   */
+  uint32_t m_hiddenGroups = 0U;
+
+  /**
+   * @brief Whether a surface group is hidden.
+   * @param[in] a_group The surface group, or None (never hidden).
+   * @return True if it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isSurfaceGroupHidden(const uint32_t a_group) const noexcept
+  {
+    return a_group < 32U && ((m_hiddenGroups >> a_group) & 1U) != 0U;
+  }
+
+  /**
+   * @brief Hide a surface group, or show it again.
+   * @param[in] a_group  The surface group (below Scheme::MaxSurfaceGroups).
+   * @param[in] a_hidden Whether to hide it.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  setSurfaceGroupHidden(const uint32_t a_group, const bool a_hidden) noexcept
+  {
+    if (a_group < 32U) {
+      const uint32_t bit = 1U << a_group;
+
+      m_hiddenGroups = a_hidden ? (m_hiddenGroups | bit) : (m_hiddenGroups & ~bit);
+    }
+  }
+
+  /**
    * @brief The key of the interface between two regions, the same whichever side it is seen from.
    * @param[in] a_first  A region.
    * @param[in] a_second The region on the other side.

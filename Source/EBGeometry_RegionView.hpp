@@ -171,7 +171,19 @@ public:
       // jacket is the jacket's bore; with the jacket seen through, the core's wall.
       const uint32_t sides[2] = {Math::max(from, to), Math::min(from, to)};
 
+      // The surface group the surface is in, when the settings hide or highlight one.
+      const uint32_t group = (m_settings.m_hiddenGroups != 0U || m_settings.m_highlightGroup != None)
+                               ? m_settings.m_scheme.surfaceGroupOf(change.m_surface)
+                               : None;
+
+      // A hidden surface group's surfaces are passed through.
+      const bool hidden = m_settings.isSurfaceGroupHidden(group);
+
       for (const uint32_t seen : sides) {
+        if (hidden) {
+          break;
+        }
+
         if (!this->isVisible(seen)) {
           continue;
         }
@@ -192,8 +204,7 @@ public:
         hit.m_primitive = key;
 
         // The surfaces of the highlighted surface group, whatever the coloring.
-        if (m_settings.m_highlightGroup != None &&
-            m_settings.m_scheme.surfaceGroupOf(change.m_surface) == m_settings.m_highlightGroup) {
+        if (m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) {
           hit.m_primitive = RegionSettings::Highlighted;
         }
 

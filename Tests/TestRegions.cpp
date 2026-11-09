@@ -1255,4 +1255,20 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
   settings.m_regions.m_hidden = 0U;
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 1U);
+
+  // A hidden surface group's surfaces are passed through: the core's (group 0) alone shown, nothing is hit.
+  settings.m_regions.m_highlightGroup = RegionSettings::None;
+  settings.m_regions.setSurfaceGroupHidden(0, true);
+
+  CHECK(settings.m_regions.isSurfaceGroupHidden(0));
+  CHECK(!settings.m_regions.isSurfaceGroupHidden(RegionSettings::None));
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 1U);
+
+  settings.m_regions.showOnly(2);
+
+  CHECK(!Render::Renderer<T>(settings).pick(view, camera, middle, middle).hit());
+
+  settings.m_regions.setSurfaceGroupHidden(0, false);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 2U);
 }

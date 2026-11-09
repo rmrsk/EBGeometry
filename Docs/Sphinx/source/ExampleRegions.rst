@@ -75,12 +75,12 @@ shows them all; T sees through the picked surface (the core's surface inside the
 the surfaces like the picked one. Hidden regions cast no shadow.
 
 A click picks the piece of surface under the cursor: its surface, part, and the regions on its two sides
-(``RegionView::pieceAt()`` gives it to a program). The panel at the top right shows it, with the ways to add it to
+(``RegionView::pieceAt()`` gives it to a program). The panel at the top left shows it, with the ways to add it to
 the current surface group of the scheme, each with how many pieces it takes in (this piece only, all of its surface,
 all surfaces of its region, or everything between its two regions), or to remove it; below, the regions, each shown or hidden by a click, and the surface groups with their selectors, a
-click making one current and highlighting its surfaces, ``[rename]`` typing its name, ``[delete]`` and ``[x]`` removing them, ``[+ new surface
+click making one current and highlighting its surfaces, ``[Hide]`` hiding them, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface
 group]`` starting one (its name typed first); last, the
-count of pieces and of those in no surface group, with ``[next unassigned]`` to go to the next of these, until
+count of pieces and of those in no surface group, with ``[Next unassigned]`` to go to the next of these, until
 every piece has a surface group. Colored by surface group, those in none are gray; C prints the scheme as C++, to paste into a program. The window names everything by the
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
 index (regions by their names and materials, "2 core (copper)", surfaces by their labels), with the surface groups

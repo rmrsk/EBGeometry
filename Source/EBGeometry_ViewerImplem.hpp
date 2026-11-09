@@ -461,7 +461,8 @@ enum class PanelAction : uint8_t
   PickPiece,      ///< Pick a piece of the list.
   ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
   RenameGroup,    ///< Type a surface group's name.
-  Details         ///< Show or hide details (numbers, coordinates, statistics).
+  Details,        ///< Show or hide details (numbers, coordinates, statistics).
+  HideGroup       ///< Hide a surface group's surfaces, or show them again.
 };
 
 /**
@@ -782,7 +783,8 @@ run(const S&           a_shape,
            value(a_selector.m_materialA) + ", " + value(a_selector.m_materialB) + "}";
   };
 
-  // The panel of regions and groups, drawn over the image's top right corner while the regions' menu is shown: its
+  // The panel of a view of regions (the picked surface, the regions, the surface groups), drawn over the image's top
+  // left corner: its
   // lines, and what a click on each does.
   std::vector<std::string>            panelLines;
   std::vector<std::vector<PanelSpan>> panelActions;
@@ -966,6 +968,12 @@ run(const S&           a_shape,
           currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
         }
 
+        // The hidden surface groups after it move down by one.
+        const uint32_t hidden = settings.m_regions.m_hiddenGroups;
+        const uint32_t below  = (1U << a_group) - 1U;
+
+        settings.m_regions.m_hiddenGroups = (hidden & below) | ((hidden >> (a_group + 1U)) << a_group);
+
         // The highlighted surface group moves down with the others, or goes with the one deleted.
         const uint32_t highlighted = settings.m_regions.m_highlightGroup;
 
@@ -1083,19 +1091,23 @@ run(const S&           a_shape,
       SDL_RenderCopy(screen, texture, nullptr, nullptr);
     }
 
+    // The panel of a view of regions takes the top left corner, the overlay of menus the top right; without a panel,
+    // the overlay is at the top left.
+    const bool withPanel = panel != nullptr && !panelLines.empty();
+
     if (overlay != nullptr) {
-      const SDL_Rect where{8, 8, overlayWidth, overlayHeight};
-
-      SDL_RenderCopy(screen, overlay, nullptr, &where);
-    }
-
-    if (panel != nullptr && !panelLines.empty()) {
       int outputWidth  = 0;
       int outputHeight = 0;
 
       SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
 
-      const SDL_Rect where{outputWidth - panelWidth - 8, 8, panelWidth, panelHeight};
+      const SDL_Rect where{withPanel ? outputWidth - overlayWidth - 8 : 8, 8, overlayWidth, overlayHeight};
+
+      SDL_RenderCopy(screen, overlay, nullptr, &where);
+    }
+
+    if (withPanel) {
+      const SDL_Rect where{8, 8, panelWidth, panelHeight};
 
       SDL_RenderCopy(screen, panel, nullptr, &where);
     }
@@ -1613,6 +1625,13 @@ run(const S&           a_shape,
       line("");
       line("Regions (click to show or hide)");
 
+      // The background, everything outside: never drawn, but named, with its material's color.
+      line("      " + region(0) + ", outside everything");
+
+      if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Material) {
+        swatch(names.materialOf(0));
+      }
+
       for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
         clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k),
                   PanelAction::ToggleRegion,
@@ -1639,13 +1658,15 @@ run(const S&           a_shape,
 
         line(std::string(g == currentGroup ? "  > " : "    "));
 
-        panelLines.back() += group(g) + ((regions.m_highlightGroup == g) ? " (highlighted)" : "");
+        panelLines.back() += group(g) + ((regions.m_highlightGroup == g) ? " (highlighted)" : "") +
+                             (regions.isSurfaceGroupHidden(g) ? " (hidden)" : "");
         panelActions.back().push_back(PanelSpan{0, panelLines.back().size(), PanelAction::CurrentGroup, g});
 
         if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::SurfaceGroup) {
           swatch(g);
         }
 
+        button(regions.isSurfaceGroupHidden(g) ? "Show" : "Hide", PanelAction::HideGroup, g);
         button("Rename", PanelAction::RenameGroup, g);
         button("Delete", PanelAction::DeleteGroup, g);
 
@@ -1997,22 +2018,25 @@ run(const S&           a_shape,
               const int x = event.button.x * outputWidth / Math::max(windowWidth, 1);
               const int y = event.button.y * outputHeight / Math::max(windowHeight, 1);
 
-              const int left   = outputWidth - panelWidth - 8;
+              const int left   = 8;
               const int row    = (y - 8 - 6 * panelScale) / (GlyphHeight * panelScale);
               const int column = (x - left - 6 * panelScale) / (GlyphWidth * panelScale);
 
-              if (!panelLines.empty() && x >= left && x < left + panelWidth && y >= 8 && y < 8 + panelHeight) {
-                PanelSpan clicked;
+              // Only a button or a clickable line is the panel's: a click elsewhere on it (it is translucent) picks
+              // the surface behind it.
+              PanelSpan clicked;
 
-                if (y >= 8 + 6 * panelScale && x >= left + 6 * panelScale && row >= 0 &&
-                    std::size_t(row) < panelActions.size()) {
-                  for (const PanelSpan& span : panelActions[std::size_t(row)]) {
-                    if (std::size_t(column) >= span.m_begin && std::size_t(column) < span.m_end) {
-                      clicked = span;
-                    }
+              if (!panelLines.empty() && x >= left + 6 * panelScale && x < left + panelWidth &&
+                  y >= 8 + 6 * panelScale && y < 8 + panelHeight && row >= 0 &&
+                  std::size_t(row) < panelActions.size()) {
+                for (const PanelSpan& span : panelActions[std::size_t(row)]) {
+                  if (std::size_t(column) >= span.m_begin && std::size_t(column) < span.m_end) {
+                    clicked = span;
                   }
                 }
+              }
 
+              if (clicked.m_action != PanelAction::None) {
                 RegionSettings& regions = settings.m_regions;
                 Scheme&         scheme  = regions.m_scheme;
 
@@ -2112,6 +2136,13 @@ run(const S&           a_shape,
                   }
 
                   applyColors();
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::HideGroup: {
+                  regions.setSurfaceGroupHidden(clicked.m_value, !regions.isSurfaceGroupHidden(clicked.m_value));
+
                   rekeyPick();
 
                   break;
@@ -2873,6 +2904,7 @@ run(const S&           a_shape,
             settings.m_regions.m_only   = a_settings.m_regions.m_only;
 
             settings.m_regions.m_highlightGroup = RegionSettings::None;
+            settings.m_regions.m_hiddenGroups   = a_settings.m_regions.m_hiddenGroups;
 
             for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
               settings.m_regions.m_through[i] = a_settings.m_regions.m_through[i];
