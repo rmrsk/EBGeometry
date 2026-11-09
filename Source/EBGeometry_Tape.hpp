@@ -908,7 +908,10 @@ public:
     PODVector<uint32_t> m_partSurfaceLabels;
 
     /**
-     * @brief Each region's program, from region 1 (TapeFeature::Regions); empty without the feature or an Overlay.
+     * @brief The regions (TapeFeature::Regions): the number of regions n (the background not counted), then each
+     * region's record's offset, then the records: the number m of masks above the region, their numbers (outermost
+     * first), and its m + 1 programs, the solid with every mask and then with the outermost 1, 2, ..., m left out.
+     * Empty without the feature or an Overlay.
      */
     PODVector<uint32_t> m_regionPrograms;
 
@@ -1771,6 +1774,29 @@ private:
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
    * @return The value.
    */
+  /**
+   * @brief A region's solid (TapeFeature::Regions): its operand under the maps above it and its masks but the
+   * outermost a_level.
+   * @param[in] a_region Region (1 to the number of regions less one).
+   * @param[in] a_level  How many of its outermost masks to leave out.
+   * @param[in] a_point  Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  regionSolid(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many masks two regions share (TapeFeature::Regions): those above both, which region k's function
+   * applies once rather than to each later region too (see TapeDetail::RegionSolid).
+   * @param[in] a_first  A region.
+   * @param[in] a_second Another region.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  sharedMasks(uint32_t a_first, uint32_t a_second) const noexcept;
+
   template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE

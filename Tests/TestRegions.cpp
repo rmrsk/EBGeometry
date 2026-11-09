@@ -258,8 +258,8 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
     Intersection(Overlay(std::vector<Expr<T>>{matrix, Overlay(shell, grain), Overlay(shell2, grain2)}, "air"), domain),
     slab);
 
-  const auto mask  = [&](const Vec3& p) { return Math::max(domain.signedDistance(p), -slab.signedDistance(p)); };
-  const auto solid = [&](const uint32_t k, const Vec3& p) {
+  const auto mask = [&](const Vec3& p) { return Math::max(domain.signedDistance(p), -slab.signedDistance(p)); };
+  const auto raw  = [&](const uint32_t k, const Vec3& p) {
     const T values[] = {T(0),
                         matrix.signedDistance(p),
                         shell.signedDistance(p),
@@ -267,8 +267,9 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
                         shell2.signedDistance(p),
                         grain2.signedDistance(p)};
 
-    return Math::max(values[k], mask(p));
+    return values[k];
   };
+  const auto solid = [&](const uint32_t k, const Vec3& p) { return Math::max(raw(k, p), mask(p)); };
 
   Pool pool(hostMemoryResource());
 
@@ -307,14 +308,15 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
 
         CHECK((d < T(0)) == (k == expected));
 
-        // Region k's function: its solid minus the later ones; the background's, minus the whole object.
+        // Region k's function: its solid with the masks, minus the later solids without them (the masks are above
+        // every region, so they are applied once); the background's, minus the whole object.
         T reference = -tape.signedDistance(p);
 
         if (k > 0) {
           T later = Math::Limits<T>::max();
 
           for (uint32_t m = k + 1; m < 6; m++) {
-            later = Math::min(later, solid(m, p));
+            later = Math::min(later, raw(m, p));
           }
 
           reference = Math::max(solid(k, p), -later);
@@ -381,4 +383,58 @@ TEMPLATE_TEST_CASE("RegionView: the visible regions as one shape, named by the r
   CHECK(all.withOnly(1).withAllVisible().isVisible(2));
   CHECK(hasRegionVisibility<RegionView<Tape>>);
   CHECK(!hasRegionVisibility<Tape>);
+}
+
+TEMPLATE_TEST_CASE("Tape: a mask above two regions leaves no sheet of zeros on its face inside the later one",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The cable (concentric spheres) cut by a slab (x > 0, |z| < 0.3): where the slab's face crosses the core, the
+  // jacket has no surface.
+  const BoxSDF<T> slab(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T, TapeFeature::Regions> tape(pool, Difference(cable<T>(), slab));
+
+  // On the slab's end face z = 0.3, inside the core's radius (0.5): the jacket's function is the distance to the
+  // core's surface, not zero (no sheet).
+  for (const T x : {T(0.05), T(0.2), T(0.35)}) {
+    const Vec3 p(x, T(0), T(0.3));
+
+    INFO("x " << x);
+
+    CHECK_THAT(tape.signedDistance(p, 1), withinAbsT<T>(T(0.5) - p.length(), tightMargin<T>()));
+  }
+
+  // A mask on one nested Overlay only: the matrix's function subtracts the particle as clipped, the particle's grain
+  // and shell share it.
+  const BoxSDF<T>    matrix(-T(3) * Vec3::ones(), T(3) * Vec3::ones());
+  const SphereSDF<T> shell(Vec3::zeros(), T(1));
+  const SphereSDF<T> grain(Vec3::zeros(), T(0.4));
+  const BoxSDF<T>    half(Vec3(T(-2), T(-2), T(-2)), Vec3(T(0), T(2), T(2)));
+
+  const Tape<T, TapeFeature::Regions> nested(pool, Overlay(matrix, Intersection(Overlay(shell, grain), half)));
+
+  for (const Vec3& p : {Vec3(T(0.5), T(0), T(0)),
+                        Vec3(T(-0.5), T(0), T(0)),
+                        Vec3(T(0), T(0.2), T(0)),
+                        Vec3(T(-0.2), T(0.1), T(0.05))}) {
+    INFO("point " << p);
+
+    const T clippedShell = Math::max(shell.signedDistance(p), half.signedDistance(p));
+    const T clippedGrain = Math::max(grain.signedDistance(p), half.signedDistance(p));
+
+    // The matrix (region 1): minus the clipped shell and grain. The shell (region 2): clipped, minus the grain without
+    // the shared mask.
+    CHECK_THAT(
+      nested.signedDistance(p, 1),
+      withinAbsT<T>(Math::max(matrix.signedDistance(p), -Math::min(clippedShell, clippedGrain)), tightMargin<T>()));
+    CHECK_THAT(nested.signedDistance(p, 2),
+               withinAbsT<T>(Math::max(clippedShell, -grain.signedDistance(p)), tightMargin<T>()));
+    CHECK_THAT(nested.signedDistance(p, 3), withinAbsT<T>(clippedGrain, tightMargin<T>()));
+  }
 }

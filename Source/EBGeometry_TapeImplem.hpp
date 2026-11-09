@@ -159,7 +159,8 @@ struct Staging
   std::vector<uint32_t> m_partSurfaceLabels;
 
   /**
-   * @brief Each region's program (TapeFeature::Regions), from region 1; empty without the feature or an Overlay.
+   * @brief The regions' table (TapeFeature::Regions), laid out as Tape::Layout::m_regionPrograms; empty without the
+   * feature or an Overlay.
    */
   std::vector<uint32_t> m_regionPrograms;
 };
@@ -1491,23 +1492,32 @@ countLeaves(const ExprDetail::Node<T>& a_node) noexcept
 }
 
 /**
- * @brief A region's solid (TapeFeature::Regions): its operand, under the maps and masks above it, and the first leaf
+ * @brief A region's solids (TapeFeature::Regions): its operand under the maps and masks above it, once with every
+ * mask (level 0) and once more for each outer mask left out (level l without the l outermost), with the first leaf
  * of the operand and of each mask in the whole expression.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. A mask above two regions removes the same space from both,
+ * so region k's function applies it once, after subtracting the later region j: max(S_k, M, -S_j), never max(S_k,
+ * M, -max(S_j, M)), which is zero on the mask's face inside S_j though nothing is there (a sheet the region's surface
+ * does not have). For each later region the function therefore uses its solid without the masks the two share.
  * @tparam T Floating-point precision.
  */
 template <class T>
 struct RegionSolid
 {
   /**
-   * @brief The solid.
+   * @brief The solid at each level, level 0 with every mask.
    */
-  Expr<T> m_expr;
+  std::vector<Expr<T>> m_levels;
 
   /**
-   * @brief The first leaf of each subtree it holds from the whole expression.
+   * @brief The first leaf of each subtree each level holds from the whole expression.
    */
-  std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> m_starts;
+  std::vector<std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>> m_starts;
+
+  /**
+   * @brief The masks above it (the clipping intersections), outermost first.
+   */
+  std::vector<const ExprDetail::Node<T>*> m_masks;
 };
 
 /**
@@ -1560,45 +1570,66 @@ regionSolids(const Expr<T>&                                                a_exp
   const ExprDetail::Node<T>& node = a_expr.node();
 
   if (!node.m_partition) {
-    RegionSolid<T> solid{withoutMaterial(a_expr), {}};
+    RegionSolid<T> solid;
 
-    solid.m_starts.emplace_back(&solid.m_expr.node(), a_firstLeaf);
-
-    // Wrap in the maps and masks above, innermost first.
-    for (auto step = a_path.rbegin(); step != a_path.rend(); ++step) {
-      const ExprDetail::Node<T>& above = *step->first;
-
-      if (above.m_kind == Kind::Affine) {
-        auto wrapped = ExprDetail::makeNode<T>(Kind::Affine, {solid.m_expr});
-
-        wrapped->m_map            = above.m_map;
-        wrapped->m_inverse        = above.m_inverse;
-        wrapped->m_valueScale     = above.m_valueScale;
-        wrapped->m_boundingVolume = above.m_inverse.transform(solid.m_expr.computeBoundingVolume());
-        wrapped->m_quality        = solid.m_expr.getDistanceQuality();
-
-        solid.m_expr = Expr<T>(std::move(wrapped));
+    for (const auto& step : a_path) {
+      if (step.first->m_kind == Kind::Intersection) {
+        solid.m_masks.push_back(step.first);
       }
-      else {
-        std::vector<Expr<T>> operands{solid.m_expr};
+    }
 
-        uint32_t leaf = step->second + countLeaves(above.m_children.front().node());
+    const Expr<T> operand = withoutMaterial(a_expr);
 
-        for (size_t i = 1; i < above.m_children.size(); i++) {
-          operands.push_back(above.m_children[i]);
+    // Level l leaves out the l outermost masks.
+    for (size_t level = 0; level <= solid.m_masks.size(); level++) {
+      Expr<T> expr = operand;
 
-          solid.m_starts.emplace_back(&above.m_children[i].node(), leaf);
+      std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> starts{{&operand.node(), a_firstLeaf}};
 
-          leaf += countLeaves(above.m_children[i].node());
+      // The masks left out are the outermost: counting from the innermost, the first (masks - level) are kept.
+      size_t kept = solid.m_masks.size() - level;
+
+      // Wrap in the maps and masks above, innermost first.
+      for (auto step = a_path.rbegin(); step != a_path.rend(); ++step) {
+        const ExprDetail::Node<T>& above = *step->first;
+
+        if (above.m_kind == Kind::Affine) {
+          auto wrapped = ExprDetail::makeNode<T>(Kind::Affine, {expr});
+
+          wrapped->m_map            = above.m_map;
+          wrapped->m_inverse        = above.m_inverse;
+          wrapped->m_valueScale     = above.m_valueScale;
+          wrapped->m_boundingVolume = above.m_inverse.transform(expr.computeBoundingVolume());
+          wrapped->m_quality        = expr.getDistanceQuality();
+
+          expr = Expr<T>(std::move(wrapped));
         }
+        else if (kept > 0) {
+          kept--;
 
-        auto wrapped = ExprDetail::makeNode<T>(Kind::Intersection, std::move(operands));
+          std::vector<Expr<T>> operands{expr};
 
-        wrapped->m_boundingVolume = above.m_boundingVolume;
-        wrapped->m_quality        = above.m_quality;
+          uint32_t leaf = step->second + countLeaves(above.m_children.front().node());
 
-        solid.m_expr = Expr<T>(std::move(wrapped));
+          for (size_t i = 1; i < above.m_children.size(); i++) {
+            operands.push_back(above.m_children[i]);
+
+            starts.emplace_back(&above.m_children[i].node(), leaf);
+
+            leaf += countLeaves(above.m_children[i].node());
+          }
+
+          auto wrapped = ExprDetail::makeNode<T>(Kind::Intersection, std::move(operands));
+
+          wrapped->m_boundingVolume = above.m_boundingVolume;
+          wrapped->m_quality        = above.m_quality;
+
+          expr = Expr<T>(std::move(wrapped));
+        }
       }
+
+      solid.m_levels.push_back(expr);
+      solid.m_starts.push_back(std::move(starts));
     }
 
     a_solids.push_back(std::move(solid));
@@ -1663,8 +1694,35 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
 
       TapeDetail::regionSolids(a_expr, 0U, path, solids);
 
-      for (const TapeDetail::RegionSolid<T>& solid : solids) {
-        staging.m_regionPrograms.push_back(compiler.compileRegion(solid.m_expr.node(), solid.m_starts));
+      // The table: the number of regions, each region's record's offset, then the records: the number of masks
+      // above the region, their numbers (outermost first), and its programs, level 0 (every mask) to the last.
+      std::vector<uint32_t>&                  table = staging.m_regionPrograms;
+      std::vector<const ExprDetail::Node<T>*> masks;
+
+      table.assign(1U + solids.size(), 0U);
+
+      table[0] = static_cast<uint32_t>(solids.size());
+
+      for (size_t k = 0; k < solids.size(); k++) {
+        const TapeDetail::RegionSolid<T>& solid = solids[k];
+
+        table[1U + k] = static_cast<uint32_t>(table.size());
+
+        table.push_back(static_cast<uint32_t>(solid.m_masks.size()));
+
+        for (const ExprDetail::Node<T>* mask : solid.m_masks) {
+          const auto found = std::find(masks.begin(), masks.end(), mask);
+
+          table.push_back(static_cast<uint32_t>(found - masks.begin()));
+
+          if (found == masks.end()) {
+            masks.push_back(mask);
+          }
+        }
+
+        for (size_t level = 0; level < solid.m_levels.size(); level++) {
+          table.push_back(compiler.compileRegion(solid.m_levels[level].node(), solid.m_starts[level]));
+        }
       }
     }
   }
@@ -3297,9 +3355,48 @@ EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumRegions() const noexcept
 {
-  const uint32_t n = m_layout.m_regionPrograms.size();
+  return (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(this->base(), 0U) + 1U : 2U;
+}
 
-  return (n > 0) ? n + 1U : 2U;
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::regionSolid(const uint32_t  a_region,
+                                        const uint32_t  a_level,
+                                        const Vec3T<T>& a_point) const noexcept
+{
+  const void* base = this->base();
+
+  // The region's record: its number of masks, their numbers, then its programs by level.
+  const uint32_t record  = m_layout.m_regionPrograms.at(base, a_region);
+  const uint32_t masks   = m_layout.m_regionPrograms.at(base, record);
+  const uint32_t program = m_layout.m_regionPrograms.at(base, record + 1U + masks + a_level);
+
+  EBGEOMETRY_EXPECT(a_level <= masks);
+
+  return this->template evaluate<MaxCallDepth, T>(program, a_point, base, this->location());
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::sharedMasks(const uint32_t a_first, const uint32_t a_second) const noexcept
+{
+  const void* base = this->base();
+
+  const uint32_t first  = m_layout.m_regionPrograms.at(base, a_first);
+  const uint32_t second = m_layout.m_regionPrograms.at(base, a_second);
+  const uint32_t n = Math::min(m_layout.m_regionPrograms.at(base, first), m_layout.m_regionPrograms.at(base, second));
+
+  // The masks are listed outermost first, so those above both regions are a common prefix.
+  uint32_t shared = 0;
+
+  while (shared < n && m_layout.m_regionPrograms.at(base, first + 1U + shared) ==
+                         m_layout.m_regionPrograms.at(base, second + 1U + shared)) {
+    shared++;
+  }
+
+  return shared;
 }
 
 template <class T, class... UserPrimitives>
@@ -3308,18 +3405,16 @@ EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 {
-  const uint32_t n = m_layout.m_regionPrograms.size();
-
   // An object with no Overlay is one region.
-  if (n == 0U) {
+  if (m_layout.m_regionPrograms.size() == 0U) {
     return (this->signedDistance(a_point) < T(0)) ? 1U : 0U;
   }
 
-  // The last region whose solid holds the point: later regions are on top.
-  for (uint32_t k = n; k > 0U; k--) {
-    const uint32_t program = m_layout.m_regionPrograms.at(this->base(), k - 1U);
+  const uint32_t n = m_layout.m_regionPrograms.at(this->base(), 0U);
 
-    if (this->template evaluate<MaxCallDepth, T>(program, a_point, this->base(), this->location()) < T(0)) {
+  // The last region whose solid, with all its masks, holds the point: later regions are on top.
+  for (uint32_t k = n; k > 0U; k--) {
+    if (this->regionSolid(k, 0U, a_point) < T(0)) {
       return k;
     }
   }
@@ -3333,9 +3428,9 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
 {
-  const uint32_t n = m_layout.m_regionPrograms.size();
+  const uint32_t n = (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(this->base(), 0U) : 0U;
 
-  EBGEOMETRY_EXPECT(a_region < ((n > 0) ? n + 1U : 2U));
+  EBGEOMETRY_EXPECT(a_region <= Math::max(n, 1U));
 
   // The background is the outside of the whole object; an object with no Overlay is region 1.
   if (a_region == 0U) {
@@ -3346,20 +3441,15 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
     return this->signedDistance(a_point);
   }
 
-  const auto solid = [this, &a_point](const uint32_t a_k) -> T {
-    const uint32_t program = m_layout.m_regionPrograms.at(this->base(), a_k - 1U);
-
-    return this->template evaluate<MaxCallDepth, T>(program, a_point, this->base(), this->location());
-  };
-
-  // Region k is its solid minus the later ones: max(S_k, -min_{j>k} S_j).
+  // Region k is its solid with its masks, minus each later solid without the masks the two share (see
+  // TapeDetail::RegionSolid): max(S_k, -min_{j>k} S_j).
   T later = Math::Limits<T>::max();
 
   for (uint32_t j = a_region + 1U; j <= n; j++) {
-    later = Math::min(later, solid(j));
+    later = Math::min(later, this->regionSolid(j, this->sharedMasks(a_region, j), a_point));
   }
 
-  return Math::max(solid(a_region), -later);
+  return Math::max(this->regionSolid(a_region, 0U, a_point), -later);
 }
 
 template <class T, class... UserPrimitives>
