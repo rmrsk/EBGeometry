@@ -544,6 +544,7 @@ instantiateFunctionTemplates()
         }
       }
       (void)ExprIndex<T>(Overlay(RegionName(expr, "a"), expr)).findRegion("a");
+      (void)ExprIndex<T>(Overlay(expr, expr)).checkLabels(Overlay(expr, expr), regions);
       (void)regions.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
       (void)regions.firstRegionChange(Vec3T<T>::zeros(), Vec3T<T>::ones());
       (void)regions.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1), subdomains, 0U);

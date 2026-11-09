@@ -14,6 +14,7 @@
 // Std includes
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -1234,6 +1235,243 @@ operationName(const Node<T>& a_node)
   }
 }
 
+/**
+ * @brief Bounds of a value over a ball: lo <= v(x) <= hi for every x in it.
+ * @details Internal helper; not part of the public API. An unknown side is +-Math::Limits<T>::max().
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct Bounds
+{
+  /**
+   * @brief Lower bound.
+   */
+  T m_lo = -Math::Limits<T>::max();
+
+  /**
+   * @brief Upper bound.
+   */
+  T m_hi = Math::Limits<T>::max();
+};
+
+/**
+ * @brief A shape's value at a point in its frame, for bounds (ExprIndex::checkLabels()): false when it cannot be read.
+ * @details Internal helper; not part of the public API.
+ */
+template <class T>
+using LeafValue = std::function<bool(const Node<T>&, const Vec3T<T>&, T&)>;
+
+/**
+ * @brief Bounds of a node's value over a ball (ExprIndex::checkLabels()).
+ * @details Internal helper; not part of the public API. A shape whose value is a distance or a bound is 1-Lipschitz,
+ * so its value at the center, plus or minus the radius, bounds it; operations combine their operands' bounds. Not
+ * bounded: Repeat, Blur and Mollify, a shape whose value is not a distance, and one whose value cannot be read. A
+ * node with an exact distance whose box the ball misses is not evaluated: its value is at least the distance to the
+ * box. Recursive, on the host only. The shapes' values come from a_leafValue (a tape's leaves, Tape::leafValue()),
+ * so that the expression holds no evaluation of its own.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node      Node.
+ * @param[in] a_center    The ball's center, in the node's frame.
+ * @param[in] a_radius    The ball's radius.
+ * @param[in] a_leafValue A shape's value.
+ * @return The bounds.
+ */
+template <class T>
+[[nodiscard]] inline Bounds<T>
+boundsOver(const Node<T>& a_node, const Vec3T<T>& a_center, const T a_radius, const LeafValue<T>& a_leafValue)
+{
+  Bounds<T> bounds;
+
+  if (a_node.m_quality == DistanceQuality::Exact && !isEmpty(a_node.m_boundingVolume)) {
+    const T gap = a_node.m_boundingVolume.getDistance(a_center) - a_radius;
+
+    if (gap > T(0)) {
+      bounds.m_lo = gap;
+
+      return bounds;
+    }
+  }
+
+  // The operands' bounds.
+  std::vector<Bounds<T>> operands;
+
+  const auto all = [&](const Vec3T<T>& a_c, const T a_r) {
+    for (const Expr<T>& child : a_node.m_children) {
+      operands.push_back(boundsOver(child.node(), a_c, a_r, a_leafValue));
+    }
+  };
+
+  switch (a_node.m_kind) {
+  case Kind::Primitive: {
+    T value = T(0);
+
+    if (a_node.m_quality != DistanceQuality::NotADistance && a_leafValue(a_node, a_center, value)) {
+      bounds.m_lo = value - a_radius;
+      bounds.m_hi = value + a_radius;
+    }
+
+    break;
+  }
+  case Kind::Affine: {
+    // The maps are similarities: the child's frame is scaled by 1 / m_valueScale.
+    all(a_node.m_map(a_center), a_radius / a_node.m_valueScale);
+
+    bounds.m_lo = operands.front().m_lo * a_node.m_valueScale;
+    bounds.m_hi = operands.front().m_hi * a_node.m_valueScale;
+
+    break;
+  }
+  case Kind::Elongate: {
+    // p - clamp(p, -h, h) moves two points no farther apart, so the ball maps into one of the same radius.
+    Vec3T<T> q;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      q[dir] = a_center[dir] - Math::clamp(a_center[dir], -a_node.m_vec0[dir], a_node.m_vec0[dir]);
+    }
+
+    all(q, a_radius);
+
+    bounds = operands.front();
+
+    break;
+  }
+  case Kind::Complement: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = -operands.front().m_hi;
+    bounds.m_hi = -operands.front().m_lo;
+
+    break;
+  }
+  case Kind::Offset: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = operands.front().m_lo - a_node.m_scalar0;
+    bounds.m_hi = operands.front().m_hi - a_node.m_scalar0;
+
+    break;
+  }
+  case Kind::Annular: {
+    all(a_center, a_radius);
+
+    const Bounds<T>& v = operands.front();
+
+    // |v| - delta.
+    const T lo = (v.m_lo >= T(0)) ? v.m_lo : ((v.m_hi <= T(0)) ? -v.m_hi : T(0));
+    const T hi = Math::max(std::abs(v.m_lo), std::abs(v.m_hi));
+
+    bounds.m_lo = lo - a_node.m_scalar0;
+    bounds.m_hi = hi - a_node.m_scalar0;
+
+    break;
+  }
+  case Kind::Union:
+  case Kind::SmoothUnion: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = Math::Limits<T>::max();
+    bounds.m_hi = Math::Limits<T>::max();
+
+    for (const Bounds<T>& v : operands) {
+      bounds.m_lo = Math::min(bounds.m_lo, v.m_lo);
+      bounds.m_hi = Math::min(bounds.m_hi, v.m_hi);
+    }
+
+    // A smooth minimum is at most the minimum, by an amount the bounds do not track.
+    if (a_node.m_kind == Kind::SmoothUnion) {
+      bounds.m_lo = -Math::Limits<T>::max();
+    }
+
+    break;
+  }
+  case Kind::Intersection:
+  case Kind::SmoothIntersection: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = -Math::Limits<T>::max();
+    bounds.m_hi = -Math::Limits<T>::max();
+
+    for (const Bounds<T>& v : operands) {
+      bounds.m_lo = Math::max(bounds.m_lo, v.m_lo);
+      bounds.m_hi = Math::max(bounds.m_hi, v.m_hi);
+    }
+
+    if (a_node.m_kind == Kind::SmoothIntersection) {
+      bounds.m_hi = Math::Limits<T>::max();
+    }
+
+    break;
+  }
+  default: {
+    break;
+  }
+  }
+
+  return bounds;
+}
+
+/**
+ * @brief Whether a box is proved strictly inside other operands of a node (a union, or an Overlay's later operands)
+ * or strictly outside one (an intersection), other than the one it comes from (ExprIndex::checkLabels()).
+ * @details Internal helper; not part of the public API. The ball around the box is tested against each other
+ * operand; a box no operand decides on whole is split in eight, each piece tested again, a_depth times.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node      A union, an Overlay or an intersection.
+ * @param[in] a_skip      The operand the box comes from.
+ * @param[in] a_box       The box, in the node's frame.
+ * @param[in] a_depth     How many more times the box may be split.
+ * @param[in] a_leafValue A shape's value.
+ * @return True if proved.
+ */
+template <class T>
+[[nodiscard]] inline bool
+coveredBySibling(const Node<T>&                   a_node,
+                 const size_t                     a_skip,
+                 const BoundingVolumes::AABBT<T>& a_box,
+                 const int                        a_depth,
+                 const LeafValue<T>&              a_leafValue)
+{
+  const bool     isUnion = a_node.m_kind == Kind::Union;
+  const Vec3T<T> center  = a_box.getCentroid();
+  const T        radius  = T(0.5) * (a_box.getHighCorner() - a_box.getLowCorner()).length();
+
+  // In an Overlay, only a later operand covers: an earlier one lies under it.
+  for (size_t i = a_node.m_overlay ? a_skip + 1 : 0; i < a_node.m_children.size(); i++) {
+    if (i == a_skip) {
+      continue;
+    }
+
+    const Bounds<T> bounds = boundsOver(a_node.m_children[i].node(), center, radius, a_leafValue);
+
+    if (isUnion ? (bounds.m_hi < T(0)) : (bounds.m_lo > T(0))) {
+      return true;
+    }
+  }
+
+  if (a_depth == 0) {
+    return false;
+  }
+
+  // Each eighth of the box may be decided by another operand.
+  for (int octant = 0; octant < 8; octant++) {
+    Vec3T<T> lo;
+    Vec3T<T> hi;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const bool upper = ((octant >> dir) & 1) != 0;
+
+      lo[dir] = upper ? center[dir] : a_box.getLowCorner()[dir];
+      hi[dir] = upper ? a_box.getHighCorner()[dir] : center[dir];
+    }
+
+    if (!coveredBySibling(a_node, a_skip, BoundingVolumes::AABBT<T>(lo, hi), a_depth - 1, a_leafValue)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 } // namespace ExprDetail
 
 template <class T>
@@ -1848,6 +2086,221 @@ ExprIndex<T>::findMaterialLabel(const std::string_view a_name) const
   const auto entry = m_materialLabelIds.find(std::string(a_name));
 
   return (entry != m_materialLabelIds.end()) ? entry->second : MaterialLabelId::none();
+}
+
+template <class T>
+inline std::string
+ExprIndex<T>::whyHidden(const uint32_t                                                              a_node,
+                        const std::vector<const ExprDetail::Node<T>*>&                              a_nodes,
+                        const std::function<bool(const ExprDetail::Node<T>&, const Vec3T<T>&, T&)>& a_leafValue) const
+{
+  using Kind = ExprDetail::Kind;
+
+  // An operation on the values (not on the sets) moves the boundary in ways the box does not follow.
+  for (uint32_t node = m_nodes[a_node].m_parent; node != None; node = m_nodes[node].m_parent) {
+    switch (a_nodes[node]->m_kind) {
+    case Kind::Offset:
+    case Kind::Annular:
+    case Kind::Blur:
+    case Kind::Mollify:
+    case Kind::SmoothUnion:
+    case Kind::SmoothIntersection: {
+      return "";
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  BoundingVolumes::AABBT<T> box = a_nodes[a_node]->m_boundingVolume;
+
+  if (ExprDetail::isEmpty(box)) {
+    return "it is empty";
+  }
+
+  // The box, carried up in each node's frame, tested against the other operands of each union, Overlay and
+  // intersection on the way.
+  for (uint32_t child = a_node, node = m_nodes[a_node].m_parent; node != None;
+       child = node, node = m_nodes[node].m_parent) {
+    for (size_t dir = 0; dir < 3; dir++) {
+      if (!(std::abs(box.getLowCorner()[dir]) < Math::Limits<T>::max()) ||
+          !(std::abs(box.getHighCorner()[dir]) < Math::Limits<T>::max())) {
+        return "";
+      }
+    }
+
+    const ExprDetail::Node<T>& expr = *a_nodes[node];
+
+    switch (expr.m_kind) {
+    case Kind::Affine: {
+      box = expr.m_inverse.transform(box);
+
+      break;
+    }
+    case Kind::Elongate: {
+      box = ExprDetail::grown(box, expr.m_vec0);
+
+      break;
+    }
+    case Kind::Repeat: {
+      Vec3T<T> lo = box.getLowCorner();
+      Vec3T<T> hi = box.getHighCorner();
+
+      for (size_t dir = 0; dir < 3; dir++) {
+        lo[dir] -= expr.m_vec0[dir] * expr.m_vec1[dir];
+        hi[dir] += expr.m_vec0[dir] * expr.m_vec2[dir];
+      }
+
+      box = BoundingVolumes::AABBT<T>(lo, hi);
+
+      break;
+    }
+    case Kind::Union:
+    case Kind::Intersection: {
+      const std::vector<uint32_t>& operands = m_operands[node];
+
+      const auto operand = static_cast<size_t>(std::find(operands.begin(), operands.end(), child) - operands.begin());
+
+      if (ExprDetail::coveredBySibling(expr, operand, box, 2, a_leafValue)) {
+        return expr.m_overlay ? "it lies under later regions of the Overlay at node " + std::to_string(node)
+               : (expr.m_kind == Kind::Union)
+                 ? "it lies inside another operand of the union at node " + std::to_string(node)
+                 : "it lies outside another operand of the intersection at node " + std::to_string(node);
+      }
+
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  return "";
+}
+
+template <class T>
+template <class TapeType>
+inline std::vector<std::string>
+ExprIndex<T>::checkLabels(const Expr<T>& a_expr, const TapeType& a_tape) const
+{
+  // The expression's nodes, numbered as the index numbers them: depth first, the operands in order.
+  std::vector<const ExprDetail::Node<T>*> nodes;
+
+  const std::function<void(const ExprDetail::Node<T>&)> number = [&nodes, &number](const ExprDetail::Node<T>& a_node) {
+    nodes.push_back(&a_node);
+
+    for (const Expr<T>& child : a_node.m_children) {
+      number(child.node());
+    }
+  };
+
+  number(a_expr.node());
+
+  EBGEOMETRY_REQUIRE(nodes.size() == m_nodes.size(),
+                     "ExprIndex: checkLabels was given an expression of %zu nodes, the index's has %zu",
+                     nodes.size(),
+                     m_nodes.size());
+
+  // A shape's value through the tape, by its leaf number.
+  std::unordered_map<const ExprDetail::Node<T>*, uint32_t> leaves;
+
+  for (uint32_t leaf = 0; leaf < this->getNumLeaves(); leaf++) {
+    leaves.emplace(nodes[m_leafNodes[leaf]], leaf);
+  }
+
+  const std::function<bool(const ExprDetail::Node<T>&, const Vec3T<T>&, T&)> leafValue =
+    [&leaves, &a_tape](const ExprDetail::Node<T>& a_node, const Vec3T<T>& a_point, T& a_value) {
+      const auto found = leaves.find(&a_node);
+
+      return found != leaves.end() && a_tape.leafValue(found->second, a_point, a_value);
+    };
+
+  std::vector<std::string> warnings;
+
+  // Surface labels: lost when every leaf (or part) carrying one is.
+  for (uint32_t label = 0; label < this->getNumSurfaceLabels(); label++) {
+    const SurfaceLabelId id(label);
+    const std::string    name = "surface label \"" + this->getSurfaceLabelName(id) + "\"";
+
+    std::vector<std::string> reasons;
+
+    size_t carriers = 0;
+
+    for (uint32_t leaf = 0; leaf < this->getNumLeaves(); leaf++) {
+      const std::vector<SurfaceLabelId>& parts = m_leafPartSurfaceLabels[leaf];
+
+      const bool carries =
+        parts.empty() ? (m_leafSurfaceLabels[leaf] == id) : (std::find(parts.begin(), parts.end(), id) != parts.end());
+
+      if (carries) {
+        carriers++;
+
+        const std::string reason = this->whyHidden(m_leafNodes[leaf], nodes, leafValue);
+
+        if (reason.empty()) {
+          break;
+        }
+
+        reasons.push_back("leaf " + std::to_string(leaf) + ": " + reason);
+      }
+    }
+
+    if (carriers == 0) {
+      warnings.push_back(name + " is on no surface: every leaf below it has a label of its own");
+    }
+    else if (reasons.size() == carriers) {
+      std::string warning = name + " cannot reach the boundary: ";
+
+      for (size_t i = 0; i < reasons.size() && i < 3; i++) {
+        warning += (i > 0 ? "; " : "") + reasons[i];
+      }
+
+      if (reasons.size() > 3) {
+        warning += "; and " + std::to_string(reasons.size() - 3) + " more leaves";
+      }
+
+      warnings.push_back(std::move(warning));
+    }
+  }
+
+  // Regions: empty when their operand is covered by later ones or cut away.
+  std::vector<bool> empty(m_regions.size(), false);
+
+  for (uint32_t k = 1; k < m_regions.size(); k++) {
+    if (m_regions[k].m_node == None) {
+      continue;
+    }
+
+    const std::string reason = this->whyHidden(m_regions[k].m_node, nodes, leafValue);
+
+    if (!reason.empty()) {
+      empty[k] = true;
+
+      warnings.push_back("region " + std::to_string(k) +
+                         (m_regions[k].m_name.empty() ? std::string() : " \"" + m_regions[k].m_name + "\"") +
+                         " has no volume: " + reason);
+    }
+  }
+
+  // Materials: lost when every region of one is empty.
+  for (uint32_t material = 0; material < this->getNumMaterialLabels(); material++) {
+    const std::vector<uint32_t> regions = this->getRegionsOfMaterial(MaterialLabelId(material));
+
+    bool lost = !regions.empty();
+
+    for (const uint32_t k : regions) {
+      lost = lost && k < empty.size() && empty[k];
+    }
+
+    if (lost) {
+      warnings.push_back("material \"" + this->getMaterialLabelName(MaterialLabelId(material)) +
+                         "\" is on no region with volume");
+    }
+  }
+
+  return warnings;
 }
 
 template <class T>

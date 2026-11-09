@@ -1189,6 +1189,19 @@ public:
   getNumSurfaceLabels() const noexcept;
 
   /**
+   * @brief A leaf's own value at a point in its frame (as LeafRef::m_localPoint gives one): its shape's
+   * signedDistance(), on the host, for diagnostics (ExprIndex::checkLabels()). The tape's pool must be readable on the
+   * host.
+   * @param[in]  a_leaf  The leaf, numbered as ExprIndex numbers them.
+   * @param[in]  a_point The point, in the leaf's frame.
+   * @param[out] a_value Its value.
+   * @return Whether the tape holds the leaf (a leaf inside a collection is not one of the tape's).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  leafValue(uint32_t a_leaf, const Vec3T<T>& a_point, T& a_value) const;
+
+  /**
    * @brief How many regions the object has: the background (region 0) and one per operand of
    * its Overlays, numbered as ExprIndex numbers them; 2 for an object with no Overlay (the outside and the object).
    * @return The count.

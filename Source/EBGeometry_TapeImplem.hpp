@@ -3867,6 +3867,27 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexce
 }
 
 template <class T, class... UserPrimitives>
+inline bool
+Tape<T, UserPrimitives...>::leafValue(const uint32_t a_leaf, const Vec3T<T>& a_point, T& a_value) const
+{
+  // The leaf's primitive clause names its type and its index in the type's array (the region programs emit the
+  // same leaves again; the first is as good as any).
+  const void* const base = this->base();
+
+  for (uint32_t i = 0; i < m_layout.m_clauses.size(); i++) {
+    const TapeDetail::Clause& c = m_layout.m_clauses.at(base, i);
+
+    if (c.m_op == TapeDetail::Op::Primitive && c.m_b == a_leaf) {
+      a_value = this->evaluatePrimitive(c.m_type, c.m_a, a_point, base, this->location());
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline LeafRef<T>
 Tape<T, UserPrimitives...>::leafOf(const CSGOps::Tagged<T>& a_value) const noexcept

@@ -449,7 +449,8 @@ Test coverage
        materials), and the rejected groups; the region queries, and a ``Domain`` taken whole by a kernel (each
        subdomain's function, surface, role and boundary condition), on the device against the host; the pieces an
        object has and may have, and a scheme's coverage of them; ``RegionView``'s highlights, hidden surface groups and
-       field regions.
+       section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
+       under later regions, outside a mask), and leaving unproved what it cannot prove.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

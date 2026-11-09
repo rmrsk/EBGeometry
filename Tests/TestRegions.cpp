@@ -1482,3 +1482,150 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
 }
+
+TEMPLATE_TEST_CASE("ExprIndex: checkLabels reports a label a union covers or an intersection cuts away",
+                   "[ExprIndex][checkLabels]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // The warnings for an expression, its shapes evaluated through its tape.
+  const auto check = [&pool](const Expr<T>& a_expr) {
+    return ExprIndex<T>(a_expr).checkLabels(a_expr, Tape<T>(pool, a_expr));
+  };
+
+  const auto shell = SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(1)), "shell");
+  const auto core  = SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "core");
+
+  // A core inside the shell has no surface on the union: the shell's covers it.
+  const std::vector<std::string> covered = check(Union(shell, core));
+
+  REQUIRE(covered.size() == 1U);
+  CHECK(
+    covered[0] ==
+    "surface label \"core\" cannot reach the boundary: leaf 1: it lies inside another operand of the union at node 0");
+
+  // Moved, scaled or repeated as a whole, it is still covered.
+  CHECK(check(Translate(Scale(Union(shell, core), T(2)), Vec3(T(3), T(0), T(0)))).size() == 1U);
+  CHECK(check(FiniteRepetition(Union(shell, core), Vec3(T(3), T(3), T(3)), Vec3::zeros(), Vec3::ones())).size() == 1U);
+
+  // A hole that misses the block cuts nothing: it lies outside the intersection's other operand.
+  const auto block   = SurfaceLabel(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), "block");
+  const auto farHole = SurfaceLabel(Translate(SphereSDF<T>(Vec3::zeros(), T(0.3)), Vec3(T(5), T(0), T(0))), "far hole");
+  const auto nearHole =
+    SurfaceLabel(Translate(SphereSDF<T>(Vec3::zeros(), T(0.3)), Vec3(T(1), T(0), T(0))), "near hole");
+
+  const std::vector<std::string> cut = check(Difference(block, Union(farHole, nearHole)));
+
+  REQUIRE(cut.size() == 1U);
+  CHECK(cut[0] == "surface label \"far hole\" cannot reach the boundary: leaf 1: it lies outside another operand of "
+                  "the intersection at node 0");
+
+  // A rod no one sphere holds, but two together do: each eighth of its box is inside one of them.
+  const auto         rod = SurfaceLabel(BoxSDF<T>(Vec3(T(-1), T(-0.2), T(-0.2)), Vec3(T(1), T(0.2), T(0.2))), "rod");
+  const SphereSDF<T> left(Vec3(T(-0.6), T(0), T(0)), T(0.8));
+  const SphereSDF<T> right(Vec3(T(0.6), T(0), T(0)), T(0.8));
+
+  CHECK(check(Union(std::vector<Expr<T>>{rod, left, right})).size() == 1U);
+
+  // A label is lost only when every leaf carrying it is: one bead sticks out of the shell.
+  const SphereSDF<T> bead(Vec3::zeros(), T(0.2));
+
+  const auto inside   = SurfaceLabel(Union(bead, Translate(bead, Vec3(T(0.3), T(0), T(0)))), "beads");
+  const auto stickOut = SurfaceLabel(Union(bead, Translate(bead, Vec3(T(1), T(0), T(0)))), "beads");
+
+  CHECK(check(Union(shell, inside)).size() == 1U);
+  CHECK(check(Union(shell, stickOut)).empty());
+
+  // A label every leaf below it overrides is on no surface.
+  const auto apart = SurfaceLabel(Translate(bead, Vec3(T(3), T(0), T(0))), "bead");
+
+  const std::vector<std::string> shadowed = check(SurfaceLabel(Union(shell, apart), "outer"));
+
+  REQUIRE(shadowed.size() == 1U);
+  CHECK(shadowed[0] == "surface label \"outer\" is on no surface: every leaf below it has a label of its own");
+}
+
+TEMPLATE_TEST_CASE("ExprIndex: checkLabels reports only what it proves, and evaluates a mesh through the tape",
+                   "[ExprIndex][checkLabels]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const auto check = [&pool](const Expr<T>& a_expr) {
+    return ExprIndex<T>(a_expr).checkLabels(a_expr, Tape<T>(pool, a_expr));
+  };
+
+  const SphereSDF<T> outer(Vec3::zeros(), T(1));
+  const auto         core = SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "core");
+
+  // Operations on the values, rather than the sets, leave a label unproved.
+  CHECK(check(SmoothUnion(outer, core, T(0.1))).empty());
+  CHECK(check(Offset(Union(outer, core), T(0.1))).empty());
+  CHECK(check(Blur(Union(outer, core), T(0.1), T(0.5))).empty());
+
+  // Surfaces that coincide exactly are not proved: a core filling the cavity it was cut from.
+  CHECK(check(Union(Difference(outer, core), core)).empty());
+
+  // A sphere inside a mesh: the mesh is evaluated through the tape.
+  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+  constexpr size_t W = TriangleSoA::DefaultWidth<T>();
+
+  const auto mesh = Parser::readIntoDCEL<T>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl", pool);
+  const TriMeshSDF<T, K, W> tri(mesh, pool, BVH::Construction::SAH, 4);
+
+  const auto pebble = SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.1)), "pebble");
+
+  REQUIRE(tri.signedDistance(Vec3::zeros()) < T(-0.3));
+  CHECK(check(Union(tri, pebble)).size() == 1U);
+  CHECK(check(Union(tri, Translate(pebble, Vec3(T(3), T(0), T(0))))).empty());
+}
+
+TEMPLATE_TEST_CASE("ExprIndex: checkLabels reports regions with no volume and materials on none",
+                   "[ExprIndex][checkLabels][Overlay]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const auto check = [&pool](const Expr<T>& a_expr) {
+    return ExprIndex<T>(a_expr).checkLabels(a_expr, Tape<T>(pool, a_expr));
+  };
+
+  const auto small = RegionName(MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "steel"), "small");
+  const auto big   = RegionName(MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(1)), "water"), "big");
+
+  // A small region under a big one has no volume, and its material is on no region; on top of it, it has both.
+  const std::vector<std::string> buried = check(Overlay(small, big, "air"));
+
+  REQUIRE(buried.size() == 2U);
+  CHECK(buried[0] == "region 1 \"small\" has no volume: it lies under later regions of the Overlay at node 0");
+  CHECK(buried[1] == "material \"steel\" is on no region with volume");
+  CHECK(check(Overlay(big, small, "air")).empty());
+
+  // A region outside the mask has no volume: the box cut from the Overlay misses it.
+  const auto apart = RegionName(Translate(SphereSDF<T>(Vec3::zeros(), T(0.3)), Vec3(T(3), T(0), T(0))), "apart");
+
+  const std::vector<std::string> masked =
+    check(Intersection(Overlay(big, apart), BoxSDF<T>(Vec3(T(-2), T(-2), T(-2)), Vec3(T(2), T(2), T(2)))));
+
+  REQUIRE(masked.size() == 1U);
+  CHECK(masked[0] == "region 2 \"apart\" has no volume: it lies outside another operand of the intersection at node 0");
+  // Another expression than the index's.
+  REQUIRE(abortsWith(
+    [&pool] {
+      const SphereSDF<T> ball(Vec3::zeros(), T(1));
+      const Expr<T>      other = Union(ball, SphereSDF<T>(Vec3::zeros(), T(2)));
+
+      (void)ExprIndex<T>(toExpr(ball)).checkLabels(other, Tape<T>(pool, other));
+    },
+    "ExprIndex: checkLabels was given an expression of"));
+}

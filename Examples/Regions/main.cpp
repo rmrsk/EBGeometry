@@ -65,6 +65,12 @@ main(int argc, char* argv[])
               << index.getMaterialLabelName(index.getMaterialOf(k)) << '\n';
   }
 
+  // A name with nothing to name (a region buried under later ones, a label on a covered surface) gets no boundary
+  // condition, silently; checkLabels() reports the ones it can prove lost. Here there are none.
+  for (const std::string& warning : index.checkLabels(object, tape)) {
+    std::cout << "Warning: " << warning << '\n';
+  }
+
   // ── Which region, and each region's function ───────────────────────────────────────────────────────
   //
   // Along a line through the cable: region(p) says where the point is, and signedDistance(p, region) is that

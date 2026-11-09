@@ -247,6 +247,36 @@ those the expression is built of: ``Difference(a, b)`` is an intersection of ``a
 ``b``, and translations, rotations and scalings applied one after another are one transform, unless one of
 them is labeled.
 
+A ``FiniteRepetition`` is, for now, one surface: all its copies are the leaf they copy, with its label and
+parts. Where each copy needs its own identity, place the copies as objects of their own, in a union
+(``Union(copies, Accelerate::BVH)`` for many): each is then a leaf, or a member of a BVH union, with a number
+and a label of its own.
+
+**Checking the names.** A label can name something that has no surface on the object: a part a union covers
+entirely, or a hole that misses the block it was meant to cut; a region can have no volume, buried under later
+regions of its ``Overlay`` or outside a mask. Nothing fails then: a boundary condition attached to that label is
+simply never applied. ``ExprIndex::checkLabels(expr, tape)`` looks for such names (surface labels, regions and
+their materials) and returns a warning for each one it finds, without printing anything or changing the object;
+making the geometry right is up to you. It evaluates the shapes through the tape compiled from the expression:
+
+.. code-block:: c++
+
+   const Expr<T> object = Union(SurfaceLabel(SphereSDF<T>(center, T(1)), "shell"),
+                                SurfaceLabel(SphereSDF<T>(center, T(0.5)), "core"));
+   const Tape<T> tape(pool, object);
+
+   for (const std::string& warning : ExprIndex<T>(object).checkLabels(object, tape)) {
+     std::cerr << warning << '\n';
+   }
+   // surface label "core" cannot reach the boundary: leaf 1: it lies inside another operand of the union at node 0
+
+The check is conservative: a name it reports is lost, but it reports only what it can prove from boxes and
+shape values, on the host. It says nothing about a name under an operation that changes values rather than
+shapes (an offset, a blur, a smooth union), and nothing about surfaces that coincide exactly. It also warns
+about a label that every leaf below it overrides with a label of its own. A core inside a shell has no surface
+of its own on a union, whatever its label; when the core is to keep its surface, as a second material, the two
+are regions of an ``Overlay`` (below), and the core's surface is the interface between them.
+
 Regions and materials
 ---------------------
 

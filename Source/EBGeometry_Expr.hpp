@@ -19,6 +19,7 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -716,7 +717,9 @@ SmoothDifference(const A&               a_first,
  * whenever the object's value is one, whether or not the object fits inside its tile. The copy in the
  * tile p folds into, p_i - c_i round(clamp(p_i / c_i, -lo_i, hi_i)), is evaluated first, and only the
  * copies whose box comes closer to p than that value after it; an object well inside its tile has few.
- * A Tape evaluates the copies as a sub-program, which takes one level of its call depth.
+ * A Tape evaluates the copies as a sub-program, which takes one level of its call depth. For now the copies are
+ * one surface: Tape::closestSurface() reports the leaf they copy, whichever copy decides. A copy that needs an
+ * identity of its own is placed as an object of its own, in a union (with Accelerate::BVH for many).
  * @tparam A Shape or Expr type.
  * @param[in] a_operand  Object to repeat; its home copy sits in the tile around the origin.
  * @param[in] a_period   Tile period along each axis (> 0).
@@ -1402,6 +1405,37 @@ public:
   uint32_t
   findRegion(std::string_view a_name) const;
 
+  /**
+   * @brief Warnings about names that cannot appear on the object: a surface label none of whose leaves (or parts
+   * named through face groups) can reach the object's boundary, or that every leaf below it overrides with a label of
+   * its own; a region with no volume (covered by later regions of its Overlay, or outside a mask); a material all of
+   * whose regions have none.
+   * @details A diagnostic only: it changes nothing, and the expression is evaluated as written; a correct geometry
+   * is the user's to make. It is conservative: it reports only what it has proved, so a lost name can go unreported
+   * (surfaces that coincide exactly, as a core filling a cavity, are never reported), but a reported one is lost. The
+   * shapes are evaluated through the tape compiled from the expression (Tape::leafValue()), on the host, a few times
+   * per leaf; a leaf the tape does not hold (inside a collection) is never evaluated.
+   *
+   * A leaf is proved hidden when, on its way to the root, its box lies strictly inside another operand of a union,
+   * strictly inside later operands of an Overlay (its region has no volume; an earlier operand only lies under it,
+   * which leaves an interface), or strictly outside another operand of an intersection (a mask included), and only
+   * maps, Elongate, FiniteRepetition, complements, unions, Overlays and intersections lie on that way. An operation
+   * that acts on values (Offset, Annular, Blur, Mollify, the smooth operations) on the way leaves it unproved. Inside
+   * and outside are proved with bounds of the other operand's value over a ball around the box (a shape's value at
+   * the center, plus or minus the radius, for a shape whose value is a distance or a bound), the box split into up to
+   * 64 pieces when it is not proved whole. A region is proved empty the same way, from its operand.
+   * The index does not hold the expression, so it is given again; it must be the one the index was built from
+   * (aborts with a message, in every build, when its nodes do not match).
+   * @tparam TapeType The Tape compiled from the same expression, its pool readable on the host.
+   * @param[in] a_expr The expression the index was built from.
+   * @param[in] a_tape The tape compiled from it.
+   * @return The warnings, empty when there are none.
+   */
+  template <class TapeType>
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<std::string>
+  checkLabels(const Expr<T>& a_expr, const TapeType& a_tape) const;
+
 private:
   /**
    * @brief The nodes.
@@ -1453,6 +1487,18 @@ private:
    * @brief Each node's operands' numbers.
    */
   std::vector<std::vector<uint32_t>> m_operands;
+
+  /**
+   * @brief Why a node (a leaf, or a region's operand) cannot reach the object's boundary (see checkLabels()).
+   * @param[in] a_node      The node.
+   * @param[in] a_nodes     Each node's expression node.
+   * @param[in] a_leafValue A shape's value, through the tape.
+   * @return The reason, or empty when it was not proved.
+   */
+  [[nodiscard]] std::string
+  whyHidden(uint32_t                                                                    a_node,
+            const std::vector<const ExprDetail::Node<T>*>&                              a_nodes,
+            const std::function<bool(const ExprDetail::Node<T>&, const Vec3T<T>&, T&)>& a_leafValue) const;
 
   /**
    * @brief The regions.
