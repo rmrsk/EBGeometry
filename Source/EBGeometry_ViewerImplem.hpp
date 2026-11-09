@@ -449,6 +449,7 @@ enum class PanelAction : uint8_t
   AddPiece,       ///< Add the picked piece to the current surface group.
   AddSurface,     ///< Add the picked piece's whole surface.
   AddInterface,   ///< Add the interface between the picked piece's two regions.
+  AddRegion,      ///< Add every surface of the picked piece's region (the one inside).
   RemovePiece,    ///< Remove what holds the picked piece from the current surface group.
   ToggleRegion,   ///< Show or hide a region.
   CurrentGroup,   ///< Make a surface group the one added to.
@@ -856,6 +857,36 @@ run(const S&           a_shape,
     }
   };
 
+  // What each way of adding a picked piece adds: the piece, its whole surface, every surface of its region (the one
+  // inside), or everything between its two regions.
+  const auto selectorFor = [](const PanelAction a_action, const SurfaceRef<T>& a_piece) {
+    switch (a_action) {
+    case PanelAction::AddSurface: {
+      return SurfaceSelector::surface(a_piece.m_surface);
+    }
+    case PanelAction::AddRegion: {
+      return SurfaceSelector::region(a_piece.m_insideRegion);
+    }
+    case PanelAction::AddInterface: {
+      return SurfaceSelector::interface(a_piece.m_insideRegion, a_piece.m_outsideRegion);
+    }
+    default: {
+      return SurfaceSelector::piece(a_piece);
+    }
+    }
+  };
+
+  // How many of the object's pieces a selector holds, in words.
+  const auto piecesOf = [&](const SurfaceSelector& a_selector) {
+    uint32_t count = 0;
+
+    for (const SurfacePiece<T>& p : pieces) {
+      count += a_selector.matches(p.m_surface) ? 1U : 0U;
+    }
+
+    return std::to_string(count) + ((count == 1U) ? " piece" : " pieces");
+  };
+
   // Highlight a surface group's surfaces (RegionSettings::Highlighted), or none (None): the picked surface's highlight
   // comes back.
   const auto highlightGroup = [&](const uint32_t a_group) {
@@ -895,10 +926,7 @@ run(const S&           a_shape,
         }
       }
       else {
-        const SurfaceSelector selector =
-          (a_action == PanelAction::AddInterface) ? SurfaceSelector::interface(exact.m_regionA, exact.m_regionB)
-          : (a_action == PanelAction::AddSurface) ? SurfaceSelector::surface(exact.m_surface)
-                                                  : exact;
+        const SurfaceSelector selector = selectorFor(a_action, piece);
 
         if (scheme.getNumSurfaceGroups() == 0U) {
           currentGroup = scheme.addSurfaceGroup();
@@ -1559,15 +1587,27 @@ run(const S&           a_shape,
           line("  At " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2));
         }
 
-        line("  ");
-        button("Add piece", PanelAction::AddPiece, 0U);
-        button("Add surface", PanelAction::AddSurface, 0U);
-        button("Add interface", PanelAction::AddInterface, 0U);
-        line("  ");
-        button("Remove from " +
-                 ((scheme.getNumSurfaceGroups() > 0U) ? group(currentGroup) : std::string("surface group")),
-               PanelAction::RemovePiece,
-               0U);
+        // The ways to add it, each saying what it adds and how much of the object that is.
+        line("  Add to " +
+             ((scheme.getNumSurfaceGroups() > 0U) ? group(currentGroup) : std::string("a new surface group")));
+
+        const std::pair<PanelAction, std::string> ways[] = {
+          {PanelAction::AddPiece, "This piece"},
+          {PanelAction::AddSurface, "All of " + surface(piece.m_surface)},
+          {PanelAction::AddRegion, "All surfaces of " + region(piece.m_insideRegion)},
+          {PanelAction::AddInterface,
+           "Everything between " + region(piece.m_insideRegion) + " and " + region(piece.m_outsideRegion)}};
+
+        for (const auto& [action, words] : ways) {
+          line("    ");
+          button(words, action, 0U);
+          panelLines.back() += "  " + piecesOf(selectorFor(action, piece));
+        }
+
+        if (scheme.getNumSurfaceGroups() > 0U) {
+          line("  ");
+          button("Remove from " + group(currentGroup), PanelAction::RemovePiece, 0U);
+        }
       }
 
       line("");
@@ -1611,7 +1651,7 @@ run(const S&           a_shape,
 
         for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
           if (scheme.getSurfaceGroupOfSelector(i) == g) {
-            line("        " + selectorWords(scheme.getSelector(i)));
+            line("        " + selectorWords(scheme.getSelector(i)) + ": " + piecesOf(scheme.getSelector(i)));
             button("x", PanelAction::RemoveSelector, i);
           }
         }
@@ -1980,6 +2020,7 @@ run(const S&           a_shape,
                 case PanelAction::AddPiece:
                 case PanelAction::AddSurface:
                 case PanelAction::AddInterface:
+                case PanelAction::AddRegion:
                 case PanelAction::RemovePiece: {
                   (void)editPicked(clicked.m_action);
 

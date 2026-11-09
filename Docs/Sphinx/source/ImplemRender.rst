@@ -217,8 +217,9 @@ are colored by (material, region, surface group, surface label, surface, part, i
 and a swatch beside each region or surface group shows its color; colors given to names
 (``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
 the palette's. Below, it shows the picked piece (its surface,
-part, the regions inside and outside, and its surface group) with buttons to add it, its whole surface or its
-interface to the current surface group, or to remove it; the regions, each shown or hidden by a click; and the
+part, the regions inside and outside, and its surface group) with the ways to add it to the current surface group,
+each saying how many of the object's pieces it takes in: this piece only, all of its surface, all surfaces of its
+region, or everything between its two regions; and a button to remove it; the regions, each shown or hidden by a click; and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
 ``RegionSettings::m_highlightGroup`` does the same in a program), its ``[rename]`` lets its name be typed (Enter keeps it, Esc cancels), and its ``[delete]`` and a
