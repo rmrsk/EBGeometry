@@ -70,7 +70,7 @@ colored by (region, material, surface label, surface, part, interface, or the gr
 surfaces shown alone or seen through, and the scheme itself. The example sets the electrostatic scheme: every
 conductor surface (dirichlet) and the jacket's outside (jump).
 
-In the viewer, K cycles the coloring; V shows one region at a time, Shift + V hides the picked one, and Ctrl + V
+In the viewer, the panel's "Color by" row sets the coloring (K cycles it); V shows one region at a time, Shift + V hides the picked one, and Ctrl + V
 shows them all; T sees through the picked surface (the core's surface inside the jacket shows), and L shows only
 the surfaces like the picked one. Hidden regions cast no shadow.
 
@@ -80,7 +80,8 @@ the current surface group of the scheme (the piece, its whole surface, or the in
 to remove it; below, the regions, each shown or hidden by a click, and the surface groups with their selectors, a
 click making one current, ``[delete]`` and ``[x]`` removing them, ``[+ new surface group]`` starting one; last, the
 count of pieces and of those in no surface group, with ``[next unassigned]`` to go to the next of these, until
-every piece has a surface group. K colors the surfaces by surface group (those in none gray); C prints the scheme as C++, to paste into a program. The window names everything by the
+every piece has a surface group. Colored by surface group, those in none are gray; C prints the scheme as C++, to paste into a program. The window names everything by the
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
 index (regions by their names and materials, "2 core (copper)", surfaces by their labels), with the surface groups
-named by the program.
+named by the program; the example also gives the materials and the surface groups colors (``setColor()``), and
+opens colored by material.

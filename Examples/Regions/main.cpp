@@ -135,6 +135,14 @@ main(int argc, char* argv[])
   names.setSurfaceGroup(dirichlet, "dirichlet");
   names.setSurfaceGroup(jump, "jump");
 
+  // Colors by name (linear RGB): the materials, and the surface groups when colored by them.
+  names.setColor("copper", EBGeometry::Vec3T<double>(0.75, 0.33, 0.12));
+  names.setColor("PTFE", EBGeometry::Vec3T<double>(0.80, 0.80, 0.75));
+  names.setColor("dirichlet", EBGeometry::Vec3T<double>(0.85, 0.15, 0.10));
+  names.setColor("jump", EBGeometry::Vec3T<double>(0.10, 0.35, 0.85));
+
+  settings.m_regions.m_coloring = EBGeometry::RegionColoring::Material;
+
   const EBGeometry::RegionView<Tape> regions(tape);
 
   // From the side the cut is on, so that the core shows in it.

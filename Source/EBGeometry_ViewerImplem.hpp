@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <thread>
@@ -446,8 +447,46 @@ enum class PanelAction : uint8_t
   NewGroup,       ///< Start a surface group.
   NextUnassigned, ///< Pick the next piece in no surface group.
   ListPieces,     ///< Show or hide the list of pieces.
-  PickPiece       ///< Pick a piece of the list.
+  PickPiece,      ///< Pick a piece of the list.
+  ColorBy         ///< Color by a kind of key, the normal, or one color (see colorChoices).
 };
+
+/**
+ * @brief What the viewer's panel offers to color a view of regions by: a kind of key (RegionColoring), or the normal,
+ * or one color.
+ * @details Internal helper; not part of the public API.
+ */
+struct ColorChoice
+{
+  /**
+   * @brief Its button's label.
+   */
+  const char* m_label;
+
+  /**
+   * @brief The render coloring.
+   */
+  ColorBy m_colorBy;
+
+  /**
+   * @brief The kind of key, for ColorBy::Primitive.
+   */
+  RegionColoring m_coloring;
+};
+
+/**
+ * @brief The colorings the viewer's panel offers, in its order.
+ * @details Internal helper; not part of the public API.
+ */
+inline constexpr ColorChoice colorChoices[] = {{"material", ColorBy::Primitive, RegionColoring::Material},
+                                               {"region", ColorBy::Primitive, RegionColoring::Region},
+                                               {"surface group", ColorBy::Primitive, RegionColoring::SurfaceGroup},
+                                               {"surface label", ColorBy::Primitive, RegionColoring::SurfaceLabel},
+                                               {"surface", ColorBy::Primitive, RegionColoring::Surface},
+                                               {"part", ColorBy::Primitive, RegionColoring::Part},
+                                               {"interface", ColorBy::Primitive, RegionColoring::Interface},
+                                               {"normal", ColorBy::Normal, RegionColoring::Region},
+                                               {"one color", ColorBy::Uniform, RegionColoring::Region}};
 
 /**
  * @brief A clickable span of a line of the viewer's panel: columns [m_begin, m_end) and what a click there does.
@@ -578,6 +617,39 @@ run(const S&           a_shape,
   // The names of the regions, materials, surfaces and groups, as the program gave them.
   RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
 
+  // The colors the names give the keys of the coloring shown, over the settings' own (see RegionNames::setColor()).
+  const auto applyColors = [&]() {
+    if constexpr (hasRegionVisibility<S>) {
+      for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
+        Vec3T<double> color;
+
+        settings.m_primitiveColors[i] = names.colorOf(settings.m_regions.m_coloring, i, color)
+                                          ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
+                                          : a_settings.m_primitiveColors[i];
+      }
+    }
+  };
+
+  applyColors();
+
+  // The color a key is drawn in (as the renderer picks it, before shading), as an RGBA pixel for a swatch.
+  const auto swatchOf = [&](const uint32_t a_key) {
+    const Vec3T<T> linear = (a_key == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
+                            : (a_key < Settings<T>::PrimitiveColors && settings.m_primitiveColors[a_key][0] >= T(0))
+                              ? settings.m_primitiveColors[a_key]
+                              : RenderDetail::palette<T>(a_key);
+
+    uint32_t pixel = 0xFFU;
+
+    for (int k = 0; k < 3; k++) {
+      const T g = std::pow(Math::clamp(linear[k], T(0), T(1)), T(1) / T(2.2));
+
+      pixel |= uint32_t(Math::clamp(g * T(255) + T(0.5), T(0), T(255))) << (24 - 8 * k);
+    }
+
+    return pixel;
+  };
+
   // A scheme's selector, in words and as C++.
   const auto selectorName = [&names](const SurfaceSelector& a_selector) {
     std::string name;
@@ -638,6 +710,7 @@ run(const S&           a_shape,
   // lines, and what a click on each does.
   std::vector<std::string>            panelLines;
   std::vector<std::vector<PanelSpan>> panelActions;
+  std::vector<uint32_t>               panelSwatches;
   SDL_Texture*                        panel       = nullptr;
   int                                 panelWidth  = 0;
   int                                 panelHeight = 0;
@@ -1203,6 +1276,7 @@ run(const S&           a_shape,
     // The regions shown and hidden, for a shape whose regions can be (see RegionView), and the panel of regions and
     // groups while the regions' menu is shown.
     panelLines.clear();
+    panelSwatches.clear();
     panelActions.clear();
 
     if constexpr (hasRegionVisibility<S>) {
@@ -1289,7 +1363,11 @@ run(const S&           a_shape,
       const auto line = [&](const std::string& a_text) {
         panelLines.push_back(a_text);
         panelActions.emplace_back();
+        panelSwatches.push_back(0U);
       };
+
+      // A swatch of a key's color at the start of the last line.
+      const auto swatch = [&](const uint32_t a_key) { panelSwatches.back() = swatchOf(a_key); };
 
       const auto button = [&](const std::string& a_label, const PanelAction a_action, const uint32_t a_value) {
         std::string& text = panelLines.back();
@@ -1312,6 +1390,22 @@ run(const S&           a_shape,
 
       const SurfaceRef<T> piece = picked ? shape.pieceAt(pick.m_point, pick.m_normal) : SurfaceRef<T>();
 
+      line("Color by");
+      line(" ");
+
+      for (uint32_t c = 0; c < std::size(colorChoices); c++) {
+        const ColorChoice& choice  = colorChoices[c];
+        const bool         current = settings.m_colorBy == choice.m_colorBy &&
+                             (choice.m_colorBy != ColorBy::Primitive || regions.m_coloring == choice.m_coloring);
+
+        if (c == 4U) {
+          line(" ");
+        }
+
+        button(std::string(current ? "* " : "") + choice.m_label, PanelAction::ColorBy, c);
+      }
+
+      line("");
       line("Picked");
 
       if (piece.m_surface == SurfaceRef<T>::None) {
@@ -1342,6 +1436,13 @@ run(const S&           a_shape,
         clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + names.region(k),
                   PanelAction::ToggleRegion,
                   k);
+
+        if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Region) {
+          swatch(k);
+        }
+        else if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Material) {
+          swatch(names.materialOf(k));
+        }
       }
 
       line("");
@@ -1352,6 +1453,10 @@ run(const S&           a_shape,
 
         panelLines.back() += names.surfaceGroup(g);
         panelActions.back().push_back(PanelSpan{0, panelLines.back().size(), PanelAction::CurrentGroup, g});
+
+        if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::SurfaceGroup) {
+          swatch(g);
+        }
 
         button("delete", PanelAction::DeleteGroup, g);
 
@@ -1474,6 +1579,22 @@ run(const S&           a_shape,
       const int oldPanelHeight = panelHeight;
 
       drawText(panelLines, scale, panelPixels, panelWidth, panelHeight);
+
+      // The swatches: a square in the first two columns of their lines.
+      for (std::size_t row = 0; row < panelSwatches.size(); row++) {
+        if (panelSwatches[row] == 0U) {
+          continue;
+        }
+
+        const int top  = 6 * scale + static_cast<int>(row) * GlyphHeight * scale;
+        const int side = Math::min(2 * GlyphWidth, GlyphHeight) * scale - 2 * scale;
+
+        for (int y = top + scale; y < top + scale + side; y++) {
+          for (int x = 6 * scale + scale; x < 6 * scale + scale + side; x++) {
+            panelPixels[std::size_t(y) * std::size_t(panelWidth) + std::size_t(x)] = panelSwatches[row];
+          }
+        }
+      }
 
       panelScale = scale;
 
@@ -1740,6 +1861,20 @@ run(const S&           a_shape,
 
                     rekeyPick();
                   }
+
+                  break;
+                }
+                case PanelAction::ColorBy: {
+                  const ColorChoice& choice = colorChoices[clicked.m_value];
+
+                  settings.m_colorBy = choice.m_colorBy;
+
+                  if (choice.m_colorBy == ColorBy::Primitive) {
+                    regions.setColoring(choice.m_coloring);
+                  }
+
+                  applyColors();
+                  rekeyPick();
 
                   break;
                 }
@@ -2318,6 +2453,7 @@ run(const S&           a_shape,
 
             settings.m_colorBy = ColorBy::Primitive;
 
+            applyColors();
             rekeyPick();
           }
           else {

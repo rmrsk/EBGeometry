@@ -14,6 +14,7 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +22,8 @@
 // Our includes
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_RegionSettings.hpp"
+#include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
 
@@ -28,7 +31,7 @@ namespace EBGeometry {
  * @brief The names of an object's regions, materials, surfaces and surface labels, from its expression's index, and
  * of a scheme's groups: what a viewer shows a piece of surface or a group by (Render::view()).
  * @details Host only. Anything without a name, or beyond the lists, is named by its kind and number ("region 3",
- * "group 1").
+ * "surface group 1"). Names can also be given colors (setColor()), which a viewer colors the surfaces by.
  */
 class RegionNames
 {
@@ -61,6 +64,9 @@ public:
       const MaterialLabelId material = a_index.getMaterialOf(k);
       const std::string&    name     = a_index.getRegion(k).m_name;
 
+      m_regionNames.push_back(name);
+      m_regionMaterials.push_back(material.isNone() ? None : material.value());
+
       std::string shown = !name.empty() ? std::to_string(k) + " " + name
                           : (k == 0U)   ? std::to_string(k) + " background"
                                         : "region " + std::to_string(k);
@@ -77,6 +83,100 @@ public:
 
       m_surfaces.push_back(!label.isNone() ? m_surfaceLabels[label.value()] : std::string());
     }
+  }
+
+  /**
+   * @brief No material, no label.
+   */
+  static constexpr uint32_t None = 0xFFFFFFFFU;
+
+  /**
+   * @brief Give a name a color: a region's, a material's, a surface label's or a surface group's. Colored by that
+   * kind of key, its surfaces take it; others take the palette's.
+   * @param[in] a_name  The name ("copper", "core", "dirichlet").
+   * @param[in] a_color Its color, linear RGB in [0, 1] (as Render::Settings::m_color).
+   */
+  EBGEOMETRY_HOST
+  void
+  setColor(std::string a_name, const Vec3T<double>& a_color)
+  {
+    m_colors[std::move(a_name)] = a_color;
+  }
+
+  /**
+   * @brief The color a key has, colored by a kind of key: by the name of the region, material, surface label (a
+   * surface's too) or surface group it is.
+   * @param[in]  a_coloring The kind of key.
+   * @param[in]  a_key      The key.
+   * @param[out] a_color    Its color, if it has one.
+   * @return Whether it has one.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  colorOf(const RegionColoring a_coloring, const uint32_t a_key, Vec3T<double>& a_color) const
+  {
+    const std::string* name = nullptr;
+
+    const auto from = [&name, a_key](const std::vector<std::string>& a_names) {
+      name = (a_key < a_names.size()) ? &a_names[a_key] : nullptr;
+    };
+
+    switch (a_coloring) {
+    case RegionColoring::Region: {
+      from(m_regionNames);
+
+      break;
+    }
+    case RegionColoring::Material: {
+      from(m_materials);
+
+      break;
+    }
+    case RegionColoring::SurfaceLabel: {
+      from(m_surfaceLabels);
+
+      break;
+    }
+    case RegionColoring::Surface: {
+      from(m_surfaces);
+
+      break;
+    }
+    case RegionColoring::SurfaceGroup: {
+      from(m_surfaceGroups);
+
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+
+    if (name == nullptr || name->empty()) {
+      return false;
+    }
+
+    const auto color = m_colors.find(*name);
+
+    if (color == m_colors.end()) {
+      return false;
+    }
+
+    a_color = color->second;
+
+    return true;
+  }
+
+  /**
+   * @brief A region's material.
+   * @param[in] a_region The region.
+   * @return The material label's number, or None.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  materialOf(const uint32_t a_region) const noexcept
+  {
+    return (a_region < m_regionMaterials.size()) ? m_regionMaterials[a_region] : None;
   }
 
   /**
@@ -174,6 +274,21 @@ protected:
    * @brief The names of the regions, materials, surfaces, surface labels and groups; an empty one is unnamed.
    */
   std::vector<std::string> m_regions;
+
+  /**
+   * @brief The regions' own names (RegionName()), empty for none.
+   */
+  std::vector<std::string> m_regionNames;
+
+  /**
+   * @brief Each region's material label number, or None.
+   */
+  std::vector<uint32_t> m_regionMaterials;
+
+  /**
+   * @brief The colors given to names.
+   */
+  std::map<std::string, Vec3T<double>> m_colors;
 
   /**
    * @brief The materials' names.

@@ -1185,6 +1185,21 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
   CHECK(names.surfaceGroup(0) == "surface group 0");
   CHECK(names.surfaceGroup(1) == "1 jump");
   CHECK(RegionNames().region(1) == "region 1");
+
+  // Colors by name: a material's when colored by material, a surface group's when colored by surface group.
+  names.setColor("PTFE", Vec3T<double>(0.5, 0.5, 0.5));
+  names.setColor("jump", Vec3T<double>(0.0, 0.0, 1.0));
+
+  Vec3T<double> color;
+
+  CHECK(names.colorOf(RegionColoring::Material, 0, color));
+  CHECK(color[0] == 0.5);
+  CHECK(!names.colorOf(RegionColoring::Region, 1, color));
+  CHECK(names.colorOf(RegionColoring::SurfaceGroup, 1, color));
+  CHECK(color[2] == 1.0);
+  CHECK(!names.colorOf(RegionColoring::SurfaceGroup, 0, color));
+  CHECK(names.materialOf(1) == 0U);
+  CHECK(names.materialOf(2) == RegionNames::None);
 }
 
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",

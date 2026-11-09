@@ -190,9 +190,9 @@ opened with them.
      - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
        save the full frame as a PPM image (``writeImage()``) in the working directory.
    * - K; L
-     - For a view of regions (``RegionView``): color by region, material, surface label, surface, part,
-       interface (the pair of regions on its two sides) or group of the scheme; show only the surfaces of the
-       picked surface's key, or everything again.
+     - For a view of regions (``RegionView``): color by the next kind of key (material, region, surface group,
+       surface label, surface, part, interface: the panel's "Color by" row sets one directly); show only the
+       surfaces of the picked surface's key, or everything again.
    * - V; Shift + V; Ctrl + V
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
@@ -201,8 +201,17 @@ opened with them.
        surface group; add its whole surface; add the interface between its two regions; remove it from the
        current surface group; make the next surface group current, or start one past the last; delete the
        current surface group. C also prints the scheme as C++.
+   * - Tab, Shift + Tab; F1 to F6
+     - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
+       window. Every key works whichever menu is shown.
+   * - H; Esc, Q
+     - Show or hide the menu (the status lines and the axes stay); close the window.
 
-A view of regions also gets a panel at the top right, used with the mouse. It shows the picked piece (its surface,
+A view of regions also gets a panel at the top right, used with the mouse. A "Color by" row sets what the surfaces
+are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),
+and a swatch beside each region or surface group shows its color; colors given to names
+(``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
+the palette's. Below, it shows the picked piece (its surface,
 part, the regions inside and outside, and its surface group) with buttons to add it, its whole surface or its
 interface to the current surface group, or to remove it; the regions, each shown or hidden by a click; and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
@@ -210,11 +219,6 @@ it current, and its ``[delete]`` and a selector's ``[x]`` remove them; ``[+ new 
 counts the object's pieces (``findSurfacePieces()``) and those in no surface group: ``[next unassigned]`` picks the
 next of these and turns the camera to it, and ``[list]`` lists every piece, a click picking it. Colored by surface
 group, a surface in none is gray.
-   * - Tab, Shift + Tab; F1 to F6
-     - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
-       window. Every key works whichever menu is shown.
-   * - H; Esc, Q
-     - Show or hide the menu (the status lines and the axes stay); close the window.
 
 The window needs SDL2 and is compiled only on request (see :ref:`Sec:ConfigViewer`). Without it, and
 whenever no window should open -- the program was given ``--no-view``, there is no display, or SDL

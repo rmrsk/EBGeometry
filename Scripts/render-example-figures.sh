@@ -81,6 +81,37 @@ view(const S& a_shape, EBGeometry::Pool&, const EBGeometry::Render::Camera<EBGeo
   Snapshot::view(a_shape, a_camera, a_settings, a_argc, a_argv);
 }
 
+// Names give the keys of the coloring their colors, as the window does.
+template <class S>
+void
+view(const S& a_shape, const EBGeometry::Render::Camera<EBGeometry::ShapePrecision<S>>& a_camera,
+     const EBGeometry::Render::Settings<EBGeometry::ShapePrecision<S>>& a_settings,
+     const EBGeometry::RegionNames& a_names, int a_argc, char** a_argv)
+{
+  using T = EBGeometry::ShapePrecision<S>;
+
+  EBGeometry::Render::Settings<T> settings = a_settings;
+
+  for (uint32_t i = 0; i < EBGeometry::Render::Settings<T>::PrimitiveColors; i++) {
+    EBGeometry::Vec3T<double> color;
+
+    if (a_names.colorOf(settings.m_regions.m_coloring, i, color)) {
+      settings.m_primitiveColors[i] = EBGeometry::Vec3T<T>(T(color[0]), T(color[1]), T(color[2]));
+    }
+  }
+
+  Snapshot::view(a_shape, a_camera, settings, a_argc, a_argv);
+}
+
+template <class S>
+void
+view(const S& a_shape, EBGeometry::Pool&, const EBGeometry::Render::Camera<EBGeometry::ShapePrecision<S>>& a_camera,
+     const EBGeometry::Render::Settings<EBGeometry::ShapePrecision<S>>& a_settings,
+     const EBGeometry::RegionNames& a_names, int a_argc, char** a_argv)
+{
+  Snapshot::view(a_shape, a_camera, a_settings, a_names, a_argc, a_argv);
+}
+
 // A shape and its device view, with the default camera.
 template <class S>
 void
