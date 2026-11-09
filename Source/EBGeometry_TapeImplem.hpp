@@ -3576,81 +3576,85 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
   const uint32_t n = this->numRegionOperands();
 
-  // A step past a crossing, to name the region beyond it: the march's tolerance at the object's scale.
+  // A nudge past a crossing, to name the region beyond it and to start the next query: a hundredth of the march's
+  // tolerance at the object's scale. A whole tolerance named the region past a thin layer instead (where a jacket's
+  // end face meets the core, the core: a seam with the end face's normal) and stepped over crossings that close.
   const BoundingVolumes::AABBT<T> box = m_layout.m_boundingVolume;
 
   const T diagonal = (box.getHighCorner() - box.getLowCorner()).length();
   const T scale    = (a_options.m_scale > T(0))                               ? a_options.m_scale
                      : (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal
                                                                               : T(1);
-  const T step     = a_options.m_tolerance * scale;
+  const T nudge    = T(0.01) * a_options.m_tolerance * scale;
+
+  const auto regionAt = [this, n](const Vec3T<T>& a_point) {
+    return (n == 0U) ? ((this->signedDistance(a_point) < T(0)) ? 1U : 0U) : this->region(a_point);
+  };
 
   SurfaceHitT<T> result;
 
-  // The ray starts counting a step past a_tMin, so that a ray asked again from a crossing's t, which sits on the
-  // surface, starts in the region beyond it and does not find the same crossing again.
-  const T t0 = a_tMin + step;
+  // A crossing whose two sides are the same region (found again from the surface the query starts on, or a crossing
+  // of one solid inside a later one) changes nothing: the search goes on past it.
+  T start = a_tMin + nudge;
 
-  if (!(t0 < a_tMax)) {
-    return result;
-  }
+  for (uint32_t tries = 0; tries < 16U && start < a_tMax; tries++) {
+    const uint32_t from = regionAt(a_ray.m_origin + start * a_ray.m_direction);
 
-  // The program whose crossing comes first.
-  HitT<T>  first;
-  uint32_t program = 0U;
+    // The program whose crossing comes first: leaving the current region's solid (with all its masks), or entering a
+    // later one's.
+    HitT<T>  first;
+    uint32_t program = 0U;
 
-  first.m_t = a_tMax;
+    first.m_t = a_tMax;
 
-  uint32_t from = 0U;
+    if (n == 0U) {
+      first = this->traceProgram(0U, a_ray, start, a_tMax, a_options);
+    }
+    else {
+      for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
+        const uint32_t record = m_layout.m_regionPrograms.at(base, k);
+        const uint32_t solid =
+          m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
 
-  if (n == 0U) {
-    // An object with no Overlay is one region: its crossings are the object's.
-    first = this->traceProgram(0U, a_ray, t0, a_tMax, a_options);
-    from  = (this->signedDistance(a_ray.m_origin + t0 * a_ray.m_direction) < T(0)) ? 1U : 0U;
-  }
-  else {
-    from = this->region(a_ray.m_origin + t0 * a_ray.m_direction);
+        const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
 
-    // Leaving the current region's solid (with all its masks), or entering a later one's, whichever comes first.
-    for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
-      const uint32_t record = m_layout.m_regionPrograms.at(base, k);
-      const uint32_t solid =
-        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
-
-      const HitT<T> hit = this->traceProgram(solid, a_ray, t0, first.m_t, a_options);
-
-      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
-        first   = hit;
-        program = solid;
+        if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
+          first   = hit;
+          program = solid;
+        }
       }
     }
+
+    if (!first.hit()) {
+      result.m_hit = first;
+
+      return result;
+    }
+
+    const uint32_t to = regionAt(first.m_point + nudge * a_ray.m_direction);
+
+    if (to != from) {
+      // The surface crossed: the leaf deciding the traced program's value there, drilled.
+      const CSGOps::Tagged<T> value =
+        this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, first.m_point, base, this->location());
+
+      result.m_hit     = first;
+      result.m_surface = this->surfaceOf(this->leafOf(value));
+
+      // The normal from the region left into the region entered: the traced solid's outward normal where the ray
+      // leaves it, against it where the ray enters.
+      if (first.m_entering) {
+        result.m_hit.m_normal = -first.m_normal;
+      }
+
+      result.m_surface.m_minusRegion = from;
+      result.m_surface.m_plusRegion  = to;
+
+      return result;
+    }
+
+    start = first.m_t + nudge;
   }
-
-  if (!first.hit()) {
-    result.m_hit = first;
-
-    return result;
-  }
-
-  const Vec3T<T> beyond = first.m_point + step * a_ray.m_direction;
-
-  const uint32_t to = (n == 0U) ? ((this->signedDistance(beyond) < T(0)) ? 1U : 0U) : this->region(beyond);
-
-  // The surface crossed: the leaf deciding the traced program's value there, drilled.
-  const CSGOps::Tagged<T> value =
-    this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, first.m_point, base, this->location());
-
-  result.m_hit     = first;
-  result.m_surface = this->surfaceOf(this->leafOf(value));
-
-  // The normal from the region left into the region entered: the traced solid's outward normal where the ray leaves
-  // it, against it where the ray enters.
-  if (first.m_entering) {
-    result.m_hit.m_normal = -first.m_normal;
-  }
-
-  result.m_surface.m_minusRegion = from;
-  result.m_surface.m_plusRegion  = to;
 
   return result;
 }

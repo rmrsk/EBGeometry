@@ -1303,9 +1303,9 @@ public:
    * region's solid and entering a later one, each traced exactly where the operands have ray forms (and marched
    * where they do not). m_hit is the crossing, its normal pointing from the region left into the region entered;
    * m_surface the surface crossed (leaf, part, surface label), its m_minusRegion the region left and m_plusRegion
-   * the region entered. The ray starts counting at a_tMin plus the march's tolerance at the object's scale
-   * (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks again from
-   * the last crossing's t, and layers thinner than that are passed over. Callable on a device.
+   * the region entered. The ray starts counting a hundredth of the march's tolerance at the object's scale past
+   * a_tMin (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks
+   * again from the last crossing's t, and layers thinner than that are passed over. Callable on a device.
    * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.

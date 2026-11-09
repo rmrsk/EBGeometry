@@ -442,7 +442,7 @@ public:
 
       a_hits.push_back(hit);
 
-      t = hit.m_t + T(4) * m_eps;
+      t = this->past(hit);
     }
   }
 
@@ -570,7 +570,7 @@ public:
           through *= T(1) - m_settings.m_xrayOpacity;
         }
 
-        t = hit.m_t + T(4) * m_eps;
+        t = this->past(hit);
       }
 
       return color;
@@ -735,7 +735,7 @@ private:
 
     for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
       a_through = true;
-      t         = hit.m_t + T(4) * m_eps;
+      t         = this->past(hit);
       hit       = this->trace(a_ray, t, m_far);
     }
 
@@ -784,7 +784,7 @@ private:
         in = false;
       }
 
-      t = hit.m_t + T(4) * m_eps;
+      t = this->past(hit);
     }
 
     if (in && mine) {
@@ -994,6 +994,21 @@ private:
   }
 
   /**
+   * @brief Where a ray goes on from past a crossing, to find the next one.
+   * @details A crossing found exactly (by a ray form) is passed by a tenth of the tolerance; a marched one, placed
+   * within the tolerance, by four. Four for both stepped over a surface that close behind an exact crossing: the
+   * core's wall just inside a jacket's end face, seen through the jacket.
+   * @param[in] a_hit The crossing.
+   * @return The distance along the ray.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  past(const HitT<T>& a_hit) const noexcept
+  {
+    return a_hit.m_t + (a_hit.m_exact ? T(0.1) : T(4)) * m_eps;
+  }
+
+  /**
    * @brief Whether a ray meets a surface that is not seen through (Settings::m_hidden) in an interval.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
@@ -1008,7 +1023,7 @@ private:
     // A surface seen through casts no shadow: the ray goes on past it, as a camera ray does.
     if (m_settings.hidesAny()) {
       for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
-        hit = this->trace(a_ray, hit.m_t + T(4) * m_eps, a_tMax);
+        hit = this->trace(a_ray, this->past(hit), a_tMax);
       }
 
       return hit.hit() && !m_settings.hides(hit.m_primitive);
