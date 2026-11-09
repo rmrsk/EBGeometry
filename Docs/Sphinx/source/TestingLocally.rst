@@ -443,7 +443,11 @@ Test coverage
        from both regions, a triple point, a mask's cut with its label); ``Phases`` and the roles for three solvers,
        a phase's function and surface, and the rejected phases. ``firstRegionChange()`` along rays and steps at
        the spheres' exact crossings (the regions left and entered, the leaf, the normal, a cut face's label, from
-       inside a region), and ``firstSurface()`` into and out of a phase of visible regions.
+       inside a region), and ``firstSurface()`` into and out of a phase of visible regions. The pairs of regions
+       each surface may separate (``getSidesOfLeaf()``, ``getInterfaces()``); ``Scheme`` and ``SurfaceSelector``
+       grouping the cable's surfaces for an electrostatic and a flow solver (pieces, labels, interfaces, regions,
+       materials), and the rejected groups; the region queries and a scheme's groups on the device against the
+       host.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

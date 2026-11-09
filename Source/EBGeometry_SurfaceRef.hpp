@@ -77,6 +77,16 @@ struct SurfaceRef
   uint32_t m_plusRegion = None;
 
   /**
+   * @brief Set with the sides: the material of the region on the inside (m_minusRegion, its MaterialLabel()), or none.
+   */
+  MaterialLabelId m_insideMaterial;
+
+  /**
+   * @brief Set with the sides: the material of the region on the outside, across (m_plusRegion), or none.
+   */
+  MaterialLabelId m_outsideMaterial;
+
+  /**
    * @brief The point in the frame of the deepest shape reached: the primitive, or the container member, whose
    * surface it is.
    */

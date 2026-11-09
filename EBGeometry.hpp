@@ -60,6 +60,7 @@
 #include "Source/EBGeometry_Render.hpp"
 #include "Source/EBGeometry_SFC.hpp"
 #include "Source/EBGeometry_SIMD.hpp"
+#include "Source/EBGeometry_Scheme.hpp"
 #include "Source/EBGeometry_Soup.hpp"
 #include "Source/EBGeometry_SphereAoSoA.hpp"
 #include "Source/EBGeometry_SphereCloud.hpp"

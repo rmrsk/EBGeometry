@@ -1286,6 +1286,27 @@ public:
   getRegionsOfMaterial(MaterialLabelId a_material) const;
 
   /**
+   * @brief The pairs of regions a leaf's surface may separate, conservatively: every pair it does is listed, and
+   * some listed may not occur (the boxes overlap, the shapes need not meet). A region's own surface separates it
+   * from the background and from earlier regions whose boxes meet its own (a later region covers it, and the
+   * interface is that region's surface); a mask's separates a region it cuts from the background or a region outside
+   * the masked Overlay. Each pair smaller region first, sorted. For an expression with no Overlay: (0, 1).
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The pairs.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const std::vector<std::pair<uint32_t, uint32_t>>&
+  getSidesOfLeaf(uint32_t a_leaf) const;
+
+  /**
+   * @brief The pairs of regions any surface may separate (see getSidesOfLeaf()): the interfaces a solver can meet.
+   * @return The pairs, smaller region first, sorted, without repeats.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<std::pair<uint32_t, uint32_t>>
+  getInterfaces() const;
+
+  /**
    * @brief The number of groups: one per Overlay, numbered depth first.
    * @return The count.
    */
@@ -1399,6 +1420,66 @@ private:
    * @brief Each material name's label.
    */
   std::unordered_map<std::string, MaterialLabelId> m_materialLabelIds;
+
+  /**
+   * @brief A mask of a partition (an operand of a clipping intersection), while the index is built.
+   */
+  struct Mask
+  {
+    /**
+     * @brief Its node.
+     */
+    uint32_t m_node;
+
+    /**
+     * @brief Its box in the scene's frame.
+     */
+    BoundingVolumes::AABBT<T> m_box;
+
+    /**
+     * @brief The first region it cuts.
+     */
+    uint32_t m_firstRegion;
+
+    /**
+     * @brief How many regions it cuts (a contiguous range).
+     */
+    uint32_t m_numRegions;
+  };
+
+  /**
+   * @brief Each region's box in the scene's frame (the background's is empty).
+   */
+  std::vector<BoundingVolumes::AABBT<T>> m_regionBoxes;
+
+  /**
+   * @brief The masks, while the index is built.
+   */
+  std::vector<Mask> m_masks;
+
+  /**
+   * @brief The maps above the node being numbered, outermost first, while the index is built.
+   */
+  std::vector<const ExprDetail::Node<T>*> m_maps;
+
+  /**
+   * @brief Each leaf's pairs of regions (see getSidesOfLeaf()).
+   */
+  std::vector<std::vector<std::pair<uint32_t, uint32_t>>> m_leafSides;
+
+  /**
+   * @brief A box in a node's frame, in the scene's: mapped through the maps above it.
+   * @param[in] a_box The box.
+   * @return The box in the scene's frame.
+   */
+  BoundingVolumes::AABBT<T>
+  sceneBox(const BoundingVolumes::AABBT<T>& a_box) const;
+
+  /**
+   * @brief Number the pairs of regions each leaf's surface may separate (getSidesOfLeaf()).
+   */
+  void
+  addSides();
 
   /**
    * @brief The material label of a name, numbered if it is new.

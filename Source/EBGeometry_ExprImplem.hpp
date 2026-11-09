@@ -1231,12 +1231,17 @@ inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr) : m_leafSurfaces{0U}
   }
 
   m_regions.push_back(background);
+  m_regionBoxes.push_back(BoundingVolumes::AABBT<T>());
 
   this->add(root, None, SurfaceLabelId::none());
 
   m_leafRegions.assign(m_leafNodes.size(), None);
 
   this->addRegions(0U, None, MaterialLabelId::none());
+
+  this->addSides();
+
+  m_masks.clear();
 
   // The expression's nodes are not kept: the index does not hold the expression.
   m_exprNodes.clear();
@@ -1286,6 +1291,7 @@ ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const Ma
     const auto number = static_cast<uint32_t>(m_regions.size());
 
     m_regions.push_back(region);
+    m_regionBoxes.push_back(this->sceneBox(expr.m_boundingVolume));
 
     for (uint32_t leaf = 0; leaf < m_nodes[a_node].m_numLeaves; leaf++) {
       m_leafRegions[m_nodes[a_node].m_firstLeaf + leaf] = number;
@@ -1317,9 +1323,145 @@ ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const Ma
   }
   else {
     // A map of a partition, or one clipped by masks: the partition is its first operand, the masks belong to no
-    // region.
+    // region. Below a map, boxes are in the map's frame; a mask's operands are recorded with the regions they cut.
+    const bool map = expr.m_kind == ExprDetail::Kind::Affine;
+
+    if (map) {
+      m_maps.push_back(&expr);
+    }
+
+    const auto first = static_cast<uint32_t>(m_regions.size());
+
     this->addRegions(m_operands[a_node].front(), a_group, material);
+
+    if (map) {
+      m_maps.pop_back();
+    }
+    else {
+      for (size_t i = 1; i < m_operands[a_node].size(); i++) {
+        const uint32_t operand = m_operands[a_node][i];
+
+        m_masks.push_back(Mask{operand,
+                               this->sceneBox(m_exprNodes[operand]->m_boundingVolume),
+                               first,
+                               static_cast<uint32_t>(m_regions.size()) - first});
+      }
+    }
   }
+}
+
+template <class T>
+inline BoundingVolumes::AABBT<T>
+ExprIndex<T>::sceneBox(const BoundingVolumes::AABBT<T>& a_box) const
+{
+  BoundingVolumes::AABBT<T> box = a_box;
+
+  for (auto map = m_maps.rbegin(); map != m_maps.rend(); ++map) {
+    box = (*map)->m_inverse.transform(box);
+  }
+
+  return box;
+}
+
+template <class T>
+inline void
+ExprIndex<T>::addSides()
+{
+  // Whether two boxes share a point (touching counts: two regions may meet on a face).
+  const auto overlap = [](const BoundingVolumes::AABBT<T>& a_first, const BoundingVolumes::AABBT<T>& a_second) {
+    for (size_t dir = 0; dir < 3; dir++) {
+      if (a_first.getLowCorner()[dir] > a_second.getHighCorner()[dir] ||
+          a_second.getLowCorner()[dir] > a_first.getHighCorner()[dir]) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const auto pair = [](const uint32_t a_first, const uint32_t a_second) {
+    return std::make_pair(Math::min(a_first, a_second), Math::max(a_first, a_second));
+  };
+
+  m_leafSides.assign(m_leafNodes.size(), {});
+
+  // A region's own surface separates it from the background and from an earlier region it may meet: a later one
+  // covers it there, and the interface is the later region's surface.
+  for (uint32_t k = 1; k < m_regions.size(); k++) {
+    std::vector<std::pair<uint32_t, uint32_t>> sides{pair(k, 0U)};
+
+    for (uint32_t m = 1; m < k; m++) {
+      if (overlap(m_regionBoxes[k], m_regionBoxes[m])) {
+        sides.push_back(pair(k, m));
+      }
+    }
+
+    const Node& node = m_nodes[m_regions[k].m_node];
+
+    for (uint32_t leaf = node.m_firstLeaf; leaf < node.m_firstLeaf + node.m_numLeaves; leaf++) {
+      m_leafSides[leaf] = sides;
+    }
+  }
+
+  // A mask's surface separates a region it cuts from what the cut leaves there: the background, or a region outside
+  // the masked Overlay that it may meet.
+  for (const Mask& mask : m_masks) {
+    std::vector<std::pair<uint32_t, uint32_t>> sides;
+
+    for (uint32_t r = mask.m_firstRegion; r < mask.m_firstRegion + mask.m_numRegions; r++) {
+      if (!overlap(m_regionBoxes[r], mask.m_box)) {
+        continue;
+      }
+
+      sides.push_back(pair(r, 0U));
+
+      for (uint32_t m = 1; m < m_regions.size(); m++) {
+        const bool cut = m >= mask.m_firstRegion && m < mask.m_firstRegion + mask.m_numRegions;
+
+        if (!cut && overlap(m_regionBoxes[m], mask.m_box)) {
+          sides.push_back(pair(r, m));
+        }
+      }
+    }
+
+    const Node& node = m_nodes[mask.m_node];
+
+    for (uint32_t leaf = node.m_firstLeaf; leaf < node.m_firstLeaf + node.m_numLeaves; leaf++) {
+      m_leafSides[leaf].insert(m_leafSides[leaf].end(), sides.begin(), sides.end());
+    }
+  }
+
+  for (auto& sides : m_leafSides) {
+    std::sort(sides.begin(), sides.end());
+
+    sides.erase(std::unique(sides.begin(), sides.end()), sides.end());
+  }
+}
+
+template <class T>
+inline const std::vector<std::pair<uint32_t, uint32_t>>&
+ExprIndex<T>::getSidesOfLeaf(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafSides.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafSides.size());
+
+  return m_leafSides[a_leaf];
+}
+
+template <class T>
+inline std::vector<std::pair<uint32_t, uint32_t>>
+ExprIndex<T>::getInterfaces() const
+{
+  std::vector<std::pair<uint32_t, uint32_t>> all;
+
+  for (const auto& sides : m_leafSides) {
+    all.insert(all.end(), sides.begin(), sides.end());
+  }
+
+  std::sort(all.begin(), all.end());
+
+  all.erase(std::unique(all.begin(), all.end()), all.end());
+
+  return all;
 }
 
 template <class T>

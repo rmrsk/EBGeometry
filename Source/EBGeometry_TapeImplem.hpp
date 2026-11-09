@@ -3662,8 +3662,10 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
         result.m_hit.m_normal = -first.m_normal;
       }
 
-      result.m_surface.m_minusRegion = from;
-      result.m_surface.m_plusRegion  = to;
+      result.m_surface.m_minusRegion     = from;
+      result.m_surface.m_plusRegion      = to;
+      result.m_surface.m_insideMaterial  = this->getMaterialOf(result.m_surface.m_minusRegion);
+      result.m_surface.m_outsideMaterial = this->getMaterialOf(result.m_surface.m_plusRegion);
 
       return result;
     }
@@ -3764,8 +3766,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     SurfaceRef<T> surface = this->surfaceOf(this->leafOf(
       this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, a_point, this->base(), this->location())));
 
-    surface.m_minusRegion = a_region;
-    surface.m_plusRegion  = 1U - Math::min(a_region, 1U);
+    surface.m_minusRegion     = a_region;
+    surface.m_plusRegion      = 1U - Math::min(a_region, 1U);
+    surface.m_insideMaterial  = this->getMaterialOf(surface.m_minusRegion);
+    surface.m_outsideMaterial = this->getMaterialOf(surface.m_plusRegion);
 
     return surface;
   }
@@ -3788,8 +3792,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
       }
     }
 
-    surface.m_minusRegion = 0U;
-    surface.m_plusRegion  = across;
+    surface.m_minusRegion     = 0U;
+    surface.m_plusRegion      = across;
+    surface.m_insideMaterial  = this->getMaterialOf(surface.m_minusRegion);
+    surface.m_outsideMaterial = this->getMaterialOf(surface.m_plusRegion);
 
     return surface;
   }
@@ -3833,8 +3839,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     }
   }
 
-  surface.m_minusRegion = a_region;
-  surface.m_plusRegion  = across;
+  surface.m_minusRegion     = a_region;
+  surface.m_plusRegion      = across;
+  surface.m_insideMaterial  = this->getMaterialOf(surface.m_minusRegion);
+  surface.m_outsideMaterial = this->getMaterialOf(surface.m_plusRegion);
 
   return surface;
 }

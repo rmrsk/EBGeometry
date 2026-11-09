@@ -53,6 +53,7 @@ struct RegionAnswer
   uint32_t m_minus;
   uint32_t m_plus;
   uint32_t m_surface;
+  uint32_t m_group;
   T        m_t;
   uint32_t m_from;
   uint32_t m_to;
@@ -63,6 +64,7 @@ template <class T, class TapeType>
 struct RegionQuery
 {
   TapeType m_tape;
+  Scheme   m_scheme;
 
   EBGEOMETRY_HOST_DEVICE
   RegionAnswer<T>
@@ -81,6 +83,7 @@ struct RegionQuery
     answer.m_minus   = surface.m_minusRegion;
     answer.m_plus    = surface.m_plusRegion;
     answer.m_surface = surface.m_surface;
+    answer.m_group   = m_scheme.groupOf(surface);
 
     const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
 
@@ -856,8 +859,18 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host",
     }
   }
 
-  const auto onDevice = evaluateOnDevice<RegionAnswer<T>>(RegionQuery<T, Tape>{tape.rebasedView(device)}, points);
-  const auto onHost   = evaluateOnHost<RegionAnswer<T>>(RegionQuery<T, Tape>{tape}, points);
+  // An electrostatic scheme: every conductor surface (dirichlet), the jacket's outside (jump).
+  Scheme scheme;
+
+  const uint32_t dirichlet = scheme.addGroup();
+  const uint32_t jump      = scheme.addGroup();
+
+  scheme.add(dirichlet, SurfaceSelector::region(2));
+  scheme.add(jump, SurfaceSelector::interface(0, 1));
+
+  const auto onDevice =
+    evaluateOnDevice<RegionAnswer<T>>(RegionQuery<T, Tape>{tape.rebasedView(device), scheme}, points);
+  const auto onHost = evaluateOnHost<RegionAnswer<T>>(RegionQuery<T, Tape>{tape, scheme}, points);
 
   size_t differ = 0;
 
@@ -869,7 +882,7 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host",
 
     // Where two choices are equally right (a point on a surface), the device's rounding may pick the other.
     differ += (d.m_region != h.m_region || d.m_minus != h.m_minus || d.m_plus != h.m_plus ||
-               d.m_surface != h.m_surface || d.m_from != h.m_from || d.m_to != h.m_to)
+               d.m_surface != h.m_surface || d.m_group != h.m_group || d.m_from != h.m_from || d.m_to != h.m_to)
                 ? 1U
                 : 0U;
 
@@ -881,4 +894,111 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host",
   }
 
   CHECK(differ <= 2U);
+}
+
+TEMPLATE_TEST_CASE("ExprIndex: the pairs of regions each surface may separate, the interfaces",
+                   "[Overlay][Scheme]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Pair = std::pair<uint32_t, uint32_t>;
+
+  // The cable (leaves: 0 the jacket, region 1; 1 the core, region 2) cut by a slab (leaf 2, a mask).
+  const ExprIndex<T> index(Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)))));
+
+  CHECK(index.getSidesOfLeaf(0) == std::vector<Pair>{{0, 1}});
+  CHECK(index.getSidesOfLeaf(1) == std::vector<Pair>{{0, 2}, {1, 2}});
+  CHECK(index.getSidesOfLeaf(2) == std::vector<Pair>{{0, 1}, {0, 2}});
+  CHECK(index.getInterfaces() == std::vector<Pair>{{0, 1}, {0, 2}, {1, 2}});
+
+  // A third region far away, moved: its box meets neither of the others.
+  const auto far = Translate(SphereSDF<T>(Vec3::zeros(), T(0.5)), Vec3(T(10), T(0), T(0)));
+
+  const ExprIndex<T> apart(
+    Overlay(std::vector<Expr<T>>{SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::zeros(), T(0.5)), far}));
+
+  CHECK(apart.getSidesOfLeaf(2) == std::vector<Pair>{{0, 3}});
+
+  // An expression with no Overlay: the object and the background.
+  CHECK(ExprIndex<T>(toExpr(SphereSDF<T>(Vec3::zeros(), T(1)))).getInterfaces() == std::vector<Pair>{{0, 1}});
+}
+
+TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions, interfaces, labels and materials",
+                   "[Overlay][Scheme]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T, TapeFeature::Regions>;
+
+  // The cable: air 0, the jacket 1 (PTFE), the core 2 (copper), its surface labeled "conductor".
+  const auto core   = MaterialLabel(SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "conductor"), "copper");
+  const auto jacket = MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(1)), "PTFE");
+
+  const Expr<T> cable = Overlay(jacket, core, "air");
+
+  Pool pool(hostMemoryResource());
+
+  const Tape         tape(pool, cable);
+  const ExprIndex<T> index(cable);
+
+  const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the air
+  const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
+
+  CHECK(outer.m_insideMaterial == index.findMaterialLabel("PTFE"));
+  CHECK(outer.m_outsideMaterial == index.findMaterialLabel("air"));
+
+  // Electrostatics: every surface of the conductor, inside the jacket included (dirichlet); the jacket's outside
+  // (a jump).
+  Scheme electrostatics;
+
+  const uint32_t dirichlet = electrostatics.addGroup();
+  const uint32_t jump      = electrostatics.addGroup();
+
+  electrostatics.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
+  electrostatics.add(jump, SurfaceSelector::interface(1, 0));
+
+  CHECK(electrostatics.groupOf(inner) == dirichlet);
+  CHECK(electrostatics.groupOf(outer) == jump);
+
+  // CFD in the air: every surface facing the air (no-slip); the inner one is no surface to it.
+  Scheme cfd;
+
+  const uint32_t noSlip = cfd.addGroup();
+
+  cfd.add(noSlip, SurfaceSelector::region(0));
+
+  CHECK(cfd.groupOf(outer) == noSlip);
+  CHECK(cfd.groupOf(inner) == Scheme::None);
+
+  // The piece clicked matches itself; another part or other sides do not.
+  const SurfaceSelector piece = SurfaceSelector::piece(inner);
+
+  CHECK(piece.matches(inner));
+  CHECK(!piece.matches(outer));
+  CHECK(!piece.withPart(inner.m_part + 1U).matches(inner));
+  CHECK(SurfaceSelector::surface(inner.m_surface).matches(inner));
+
+  // By materials, either way round, or one on either side.
+  CHECK(SurfaceSelector::materials(index.findMaterialLabel("air"), index.findMaterialLabel("PTFE")).matches(outer));
+  CHECK(SurfaceSelector::materials(index.findMaterialLabel("copper")).matches(inner));
+  CHECK(!SurfaceSelector::materials(index.findMaterialLabel("copper")).matches(outer));
+
+  // A selector is undone; the first that matches decides.
+  cfd.remove(noSlip, SurfaceSelector::region(0));
+
+  CHECK(cfd.getNumSelectors() == 0U);
+  CHECK(cfd.groupOf(outer) == Scheme::None);
+
+  REQUIRE(abortsWith(
+    [] {
+      Scheme scheme;
+
+      for (uint32_t g = 0; g <= Scheme::MaxGroups; g++) {
+        (void)scheme.addGroup();
+      }
+    },
+    "Scheme: a scheme holds at most 8 groups"));
+  REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: group 0 of 0"));
 }

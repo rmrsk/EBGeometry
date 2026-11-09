@@ -527,6 +527,12 @@ instantiateFunctionTemplates()
       (void)phases.addPhase({0U, 1U});
       (void)phases.role(regions.closestSurface(Vec3T<T>::zeros(), phases, 0U));
       (void)regions.signedDistance(Vec3T<T>::zeros(), phases, 0U);
+
+      Scheme scheme;
+
+      scheme.add(scheme.addGroup(), SurfaceSelector::interface(0U, 1U));
+      (void)scheme.groupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)regions.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
       (void)regions.firstRegionChange(Vec3T<T>::zeros(), Vec3T<T>::ones());
       (void)regions.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1), phases, 0U);
