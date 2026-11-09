@@ -495,6 +495,35 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 6.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 6U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 2 axis + 0 for the face at the low corner, 2 axis + 1 for the one at the high corner (-x, +x, -y, +y, -z, +z), the axis whose term is largest, as in signedDistance().
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> lo = m_loCorner - a_point;
+    const Vec3T<T> hi = a_point - m_hiCorner;
+    const Vec3T<T> delta(Math::max(lo[0], hi[0]), Math::max(lo[1], hi[1]), Math::max(lo[2], hi[2]));
+
+    const size_t axis = delta.maxDir(false);
+
+    return 2U * uint32_t(axis) + ((hi[axis] > lo[axis]) ? 1U : 0U);
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details The box itself.
    * @return The bounding box.
@@ -884,6 +913,37 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 3.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 3U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the side, 1 the cap at the first center, 2 the cap at the second.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> point = a_point - m_center;
+    const T        para  = dot(point, m_axis);
+    const T        w     = (point - para * m_axis).length() - m_radius;
+    const T        h     = std::abs(para) - T(0.5) * m_length;
+
+    // The side where its term decides (inside, the nearer of the two; outside, the larger).
+    const bool side = (w <= T(0) && h <= T(0)) ? (std::abs(w) < std::abs(h)) : (w > h);
+
+    return side ? 0U : ((para < T(0)) ? 1U : 2U);
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details The box around the two cap discs: along axis i, each disc reaches the radius times
    * sqrt(1 - axis_i^2) beyond its center.
@@ -1220,6 +1280,34 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 3.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 3U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the side, 1 the hemisphere at the first tip, 2 the one at the second.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> v1   = a_point - m_center1;
+    const Vec3T<T> v2   = m_center2 - m_center1;
+    const T        len2 = dot(v2, v2);
+    const T        t    = (len2 > T(0)) ? dot(v1, v2) / len2 : T(0);
+
+    return (t <= T(0)) ? 1U : ((t >= T(1)) ? 2U : 0U);
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details The two hemisphere centers plus and minus the radius along each axis.
    * @return The bounding box.
@@ -1526,6 +1614,35 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 2.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 2U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the slanted side, 1 the base.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> delta = a_point - m_tip;
+    const Vec2T<T> q     = m_height * Vec2T<T>(m_c[0] / m_c[1], -1.0);
+    const Vec2T<T> w     = Vec2T<T>(std::sqrt(delta[0] * delta[0] + delta[2] * delta[2]), delta[1]);
+    const Vec2T<T> a     = w - Math::clamp(dot(w, q) / dot(q, q), T(0), T(1)) * q;
+    const Vec2T<T> b     = w - Vec2T<T>(q[0] * Math::clamp(w[0] / q[0], T(0), T(1)), q[1]);
+
+    return (dot(a, a) <= dot(b, b)) ? 0U : 1U;
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details In y, from the base disc a height below the tip up to the tip; in x and z, the base
    * radius (the height times the tangent of the half-angle) either side of the axis.
@@ -1662,6 +1779,35 @@ public:
     const T inside  = Math::min(Math::max(q[0], Math::max(q[1], q[2])), T(0));
 
     return outside + inside - m_curvature;
+  }
+
+  /**
+   * @brief How many parts the shape has (see hasParts): 6.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 6U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 2 axis + 0 for the face on the negative side, 2 axis + 1 for the one on the positive side (-x, +x, -y, +y, -z, +z), the axis whose term is largest; a rounded edge or corner goes to that face.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> p = a_point - m_center;
+    const Vec3T<T> q(
+      std::abs(p[0]) - m_dimensions[0], std::abs(p[1]) - m_dimensions[1], std::abs(p[2]) - m_dimensions[2]);
+
+    const size_t axis = q.maxDir(false);
+
+    return 2U * uint32_t(axis) + ((p[axis] > T(0)) ? 1U : 0U);
   }
 
   /**
@@ -2113,6 +2259,34 @@ public:
     const auto     d2 = Vec2T<T>(Math::max(d1[0], T(0)), Math::max(d1[1], T(0)));
 
     return Math::min(Math::max(d1[0], d1[1]), T(0)) + std::sqrt(d2[0] * d2[0] + d2[1] * d2[1]) - m_minorRadius;
+  }
+
+  /**
+   * @brief How many parts the shape has (see hasParts): 3.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 3U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the side, 1 the cap at -y, 2 the cap at +y; a rounded edge goes to the term that is larger there.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> p  = a_point - m_center;
+    const T        xz = std::sqrt(p[2] * p[2] + p[0] * p[0]);
+    const T        r  = xz - m_majorRadius;
+    const T        y  = std::abs(p[1]) - m_height;
+
+    return (r >= y) ? 0U : ((p[1] < T(0)) ? 1U : 2U);
   }
 
   /**
@@ -2757,6 +2931,47 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 3.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 3U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the slanted side, 1 the end disc at the first center, 2 the one at the second.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const AnalyticDetail::AxialCoordinates<T> q = AnalyticDetail::axialCoordinates(a_point, m_center1, m_axis);
+
+    const T x = q.m_radial;
+    const T y = q.m_axial;
+    const T h = m_length;
+
+    const T capX = Math::max(T(0), x - ((y < T(0.5) * h) ? m_radius1 : m_radius2));
+    const T capY = std::abs(y - T(0.5) * h) - T(0.5) * h;
+
+    const T dr    = m_radius2 - m_radius1;
+    const T f     = Math::clamp((dr * (x - m_radius1) + y * h) / (dr * dr + h * h), T(0), T(1));
+    const T sideX = x - m_radius1 - f * dr;
+    const T sideY = y - f * h;
+
+    if (sideX * sideX + sideY * sideY <= capX * capX + capY * capY) {
+      return 0U;
+    }
+
+    return (y < T(0.5) * h) ? 1U : 2U;
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details The box around the two end discs: along axis i, each disc reaches its radius times
    * sqrt(1 - axis_i^2) beyond its center.
@@ -2978,6 +3193,33 @@ public:
     }
 
     return m_cos * x + m_sin * y - m_radius1;
+  }
+
+  /**
+   * @brief How many parts the shape has (see hasParts): 3.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 3U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the slanted side, 1 the sphere at the first center, 2 the one at the second.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const AnalyticDetail::AxialCoordinates<T> q = AnalyticDetail::axialCoordinates(a_point, m_center1, m_axis);
+
+    const T k = -m_sin * q.m_radial + m_cos * q.m_axial;
+
+    return (k < T(0)) ? 1U : ((k > m_cos * m_length) ? 2U : 0U);
   }
 
   /**
@@ -3248,6 +3490,48 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): the sides and the two caps, getSides() + 2.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return m_sides + 2U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): the side k from 0 to getSides() - 1, counted from the first vertex around the axis; then getSides() for the cap at the first center and getSides() + 1 for the one at the second.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> w = a_point - m_center1;
+    const T        y = dot(w, m_axis);
+    const T        u = dot(w, m_vertex);
+    const T        v = dot(w, m_side);
+
+    const T profile = this->polygonDistance(u, v);
+    const T slab    = std::abs(y - T(0.5) * m_length) - T(0.5) * m_length;
+
+    if (profile >= slab) {
+      const T sector = T(2) * pi<T> / T(m_sides);
+      T       angle  = std::atan2(v, u);
+
+      if (angle < T(0)) {
+        angle += T(2) * pi<T>;
+      }
+
+      return Math::min(uint32_t(angle / sector), m_sides - 1U);
+    }
+
+    return (y < T(0.5) * m_length) ? m_sides : m_sides + 1U;
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details The box around the circumscribed cylinder: along axis i, each end reaches the circumradius times
    * sqrt(1 - axis_i^2) beyond its center.
@@ -3457,6 +3741,39 @@ public:
       std::abs(q.m_radial - T(0.5) * (m_innerRadius + m_outerRadius)) - T(0.5) * (m_outerRadius - m_innerRadius);
 
     return AnalyticDetail::extrusion(annulus, std::abs(q.m_axial - T(0.5) * m_length) - T(0.5) * m_length);
+  }
+
+  /**
+   * @brief How many parts the shape has (see hasParts): 4.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 4U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the outer wall, 1 the inner wall, 2 the end at the first center, 3 the end at the second.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const AnalyticDetail::AxialCoordinates<T> q = AnalyticDetail::axialCoordinates(a_point, m_center1, m_axis);
+
+    const T middle  = T(0.5) * (m_innerRadius + m_outerRadius);
+    const T annulus = std::abs(q.m_radial - middle) - T(0.5) * (m_outerRadius - m_innerRadius);
+    const T slab    = std::abs(q.m_axial - T(0.5) * m_length) - T(0.5) * m_length;
+
+    if (annulus >= slab) {
+      return (q.m_radial >= middle) ? 0U : 1U;
+    }
+
+    return (q.m_axial < T(0.5) * m_length) ? 2U : 3U;
   }
 
   /**
@@ -3680,6 +3997,54 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 3.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 3U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the tube, 1 the end disc at the positive angle, 2 the one at the negative; a whole torus is all tube.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    if (m_whole) {
+      return 0U;
+    }
+
+    const Vec3T<T> p     = a_point - m_center;
+    const T        rho   = std::sqrt(p[0] * p[0] + p[2] * p[2]);
+    const T        torus = std::sqrt((rho - m_majorRadius) * (rho - m_majorRadius) + p[1] * p[1]) - m_minorRadius;
+
+    const auto disc = [&p, this](const T a_sin) noexcept {
+      const T across = p[2] * m_cos - p[0] * a_sin;
+      const T radial = p[0] * m_cos + p[2] * a_sin;
+      const T rim =
+        Math::max(T(0), std::sqrt((radial - m_majorRadius) * (radial - m_majorRadius) + p[1] * p[1]) - m_minorRadius);
+
+      return std::sqrt(across * across + rim * rim);
+    };
+
+    const T        positive = disc(m_sin);
+    const T        negative = disc(-m_sin);
+    const uint32_t end      = (positive <= negative) ? 1U : 2U;
+
+    if (p[0] >= rho * m_cos) {
+      return (torus >= T(0) || -torus <= Math::min(positive, negative)) ? 0U : end;
+    }
+
+    return end;
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @details Every point of the solid lies in a half-plane through the axis within the arc, at a distance from
    * the axis between the major radius less the minor one and their sum.
@@ -3880,6 +4245,36 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 2.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 2U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the sphere, 1 the flat cut face (its rim included).
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> p = a_point - m_center;
+    const T        x = std::sqrt(p[0] * p[0] + p[2] * p[2]);
+    const T        y = p[1];
+
+    const T s = Math::max((m_height - m_radius) * x * x + m_rim * m_rim * (m_height + m_radius - T(2) * y),
+                          m_height * x - m_rim * y);
+
+    return (s < T(0)) ? 0U : 1U;
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @return The bounding box.
    */
@@ -4069,6 +4464,32 @@ public:
   }
 
   /**
+   * @brief How many parts the shape has (see hasParts): 2.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 2U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the shell, 1 its rounded rim.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    const Vec3T<T> p = a_point - m_center;
+    const T        x = std::sqrt(p[0] * p[0] + p[2] * p[2]);
+
+    return (m_rim * p[1] < m_height * x) ? 1U : 0U;
+  }
+
+  /**
    * @brief The shape's axis-aligned bounding box.
    * @return The bounding box.
    */
@@ -4239,6 +4660,29 @@ public:
     }
 
     return std::sqrt(x * x + y * y);
+  }
+
+  /**
+   * @brief How many parts the shape has (see hasParts): 2.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 2U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the face on the -x side of the tip, 1 the one on the +x side; the tip edge goes to the side the point is on.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    return (a_point[0] >= m_tip[0]) ? 1U : 0U;
   }
 
   /**

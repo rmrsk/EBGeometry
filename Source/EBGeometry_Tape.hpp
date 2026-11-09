@@ -399,6 +399,27 @@ struct AnyContainer<T, TypeList<Ps...>> : std::bool_constant<(hasSurfaces<Ps, T>
 };
 
 /**
+ * @brief Whether a TypeList holds a container or a shape with parts (see hasSurfaces, hasParts): whether
+ * closestSurface() drills into the deciding leaf at all.
+ * @details Internal helper; not part of the public API.
+ * @tparam T    Floating-point precision.
+ * @tparam List TypeList.
+ */
+template <class T, class List>
+struct AnyDrill;
+
+/**
+ * @brief Whether a TypeList holds a container or a shape with parts.
+ * @details Internal helper; not part of the public API.
+ * @tparam T  Floating-point precision.
+ * @tparam Ps Types.
+ */
+template <class T, class... Ps>
+struct AnyDrill<T, TypeList<Ps...>> : std::bool_constant<((hasSurfaces<Ps, T> || hasParts<Ps, T>) || ...)>
+{
+};
+
+/**
  * @brief The I-th type of a TypeList.
  * @details Internal helper; not part of the public API.
  * @tparam I  Index.
@@ -872,6 +893,12 @@ public:
     PODVector<uint32_t> m_surfaces;
 
     /**
+     * @brief The part labels (see Label(shape, FaceGroups)): first, per leaf, where its parts' labels begin in
+     * this array (None for a leaf whose parts are not named); then those labels. Empty when no leaf's parts are.
+     */
+    PODVector<uint32_t> m_partLabels;
+
+    /**
      * @brief How many distinct labels the expression has.
      */
     uint32_t m_numLabels = 0;
@@ -963,6 +990,38 @@ public:
            const Vec3T<T>&      a_to,
            T                    a_tMin    = T(0),
            const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first crossing along a ray, and the surface crossed: the ray counterpart of closestSurface(), as
+   * firstHit() is of signedDistance(). The same as the free function firstSurface(). Callable on a device.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march.
+   * @return The crossing and its surface, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceHitT<T>
+  firstSurface(const RayT<T>&       a_ray,
+               T                    a_tMin,
+               T                    a_tMax,
+               const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first crossing on the segment from a_from to a_to, and the surface crossed (see firstSurface() for a
+   * ray). Callable on a device.
+   * @param[in] a_from    Start of the segment.
+   * @param[in] a_to      End of the segment.
+   * @param[in] a_tMin    Distance from a_from where the search starts.
+   * @param[in] a_options How to march.
+   * @return The crossing and its surface, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceHitT<T>
+  firstSurface(const Vec3T<T>&      a_from,
+               const Vec3T<T>&      a_to,
+               T                    a_tMin    = T(0),
+               const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**
    * @brief Whether a ray crosses the object's surface in [a_tMin, a_tMax].

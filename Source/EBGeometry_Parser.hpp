@@ -100,8 +100,9 @@ readPLY(const std::vector<std::string>& a_filenames);
 
 /**
  * @brief Read an STL file, ASCII or binary.
- * @details The facet normals in the file are ignored. If the file holds several solids (uncommon, but
- * allowed), only the first is read.
+ * @details The facet normals in the file are ignored. Every solid of an ASCII file is read, and each named
+ * solid's faces are a face group of that name (PolygonSoup::getFaceGroups()); a binary file has one solid and no
+ * groups.
  * @tparam T Floating-point precision for vertex coordinates.
  * @param[in] a_filename STL file name.
  * @return The soup, cleaned (see PolygonSoup::clean()).
@@ -124,8 +125,9 @@ readSTL(const std::vector<std::string>& a_filenames);
 
 /**
  * @brief Read a Wavefront OBJ file.
- * @details Only the vertices and faces are read; texture coordinates, normals, groups and materials
- * are ignored. A face record with fewer than three vertices is not a face.
+ * @details The vertices, the faces and the groups are read; texture coordinates, normals and materials are
+ * ignored. A face record with fewer than three vertices is not a face. A `g` or `o` line puts the faces after it
+ * in the face group of its name, until the next one (PolygonSoup::getFaceGroups()).
  * @tparam T Floating-point precision for vertex coordinates.
  * @param[in] a_filename OBJ file name.
  * @return The soup, cleaned (see PolygonSoup::clean()).

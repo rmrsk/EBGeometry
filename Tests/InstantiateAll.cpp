@@ -65,6 +65,7 @@ namespace EBGeometry {
   template class Tape<PREC, SphereCloudBVH<PREC>>;                           \
   template class BVHUnion<PREC, 4, SphereCloudBVH<PREC>>;                    \
   template struct SurfaceRef<PREC>;                                          \
+  template struct SurfaceHitT<PREC>;                                         \
                                                                                \
   /* -- File readers ------------------------------------------------------*/ \
   template class PolygonSoup<PREC>;                                          \
@@ -481,6 +482,12 @@ instantiateFunctionTemplates()
     (void)tape.getLabel(tape.closestLeaf(Vec3T<T>::zeros()));
     (void)ExprIndex<T>(Label(expr, "all")).pathOf(0U);
     (void)tape.closestSurface(Vec3T<T>::zeros());
+    (void)tape.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
+    (void)tape.firstSurface(Vec3T<T>::zeros(), Vec3T<T>::ones());
+    (void)closestSurface(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), Vec3T<T>::zeros());
+    (void)firstSurface(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), Vec3T<T>::zeros(), Vec3T<T>::ones());
+    (void)ExprIndex<T>(expr).getPartLabel(0U, 0U);
+    (void)ExprIndex<T>(expr).getPartLabels(0U);
     (void)tape.getNumSurfaces();
     (void)tape.getFirstSurface(0U);
     (void)ExprIndex<T>(expr).getNumSurfaces();
@@ -547,6 +554,10 @@ instantiateFunctionTemplates()
   }
 
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
+  (void)PolygonSoup<T>().getFaceGroups();
+  PolygonSoup<T>().setFaceGroups(FaceGroups{});
+  (void)Label(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), FaceGroups{{"a"}, std::vector<uint32_t>(6, 0U)});
+  (void)BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()).closestPart(Vec3T<T>::zeros());
   (void)PolygonSoup<T>().convertToTriangles();
 
   // PackedBVH::traverse() is a member template: walk a BVH of points with each query type, a visit

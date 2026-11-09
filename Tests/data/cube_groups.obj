@@ -1,0 +1,20 @@
+# Unit cube [0,1]^3 with six quadrilateral faces in named groups: the bottom, the top, three walls, and one face
+# in no group (the last, after an empty g).
+v 0 0 0
+v 1 0 0
+v 1 1 0
+v 0 1 0
+v 0 0 1
+v 1 0 1
+v 1 1 1
+v 0 1 1
+g bottom
+f 1 4 3 2
+o top
+f 5 6 7 8
+g walls
+f 1 2 6 5
+f 2 3 7 6
+f 3 4 8 7
+g
+f 4 1 5 8

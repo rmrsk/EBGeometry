@@ -39,6 +39,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `RayCrossing/` | `firstCrossing()`, the first crossing without its normal, against `firstHit()`: a mesh, a CSG tape, and tapes holding a mesh (drilled, traced; smoothly joined to a ball, marched) |
 | `ClosestPrimitive/` | A tape's `closestLeaf()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `ClosestSurface/` | A tape's `closestSurface()`, drilled into a cloud of spheres (a `SphereCloudBVH`, a `BVHUnion`), against `closestLeaf()` |
+| `SurfaceParts/` | A tape's surfaces with their parts and labels: `closestSurface()` on a union of boxes and on a mesh labeled by face groups, and `firstSurface()` at that mesh, against `closestLeaf()` and `firstHit()` |
 | `LaunchTuning/` | `GPU::transform()`'s launch settings (block size, minimum resident threads) on a mesh distance, a tape's rays and a point cloud; device only |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results; `BuildCost`, the compiler launcher that records what each compile costs, and `BuildCompare`, which compares two builds' costs |

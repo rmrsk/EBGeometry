@@ -20,6 +20,7 @@
 
 // Our includes
 #include "EBGeometry_DCEL_Mesh.hpp"
+#include "EBGeometry_FaceGroups.hpp"
 #include "EBGeometry_ParseError.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Triangle.hpp"
@@ -176,6 +177,21 @@ public:
   setFaceProperty(const std::string& a_name, std::vector<T> a_data);
 
   /**
+   * @brief The named groups of the faces: an OBJ file's `g` and `o` groups, or an ASCII STL file's named solids.
+   * @return The groups; empty if the file named none.
+   */
+  [[nodiscard]] const FaceGroups&
+  getFaceGroups() const noexcept;
+
+  /**
+   * @brief Add or replace the named groups of the faces.
+   * @param[in] a_groups One group per face (or FaceGroups::None), each below the number of names; empty for none.
+   * Any other size, or a group without a name, aborts with a message, in every build.
+   */
+  void
+  setFaceGroups(FaceGroups a_groups);
+
+  /**
    * @brief Whether the soup is clean: clean() has run, and nothing has changed the geometry since.
    * @return True if the soup is clean.
    */
@@ -191,7 +207,7 @@ public:
    *   lexicographically. A merged vertex takes its properties from the first of them in the input.
    * - Soup::removeDegeneratePolygons(): faces with fewer than three distinct vertices, and zero-area
    *   faces, are removed, and the T-junctions such a face filled are repaired. The remaining faces
-   *   keep their order, and their properties.
+   *   keep their order, their properties and their groups.
    *
    * Cleaning a clean soup changes nothing.
    * @return The number of faces removed.
@@ -255,6 +271,11 @@ protected:
    * @brief Face properties, one value per face.
    */
   std::map<std::string, std::vector<T>> m_faceProperties;
+
+  /**
+   * @brief The named groups of the faces.
+   */
+  FaceGroups m_faceGroups;
 
   /**
    * @brief Whether clean() has run.

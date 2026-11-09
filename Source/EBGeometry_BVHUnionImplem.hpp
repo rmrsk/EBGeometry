@@ -886,7 +886,7 @@ closestSurfaceOfUnion(const U& a_union, const Vec3T<T>& a_point) noexcept
   surface.m_surface    = firstSurfaceOf<T>(a_union, best.member);
   surface.m_localPoint = a_point;
 
-  if constexpr (U::HasContainers) {
+  if constexpr (U::HasContainers || U::HasParts) {
     const auto leaf =
       (best.position < numUnbounded) ? unbounded[best.position] : primitives[best.position - numUnbounded];
 
@@ -897,6 +897,7 @@ closestSurfaceOfUnion(const U& a_union, const Vec3T<T>& a_point) noexcept
     // An empty collection names no surface.
     if (inner.m_surface != SurfaceRef<T>::None) {
       surface.m_surface += inner.m_surface;
+      surface.m_part       = inner.m_part;
       surface.m_localPoint = inner.m_localPoint;
     }
     else {

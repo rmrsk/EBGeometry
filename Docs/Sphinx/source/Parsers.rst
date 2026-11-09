@@ -105,7 +105,8 @@ The properties read are the scalar vertex properties other than ``x``, ``y`` and
 scalar face properties of a PLY file, and the first component of every ``SCALARS`` array in the
 ``POINT_DATA`` and ``CELL_DATA`` sections of a VTK file. A VTK array whose length matches neither
 the points nor the polygons (``CELL_DATA`` that also covers lines or vertices, say) cannot be
-aligned, and is dropped with a warning. STL and OBJ files have no properties.
+aligned, and is dropped with a warning. STL and OBJ files have no properties, but can name face groups (see
+the note below).
 
 A soup can also be converted directly: ``soup.convertToDCEL(pool, onDefect)`` builds the DCEL mesh,
 and ``soup.convertToTriangles(onDefect)`` the flat triangles of :ref:`Sec:FlatTriangles`. A soup
@@ -116,9 +117,13 @@ mesh's.
 
 .. note::
 
-   If an STL file contains multiple solids (uncommon, but technically valid STL), ``readSTL``
-   only reads the first one. In a binary STL, the two "attribute" bytes after each triangle are
-   ignored; some exporters store a color there.
+   Every solid of an ASCII STL file is read, and each named solid's faces are a face group of that
+   name (a solid that starts before the previous one has ended ends it); an OBJ file's ``g`` and ``o``
+   lines put the faces after them in a group too, named by the rest of the line (``g a b`` is the one group
+   ``a b``). The groups are
+   ``PolygonSoup::getFaceGroups()``, and ``Label(mesh, groups)`` turns them into labels of the mesh's faces
+   (see :ref:`Sec:Parts`). In a binary STL, the two "attribute" bytes after each triangle are ignored;
+   some exporters store a color there.
 
 A file that cannot be read in full is rejected rather than read in part: a partial mesh has holes,
 and a mesh with holes gives wrong signs without any other symptom. If a file is missing, has an
