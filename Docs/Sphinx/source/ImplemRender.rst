@@ -216,7 +216,8 @@ click on the panel away from its buttons picks the surface behind it). It names 
 between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. With domains
 registered (``RegionNames::addDomain()``), a row of their names comes first, then the active one's subdomains: a
 click on one highlights its surfaces (``RegionSettings::m_highlightRegions`` in a program), its ``[Hide]`` and
-``[Only]`` hide its regions or show only them, and ``[Hide domain]``, ``[Only this domain]`` and ``[Show all]`` do
+``[Only]`` hide its regions or show only them, its ``[Section]`` shows its function on the section plane, what a
+cut-cell code cuts for it, the background's subdomain included (``RegionSettings::m_fieldRegions``), and ``[Hide domain]``, ``[Only this domain]`` and ``[Show all]`` do
 the same for the whole domain. The active domain's surface groups are shown and edited, its regions marked, and the
 pieces counted those it touches. A "Color by" row sets what the surfaces
 are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),

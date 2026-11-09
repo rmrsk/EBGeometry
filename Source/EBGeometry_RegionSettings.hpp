@@ -109,6 +109,13 @@ struct RegionSettings
   }
 
   /**
+   * @brief The regions whose function the view's value is, a bit each (bit k for region k, the background's bit 0
+   * included): a subdomain's, what a cut-cell code cuts for it (Tape::signedDistance(p, subdomains, subdomain)), on a
+   * section plane and in its contours; 0 for the visible regions'.
+   */
+  uint64_t m_fieldRegions = 0U;
+
+  /**
    * @brief The hidden surface groups of the scheme, a bit each (bit g for surface group g): their surfaces are not
    * drawn, and cast no shadow.
    */

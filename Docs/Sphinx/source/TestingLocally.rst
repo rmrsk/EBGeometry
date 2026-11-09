@@ -446,8 +446,10 @@ Test coverage
        inside a region), and ``firstSurface()`` into and out of a subdomain of visible regions. The pairs of regions
        each surface may separate (``getSidesOfLeaf()``, ``getInterfaces()``); ``Scheme`` and ``SurfaceSelector``
        grouping the cable's surfaces for an electrostatic and a flow solver (pieces, labels, interfaces, regions,
-       materials), and the rejected groups; the region queries and a scheme's groups on the device against the
-       host.
+       materials), and the rejected groups; the region queries, and a ``Domain`` taken whole by a kernel (each
+       subdomain's function, surface, role and boundary condition), on the device against the host; the pieces an
+       object has and may have, and a scheme's coverage of them; ``RegionView``'s highlights, hidden surface groups and
+       field regions.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

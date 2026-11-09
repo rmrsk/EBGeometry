@@ -64,9 +64,9 @@ public:
   {}
 
   /**
-   * @brief The value: the visible regions' subdomain function (see Tape::signedDistance(p, subdomains, subdomain)), half the
-   * difference of the smallest function of a visible region and of a hidden one; the largest value when none is
-   * visible.
+   * @brief The value: the function of the field's regions (RegionSettings::m_fieldRegions) or, without them, of the
+   * visible regions, as a subdomain's (see Tape::signedDistance(p, subdomains, subdomain)): half the difference of the
+   * smallest function of a region in the set and of one not in it; the largest value when the set is empty.
    * @param[in] a_point Point.
    * @return The value.
    */
@@ -78,10 +78,14 @@ public:
     T in  = Math::Limits<T>::max();
     T out = Math::Limits<T>::max();
 
+    const uint64_t field = m_settings.m_fieldRegions;
+
     for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
       const T d = m_tape.signedDistance(a_point, k);
 
-      if (this->isVisible(k)) {
+      const bool member = (field != 0U) ? (k < 64U && ((field >> k) & 1U) != 0U) : this->isVisible(k);
+
+      if (member) {
         in = Math::min(in, d);
       }
       else {
@@ -95,7 +99,8 @@ public:
   /**
    * @brief The field a section plane's contours are drawn from: the distance to the nearest surface of a visible
    * region (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces
-   * between two of them included, which the value (the visible regions' outer surface) does not have.
+   * between two of them included, which the value (the visible regions' outer surface) does not have. With field
+   * regions set (RegionSettings::m_fieldRegions), the value's own zero set: the subdomain's boundary alone.
    * @param[in] a_point Point.
    * @return The field.
    */
@@ -104,6 +109,10 @@ public:
   inline T
   contourValue(const Vec3T<T>& a_point) const noexcept
   {
+    if (m_settings.m_fieldRegions != 0U) {
+      return std::abs(this->signedDistance(a_point));
+    }
+
     T field = Math::Limits<T>::max();
 
     for (uint32_t k = 1; k < m_tape.getNumRegions(); k++) {
