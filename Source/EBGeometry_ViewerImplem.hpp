@@ -445,28 +445,34 @@ struct Background
  */
 enum class PanelAction : uint8_t
 {
-  None,           ///< Nothing.
-  AddPiece,       ///< Add the picked piece to the current surface group.
-  AddSurface,     ///< Add the picked piece's whole surface.
-  AddInterface,   ///< Add the interface between the picked piece's two regions.
-  AddRegion,      ///< Add every surface of the picked piece's region (the one inside).
-  AddPart,        ///< Add the picked part only (a box's face, a mesh's face) of the picked piece.
-  AddRest,        ///< Add the remaining surfaces (those no other entry holds) to the current surface group.
-  RemovePiece,    ///< Remove what holds the picked piece from the current surface group.
-  ToggleRegion,   ///< Show or hide a region.
-  CurrentGroup,   ///< Make a surface group the one added to.
-  DeleteGroup,    ///< Delete a surface group.
-  RemoveSelector, ///< Remove a selector.
-  NewGroup,       ///< Start a surface group.
-  NextUnassigned, ///< Pick the next piece in no surface group.
-  ListPieces,     ///< Show or hide the list of pieces.
-  PickPiece,      ///< Pick a piece of the list.
-  ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
-  RenameGroup,    ///< Type a surface group's name.
-  Details,        ///< Show or hide details (numbers, coordinates, statistics).
-  HideGroup,      ///< Hide a surface group's surfaces, or show them again.
-  CopyGroup,      ///< Copy a surface group: a new one with the same selectors.
-  SelectDomain    ///< Make a registered domain the active one.
+  None,               ///< Nothing.
+  AddPiece,           ///< Add the picked piece to the current surface group.
+  AddSurface,         ///< Add the picked piece's whole surface.
+  AddInterface,       ///< Add the interface between the picked piece's two regions.
+  AddRegion,          ///< Add every surface of the picked piece's region (the one inside).
+  AddPart,            ///< Add the picked part only (a box's face, a mesh's face) of the picked piece.
+  AddRest,            ///< Add the remaining surfaces (those no other entry holds) to the current surface group.
+  RemovePiece,        ///< Remove what holds the picked piece from the current surface group.
+  ToggleRegion,       ///< Show or hide a region.
+  CurrentGroup,       ///< Make a surface group the one added to.
+  DeleteGroup,        ///< Delete a surface group.
+  RemoveSelector,     ///< Remove a selector.
+  NewGroup,           ///< Start a surface group.
+  NextUnassigned,     ///< Pick the next piece in no surface group.
+  ListPieces,         ///< Show or hide the list of pieces.
+  PickPiece,          ///< Pick a piece of the list.
+  ColorBy,            ///< Color by a kind of key, the normal, or one color (see colorChoices).
+  RenameGroup,        ///< Type a surface group's name.
+  Details,            ///< Show or hide details (numbers, coordinates, statistics).
+  HideGroup,          ///< Hide a surface group's surfaces, or show them again.
+  CopyGroup,          ///< Copy a surface group: a new one with the same selectors.
+  SelectDomain,       ///< Make a registered domain the active one.
+  HighlightSubdomain, ///< Highlight a subdomain's surfaces, or stop.
+  HideSubdomain,      ///< Hide a subdomain's regions, or show them again.
+  OnlySubdomain,      ///< Show only a subdomain's regions.
+  HideDomain,         ///< Hide the active domain's regions.
+  OnlyDomain,         ///< Show only the active domain's regions.
+  ShowAllRegions      ///< Show every region again.
 };
 
 /**
@@ -939,7 +945,8 @@ run(const S&           a_shape,
         // The key as the coloring gives it, not as a highlighted surface group's.
         Settings<T> keyed = settings;
 
-        keyed.m_regions.m_highlightGroup = RegionSettings::None;
+        keyed.m_regions.m_highlightGroup   = RegionSettings::None;
+        keyed.m_regions.m_highlightRegions = 0U;
 
         const Vec3T<T> n   = pick.m_normal / Math::max(pick.m_normal.length(), Math::Limits<T>::min());
         const HitT<T>  hit = RenderDetail::shownAs(shape, keyed)
@@ -951,7 +958,8 @@ run(const S&           a_shape,
           pick.m_primitive = hit.m_primitive;
         }
 
-        if (settings.m_regions.m_highlightGroup == RegionSettings::None) {
+        if (settings.m_regions.m_highlightGroup == RegionSettings::None &&
+            settings.m_regions.m_highlightRegions == 0U) {
           settings.m_highlightPrimitive = picked ? pick.m_primitive : Settings<T>::NoPrimitive;
         }
       }
@@ -989,6 +997,24 @@ run(const S&           a_shape,
     return names.getNumDomains() == 0U ||
            names.getDomain(names.getActiveDomain())
              .touches(possible[a_piece].m_insideRegion, possible[a_piece].m_outsideRegion);
+  };
+
+  // The drawn regions (1 to 63) of a subdomain of the active domain, a bit each; of all its subdomains (None).
+  const auto subdomainRegions = [&](const uint32_t a_subdomain) {
+    uint64_t mask = 0U;
+
+    if (names.getNumDomains() > 0U) {
+      const Subdomains& subdomains = names.getDomain(names.getActiveDomain()).m_subdomains;
+
+      for (uint32_t k = 1; k < Math::min(shape.getNumRegions(), 64U); k++) {
+        const uint32_t d = subdomains.subdomainOf(k);
+
+        mask |= (d != Subdomains::None && (a_subdomain == Subdomains::None || d == a_subdomain)) ? (uint64_t(1) << k)
+                                                                                                 : uint64_t(0);
+      }
+    }
+
+    return mask;
   };
 
   // How many of the object's pieces (those found) a selector holds, all or part of, in words.
@@ -1034,18 +1060,23 @@ run(const S&           a_shape,
 
   // Highlight a surface group's surfaces (RegionSettings::Highlighted), or none (None): the picked surface's highlight
   // comes back.
-  const auto highlightGroup = [&](const uint32_t a_group) {
+  // One highlight at a time: a surface group's surfaces, or some regions' (a subdomain's), or the picked surface.
+  const auto highlight = [&](const uint32_t a_group, const uint64_t a_regions) {
     if constexpr (hasRegionVisibility<S>) {
-      settings.m_regions.m_highlightGroup = a_group;
+      settings.m_regions.m_highlightGroup   = a_group;
+      settings.m_regions.m_highlightRegions = a_regions;
 
-      settings.m_highlightPrimitive = (a_group != RegionSettings::None) ? RegionSettings::Highlighted
-                                      : picked                          ? pick.m_primitive
-                                                                        : Settings<T>::NoPrimitive;
+      settings.m_highlightPrimitive = (a_group != RegionSettings::None || a_regions != 0U) ? RegionSettings::Highlighted
+                                      : picked                                             ? pick.m_primitive
+                                                                                           : Settings<T>::NoPrimitive;
     }
     else {
       (void)a_group;
+      (void)a_regions;
     }
   };
+
+  const auto highlightGroup = [&](const uint32_t a_group) { highlight(a_group, 0U); };
 
   // Add the picked piece (or its whole surface, or the interface of its two regions) to the current surface group, or
   // remove what holds it there; false when nothing is picked.
@@ -1736,8 +1767,39 @@ run(const S&           a_shape,
             }
           }
 
-          line("  " + names.subdomain(d, details) + ": " + in);
+          // The background alone is never drawn: nothing to hide or highlight.
+          const uint64_t mask = subdomainRegions(d);
+
+          bool hiddenAll = mask != 0U;
+
+          for (uint32_t k = 1; k < 64U; k++) {
+            if (((mask >> k) & 1U) != 0U) {
+              hiddenAll = hiddenAll && !regions.isVisible(k, shape.getNumRegions());
+            }
+          }
+
+          line("  ");
+
+          panelLines.back() += names.subdomain(d, details) + ": " + in +
+                               ((mask != 0U && regions.m_highlightRegions == mask) ? " (highlighted)" : "") +
+                               (hiddenAll ? " (hidden)" : "");
+
+          if (mask == 0U) {
+            panelLines.back() += ", outside everything";
+
+            continue;
+          }
+
+          panelActions.back().push_back(PanelSpan{2, panelLines.back().size(), PanelAction::HighlightSubdomain, d});
+
+          button(hiddenAll ? "Show" : "Hide", PanelAction::HideSubdomain, d);
+          button("Only", PanelAction::OnlySubdomain, d);
         }
+
+        line("  ");
+        button("Hide domain", PanelAction::HideDomain, 0U);
+        button("Only this domain", PanelAction::OnlyDomain, 0U);
+        button("Show all", PanelAction::ShowAllRegions, 0U);
         line("");
       }
 
@@ -2450,6 +2512,57 @@ run(const S&           a_shape,
                     applyColors();
                     rekeyPick();
                   }
+
+                  break;
+                }
+                case PanelAction::HighlightSubdomain: {
+                  const uint64_t mask = subdomainRegions(clicked.m_value);
+
+                  highlight(RegionSettings::None, (regions.m_highlightRegions == mask) ? uint64_t(0) : mask);
+
+                  break;
+                }
+                case PanelAction::HideSubdomain:
+                case PanelAction::HideDomain: {
+                  // A subdomain shown again if all its regions are hidden, hidden otherwise; a domain hidden.
+                  const uint64_t mask = subdomainRegions(
+                    (clicked.m_action == PanelAction::HideDomain) ? Subdomains::None : clicked.m_value);
+
+                  bool hiddenAll = clicked.m_action == PanelAction::HideSubdomain;
+
+                  for (uint32_t k = 1; k < 64U; k++) {
+                    if (((mask >> k) & 1U) != 0U) {
+                      hiddenAll = hiddenAll && !regions.isVisible(k, shape.getNumRegions());
+                    }
+                  }
+
+                  for (uint32_t k = 1; k < 64U; k++) {
+                    if (((mask >> k) & 1U) != 0U) {
+                      regions.setVisible(k, hiddenAll);
+                    }
+                  }
+
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::OnlySubdomain:
+                case PanelAction::OnlyDomain: {
+                  const uint64_t mask = subdomainRegions(
+                    (clicked.m_action == PanelAction::OnlyDomain) ? Subdomains::None : clicked.m_value);
+
+                  for (uint32_t k = 1; k < 64U; k++) {
+                    regions.setVisible(k, ((mask >> k) & 1U) != 0U);
+                  }
+
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::ShowAllRegions: {
+                  regions.m_hidden = 0U;
+
+                  rekeyPick();
 
                   break;
                 }
@@ -3221,8 +3334,9 @@ run(const S&           a_shape,
             settings.m_regions.m_hidden = a_settings.m_regions.m_hidden;
             settings.m_regions.m_only   = a_settings.m_regions.m_only;
 
-            settings.m_regions.m_highlightGroup = RegionSettings::None;
-            settings.m_regions.m_hiddenGroups   = a_settings.m_regions.m_hiddenGroups;
+            settings.m_regions.m_highlightGroup   = RegionSettings::None;
+            settings.m_regions.m_highlightRegions = 0U;
+            settings.m_regions.m_hiddenGroups     = a_settings.m_regions.m_hiddenGroups;
 
             for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
               settings.m_regions.m_through[i] = a_settings.m_regions.m_through[i];

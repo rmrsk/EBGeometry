@@ -214,8 +214,11 @@ set now, then the keys, in groups.
 A view of regions also gets a panel at the top left, used with the mouse (the menus then move to the top right; a
 click on the panel away from its buttons picks the surface behind it). It names things in words ("Surface 1,
 between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. With domains
-registered (``RegionNames::addDomain()``), a row of their names comes first: the active one's surface groups are
-shown and edited, its regions marked, and the pieces counted those it touches. A "Color by" row sets what the surfaces
+registered (``RegionNames::addDomain()``), a row of their names comes first, then the active one's subdomains: a
+click on one highlights its surfaces (``RegionSettings::m_highlightRegions`` in a program), its ``[Hide]`` and
+``[Only]`` hide its regions or show only them, and ``[Hide domain]``, ``[Only this domain]`` and ``[Show all]`` do
+the same for the whole domain. The active domain's surface groups are shown and edited, its regions marked, and the
+pieces counted those it touches. A "Color by" row sets what the surfaces
 are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),
 and a swatch beside each region or surface group shows its color; colors given to names
 (``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace

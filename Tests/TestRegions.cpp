@@ -1392,4 +1392,16 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
   settings.m_regions.setSurfaceGroupHidden(0, false);
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 2U);
+
+  // Highlighted regions (a subdomain's): their surfaces keyed Highlighted, others not.
+  settings.m_regions.m_hidden           = 0U;
+  settings.m_regions.m_highlightRegions = uint64_t(1) << 1U;
+
+  CHECK(settings.m_regions.isRegionHighlighted(1));
+  CHECK(!settings.m_regions.isRegionHighlighted(2));
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+
+  settings.m_regions.showOnly(2);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive != RegionSettings::Highlighted);
 }

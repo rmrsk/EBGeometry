@@ -91,6 +91,24 @@ struct RegionSettings
   uint32_t m_highlightGroup = None;
 
   /**
+   * @brief The highlighted regions, a bit each (bit k for region k): their surfaces are keyed Highlighted, whatever the
+   * coloring (a subdomain's, say).
+   */
+  uint64_t m_highlightRegions = 0U;
+
+  /**
+   * @brief Whether a region is highlighted.
+   * @param[in] a_region The region (below 64; others never are).
+   * @return True if it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isRegionHighlighted(const uint32_t a_region) const noexcept
+  {
+    return a_region < 64U && ((m_highlightRegions >> a_region) & 1U) != 0U;
+  }
+
+  /**
    * @brief The hidden surface groups of the scheme, a bit each (bit g for surface group g): their surfaces are not
    * drawn, and cast no shadow.
    */

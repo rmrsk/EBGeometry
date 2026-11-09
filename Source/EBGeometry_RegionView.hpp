@@ -204,7 +204,8 @@ public:
         hit.m_primitive = key;
 
         // The surfaces of the highlighted surface group, whatever the coloring.
-        if (m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) {
+        if ((m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) ||
+            m_settings.isRegionHighlighted(seen)) {
           hit.m_primitive = RegionSettings::Highlighted;
         }
 
