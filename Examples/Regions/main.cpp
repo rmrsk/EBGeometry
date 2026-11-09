@@ -72,6 +72,34 @@ main(int argc, char* argv[])
               << '\n';
   }
 
+  // ── What a solver cuts ─────────────────────────────────────────────────────────────────────────────
+  //
+  // A solver says which regions it computes in (Phases), and each surface is then, at a point, a boundary (one
+  // side solved: its condition comes from its surface label), an interface (two phases meet) or nothing to it.
+  // closestSurface(p, region) names the surface and the regions on its two sides there.
+  EBGeometry::Phases cfd;            // flow in the air only
+  EBGeometry::Phases electrostatics; // the air and the jacket; the core is a conductor
+
+  cfd.addPhase({0});
+  electrostatics.addPhase({0});
+  electrostatics.addPhase({1});
+
+  const auto roleName = [](const EBGeometry::SurfaceRole a_role) {
+    return a_role == EBGeometry::SurfaceRole::Boundary    ? "boundary"
+           : a_role == EBGeometry::SurfaceRole::Interface ? "interface"
+           : a_role == EBGeometry::SurfaceRole::Internal  ? "internal"
+                                                          : "not cut";
+  };
+
+  std::cout << "Surfaces of the jacket, at z = 1.5:\n";
+
+  for (const T x : {T(1), T(0.4)}) {
+    const EBGeometry::SurfaceRef<T> s = tape.closestSurface(Vec3(x, T(0), T(1.5)), 1);
+
+    std::cout << "  x = " << x << ": between regions " << s.m_minusRegion << " and " << s.m_plusRegion << "; to flow "
+              << roleName(cfd.role(s)) << ", to electrostatics " << roleName(electrostatics.role(s)) << '\n';
+  }
+
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // RegionView shows the regions as one shape whose primitives are the regions: color by primitive (P) for a

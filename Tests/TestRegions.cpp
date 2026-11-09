@@ -438,3 +438,157 @@ TEMPLATE_TEST_CASE("Tape: a mask above two regions leaves no sheet of zeros on i
     CHECK_THAT(nested.signedDistance(p, 3), withinAbsT<T>(clippedGrain, tightMargin<T>()));
   }
 }
+
+TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and the regions on its two sides there",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // The cable (concentric spheres: the jacket of radius 1, region 1, leaf 0; the core of radius 0.5, region 2,
+  // leaf 1), in air (region 0).
+  const Tape<T, TapeFeature::Regions> cableTape(pool, cable<T>());
+
+  const Vec3 outer(T(1), T(0), T(0));
+  const Vec3 inner(T(0.5), T(0), T(0));
+
+  // The outer sphere: the jacket's own surface, between the jacket and the air.
+  const SurfaceRef<T> jacketOuter = cableTape.closestSurface(outer, 1U);
+
+  CHECK(jacketOuter.m_leaf == 0U);
+  CHECK(jacketOuter.m_minusRegion == 1U);
+  CHECK(jacketOuter.m_plusRegion == 0U);
+
+  // The inner sphere, from the jacket: an interface with the core, on the core's surface.
+  const SurfaceRef<T> jacketInner = cableTape.closestSurface(inner, 1U);
+
+  CHECK(jacketInner.m_leaf == 1U);
+  CHECK(jacketInner.m_minusRegion == 1U);
+  CHECK(jacketInner.m_plusRegion == 2U);
+
+  // The same interface from the core, and the outer sphere from the air.
+  const SurfaceRef<T> core = cableTape.closestSurface(inner, 2U);
+
+  CHECK(core.m_leaf == 1U);
+  CHECK(core.m_minusRegion == 2U);
+  CHECK(core.m_plusRegion == 1U);
+
+  const SurfaceRef<T> air = cableTape.closestSurface(outer, 0U);
+
+  CHECK(air.m_leaf == 0U);
+  CHECK(air.m_minusRegion == 0U);
+  CHECK(air.m_plusRegion == 1U);
+
+  // A triple point: a sphere centered on another's surface faces the air on its outer half and the other sphere on
+  // its inner half, so its sides belong to the point.
+  const SphereSDF<T> big(Vec3::zeros(), T(1));
+  const SphereSDF<T> small(Vec3(T(1), T(0), T(0)), T(0.3));
+
+  const Tape<T, TapeFeature::Regions> triple(pool, Overlay(big, small));
+
+  CHECK(triple.closestSurface(Vec3(T(1.3), T(0), T(0)), 2U).m_plusRegion == 0U);
+  CHECK(triple.closestSurface(Vec3(T(0.7), T(0), T(0)), 2U).m_plusRegion == 1U);
+
+  // A mask's cut: the slab's face where it cuts the core is the slab's surface, with its label, the core inside
+  // and the air across.
+  const BoxSDF<T> slab(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)));
+
+  const Expr<T>                       cut = Difference(cable<T>(), SurfaceLabel(slab, "cut"));
+  const Tape<T, TapeFeature::Regions> cutTape(pool, cut);
+  const ExprIndex<T>                  index(cut);
+
+  const SurfaceRef<T> face = cutTape.closestSurface(Vec3(T(0.1), T(0), T(0.3)), 2U);
+
+  CHECK(face.m_leaf == 2U);
+  CHECK(face.m_surfaceLabel == index.findSurfaceLabel("cut"));
+  CHECK(face.m_minusRegion == 2U);
+  CHECK(face.m_plusRegion == 0U);
+
+  // An object with no Overlay: its surface, between it and the background.
+  const Tape<T, TapeFeature::Regions> one(pool, toExpr(big));
+
+  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_minusRegion == 1U);
+  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_plusRegion == 0U);
+}
+
+TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and each phase a function",
+                   "[Overlay][Tape][Phases]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T, TapeFeature::Regions> tape(pool, cable<T>());
+  const ExprIndex<T>                  index(cable<T>());
+
+  const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the air
+  const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
+
+  // CFD in the air: the outer sphere is its boundary, the inner one nothing to it.
+  Phases cfd;
+
+  CHECK(cfd.addPhase({0}) == 0U);
+  CHECK(cfd.role(outer) == SurfaceRole::Boundary);
+  CHECK(cfd.role(inner) == SurfaceRole::None);
+
+  // Electrostatics in the air and the jacket, the core a conductor: an interface and a boundary.
+  Phases electrostatics;
+
+  CHECK(electrostatics.addPhase({0}) == 0U);
+  CHECK(electrostatics.addPhase(index.getRegionsOfMaterial(index.findMaterialLabel("PTFE"))) == 1U);
+  CHECK(electrostatics.getNumPhases() == 2U);
+  CHECK(electrostatics.phaseOf(1) == 1U);
+  CHECK(electrostatics.phaseOf(2) == Phases::None);
+  CHECK(electrostatics.role(outer) == SurfaceRole::Interface);
+  CHECK(electrostatics.role(inner) == SurfaceRole::Boundary);
+
+  // Heat in all three: two interfaces. The jacket and the core as one phase: their contact is internal.
+  Phases heat;
+
+  (void)heat.addPhase({0});
+  (void)heat.addPhase({1});
+  (void)heat.addPhase({2});
+
+  CHECK(heat.role(outer) == SurfaceRole::Interface);
+  CHECK(heat.role(inner) == SurfaceRole::Interface);
+
+  Phases solid;
+
+  (void)solid.addPhase(index.getRegionsOfGroup(0));
+
+  CHECK(solid.getNumRanges() == 1U);
+  CHECK(solid.role(inner) == SurfaceRole::Internal);
+  CHECK(solid.role(outer) == SurfaceRole::Boundary);
+
+  // A phase's function is negative exactly where one of its regions is; the solid's has the whole object's sign.
+  for (int i = -15; i <= 15; i++) {
+    const Vec3 p(T(0.1) * T(i) + T(0.013), T(0.02), T(0));
+
+    INFO("point " << p);
+
+    CHECK((tape.signedDistance(p, solid, 0U) < T(0)) == (tape.signedDistance(p) < T(0)));
+    CHECK((tape.signedDistance(p, electrostatics, 1U) < T(0)) == (tape.region(p) == 1U));
+  }
+
+  // The phase's surface: from its region whose function is smallest.
+  const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostatics, 1U);
+
+  CHECK(jacket.m_minusRegion == 1U);
+  CHECK(jacket.m_plusRegion == 2U);
+  CHECK(electrostatics.role(jacket) == SurfaceRole::Boundary);
+
+  REQUIRE(abortsWith([] { (void)Phases().addPhase({}); }, "Phases: a phase needs at least one region"));
+  REQUIRE(abortsWith(
+    [] {
+      Phases phases;
+
+      (void)phases.addPhase({1, 2});
+      (void)phases.addPhase({2});
+    },
+    "Phases: region 2 is already in phase 0"));
+}

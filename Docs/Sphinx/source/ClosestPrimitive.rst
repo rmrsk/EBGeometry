@@ -291,6 +291,27 @@ region's whole surface, the interfaces with the other regions included: the func
 for that region. It is a distance bound, exact near a smooth piece of surface. An object with no Overlay is
 one region, and a tape without the feature compiles none of this.
 
+A region's surface at a point, ``closestSurface(p, region)``, is reported as any surface is (its leaf, part and
+surface label), with the regions on its two sides **at that point**: ``m_minusRegion`` (the region asked about)
+and ``m_plusRegion`` (the one across). The sides belong to the point, not to the surface: a sphere centered on
+another's surface faces the air on one half and the other sphere on the other.
+
+A solver says which regions it computes in with `Phases <doxygen/html/classEBGeometry_1_1Phases.html>`__, each
+phase a set of regions (usually one; ``ExprIndex::getRegionsOfGroup()`` and ``getRegionsOfMaterial()`` select
+several). Each surface then has a role for it at a point, from its two sides: a **boundary** (one side solved,
+where its surface label gives the boundary condition), an **interface** (two phases meet), **internal** (two
+regions of the same phase touch), or none. A phase's own function, ``signedDistance(p, phases, phase)``, is the
+one to cut:
+
+.. code-block:: c++
+
+   Phases electrostatics;                         // the air and the jacket; the core is a conductor
+   electrostatics.addPhase({0});
+   electrostatics.addPhase({1});
+
+   const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
+   electrostatics.role(s);                        // the outer sphere: Interface; the inner one: Boundary
+
 Along a ray
 -----------
 

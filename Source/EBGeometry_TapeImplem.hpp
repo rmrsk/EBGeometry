@@ -3453,11 +3453,196 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
 }
 
 template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point,
+                                           const Phases&   a_phases,
+                                           const uint32_t  a_phase) const noexcept
+{
+  T value = Math::Limits<T>::max();
+
+  for (uint32_t r = 0; r < a_phases.getNumRanges(); r++) {
+    const Phases::Range& range = a_phases.getRange(r);
+
+    if (range.m_phase == a_phase) {
+      for (uint32_t k = range.m_first; k < range.m_first + range.m_count; k++) {
+        value = Math::min(value, this->signedDistance(a_point, k));
+      }
+    }
+  }
+
+  return value;
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point,
+                                           const Phases&   a_phases,
+                                           const uint32_t  a_phase) const noexcept
+{
+  T        value  = Math::Limits<T>::max();
+  uint32_t region = Phases::None;
+
+  for (uint32_t r = 0; r < a_phases.getNumRanges(); r++) {
+    const Phases::Range& range = a_phases.getRange(r);
+
+    if (range.m_phase == a_phase) {
+      for (uint32_t k = range.m_first; k < range.m_first + range.m_count; k++) {
+        const T d = this->signedDistance(a_point, k);
+
+        if (d < value) {
+          value  = d;
+          region = k;
+        }
+      }
+    }
+  }
+
+  return (region != Phases::None) ? this->closestSurface(a_point, region) : SurfaceRef<T>();
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline CSGOps::Tagged<T>
+Tape<T, UserPrimitives...>::regionSolidTagged(const uint32_t  a_region,
+                                              const uint32_t  a_level,
+                                              const Vec3T<T>& a_point) const noexcept
+{
+  const void* base = this->base();
+
+  const uint32_t record  = m_layout.m_regionPrograms.at(base, a_region);
+  const uint32_t masks   = m_layout.m_regionPrograms.at(base, record);
+  const uint32_t program = m_layout.m_regionPrograms.at(base, record + 1U + masks + a_level);
+
+  EBGEOMETRY_EXPECT(a_level <= masks);
+
+  return this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, a_point, base, this->location());
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
+{
+  const uint32_t n = (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(this->base(), 0U) : 0U;
+
+  EBGEOMETRY_EXPECT(a_region <= Math::max(n, 1U));
+
+  // An object with no Overlay is one region: its surface is the object's, between it and the background.
+  if (n == 0U) {
+    SurfaceRef<T> surface = this->closestSurface(a_point);
+
+    surface.m_minusRegion = a_region;
+    surface.m_plusRegion  = 1U - Math::min(a_region, 1U);
+
+    return surface;
+  }
+
+  // The background's surface is the whole object's; across it, the region whose solid comes nearest the point
+  // (the later one on a tie).
+  if (a_region == 0U) {
+    SurfaceRef<T> surface = this->closestSurface(a_point);
+
+    T        nearest = Math::Limits<T>::max();
+    uint32_t across  = 0U;
+
+    for (uint32_t m = n; m > 0U; m--) {
+      const T value = this->regionSolid(m, 0U, a_point);
+
+      if (value < nearest) {
+        nearest = value;
+        across  = m;
+      }
+    }
+
+    surface.m_minusRegion = 0U;
+    surface.m_plusRegion  = across;
+
+    return surface;
+  }
+
+  // The region's function, max(S_k, -min_{j>k} S_j), with the leaf each term comes from: the region's own operand
+  // or its masks decide, or the later region it meets there.
+  using V = CSGOps::Tagged<T>;
+
+  const V own = this->regionSolidTagged(a_region, 0U, a_point);
+
+  V later;
+
+  later.m_value = Math::Limits<T>::max();
+  later.m_tag   = CSGOps::NoTag;
+  later.m_point = a_point;
+
+  uint32_t met = 0U;
+
+  for (uint32_t j = a_region + 1U; j <= n; j++) {
+    const V value = this->regionSolidTagged(j, this->sharedMasks(a_region, j), a_point);
+
+    if (value.m_value < later.m_value) {
+      later = value;
+      met   = j;
+    }
+  }
+
+  const bool byLater = (met != 0U) && (-later.m_value > own.m_value);
+
+  SurfaceRef<T> surface = this->surfaceOf(this->leafOf(byLater ? later : own));
+
+  // Across an interface with a later region: that region, or one later still on top of it there. Across the
+  // region's own surface or a mask's cut: the last other region that holds the point, or the background.
+  uint32_t across = byLater ? met : 0U;
+
+  for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
+    if (m != a_region && this->regionSolid(m, 0U, a_point) < T(0)) {
+      across = m;
+
+      break;
+    }
+  }
+
+  surface.m_minusRegion = a_region;
+  surface.m_plusRegion  = across;
+
+  return surface;
+}
+
+template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexcept
 {
-  const LeafRef<T> ref = this->closestLeaf(a_point);
+  return this->surfaceOf(this->closestLeaf(a_point));
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline LeafRef<T>
+Tape<T, UserPrimitives...>::leafOf(const CSGOps::Tagged<T>& a_value) const noexcept
+{
+  LeafRef<T> ref;
+
+  if (a_value.m_tag != CSGOps::NoTag) {
+    const TapeDetail::Clause& c = m_layout.m_clauses.at(this->base(), a_value.m_tag);
+
+    ref.m_leaf       = c.m_b;
+    ref.m_type       = c.m_type;
+    ref.m_index      = c.m_a;
+    ref.m_localPoint = a_value.m_point;
+  }
+
+  return ref;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::surfaceOf(const LeafRef<T>& a_ref) const noexcept
+{
+  const LeafRef<T>& ref = a_ref;
 
   SurfaceRef<T> surface;
 

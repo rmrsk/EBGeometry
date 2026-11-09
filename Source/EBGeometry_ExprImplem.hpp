@@ -1585,6 +1585,36 @@ ExprIndex<T>::getMaterialOf(const uint32_t a_region) const
 }
 
 template <class T>
+inline std::vector<uint32_t>
+ExprIndex<T>::getRegionsOfGroup(const uint32_t a_group) const
+{
+  const Group& group = this->getGroup(a_group);
+
+  std::vector<uint32_t> regions(group.m_numRegions);
+
+  for (uint32_t i = 0; i < group.m_numRegions; i++) {
+    regions[i] = group.m_firstRegion + i;
+  }
+
+  return regions;
+}
+
+template <class T>
+inline std::vector<uint32_t>
+ExprIndex<T>::getRegionsOfMaterial(const MaterialLabelId a_material) const
+{
+  std::vector<uint32_t> regions;
+
+  for (uint32_t k = 0; k < m_regions.size(); k++) {
+    if (!a_material.isNone() && m_regions[k].m_material == a_material) {
+      regions.push_back(k);
+    }
+  }
+
+  return regions;
+}
+
+template <class T>
 inline uint32_t
 ExprIndex<T>::getNumGroups() const noexcept
 {

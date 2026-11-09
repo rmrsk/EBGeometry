@@ -520,6 +520,13 @@ instantiateFunctionTemplates()
       (void)regions.getNumRegions();
       (void)regions.region(Vec3T<T>::zeros());
       (void)regions.signedDistance(Vec3T<T>::zeros(), 1U);
+      (void)regions.closestSurface(Vec3T<T>::zeros(), 1U);
+
+      Phases phases;
+
+      (void)phases.addPhase({0U, 1U});
+      (void)phases.role(regions.closestSurface(Vec3T<T>::zeros(), phases, 0U));
+      (void)regions.signedDistance(Vec3T<T>::zeros(), phases, 0U);
     }
 
     (void)exact.signedDistance(Vec3T<T>::zeros());

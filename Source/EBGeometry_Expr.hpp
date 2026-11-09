@@ -1268,6 +1268,24 @@ public:
   getMaterialOf(uint32_t a_region) const;
 
   /**
+   * @brief The regions of a group, for a phase (Phases::addPhase()).
+   * @param[in] a_group Group number (below getNumGroups()).
+   * @return Its regions, a contiguous range.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<uint32_t>
+  getRegionsOfGroup(uint32_t a_group) const;
+
+  /**
+   * @brief The regions of a material, for a phase (Phases::addPhase()).
+   * @param[in] a_material Material label.
+   * @return Its regions, in order; empty for a material no region has.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<uint32_t>
+  getRegionsOfMaterial(MaterialLabelId a_material) const;
+
+  /**
    * @brief The number of groups: one per Overlay, numbered depth first.
    * @return The count.
    */

@@ -44,6 +44,7 @@
 #include "EBGeometry_OffsetRayForms.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
+#include "EBGeometry_Phases.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Ray.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
@@ -1236,6 +1237,53 @@ public:
   signedDistance(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
   /**
+   * @brief The surface of a region that decides its function at a point (TapeFeature::Regions): the region's own
+   * boundary, an interface with a later region, or a mask's cut; drilled, with its part and surface label, as
+   * closestSurface() reports a surface, and with the regions on its two sides at that point: m_minusRegion the
+   * region asked about (inside), m_plusRegion the region across. The sides belong to the point, not to the surface:
+   * one surface can face different regions in different places. For the background, the whole object's surface.
+   * Callable on a device.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_point  Point, on or near the region's surface.
+   * @param[in] a_region Region (below getNumRegions()).
+   * @return The surface.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
+
+  /**
+   * @brief A phase's implicit function (TapeFeature::Regions): the smallest of its regions' functions, negative
+   * exactly inside the phase, zero on its surface (the contacts between its own regions excluded); what a cut-cell
+   * solver cuts for the phase. Callable on a device.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_point  Point.
+   * @param[in] a_phases The phases (built from this tape's regions).
+   * @param[in] a_phase  Phase (below a_phases.getNumPhases()).
+   * @return The value.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
+
+  /**
+   * @brief The surface of a phase that decides its function at a point (TapeFeature::Regions): that of its region
+   * whose function is smallest there (see closestSurface(p, region)), with the regions on its two sides; the
+   * surface's role for the solver is a_phases.role(surface). Callable on a device.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_point  Point, on or near the phase's surface.
+   * @param[in] a_phases The phases.
+   * @param[in] a_phase  Phase.
+   * @return The surface.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
+
+  /**
    * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when
    * it is a container (a sphere cloud, a BVH union, a nested tape; see hasSurfaces) down to the member that
    * decides there, at any depth.
@@ -1774,6 +1822,35 @@ private:
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
    * @return The value.
    */
+  /**
+   * @brief The leaf a tagged value comes from.
+   * @param[in] a_value The value.
+   * @return The leaf, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline LeafRef<T>
+  leafOf(const CSGOps::Tagged<T>& a_value) const noexcept;
+
+  /**
+   * @brief A leaf's surface: drilled into a collection, with its part and its label (see closestSurface()).
+   * @param[in] a_ref The leaf.
+   * @return The surface, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceRef<T>
+  surfaceOf(const LeafRef<T>& a_ref) const noexcept;
+
+  /**
+   * @brief A region's solid with the leaf its value comes from (see regionSolid()).
+   * @param[in] a_region Region.
+   * @param[in] a_level  How many of its outermost masks to leave out.
+   * @param[in] a_point  Point.
+   * @return The tagged value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline CSGOps::Tagged<T>
+  regionSolidTagged(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
+
   /**
    * @brief A region's solid (TapeFeature::Regions): its operand under the maps above it and its masks but the
    * outermost a_level.

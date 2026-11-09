@@ -438,7 +438,10 @@ Test coverage
        none), a tape's value as the whole object, and the rejected placements of a partition or a material.
        A tape's ``region()`` and ``signedDistance(p, region)`` against the regions' solids by hand on a grid
        (exactly one region's function negative, the values the formula's; nested Overlays, maps and masks;
-       also after ``deepCopy()``), the leaves numbered as without regions, and an object with no Overlay.
+       also after ``deepCopy()``), the leaves numbered as without regions, and an object with no Overlay; no
+       sheet of zeros on a mask's face. ``closestSurface(p, region)``'s surface and its two sides (an interface
+       from both regions, a triple point, a mask's cut with its label); ``Phases`` and the roles for three solvers,
+       a phase's function and surface, and the rejected phases.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

@@ -65,6 +65,18 @@ struct SurfaceRef
   uint32_t m_part = 0;
 
   /**
+   * @brief Set by a tape's region queries (Tape::closestSurface(p, region)): the region on the inside of the surface
+   * at the queried point, or None.
+   */
+  uint32_t m_minusRegion = None;
+
+  /**
+   * @brief Set by a tape's region queries: the region across the surface at the queried point (0 for the
+   * background), or None.
+   */
+  uint32_t m_plusRegion = None;
+
+  /**
    * @brief The point in the frame of the deepest shape reached: the primitive, or the container member, whose
    * surface it is.
    */
