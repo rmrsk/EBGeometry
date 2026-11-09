@@ -448,7 +448,8 @@ enum class PanelAction : uint8_t
   NextUnassigned, ///< Pick the next piece in no surface group.
   ListPieces,     ///< Show or hide the list of pieces.
   PickPiece,      ///< Pick a piece of the list.
-  ColorBy         ///< Color by a kind of key, the normal, or one color (see colorChoices).
+  ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
+  RenameGroup     ///< Type a surface group's name.
 };
 
 /**
@@ -571,6 +572,9 @@ run(const S&           a_shape,
     return;
   }
 
+  // Text input only while a name is typed (some platforms start with it on).
+  SDL_StopTextInput();
+
   std::printf("EBGeometry viewer keys\n");
 
   for (const KeyGroup& group : keys(a_deviceShape != nullptr, hasRegionVisibility<S>)) {
@@ -604,6 +608,11 @@ run(const S&           a_shape,
   // The group of the scheme that Enter adds to (see RegionSettings::m_scheme).
   uint32_t currentGroup = 0;
 
+  // The surface group whose name is being typed (Scheme::None for none), and the name so far: while it is, keys type
+  // it instead of acting.
+  uint32_t    renaming = Scheme::None;
+  std::string renameText;
+
   // The pieces of surface of a view of regions, found once, the last one picked from them, and whether the panel
   // lists them.
   std::vector<SurfacePiece<T>> pieces;
@@ -616,6 +625,27 @@ run(const S&           a_shape,
 
   // The names of the regions, materials, surfaces and groups, as the program gave them.
   RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
+
+  // Start typing a surface group's name, or stop: keeping what was typed (unless nothing was), or not.
+  const auto startRename = [&](const uint32_t a_group) {
+    renaming = a_group;
+
+    renameText.clear();
+
+    SDL_StartTextInput();
+  };
+
+  const auto finishRename = [&](const bool a_keep) {
+    if (renaming != Scheme::None && a_keep && !renameText.empty()) {
+      names.setSurfaceGroup(renaming, renameText);
+    }
+
+    renaming = Scheme::None;
+
+    renameText.clear();
+
+    SDL_StopTextInput();
+  };
 
   // The colors the names give the keys of the coloring shown, over the settings' own (see RegionNames::setColor()).
   const auto applyColors = [&]() {
@@ -1449,6 +1479,13 @@ run(const S&           a_shape,
       line("Surface groups");
 
       for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+        if (g == renaming) {
+          line("  > " + std::to_string(g) + " " + renameText + "_");
+          line("      type its name; Enter keeps it, Esc cancels");
+
+          continue;
+        }
+
         line(std::string(g == currentGroup ? "  > " : "    "));
 
         panelLines.back() += names.surfaceGroup(g);
@@ -1458,6 +1495,7 @@ run(const S&           a_shape,
           swatch(g);
         }
 
+        button("rename", PanelAction::RenameGroup, g);
         button("delete", PanelAction::DeleteGroup, g);
 
         for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
@@ -1756,6 +1794,11 @@ run(const S&           a_shape,
         break;
       }
       case SDL_MOUSEBUTTONUP: {
+        // A click anywhere keeps the name being typed.
+        if (renaming != Scheme::None) {
+          finishRename(true);
+        }
+
         if (event.button.button == SDL_BUTTON_LEFT) {
           if ((dragging || panning) && !moved) {
             // The window's point in the frame's pixels (more of them on a high-DPI display).
@@ -1828,6 +1871,16 @@ run(const S&           a_shape,
                 }
                 case PanelAction::NewGroup: {
                   currentGroup = scheme.addSurfaceGroup();
+
+                  // A new surface group is named first.
+                  startRename(currentGroup);
+
+                  break;
+                }
+                case PanelAction::RenameGroup: {
+                  currentGroup = clicked.m_value;
+
+                  startRename(clicked.m_value);
 
                   break;
                 }
@@ -2124,7 +2177,39 @@ run(const S&           a_shape,
 
         break;
       }
+      case SDL_TEXTINPUT: {
+        // Typing a surface group's name: printable characters only, up to 40.
+        if (renaming != Scheme::None) {
+          for (const char* c = event.text.text; *c != '\0'; c++) {
+            if (*c >= 32 && *c <= 126 && renameText.size() < 40U) {
+              renameText += *c;
+            }
+          }
+
+          drawOverlay();
+          present();
+        }
+
+        break;
+      }
       case SDL_KEYDOWN: {
+        // While a surface group's name is typed, keys type it: Enter keeps it, Esc cancels, Backspace erases.
+        if (renaming != Scheme::None) {
+          const SDL_Keycode key = event.key.keysym.sym;
+
+          if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
+            finishRename(key != SDLK_ESCAPE);
+          }
+          else if (key == SDLK_BACKSPACE && !renameText.empty()) {
+            renameText.pop_back();
+          }
+
+          drawOverlay();
+          present();
+
+          break;
+        }
+
         // A key that changes nothing (H, C, a modifier on its own) keeps what earlier events in this batch
         // changed, rather than clearing it.
         const bool pending = changed;
