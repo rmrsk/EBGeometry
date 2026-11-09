@@ -3379,6 +3379,14 @@ Tape<T, UserPrimitives...>::getNumSurfaceLabels() const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::wholeValue(const Vec3T<T>& a_point) const noexcept
+{
+  return this->template evaluate<MaxCallDepth, T>(0U, a_point, this->base(), this->location());
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::numRegionOperands() const noexcept
 {
@@ -3462,7 +3470,7 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 {
   // An object with no Overlay is one region.
   if (this->numRegionOperands() == 0U) {
-    return (this->signedDistance(a_point) < T(0)) ? 1U : 0U;
+    return (this->wholeValue(a_point) < T(0)) ? 1U : 0U;
   }
 
   const uint32_t n = this->numRegionOperands();
@@ -3490,11 +3498,11 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
 
   // The background is the outside of the whole object; an object with no Overlay is region 1.
   if (a_region == 0U) {
-    return -this->signedDistance(a_point);
+    return -this->wholeValue(a_point);
   }
 
   if (n == 0U) {
-    return this->signedDistance(a_point);
+    return this->wholeValue(a_point);
   }
 
   // Region k is its solid with its masks, minus each later solid without the masks the two share (see
@@ -3595,7 +3603,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
   const T nudge    = T(0.01) * a_options.m_tolerance * scale;
 
   const auto regionAt = [this, n](const Vec3T<T>& a_point) {
-    return (n == 0U) ? ((this->signedDistance(a_point) < T(0)) ? 1U : 0U) : this->region(a_point);
+    return (n == 0U) ? ((this->wholeValue(a_point) < T(0)) ? 1U : 0U) : this->region(a_point);
   };
 
   SurfaceHitT<T> result;
@@ -3753,7 +3761,8 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
 
   // An object with no Overlay is one region: its surface is the object's, between it and the background.
   if (n == 0U) {
-    SurfaceRef<T> surface = this->closestSurface(a_point);
+    SurfaceRef<T> surface = this->surfaceOf(this->leafOf(
+      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, a_point, this->base(), this->location())));
 
     surface.m_minusRegion = a_region;
     surface.m_plusRegion  = 1U - Math::min(a_region, 1U);
@@ -3764,7 +3773,8 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
   // The background's surface is the whole object's; across it, the region whose solid comes nearest the point
   // (the later one on a tie).
   if (a_region == 0U) {
-    SurfaceRef<T> surface = this->closestSurface(a_point);
+    SurfaceRef<T> surface = this->surfaceOf(this->leafOf(
+      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, a_point, this->base(), this->location())));
 
     T        nearest = Math::Limits<T>::max();
     uint32_t across  = 0U;
@@ -3858,6 +3868,7 @@ Tape<T, UserPrimitives...>::leafOf(const CSGOps::Tagged<T>& a_value) const noexc
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::surfaceOf(const LeafRef<T>& a_ref) const noexcept
 {

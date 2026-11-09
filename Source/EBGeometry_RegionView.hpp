@@ -103,6 +103,29 @@ public:
   }
 
   /**
+   * @brief The field a section plane's contours are drawn from: the distance to the nearest surface of a visible
+   * region (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces
+   * between two of them included, which the value (the visible regions' outer surface) does not have.
+   * @param[in] a_point Point.
+   * @return The field.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  contourValue(const Vec3T<T>& a_point) const noexcept
+  {
+    T field = Math::Limits<T>::max();
+
+    for (uint32_t k = 1; k < m_tape.getNumRegions(); k++) {
+      if (this->isVisible(k)) {
+        field = Math::min(field, std::abs(m_tape.signedDistance(a_point, k)));
+      }
+    }
+
+    return field;
+  }
+
+  /**
    * @brief The key of the region a point inside the view is in (for a cut face), as a leaf reference (only m_leaf
    * is set).
    * @param[in] a_point Point.

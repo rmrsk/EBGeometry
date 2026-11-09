@@ -1926,6 +1926,16 @@ private:
    * @return The value.
    */
   /**
+   * @brief The whole object's value, through the evaluator's out-of-line entry (TapeFeature::Regions): signedDistance()
+   * inlines the evaluator's body for a tape that calls no sub-program, which the region code would copy at each site.
+   * @param[in] a_point Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  wholeValue(const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief How many operands the Overlays have (TapeFeature::Regions): the regions but the background; 0 without
    * an Overlay.
    * @return The count.
@@ -1949,6 +1959,7 @@ private:
    * @return The surface, or none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
   surfaceOf(const LeafRef<T>& a_ref) const noexcept;
 

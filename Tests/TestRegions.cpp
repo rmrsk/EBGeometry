@@ -9,6 +9,7 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestGPU.hpp"
 
 #include <cstdint>
 #include <string>
@@ -41,6 +42,55 @@ materialName(const ExprIndex<T>& a_index, const uint32_t a_region)
 
   return material.isNone() ? std::string("-") : a_index.getMaterialLabelName(material);
 }
+
+// What the device answers at a point: the region, the three regions' functions, the jacket's surface there with
+// its sides, and the first change of region along +x.
+template <class T>
+struct RegionAnswer
+{
+  uint32_t m_region;
+  T        m_values[3];
+  uint32_t m_minus;
+  uint32_t m_plus;
+  uint32_t m_surface;
+  T        m_t;
+  uint32_t m_from;
+  uint32_t m_to;
+};
+
+// Device functor: the region queries of a tape at a point.
+template <class T, class TapeType>
+struct RegionQuery
+{
+  TapeType m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  RegionAnswer<T>
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    RegionAnswer<T> answer;
+
+    answer.m_region = m_tape.region(a_point);
+
+    for (uint32_t k = 0; k < 3; k++) {
+      answer.m_values[k] = m_tape.signedDistance(a_point, k);
+    }
+
+    const SurfaceRef<T> surface = m_tape.closestSurface(a_point, 1U);
+
+    answer.m_minus   = surface.m_minusRegion;
+    answer.m_plus    = surface.m_plusRegion;
+    answer.m_surface = surface.m_surface;
+
+    const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
+
+    answer.m_t    = change.m_hit.hit() ? change.m_hit.m_t : T(-1);
+    answer.m_from = change.m_surface.m_minusRegion;
+    answer.m_to   = change.m_surface.m_plusRegion;
+
+    return answer;
+  }
+};
 
 } // namespace
 
@@ -773,4 +823,62 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
     CHECK_THAT(leave.m_hit.m_t, withinAbsT<T>(T(2) + std::sqrt(T(0.84)), looseMargin<T>()));
     CHECK(leave.m_surface.m_plusRegion == 0U);
   }
+}
+
+TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host",
+                   "[Overlay][Tape][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T, TapeFeature::Regions>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  // The cable cut by a slab (x > 0, |z| < 0.3).
+  const Tape tape(pool, Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)))));
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  std::vector<Vec3> points;
+
+  for (int i = 0; i < 24; i++) {
+    for (int j = 0; j < 6; j++) {
+      points.emplace_back(T(0.1) * T(i) - T(1.2) + T(0.013), T(0.007), T(0.15) * T(j) - T(0.4));
+    }
+  }
+
+  const auto onDevice = evaluateOnDevice<RegionAnswer<T>>(RegionQuery<T, Tape>{tape.rebasedView(device)}, points);
+  const auto onHost   = evaluateOnHost<RegionAnswer<T>>(RegionQuery<T, Tape>{tape}, points);
+
+  size_t differ = 0;
+
+  for (size_t i = 0; i < points.size(); i++) {
+    INFO("point " << points[i]);
+
+    const RegionAnswer<T>& d = onDevice[i];
+    const RegionAnswer<T>& h = onHost[i];
+
+    // Where two choices are equally right (a point on a surface), the device's rounding may pick the other.
+    differ += (d.m_region != h.m_region || d.m_minus != h.m_minus || d.m_plus != h.m_plus ||
+               d.m_surface != h.m_surface || d.m_from != h.m_from || d.m_to != h.m_to)
+                ? 1U
+                : 0U;
+
+    for (uint32_t k = 0; k < 3; k++) {
+      CHECK_THAT(d.m_values[k], withinAbsT<T>(h.m_values[k], looseMargin<T>()));
+    }
+
+    CHECK_THAT(d.m_t, withinAbsT<T>(h.m_t, looseMargin<T>()));
+  }
+
+  CHECK(differ <= 2U);
 }

@@ -61,6 +61,29 @@ unit(const Vec3T<T>& a_v) noexcept
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
+/**
+ * @brief Whether a shape has a field of its own for the section plane's contours (contourValue()): the primary
+ * template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasContourValue : std::false_type
+{
+};
+
+/**
+ * @brief A shape with contourValue(point).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasContourValue<S, T, std::void_t<decltype(std::declval<const S&>().contourValue(std::declval<Vec3T<T>>()))>>
+  : std::true_type
+{
+};
+
 template <class T, class S>
 struct Sectioned
 {
@@ -109,6 +132,25 @@ struct Sectioned
   shapeDistance(const Vec3T<T>& a_point) const noexcept
   {
     return m_shape.signedDistance(a_point);
+  }
+
+  /**
+   * @brief The field the section plane's contours are drawn from: the shape's contourValue() when it has one (a
+   * region view's, zero on its interfaces too), else its value; out of line on a device, as shapeDistance().
+   * @param[in] a_point Point.
+   * @return The field.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  contourDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    if constexpr (HasContourValue<S, T>::value) {
+      return m_shape.contourValue(a_point);
+    }
+    else {
+      return m_shape.signedDistance(a_point);
+    }
   }
 
   /**
@@ -1246,7 +1288,11 @@ private:
     const T width = m_footprint + m_footprintPerLength * t;
     const T half  = T(0.5) * m_settings.m_contourWidth * width;
 
-    if (std::abs(value) < half) {
+    // The contours and the lines of equal distance follow the shape's contour field (a region view's is zero on its
+    // interfaces too); which side of the surface the point is on follows its value.
+    const T field = RenderDetail::HasContourValue<S, T>::value ? m_object.contourDistance(p) : value;
+
+    if (std::abs(field) < half) {
       return m_settings.m_contourColor;
     }
 
@@ -1255,7 +1301,7 @@ private:
 
     if (m_settings.m_isoSpacing > T(0)) {
       const T s = m_settings.m_isoSpacing;
-      const T r = value - s * std::floor(value / s + T(0.5));
+      const T r = field - s * std::floor(field / s + T(0.5));
 
       if (std::abs(r) < T(0.5) * width) {
         color = T(0.4) * color + T(0.6) * m_settings.m_isoColor;
