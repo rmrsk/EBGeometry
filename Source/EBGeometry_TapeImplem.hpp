@@ -1693,7 +1693,8 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   //
   // Without an Overlay the object is one region in the background, its material the label on it (or on a map above
   // it), if any: the table is written directly, without numbering the whole expression (a large union's index would
-  // cost as much as the tape).
+  // cost as much as the tape), and only when there is a material: an empty table is one region with none (the
+  // queries read it so), and a plain tape's pool keeps its size.
   if (!a_expr.node().m_partition) {
     std::vector<uint32_t>& table = staging.m_regionPrograms;
 
@@ -1711,7 +1712,9 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
       }
     }
 
-    table = {0U, MaterialLabelId::none().value(), material};
+    if (material != MaterialLabelId::none().value()) {
+      table = {0U, MaterialLabelId::none().value(), material};
+    }
   }
   else {
     std::vector<TapeDetail::RegionSolid<T>>                      solids;
