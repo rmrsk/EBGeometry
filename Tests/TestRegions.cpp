@@ -488,10 +488,10 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
              withinAbsT<T>(T(1.5) + std::sqrt(T(0.25) - T(0.05)), looseMargin<T>()));
   CHECK(onlyInside.withOnlyKey(RegionView<Tape>::None).firstHit(intoCore, T(0), T(5), options).hit());
 
-  // The value: the visible regions' phase function; a cut face's point names its region.
-  Phases visible;
+  // The value: the visible regions' subdomain function; a cut face's point names its region.
+  Subdomains visible;
 
-  (void)visible.addPhase({1, 2});
+  (void)visible.addSubdomain({1, 2});
 
   for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
     CHECK(all.signedDistance(p) == tape.signedDistance(p, visible, 0U));
@@ -658,8 +658,8 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
   CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_outsideRegion == 0U);
 }
 
-TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and each phase a function",
-                   "[Overlay][Tape][Phases]",
+TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and each subdomain a function",
+                   "[Overlay][Tape][Subdomains]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -674,42 +674,42 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
   const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
 
   // CFD in the air: the outer sphere is its boundary, the inner one nothing to it.
-  Phases cfd;
+  Subdomains cfd;
 
-  CHECK(cfd.addPhase({0}) == 0U);
+  CHECK(cfd.addSubdomain({0}) == 0U);
   CHECK(cfd.role(outer) == SurfaceRole::Boundary);
   CHECK(cfd.role(inner) == SurfaceRole::None);
 
   // Electrostatics in the air and the jacket, the core a conductor: an interface and a boundary.
-  Phases electrostatics;
+  Subdomains electrostatics;
 
-  CHECK(electrostatics.addPhase({0}) == 0U);
-  CHECK(electrostatics.addPhase(index.getRegionsOfMaterial(index.findMaterialLabel("PTFE"))) == 1U);
-  CHECK(electrostatics.getNumPhases() == 2U);
-  CHECK(electrostatics.phaseOf(1) == 1U);
-  CHECK(electrostatics.phaseOf(2) == Phases::None);
+  CHECK(electrostatics.addSubdomain({0}) == 0U);
+  CHECK(electrostatics.addSubdomain(index.getRegionsOfMaterial(index.findMaterialLabel("PTFE"))) == 1U);
+  CHECK(electrostatics.getNumSubdomains() == 2U);
+  CHECK(electrostatics.subdomainOf(1) == 1U);
+  CHECK(electrostatics.subdomainOf(2) == Subdomains::None);
   CHECK(electrostatics.role(outer) == SurfaceRole::Interface);
   CHECK(electrostatics.role(inner) == SurfaceRole::Boundary);
 
-  // Heat in all three: two interfaces. The jacket and the core as one phase: their contact is internal.
-  Phases heat;
+  // Heat in all three: two interfaces. The jacket and the core as one subdomain: their contact is internal.
+  Subdomains heat;
 
-  (void)heat.addPhase({0});
-  (void)heat.addPhase({1});
-  (void)heat.addPhase({2});
+  (void)heat.addSubdomain({0});
+  (void)heat.addSubdomain({1});
+  (void)heat.addSubdomain({2});
 
   CHECK(heat.role(outer) == SurfaceRole::Interface);
   CHECK(heat.role(inner) == SurfaceRole::Interface);
 
-  Phases solid;
+  Subdomains solid;
 
-  (void)solid.addPhase(index.getRegionsOfRegionGroup(0));
+  (void)solid.addSubdomain(index.getRegionsOfRegionGroup(0));
 
   CHECK(solid.getNumRanges() == 1U);
   CHECK(solid.role(inner) == SurfaceRole::Internal);
   CHECK(solid.role(outer) == SurfaceRole::Boundary);
 
-  // A phase's function is negative exactly where one of its regions is; the solid's has the whole object's sign.
+  // A subdomain's function is negative exactly where one of its regions is; the solid's has the whole object's sign.
   for (int i = -15; i <= 15; i++) {
     const Vec3 p(T(0.1) * T(i) + T(0.013), T(0.02), T(0));
 
@@ -719,7 +719,7 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
     CHECK((tape.signedDistance(p, electrostatics, 1U) < T(0)) == (tape.region(p) == 1U));
   }
 
-  // The jacket and the core as one phase: on their contact the function is not zero (no sheet inside the phase);
+  // The jacket and the core as one subdomain: on their contact the function is not zero (no sheet inside the subdomain);
   // across the outer sphere it is the distance, from both sides.
   for (const T x : {T(0.5), T(0.45), T(0.55)}) {
     INFO("x " << x);
@@ -730,25 +730,25 @@ TEMPLATE_TEST_CASE("Phases: a solver's regions give each surface a role, and eac
   CHECK_THAT(tape.signedDistance(Vec3(T(0.95), T(0), T(0)), solid, 0U), withinAbsT<T>(-T(0.05), tightMargin<T>()));
   CHECK_THAT(tape.signedDistance(Vec3(T(1.05), T(0), T(0)), solid, 0U), withinAbsT<T>(T(0.05), tightMargin<T>()));
 
-  // The phase's surface: from its region whose function is smallest.
+  // The subdomain's surface: from its region whose function is smallest.
   const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostatics, 1U);
 
   CHECK(jacket.m_insideRegion == 1U);
   CHECK(jacket.m_outsideRegion == 2U);
   CHECK(electrostatics.role(jacket) == SurfaceRole::Boundary);
 
-  REQUIRE(abortsWith([] { (void)Phases().addPhase({}); }, "Phases: a phase needs at least one region"));
+  REQUIRE(abortsWith([] { (void)Subdomains().addSubdomain({}); }, "Subdomains: a subdomain needs at least one region"));
   REQUIRE(abortsWith(
     [] {
-      Phases phases;
+      Subdomains subdomains;
 
-      (void)phases.addPhase({1, 2});
-      (void)phases.addPhase({2});
+      (void)subdomains.addSubdomain({1, 2});
+      (void)subdomains.addSubdomain({2});
     },
-    "Phases: region 2 is already in phase 0"));
+    "Subdomains: region 2 is already in subdomain 0"));
 }
 
-TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regions, and firstSurface() a phase",
+TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regions, and firstSurface() a subdomain",
                    "[Overlay][Tape][Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -827,13 +827,13 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
   {
     const RayT<T> ray{Vec3(T(-2), T(0), T(0.4)), Vec3(T(1), T(0), T(0))};
 
-    Phases jacketOnly;
-    Phases coreOnly;
-    Phases both;
+    Subdomains jacketOnly;
+    Subdomains coreOnly;
+    Subdomains both;
 
-    (void)jacketOnly.addPhase({1});
-    (void)coreOnly.addPhase({2});
-    (void)both.addPhase({1, 2});
+    (void)jacketOnly.addSubdomain({1});
+    (void)coreOnly.addSubdomain({2});
+    (void)both.addSubdomain({1, 2});
 
     const SurfaceHitT<T> jacket = tape.firstSurface(ray, T(0), T(5), jacketOnly, 0U);
     const SurfaceHitT<T> core   = tape.firstSurface(ray, T(0), T(5), coreOnly, 0U);
@@ -1086,12 +1086,12 @@ TEST_CASE("Domain: its regions, the surfaces it touches, and its surface groups 
   // Electrostatics in the air (0) and the jacket (1); flow in the air only.
   Domain electrostatics;
 
-  (void)electrostatics.m_phases.addPhase({0});
-  (void)electrostatics.m_phases.addPhase({1});
+  (void)electrostatics.m_subdomains.addSubdomain({0});
+  (void)electrostatics.m_subdomains.addSubdomain({1});
 
   Domain flow;
 
-  (void)flow.m_phases.addPhase({0});
+  (void)flow.m_subdomains.addSubdomain({0});
 
   CHECK(electrostatics.computesIn(1));
   CHECK(!electrostatics.computesIn(2));
@@ -1119,6 +1119,11 @@ TEST_CASE("Domain: its regions, the surfaces it touches, and its surface groups 
   names.setActiveDomain(second);
 
   CHECK(names.surfaceGroup(0, false) == "wall");
+
+  names.setSubdomain(second, 0, "air");
+
+  CHECK(names.subdomain(0, false) == "air");
+  CHECK(names.subdomain(1) == "subdomain 1");
   CHECK(names.getDomain(second).computesIn(0));
 }
 

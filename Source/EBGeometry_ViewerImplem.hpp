@@ -1726,15 +1726,18 @@ run(const S&           a_shape,
                  i);
         }
 
-        std::string in;
+        // Its subdomains, each with its regions.
+        for (uint32_t d = 0; d < domain.m_subdomains.getNumSubdomains(); d++) {
+          std::string in;
 
-        for (uint32_t k = 0; k < shape.getNumRegions(); k++) {
-          if (domain.computesIn(k)) {
-            in += (in.empty() ? "" : ", ") + region(k);
+          for (uint32_t k = 0; k < shape.getNumRegions(); k++) {
+            if (domain.m_subdomains.subdomainOf(k) == d) {
+              in += (in.empty() ? "" : ", ") + region(k);
+            }
           }
-        }
 
-        line("  Regions: " + (in.empty() ? std::string("none") : in));
+          line("  " + names.subdomain(d, details) + ": " + in);
+        }
         line("");
       }
 

@@ -82,15 +82,16 @@ main(int argc, char* argv[])
 
   // ── What a solver cuts ─────────────────────────────────────────────────────────────────────────────
   //
-  // A solver says which regions it computes in (Phases), and each surface is then, at a point, a boundary (one
-  // side solved: its condition comes from its surface label), an interface (two phases meet) or nothing to it.
+  // A downstream solver computes in subdomains, each a set of regions, coupled through the interfaces between them;
+  // each surface is then, at a point, a boundary (one side in its regions), an interface (two subdomains meet) or
+  // nothing to it.
   // closestSurface(p, region) names the surface and the regions on its two sides there.
-  EBGeometry::Phases cfd;            // flow in the air only
-  EBGeometry::Phases electrostatics; // the air and the jacket; the core is a conductor
+  EBGeometry::Subdomains cfd;            // flow in the air only
+  EBGeometry::Subdomains electrostatics; // the air and the jacket; the core is a conductor
 
-  cfd.addPhase({0});
-  electrostatics.addPhase({0});
-  electrostatics.addPhase({1});
+  cfd.addSubdomain({0});
+  electrostatics.addSubdomain({0});
+  electrostatics.addSubdomain({1});
 
   const auto roleName = [](const EBGeometry::SurfaceRole a_role) {
     return a_role == EBGeometry::SurfaceRole::Boundary    ? "boundary"
@@ -111,7 +112,7 @@ main(int argc, char* argv[])
 
   // ── The domains ────────────────────────────────────────────────────────────────────────────────────
   //
-  // A domain describes what a downstream solver computes on: its regions (the phases above) and its surface groups,
+  // A domain describes what a downstream solver computes on: its regions (the subdomains above) and its surface groups,
   // one per boundary condition: the group's name
   // is the condition's tag, its number the id a kernel reads (scheme.surfaceGroupOf(surface)). Electrostatics: every
   // conductor surface is dirichlet, the jacket's outside a jump; flow: every surface of the air is a wall.
@@ -147,6 +148,9 @@ main(int argc, char* argv[])
   names.setSurfaceGroup(electrostaticDomain, dirichlet, "dirichlet");
   names.setSurfaceGroup(electrostaticDomain, jump, "jump");
   names.setSurfaceGroup(flowDomain, wall, "wall");
+  names.setSubdomain(electrostaticDomain, 0, "air");
+  names.setSubdomain(electrostaticDomain, 1, "jacket");
+  names.setSubdomain(flowDomain, 0, "air");
 
   // Colors by name (linear RGB): the materials, and the surface groups when colored by them.
   names.setColor("copper", EBGeometry::Vec3T<double>(0.75, 0.33, 0.12));

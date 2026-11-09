@@ -1312,7 +1312,7 @@ public:
   getMaterialOf(uint32_t a_region) const;
 
   /**
-   * @brief The regions of a group, for a phase (Phases::addPhase()).
+   * @brief The regions of a group, for a subdomain (Subdomains::addSubdomain()).
    * @param[in] a_group Group number (below getNumRegionGroups()).
    * @return Its regions, a contiguous range.
    */
@@ -1321,7 +1321,7 @@ public:
   getRegionsOfRegionGroup(uint32_t a_group) const;
 
   /**
-   * @brief The regions of a material, for a phase (Phases::addPhase()).
+   * @brief The regions of a material, for a subdomain (Subdomains::addSubdomain()).
    * @param[in] a_material Material label.
    * @return Its regions, in order; empty for a material no region has.
    */

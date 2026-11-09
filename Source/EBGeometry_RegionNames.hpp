@@ -94,6 +94,7 @@ public:
     m_domainNames.push_back(std::move(a_name));
     m_domains.push_back(a_domain);
     m_domainGroups.emplace_back();
+    m_domainSubdomains.emplace_back();
 
     if (m_activeDomain == None) {
       m_activeDomain = 0;
@@ -199,6 +200,46 @@ public:
     this->setSurfaceGroup(a_group, std::move(a_name));
 
     m_activeDomain = active;
+  }
+
+  /**
+   * @brief Name a subdomain of a domain ("air", "jacket").
+   * @param[in] a_domain    The domain (below getNumDomains()).
+   * @param[in] a_subdomain The subdomain (its number in the domain's Subdomains).
+   * @param[in] a_name      Its name.
+   */
+  EBGEOMETRY_HOST
+  void
+  setSubdomain(const uint32_t a_domain, const uint32_t a_subdomain, std::string a_name)
+  {
+    EBGEOMETRY_REQUIRE(
+      a_domain < m_domains.size(), "RegionNames: domain %u of %zu", unsigned(a_domain), m_domains.size());
+
+    std::vector<std::string>& subdomains = m_domainSubdomains[a_domain];
+
+    if (subdomains.size() <= a_subdomain) {
+      subdomains.resize(a_subdomain + 1U);
+    }
+
+    subdomains[a_subdomain] = std::move(a_name);
+  }
+
+  /**
+   * @brief A subdomain's name in the active domain, with its number or not: "1 jacket" or "jacket"; "subdomain 1".
+   * @param[in] a_subdomain The subdomain.
+   * @param[in] a_number    Whether to put its number first.
+   * @return The name.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::string
+  subdomain(const uint32_t a_subdomain, const bool a_number = true) const
+  {
+    static const std::vector<std::string> none;
+
+    return named((m_activeDomain < m_domains.size()) ? m_domainSubdomains[m_activeDomain] : none,
+                 a_subdomain,
+                 "subdomain",
+                 a_number);
   }
 
   /**
@@ -430,6 +471,11 @@ protected:
    * @brief The domains' names.
    */
   std::vector<std::string> m_domainNames;
+
+  /**
+   * @brief Each domain's subdomains' names.
+   */
+  std::vector<std::vector<std::string>> m_domainSubdomains;
 
   /**
    * @brief Each domain's surface groups' names.

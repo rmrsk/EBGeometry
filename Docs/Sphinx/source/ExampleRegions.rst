@@ -44,17 +44,17 @@ That function is what a cut-cell code cuts for one region; the whole object is s
 What a solver cuts
 ------------------
 
-A solver says which regions it computes in (``Phases``), and each surface is then, at a point, a boundary of it
-(one side solved, its condition given by its surface label), an interface (two phases meet), or nothing to it.
+A solver says which regions it computes in (``Subdomains``), and each surface is then, at a point, a boundary of it
+(one side solved, its condition given by its surface label), an interface (two subdomains meet), or nothing to it.
 ``closestSurface(p, region)`` names the surface and the regions on its two sides there. For the cable, the outer
 surface is a boundary to a flow solver in the air and an interface to an electrostatic solver in the air and the
 jacket, while the core's surface is that solver's conductor boundary.
 
 .. code-block:: c++
 
-   Phases electrostatics;            // the air and the jacket; the core is a conductor
-   electrostatics.addPhase({0});
-   electrostatics.addPhase({1});
+   Subdomains electrostatics;            // the air and the jacket; the core is a conductor
+   electrostatics.addSubdomain({0});
+   electrostatics.addSubdomain({1});
 
    const SurfaceRef<T> s = tape.closestSurface(p, 1);   // a surface of the jacket, with its two sides at p
    electrostatics.role(s);                               // Interface on the outside, Boundary on the core

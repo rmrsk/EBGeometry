@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file   EBGeometry_Phases.hpp
- * @brief  Phases: the regions a solver computes in, and the role of each surface for it.
+ * @file   EBGeometry_Subdomains.hpp
+ * @brief  Subdomains: the parts of a domain, each a set of regions, and the role of each surface for the domain.
  * @author Robert Marskar
  */
 
-#ifndef EBGEOMETRY_PHASES_HPP
-#define EBGEOMETRY_PHASES_HPP
+#ifndef EBGEOMETRY_SUBDOMAINS_HPP
+#define EBGEOMETRY_SUBDOMAINS_HPP
 
 // Std includes
 #include <algorithm>
@@ -25,38 +25,39 @@
 namespace EBGeometry {
 
 /**
- * @brief What a surface is to a solver, at a point, from the regions on its two sides (see Phases::role()).
+ * @brief What a surface is to a domain, at a point, from the regions on its two sides (see Subdomains::role()).
  */
 enum class SurfaceRole : uint8_t
 {
-  None,      ///< Neither side is in a phase: the solver does not cut it.
-  Boundary,  ///< One side is in a phase: cut once, from that side; its surface label gives the boundary condition.
-  Interface, ///< The two sides are in two different phases: one surface the solver couples across.
-  Internal   ///< Both sides are in the same phase (two of its regions touching): the solver decides; usually not cut.
+  None,      ///< Neither side is in a subdomain: the solver does not cut it.
+  Boundary,  ///< One side is in a subdomain: cut once, from that side; its surface label gives the boundary condition.
+  Interface, ///< The two sides are in two different subdomains: one surface the solver couples across.
+  Internal ///< Both sides are in the same subdomain (two of its regions touching): the solver decides; usually not cut.
 };
 
 /**
- * @brief The phases a solver computes in: each a set of regions (see Overlay()), usually one.
- * @details Built on the host (addPhase()), then a plain value, trivially copyable, that a kernel takes like any
- * functor member: phaseOf() and role() are callable on a device. A phase's implicit function is the smallest of its
- * regions' functions (Tape::signedDistance(p, phases, phase)), what a cut-cell solver cuts for it. Regions are held
+ * @brief The subdomains of a domain (see Domain), the regions a downstream code computes in: each a set of regions
+ * (see Overlay()), usually one, coupled to the others through the interfaces between them.
+ * @details Built on the host (addSubdomain()), then a plain value, trivially copyable, that a kernel takes like any
+ * functor member: subdomainOf() and role() are callable on a device. A subdomain's implicit function is the smallest of its
+ * regions' functions (Tape::signedDistance(p, subdomains, subdomain)), what a cut-cell solver cuts for it. Regions are held
  * as ranges, so a group of regions (an Overlay, ExprIndex::getRegionGroup()) is one; at most MaxRanges ranges in all.
  */
-class Phases
+class Subdomains
 {
 public:
   /**
-   * @brief No phase, or a region in no phase.
+   * @brief No subdomain, or a region in no subdomain.
    */
   static constexpr uint32_t None = 0xFFFFFFFFU;
 
   /**
-   * @brief The most ranges of regions the phases can hold together.
+   * @brief The most ranges of regions the subdomains can hold together.
    */
   static constexpr uint32_t MaxRanges = 32;
 
   /**
-   * @brief A range of regions in one phase.
+   * @brief A range of regions in one subdomain.
    */
   struct Range
   {
@@ -71,35 +72,35 @@ public:
     uint32_t m_count = 0;
 
     /**
-     * @brief The phase.
+     * @brief The subdomain.
      */
-    uint32_t m_phase = None;
+    uint32_t m_subdomain = None;
   };
 
   /**
-   * @brief Add a phase.
-   * @details A region can be in one phase only; aborts with a message otherwise, or if the phases would hold more
+   * @brief Add a subdomain.
+   * @details A region can be in one subdomain only; aborts with a message otherwise, or if the subdomains would hold more
    * than MaxRanges ranges, in every build.
    * @param[in] a_regions Its regions (not empty), in any order.
-   * @return The phase's number, from 0 in the order added.
+   * @return The subdomain's number, from 0 in the order added.
    */
   EBGEOMETRY_HOST
   uint32_t
-  addPhase(std::vector<uint32_t> a_regions)
+  addSubdomain(std::vector<uint32_t> a_regions)
   {
-    EBGEOMETRY_REQUIRE(!a_regions.empty(), "Phases: a phase needs at least one region");
+    EBGEOMETRY_REQUIRE(!a_regions.empty(), "Subdomains: a subdomain needs at least one region");
 
     std::sort(a_regions.begin(), a_regions.end());
 
     a_regions.erase(std::unique(a_regions.begin(), a_regions.end()), a_regions.end());
 
-    const uint32_t phase = m_numPhases;
+    const uint32_t subdomain = m_numSubdomains;
 
     for (size_t i = 0; i < a_regions.size();) {
-      EBGEOMETRY_REQUIRE(this->phaseOf(a_regions[i]) == None,
-                         "Phases: region %u is already in phase %u",
+      EBGEOMETRY_REQUIRE(this->subdomainOf(a_regions[i]) == None,
+                         "Subdomains: region %u is already in subdomain %u",
                          unsigned(a_regions[i]),
-                         unsigned(this->phaseOf(a_regions[i])));
+                         unsigned(this->subdomainOf(a_regions[i])));
 
       // A run of consecutive regions is one range.
       size_t end = i + 1;
@@ -109,29 +110,29 @@ public:
       }
 
       EBGEOMETRY_REQUIRE(
-        m_numRanges < MaxRanges, "Phases: the phases hold more than %u ranges of regions", unsigned(MaxRanges));
+        m_numRanges < MaxRanges, "Subdomains: the subdomains hold more than %u ranges of regions", unsigned(MaxRanges));
 
-      m_ranges[m_numRanges++] = Range{a_regions[i], static_cast<uint32_t>(end - i), phase};
+      m_ranges[m_numRanges++] = Range{a_regions[i], static_cast<uint32_t>(end - i), subdomain};
 
       i = end;
     }
 
-    return m_numPhases++;
+    return m_numSubdomains++;
   }
 
   /**
-   * @brief How many phases there are.
+   * @brief How many subdomains there are.
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  getNumPhases() const noexcept
+  getNumSubdomains() const noexcept
   {
-    return m_numPhases;
+    return m_numSubdomains;
   }
 
   /**
-   * @brief How many ranges of regions the phases hold.
+   * @brief How many ranges of regions the subdomains hold.
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -156,17 +157,17 @@ public:
   }
 
   /**
-   * @brief The phase a region is in.
+   * @brief The subdomain a region is in.
    * @param[in] a_region Region.
-   * @return The phase, or None.
+   * @return The subdomain, or None.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  phaseOf(const uint32_t a_region) const noexcept
+  subdomainOf(const uint32_t a_region) const noexcept
   {
     for (uint32_t i = 0; i < m_numRanges; i++) {
       if (a_region >= m_ranges[i].m_first && a_region - m_ranges[i].m_first < m_ranges[i].m_count) {
-        return m_ranges[i].m_phase;
+        return m_ranges[i].m_subdomain;
       }
     }
 
@@ -186,9 +187,9 @@ public:
   role(const SurfaceRef<T>& a_surface) const noexcept
   {
     const uint32_t minus =
-      (a_surface.m_insideRegion != SurfaceRef<T>::None) ? this->phaseOf(a_surface.m_insideRegion) : None;
+      (a_surface.m_insideRegion != SurfaceRef<T>::None) ? this->subdomainOf(a_surface.m_insideRegion) : None;
     const uint32_t plus =
-      (a_surface.m_outsideRegion != SurfaceRef<T>::None) ? this->phaseOf(a_surface.m_outsideRegion) : None;
+      (a_surface.m_outsideRegion != SurfaceRef<T>::None) ? this->subdomainOf(a_surface.m_outsideRegion) : None;
 
     if (minus == None && plus == None) {
       return SurfaceRole::None;
@@ -212,9 +213,9 @@ private:
   uint32_t m_numRanges = 0;
 
   /**
-   * @brief How many phases there are.
+   * @brief How many subdomains there are.
    */
-  uint32_t m_numPhases = 0;
+  uint32_t m_numSubdomains = 0;
 };
 
 } // namespace EBGeometry

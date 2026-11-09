@@ -17,27 +17,27 @@
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
-#include "EBGeometry_Phases.hpp"
 #include "EBGeometry_Scheme.hpp"
+#include "EBGeometry_Subdomains.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 
 namespace EBGeometry {
 
 /**
  * @brief A computational domain, as a description for a downstream code (a solver EBGeometry does not provide): the
- * regions it computes in (its phases) and its surface groups, each a boundary condition's tag (the surface group's
+ * regions it computes in (its subdomains) and its surface groups, each a boundary condition's tag (the surface group's
  * name, kept with RegionNames) and id (its number in the scheme).
- * @details A plain value, trivially copyable, that a kernel takes whole: at a cut cell, m_phases says what the
- * surface is to the domain (Phases::role()) and m_scheme its boundary condition (Scheme::surfaceGroupOf()). The
+ * @details A plain value, trivially copyable, that a kernel takes whole: at a cut cell, m_subdomains says what the
+ * surface is to the domain (Subdomains::role()) and m_scheme its boundary condition (Scheme::surfaceGroupOf()). The
  * surfaces it must tag are those it touches, every surface with a side in one of its regions, the internal ones
  * between two of its regions included. Materials and their properties are the regions' (MaterialLabel()).
  */
 struct Domain
 {
   /**
-   * @brief The regions it computes in, as phases.
+   * @brief The regions it computes in, as subdomains.
    */
-  Phases m_phases;
+  Subdomains m_subdomains;
 
   /**
    * @brief Its surface groups.
@@ -47,13 +47,13 @@ struct Domain
   /**
    * @brief Whether it computes in a region.
    * @param[in] a_region The region.
-   * @return True if the region is in one of its phases.
+   * @return True if the region is in one of its subdomains.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline bool
   computesIn(const uint32_t a_region) const noexcept
   {
-    return m_phases.phaseOf(a_region) != Phases::None;
+    return m_subdomains.subdomainOf(a_region) != Subdomains::None;
   }
 
   /**

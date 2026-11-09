@@ -35,7 +35,7 @@ namespace EBGeometry {
  * from one visible region to another (an internal surface, reached by seeing through the one in front), and leaving
  * one for a hidden region (its far wall); changes between hidden regions are passed through. Each is found with
  * Tape::firstRegionChange(), exactly where the shapes have ray forms, with the surface's own normal, outward of the
- * region whose surface is seen. Its value (for a section plane, contours and shading) is the visible regions' phase
+ * region whose surface is seen. Its value (for a section plane, contours and shading) is the visible regions' subdomain
  * function, negative exactly in them and zero only on their outer surface. Each crossing is named by the coloring
  * (RegionColoring) in HitT::m_primitive, so a renderer coloring by primitive colors by region, material, surface
  * label, surface, part or interface (the pair of regions on its two sides), and a viewer's pick reports it; a view can
@@ -64,7 +64,7 @@ public:
   {}
 
   /**
-   * @brief The value: the visible regions' phase function (see Tape::signedDistance(p, phases, phase)), half the
+   * @brief The value: the visible regions' subdomain function (see Tape::signedDistance(p, subdomains, subdomain)), half the
    * difference of the smallest function of a visible region and of a hidden one; the largest value when none is
    * visible.
    * @param[in] a_point Point.

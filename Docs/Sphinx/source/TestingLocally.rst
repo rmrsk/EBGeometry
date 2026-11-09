@@ -440,10 +440,10 @@ Test coverage
        (exactly one region's function negative, the values the formula's; nested Overlays, maps and masks;
        also after ``deepCopy()``), the leaves numbered as without regions, and an object with no Overlay; no
        sheet of zeros on a mask's face. ``closestSurface(p, region)``'s surface and its two sides (an interface
-       from both regions, a triple point, a mask's cut with its label); ``Phases`` and the roles for three solvers,
-       a phase's function and surface, and the rejected phases. ``firstRegionChange()`` along rays and steps at
+       from both regions, a triple point, a mask's cut with its label); ``Subdomains`` and the roles for three solvers,
+       a subdomain's function and surface, and the rejected subdomains. ``firstRegionChange()`` along rays and steps at
        the spheres' exact crossings (the regions left and entered, the leaf, the normal, a cut face's label, from
-       inside a region), and ``firstSurface()`` into and out of a phase of visible regions. The pairs of regions
+       inside a region), and ``firstSurface()`` into and out of a subdomain of visible regions. The pairs of regions
        each surface may separate (``getSidesOfLeaf()``, ``getInterfaces()``); ``Scheme`` and ``SurfaceSelector``
        grouping the cable's surfaces for an electrostatic and a flow solver (pieces, labels, interfaces, regions,
        materials), and the rejected groups; the region queries and a scheme's groups on the device against the

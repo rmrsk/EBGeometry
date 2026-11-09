@@ -522,11 +522,11 @@ instantiateFunctionTemplates()
       (void)regions.signedDistance(Vec3T<T>::zeros(), 1U);
       (void)regions.closestSurface(Vec3T<T>::zeros(), 1U);
 
-      Phases phases;
+      Subdomains subdomains;
 
-      (void)phases.addPhase({0U, 1U});
-      (void)phases.role(regions.closestSurface(Vec3T<T>::zeros(), phases, 0U));
-      (void)regions.signedDistance(Vec3T<T>::zeros(), phases, 0U);
+      (void)subdomains.addSubdomain({0U, 1U});
+      (void)subdomains.role(regions.closestSurface(Vec3T<T>::zeros(), subdomains, 0U));
+      (void)regions.signedDistance(Vec3T<T>::zeros(), subdomains, 0U);
 
       Scheme scheme;
 
@@ -535,7 +535,7 @@ instantiateFunctionTemplates()
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
-      (void)Domain{phases, scheme}.touches(0U, 1U);
+      (void)Domain{subdomains, scheme}.touches(0U, 1U);
       {
         const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
 
@@ -546,7 +546,7 @@ instantiateFunctionTemplates()
       (void)ExprIndex<T>(Overlay(RegionName(expr, "a"), expr)).findRegion("a");
       (void)regions.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
       (void)regions.firstRegionChange(Vec3T<T>::zeros(), Vec3T<T>::ones());
-      (void)regions.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1), phases, 0U);
+      (void)regions.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1), subdomains, 0U);
     }
 
     (void)exact.signedDistance(Vec3T<T>::zeros());

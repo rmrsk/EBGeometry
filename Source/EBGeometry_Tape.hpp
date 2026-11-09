@@ -44,9 +44,9 @@
 #include "EBGeometry_OffsetRayForms.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_PackedBVH.hpp"
-#include "EBGeometry_Phases.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_Subdomains.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -1269,38 +1269,38 @@ public:
   closestSurface(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
   /**
-   * @brief A phase's implicit function (TapeFeature::Regions): half the difference of the smallest function of a
-   * region in the phase and the smallest of one not in it (the background included), negative exactly inside the
-   * phase and zero only on its surface: where one of its regions meets a region not in it, never on the contact
+   * @brief A subdomain's implicit function (TapeFeature::Regions): half the difference of the smallest function of a
+   * region in the subdomain and the smallest of one not in it (the background included), negative exactly inside the
+   * subdomain and zero only on its surface: where one of its regions meets a region not in it, never on the contact
    * between two of its own. A distance bound, exact near a smooth piece of surface; what a cut-cell solver cuts for
-   * the phase, and the function of a union of materials (a phase of their regions). Callable on a device.
+   * the subdomain, and the function of a union of materials (a subdomain of their regions). Callable on a device.
    * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_point  Point.
-   * @param[in] a_phases The phases (built from this tape's regions).
-   * @param[in] a_phase  Phase (below a_phases.getNumPhases()).
+   * @param[in] a_subdomains The subdomains (built from this tape's regions).
+   * @param[in] a_subdomain  Subdomain (below a_subdomains.getNumSubdomains()).
    * @return The value.
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline T
-  signedDistance(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
+  signedDistance(const Vec3T<T>& a_point, const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
 
   /**
-   * @brief The surface of a phase that decides its function at a point (TapeFeature::Regions): that of its region
+   * @brief The surface of a subdomain that decides its function at a point (TapeFeature::Regions): that of its region
    * whose function is smallest there (see closestSurface(p, region)), with the regions on its two sides; the
-   * surface's role for the solver is a_phases.role(surface). Callable on a device.
+   * surface's role for the solver is a_subdomains.role(surface). Callable on a device.
    * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
-   * @param[in] a_point  Point, on or near the phase's surface.
-   * @param[in] a_phases The phases.
-   * @param[in] a_phase  Phase.
+   * @param[in] a_point  Point, on or near the subdomain's surface.
+   * @param[in] a_subdomains The subdomains.
+   * @param[in] a_subdomain  Subdomain.
    * @return The surface.
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
-  closestSurface(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
+  closestSurface(const Vec3T<T>& a_point, const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
 
   /**
    * @brief The first point along a ray where the region changes (TapeFeature::Regions): for a particle crossing
@@ -1346,16 +1346,16 @@ public:
                     const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**
-   * @brief The first point along a ray where it crosses a phase's boundary (TapeFeature::Regions), entering or
-   * leaving the phase: changes between two of its regions are passed through. For rendering, the phase is the set of
+   * @brief The first point along a ray where it crosses a subdomain's boundary (TapeFeature::Regions), entering or
+   * leaving the subdomain: changes between two of its regions are passed through. For rendering, the subdomain is the set of
    * visible regions: hidden ones are seen through. Reported as firstRegionChange() reports a crossing. Callable on a
    * device.
    * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval.
-   * @param[in] a_phases  The phases.
-   * @param[in] a_phase   Phase.
+   * @param[in] a_subdomains  The subdomains.
+   * @param[in] a_subdomain   Subdomain.
    * @param[in] a_options How to march the parts without a ray form.
    * @return The crossing, or a miss.
    */
@@ -1366,8 +1366,8 @@ public:
   firstSurface(const RayT<T>&       a_ray,
                T                    a_tMin,
                T                    a_tMax,
-               const Phases&        a_phases,
-               uint32_t             a_phase,
+               const Subdomains&    a_subdomains,
+               uint32_t             a_subdomain,
                const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**

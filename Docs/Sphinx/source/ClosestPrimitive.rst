@@ -298,78 +298,74 @@ surface label), with the regions on its two sides **at that point**: ``m_insideR
 and ``m_outsideRegion`` (the one across). The sides belong to the point, not to the surface: a sphere centered on
 another's surface faces the air on one half and the other sphere on the other.
 
-A solver says which regions it computes in with `Phases <doxygen/html/classEBGeometry_1_1Phases.html>`__, each
-phase a set of regions (usually one; ``ExprIndex::getRegionsOfRegionGroup()`` and ``getRegionsOfMaterial()`` select
-several). Each surface then has a role for it at a point, from its two sides: a **boundary** (one side solved,
-where its surface label gives the boundary condition), an **interface** (two phases meet), **internal** (two
-regions of the same phase touch), or none. A phase's own function, ``signedDistance(p, phases, phase)``, is the
-one to cut, and the function of any union of regions or materials (a phase of their regions): negative exactly
-inside the phase and zero only where one of its regions meets one outside it, never on a contact between two of
-its own. It is half the difference of the smallest function of a region in the phase and of one outside it, a
+EBGeometry does not provide solvers; it describes what a downstream code computes on. A
+`Domain <doxygen/html/structEBGeometry_1_1Domain.html>`__ is that description, in two parts: its **subdomains**, the
+regions the code computes in, and its **surface groups**, the boundary conditions it tags. It is a plain value a
+kernel takes whole.
+
+The subdomains (`Subdomains <doxygen/html/classEBGeometry_1_1Subdomains.html>`__) are each a set of regions (usually
+one; ``ExprIndex::getRegionsOfRegionGroup()`` and ``getRegionsOfMaterial()`` select several), coupled through the
+interfaces between them. Each surface then has a role for the domain at a point, from its two sides: a
+**boundary** (one side in the domain), an **interface** (two subdomains meet), **internal** (two regions of the same
+subdomain touch), or none. A subdomain's own function, ``signedDistance(p, subdomains, subdomain)``, is the one to
+cut, and the function of any union of regions or materials (a subdomain of their regions): negative exactly inside
+the subdomain and zero only where one of its regions meets one outside it, never on a contact between two of its
+own. It is half the difference of the smallest function of a region in the subdomain and of one outside it, a
 distance bound, exact near a smooth piece of its surface:
 
 .. code-block:: c++
 
-   Phases electrostatics;                         // the air and the jacket; the core is a conductor
-   electrostatics.addPhase({0});
-   electrostatics.addPhase({1});
+   Subdomains electrostatics;                   // the air and the jacket; the core is a conductor
+   electrostatics.addSubdomain({0});
+   electrostatics.addSubdomain({1});
 
    const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
-   electrostatics.role(s);                        // the outer sphere: Interface; the inner one: Boundary
+   electrostatics.role(s);                      // the outer sphere: Interface; the inner one: Boundary
 
-A solver groups surfaces under its boundary conditions with a
-`Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight surface groups ("dirichlet", "jump", "no-slip"), each
-a list of `SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface
-point is. A piece, ``SurfaceSelector::piece(surface)``, is a shape's surface between the regions on its two sides,
-the piece one clicks (``.withPart(part)`` narrows it to one face of a box or a mesh); broader ones select a whole
-surface, a surface label, an interface (two regions, either way round), a region (either side) or a pair of
-materials, and ``SurfaceSelector::rest()`` the remaining surfaces, those no other selector holds, whatever the
-order they were added in. Patches with the same attributes are one piece: the conditions say what a surface is, not
-where. ``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported
-with its sides, on the host and on a device, and the surface carries the materials of its two sides too.
+The surface groups are a `Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight ("dirichlet", "jump",
+"no-slip"), each a boundary condition's tag (its name) and id (its number), and a list of
+`SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface point is. A
+piece, ``SurfaceSelector::piece(surface)``, is a shape's surface between the regions on its two sides, the piece
+one clicks (``.withPart(part)`` narrows it to one face of a box or a mesh); broader ones select a whole surface, a
+surface label, an interface (two regions, either way round), a region (either side) or a pair of materials, and
+``SurfaceSelector::rest()`` the remaining surfaces, those no other selector holds, whatever the order they were
+added in. Patches with the same attributes are one piece: the conditions say what a surface is, not where.
+``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported with its sides, on the host and on
+a device, and the surface carries the materials of its two sides too.
 
 .. code-block:: c++
 
-   Scheme electrostatics;
-   const uint32_t dirichlet = electrostatics.addSurfaceGroup(); // every conductor surface, inside the jacket too
-   const uint32_t jump      = electrostatics.addSurfaceGroup(); // the jacket's outside
-   electrostatics.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
-   electrostatics.add(jump, SurfaceSelector::interface(1, 0));
+   Domain electrostatics{subdomains, {}};
+   const uint32_t dirichlet = electrostatics.m_scheme.addSurfaceGroup(); // every conductor surface
+   const uint32_t jump      = electrostatics.m_scheme.addSurfaceGroup(); // the jacket's outside
+   electrostatics.m_scheme.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
+   electrostatics.m_scheme.add(jump, SurfaceSelector::interface(1, 0));
 
-   electrostatics.surfaceGroupOf(tape.closestSurface(p, phases, phase));   // at a cut cell, in a kernel
+   // At a cut cell, in a kernel: the subdomain's surface, its role and its boundary condition.
+   const SurfaceRef<T> s = tape.closestSurface(p, electrostatics.m_subdomains, subdomain);
+   electrostatics.m_subdomains.role(s);
+   electrostatics.m_scheme.surfaceGroupOf(s);
 
+The surfaces a domain must tag are those it touches (``touches()``): every surface with a side in one of its
+regions, internal ones between two of its regions included. ``RegionNames::addDomain("electrostatics", domain)``
+registers a domain by name, with its subdomains' and surface groups' names, for a viewer to show and check it.
 ``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
-``getSidesOfLeaf(leaf)`` those of one shape's surface: what a solver's setup can expect to meet. Whether a scheme
-leaves a surface without a boundary condition is checked from these, on the host: ``possiblePieces(inventory)``
-lists every piece the object may have (each surface between each pair of regions it may separate, from a
-``SurfaceInventory`` of the index: nothing is left out, and some may not occur), and ``coverageOf(piece, inventory,
-scheme)`` says whether the scheme's surface groups hold all of it, part of it (some faces of a box or a mesh) or
-none. ``findSurfacePieces(tape)`` finds which pieces the object actually has, with a point on each, by crossing it
-with rays on a grid; a piece too small for the grid is missed there, but not by the check.
-
-EBGeometry does not provide solvers; it describes what a downstream code computes on. A
-`Domain <doxygen/html/structEBGeometry_1_1Domain.html>`__ is that description: the regions the code computes in (its
-``Phases``) and its surface groups (its ``Scheme``), each a boundary condition's tag (the surface group's name) and id
-(its number). It is a plain value a kernel takes whole, and the surfaces it must tag are those it touches, every
-surface with a side in one of its regions, internal ones between two of its regions included (``touches()``).
-``RegionNames::addDomain("electrostatics", domain)`` registers one by name, with its surface groups' names, for a
-viewer to show and check:
-
-.. code-block:: c++
-
-   Domain electrostatics{phases, scheme};                    // the air and the jacket; dirichlet, jump
-   RegionNames names(index);
-   const uint32_t d = names.addDomain("electrostatics", electrostatics);
-   names.setSurfaceGroup(d, 0, "dirichlet");
+``getSidesOfLeaf(leaf)`` those of one shape's surface. Whether a scheme leaves a surface without a boundary
+condition is checked from these, on the host: ``possiblePieces(inventory)`` lists every piece the object may have
+(each surface between each pair of regions it may separate, from a ``SurfaceInventory`` of the index: nothing is
+left out, and some may not occur), and ``coverageOf(piece, inventory, scheme)`` says whether the scheme's surface
+groups hold all of it, part of it (some faces of a box or a mesh) or none. ``findSurfacePieces(tape)`` finds which
+pieces the object actually has, with a point on each, by crossing it with rays on a grid; a piece too small for the
+grid is missed there, but not by the check.
 
 Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
 finds the first point where the region changes, from inside any region: the crossing, with its normal pointing
 into the region entered, the surface crossed and its labels, and the regions left (``m_insideRegion``) and entered
 (``m_outsideRegion``). The crossings are exact where the shapes have ray forms. A particle crossing several layers
 asks again from the last crossing's ``t``; crossings closer than the march's tolerance to ``tMin`` are not
-reported, so layers thinner than that are passed over. ``firstSurface(ray, tMin, tMax, phases, phase)`` finds
-where the ray enters or leaves a phase, passing through the contacts between its regions: with the visible
-regions as the phase, what a renderer needs to see through hidden ones.
+reported, so layers thinner than that are passed over. ``firstSurface(ray, tMin, tMax, subdomains, subdomain)`` finds
+where the ray enters or leaves a subdomain, passing through the contacts between its regions: with the visible
+regions as the subdomain, what a renderer needs to see through hidden ones.
 
 .. code-block:: c++
 

@@ -254,8 +254,8 @@ struct SurfaceSelector
 
 /**
  * @brief One solver's surface groups: "no-slip" for a flow solver, "dirichlet" and "jump" for an electrostatic
- * one, each a list of selectors (SurfaceSelector), so that a cut cell's surface (Tape::closestSurface(p, phases,
- * phase)) gives its surface group, and the surface group its boundary condition.
+ * one, each a list of selectors (SurfaceSelector), so that a cut cell's surface (Tape::closestSurface(p, subdomains,
+ * subdomain)) gives its surface group, and the surface group its boundary condition.
  * @details At most MaxSurfaceGroups surface groups and MaxSelectors selectors in all, so that a scheme is a plain value a kernel
  * takes (surfaceGroupOf() is callable on a device). A surface is in the surface group of the first selector it matches, in the
  * order they were added, the remaining surfaces' (SurfaceSelector::rest()) tried last. The surface groups' names are the caller's (a scheme holds numbers only).
@@ -428,7 +428,7 @@ public:
    * @brief The surface group a surface point is in: that of the first selector it matches, those of the remaining
    * surfaces (SurfaceSelector::rest()) tried last.
    * @tparam T Floating-point precision.
-   * @param[in] a_surface The surface, with its sides and their materials (Tape::closestSurface(p, phases, phase),
+   * @param[in] a_surface The surface, with its sides and their materials (Tape::closestSurface(p, subdomains, subdomain),
    * firstRegionChange()).
    * @return The surface group, or None.
    */
