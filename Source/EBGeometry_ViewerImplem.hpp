@@ -465,7 +465,8 @@ enum class PanelAction : uint8_t
   RenameGroup,    ///< Type a surface group's name.
   Details,        ///< Show or hide details (numbers, coordinates, statistics).
   HideGroup,      ///< Hide a surface group's surfaces, or show them again.
-  CopyGroup       ///< Copy a surface group: a new one with the same selectors.
+  CopyGroup,      ///< Copy a surface group: a new one with the same selectors.
+  SelectDomain    ///< Make a registered domain the active one.
 };
 
 /**
@@ -797,6 +798,14 @@ run(const S&           a_shape,
     }
   };
 
+  // With domains registered, the settings show the active one's surface groups (edited there, and kept with the
+  // domain when another is made active).
+  if constexpr (hasRegionVisibility<S>) {
+    if (names.getNumDomains() > 0U) {
+      settings.m_regions.m_scheme = names.getDomain(names.getActiveDomain()).m_scheme;
+    }
+  }
+
   applyColors();
 
   // The color a key is drawn in (as the renderer picks it, before shading), as an RGBA pixel for a swatch.
@@ -972,6 +981,14 @@ run(const S&           a_shape,
       return SurfaceSelector::piece(a_piece);
     }
     }
+  };
+
+  // Whether a possible piece is one the active domain must tag: it touches the domain's regions (every piece, with no
+  // domain registered).
+  const auto relevant = [&](const std::size_t a_piece) {
+    return names.getNumDomains() == 0U ||
+           names.getDomain(names.getActiveDomain())
+             .touches(possible[a_piece].m_insideRegion, possible[a_piece].m_outsideRegion);
   };
 
   // How many of the object's pieces (those found) a selector holds, all or part of, in words.
@@ -1696,6 +1713,31 @@ run(const S&           a_shape,
       button(details ? "Hide details" : "Show details", PanelAction::Details, 0U);
 
       line("");
+      // The domains, the active one marked, and the regions it computes in.
+      if (names.getNumDomains() > 0U) {
+        const Domain& domain = names.getDomain(names.getActiveDomain());
+
+        line("Domain");
+        line("  ");
+
+        for (uint32_t i = 0; i < names.getNumDomains(); i++) {
+          button(std::string((i == names.getActiveDomain()) ? "* " : "") + names.domainName(i),
+                 PanelAction::SelectDomain,
+                 i);
+        }
+
+        std::string in;
+
+        for (uint32_t k = 0; k < shape.getNumRegions(); k++) {
+          if (domain.computesIn(k)) {
+            in += (in.empty() ? "" : ", ") + region(k);
+          }
+        }
+
+        line("  Regions: " + (in.empty() ? std::string("none") : in));
+        line("");
+      }
+
       line("Color by");
       line("  ");
 
@@ -1769,7 +1811,10 @@ run(const S&           a_shape,
       }
 
       for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
-        clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k),
+        const bool inDomain = names.getNumDomains() > 0U && names.getDomain(names.getActiveDomain()).computesIn(k);
+
+        clickable(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k) +
+                    (inDomain ? ", in the domain" : ""),
                   PanelAction::ToggleRegion,
                   k);
 
@@ -1838,17 +1883,25 @@ run(const S&           a_shape,
       uint32_t partly      = 0;
       bool     findableGap = false;
 
+      uint32_t touched = 0;
+
       for (std::size_t c = 0; c < possible.size(); c++) {
+        if (!relevant(c)) {
+          continue;
+        }
+
+        touched++;
         found += (foundOf[c] != std::size_t(-1)) ? 1U : 0U;
         unassigned += (covered[c].m_coverage == Coverage::None) ? 1U : 0U;
         partly += (covered[c].m_coverage == Coverage::Partly) ? 1U : 0U;
         findableGap = findableGap || (covered[c].m_coverage != Coverage::Full && foundOf[c] != std::size_t(-1));
       }
 
-      const auto notFound = static_cast<uint32_t>(possible.size()) - found;
+      const uint32_t notFound = touched - found;
 
       line("");
-      line("Pieces of surface");
+      line((names.getNumDomains() > 0U) ? "Pieces of surface " + names.domainName(names.getActiveDomain()) + " touches"
+                                        : std::string("Pieces of surface"));
       line("  " + std::to_string(found) + " found" +
            ((notFound > 0U) ? ", " + std::to_string(notFound) + " more possible but not found" : std::string()));
       line((unassigned + partly == 0U) ? std::string("  All in a surface group")
@@ -1868,7 +1921,13 @@ run(const S&           a_shape,
       button(listPieces ? "Hide list" : "List", PanelAction::ListPieces, 0U);
 
       if (listPieces) {
-        for (std::size_t c = 0; c < possible.size() && c < 40U; c++) {
+        for (std::size_t c = 0, listedPieces = 0; c < possible.size() && listedPieces < 40U; c++) {
+          if (!relevant(c)) {
+            continue;
+          }
+
+          listedPieces++;
+
           SurfaceRef<T> s;
 
           s.m_surface       = possible[c].m_surface;
@@ -1906,8 +1965,8 @@ run(const S&           a_shape,
           }
         }
 
-        if (possible.size() > 40U) {
-          line("    And " + std::to_string(possible.size() - 40U) + " more");
+        if (touched > 40U) {
+          line("    And " + std::to_string(touched - 40U) + " more");
         }
       }
     }
@@ -2303,7 +2362,7 @@ run(const S&           a_shape,
                     for (std::size_t step = 1; step <= possible.size(); step++) {
                       const std::size_t i = (pieceIndex + step) % possible.size();
 
-                      if (covered[i].m_coverage != Coverage::Full && foundOf[i] != std::size_t(-1)) {
+                      if (relevant(i) && covered[i].m_coverage != Coverage::Full && foundOf[i] != std::size_t(-1)) {
                         index = i;
 
                         break;
@@ -2368,6 +2427,26 @@ run(const S&           a_shape,
                   currentGroup = copy;
 
                   rekeyPick();
+
+                  break;
+                }
+                case PanelAction::SelectDomain: {
+                  // The active domain keeps its surface groups as edited; the new one's are shown.
+                  if (clicked.m_value != names.getActiveDomain()) {
+                    names.getDomain(names.getActiveDomain()).m_scheme = scheme;
+
+                    names.setActiveDomain(clicked.m_value);
+
+                    scheme                   = names.getDomain(clicked.m_value).m_scheme;
+                    currentGroup             = 0;
+                    regions.m_hiddenGroups   = 0U;
+                    regions.m_highlightGroup = RegionSettings::None;
+                    pieceIndex               = std::size_t(-1);
+
+                    highlightGroup(RegionSettings::None);
+                    applyColors();
+                    rekeyPick();
+                  }
 
                   break;
                 }
@@ -2853,6 +2932,11 @@ run(const S&           a_shape,
             const Scheme& scheme = settings.m_regions.m_scheme;
 
             if (scheme.getNumSurfaceGroups() > 0U) {
+              if (names.getNumDomains() > 0U) {
+                std::printf("// The surface groups of the domain \"%s\"\n",
+                            names.domainName(names.getActiveDomain()).c_str());
+              }
+
               std::printf("Scheme scheme;\n");
 
               for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {

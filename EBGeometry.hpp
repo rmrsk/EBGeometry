@@ -32,6 +32,7 @@
 #include "Source/EBGeometry_DCEL_Reconcile.hpp"
 #include "Source/EBGeometry_DCEL_Vertex.hpp"
 #include "Source/EBGeometry_DistanceQuality.hpp"
+#include "Source/EBGeometry_Domain.hpp"
 #include "Source/EBGeometry_Expr.hpp"
 #include "Source/EBGeometry_FunctionQueries.hpp"
 #include "Source/EBGeometry_GPU.hpp"

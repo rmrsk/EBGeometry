@@ -535,6 +535,7 @@ instantiateFunctionTemplates()
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
+      (void)Domain{phases, scheme}.touches(0U, 1U);
       {
         const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
 

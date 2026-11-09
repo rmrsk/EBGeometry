@@ -347,6 +347,21 @@ scheme)`` says whether the scheme's surface groups hold all of it, part of it (s
 none. ``findSurfacePieces(tape)`` finds which pieces the object actually has, with a point on each, by crossing it
 with rays on a grid; a piece too small for the grid is missed there, but not by the check.
 
+EBGeometry does not provide solvers; it describes what a downstream code computes on. A
+`Domain <doxygen/html/structEBGeometry_1_1Domain.html>`__ is that description: the regions the code computes in (its
+``Phases``) and its surface groups (its ``Scheme``), each a boundary condition's tag (the surface group's name) and id
+(its number). It is a plain value a kernel takes whole, and the surfaces it must tag are those it touches, every
+surface with a side in one of its regions, internal ones between two of its regions included (``touches()``).
+``RegionNames::addDomain("electrostatics", domain)`` registers one by name, with its surface groups' names, for a
+viewer to show and check:
+
+.. code-block:: c++
+
+   Domain electrostatics{phases, scheme};                    // the air and the jacket; dirichlet, jump
+   RegionNames names(index);
+   const uint32_t d = names.addDomain("electrostatics", electrostatics);
+   names.setSurfaceGroup(d, 0, "dirichlet");
+
 Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
 finds the first point where the region changes, from inside any region: the crossing, with its normal pointing
 into the region entered, the surface crossed and its labels, and the regions left (``m_insideRegion``) and entered

@@ -109,31 +109,44 @@ main(int argc, char* argv[])
               << '\n';
   }
 
+  // ── The domains ────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A domain describes what a downstream solver computes on: its regions (the phases above) and its surface groups,
+  // one per boundary condition: the group's name
+  // is the condition's tag, its number the id a kernel reads (scheme.surfaceGroupOf(surface)). Electrostatics: every
+  // conductor surface is dirichlet, the jacket's outside a jump; flow: every surface of the air is a wall.
+  EBGeometry::Domain electrostatic{electrostatics, {}};
+
+  const uint32_t dirichlet = electrostatic.m_scheme.addSurfaceGroup();
+  const uint32_t jump      = electrostatic.m_scheme.addSurfaceGroup();
+
+  electrostatic.m_scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
+  electrostatic.m_scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
+
+  EBGeometry::Domain flow{cfd, {}};
+
+  const uint32_t wall = flow.m_scheme.addSurfaceGroup();
+
+  flow.m_scheme.add(wall, EBGeometry::SurfaceSelector::region(0));
+
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // RegionView shows the regions' surfaces, internal ones included. What it shows lives in the render settings
-  // (m_regions): the coloring (K), the regions shown (V), the surfaces seen through (T) or shown alone (L), and a
-  // solver's scheme, here the electrostatic one: every conductor surface (dirichlet), the jacket's outside (jump).
-  // K reaches the coloring by group. In the regions' menu (F5), a click names the piece of surface under it, Enter
-  // adds it to the current group, and a panel lists the regions and the groups by their names; C prints the scheme
-  // as C++.
+  // RegionView shows the regions' surfaces, internal ones included. The window's panel switches between the
+  // domains, names the surface under a click and adds it to a surface group, and checks that every surface a domain
+  // touches has one; C prints the active domain's surface groups as C++.
   EBGeometry::Render::Settings<T> settings;
 
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
 
-  EBGeometry::Scheme& scheme = settings.m_regions.m_scheme;
-
-  const uint32_t dirichlet = scheme.addSurfaceGroup();
-  const uint32_t jump      = scheme.addSurfaceGroup();
-
-  scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
-  scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
-
-  // The names the window shows: the regions by their names and materials, and the surface groups.
+  // The names the window shows: the regions by their names and materials, the domains and their surface groups.
   EBGeometry::RegionNames names(index);
 
-  names.setSurfaceGroup(dirichlet, "dirichlet");
-  names.setSurfaceGroup(jump, "jump");
+  const uint32_t electrostaticDomain = names.addDomain("electrostatics", electrostatic);
+  const uint32_t flowDomain          = names.addDomain("flow", flow);
+
+  names.setSurfaceGroup(electrostaticDomain, dirichlet, "dirichlet");
+  names.setSurfaceGroup(electrostaticDomain, jump, "jump");
+  names.setSurfaceGroup(flowDomain, wall, "wall");
 
   // Colors by name (linear RGB): the materials, and the surface groups when colored by them.
   names.setColor("copper", EBGeometry::Vec3T<double>(0.75, 0.33, 0.12));

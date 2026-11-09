@@ -1081,6 +1081,47 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
   CHECK(ordered.surfaceGroupOf(skin) == other);
 }
 
+TEST_CASE("Domain: its regions, the surfaces it touches, and its surface groups named per domain", "[Domain]")
+{
+  // Electrostatics in the air (0) and the jacket (1); flow in the air only.
+  Domain electrostatics;
+
+  (void)electrostatics.m_phases.addPhase({0});
+  (void)electrostatics.m_phases.addPhase({1});
+
+  Domain flow;
+
+  (void)flow.m_phases.addPhase({0});
+
+  CHECK(electrostatics.computesIn(1));
+  CHECK(!electrostatics.computesIn(2));
+  CHECK(electrostatics.touches(2, 1));
+  CHECK(!flow.touches(2, 1));
+  CHECK(flow.touches(1, 0));
+
+  RegionNames names;
+
+  CHECK(names.getActiveDomain() == RegionNames::None);
+
+  const uint32_t first  = names.addDomain("electrostatics", electrostatics);
+  const uint32_t second = names.addDomain("flow", flow);
+
+  CHECK(names.getNumDomains() == 2U);
+  CHECK(names.getActiveDomain() == first);
+  CHECK(names.domainName(second) == "flow");
+
+  // Each domain's surface groups have names of their own.
+  names.setSurfaceGroup(first, 0, "dirichlet");
+  names.setSurfaceGroup(second, 0, "wall");
+
+  CHECK(names.surfaceGroup(0, false) == "dirichlet");
+
+  names.setActiveDomain(second);
+
+  CHECK(names.surfaceGroup(0, false) == "wall");
+  CHECK(names.getDomain(second).computesIn(0));
+}
+
 TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regions, once each, with its parts",
                    "[Overlay][SurfacePieces]",
                    EBGEOMETRY_TEST_PRECISIONS)

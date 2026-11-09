@@ -67,8 +67,9 @@ two regions included: along a camera ray, its crossings are the changes of regio
 found exactly (``firstRegionChange()``). What it shows is part of the render settings, ``Settings::m_regions``
 (`RegionSettings <doxygen/html/structEBGeometry_1_1RegionSettings.html>`__): the regions shown, what a surface is
 colored by (region, material, surface label, surface, part, interface, or the group of a solver's scheme), the
-surfaces shown alone or seen through, and the scheme itself. The example sets the electrostatic scheme: every
-conductor surface (dirichlet) and the jacket's outside (jump).
+surfaces shown alone or seen through, and the scheme itself. The example registers two domains, descriptions of
+what two downstream solvers compute on (``Domain``): electrostatics in the air and the jacket, every conductor
+surface dirichlet and the jacket's outside a jump; and flow in the air, every surface of it a wall.
 
 In the viewer, the panel's "Color by" row sets the coloring (K cycles it); V shows one region at a time, Shift + V hides the picked one, and Ctrl + V
 shows them all; T sees through the picked surface (the core's surface inside the jacket shows), and L shows only
