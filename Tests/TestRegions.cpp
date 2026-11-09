@@ -396,6 +396,19 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   CHECK_THAT(core.firstHit(along, T(0), T(5), options).m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
   CHECK(!core.firstHit(RayT<T>{Vec3(T(-2), T(0.8), T(-0.4)), Vec3(T(1), T(0), T(0))}, T(0), T(5), options).hit());
 
+  // The core seen through: where the ray meets the core, it meets the jacket's bore, the same surface shown as the
+  // jacket's; the jacket seen through: the core's wall.
+  const RegionView<Tape> coreThrough = all.withSeenThrough(2, true);
+
+  CHECK(coreThrough.isSeenThrough(2));
+
+  const HitT<T> bore = coreThrough.firstHit(along, outer.m_t, T(5), options);
+
+  CHECK(bore.m_primitive == 1U);
+  CHECK_THAT(bore.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
+  CHECK(all.withSeenThrough(1, true).firstHit(along, T(0), T(5), options).m_primitive == 2U);
+  CHECK(!coreThrough.withNoneSeenThrough().isSeenThrough(2));
+
   // Colored by material: the materials' numbers (air 0, PTFE 1, copper 2).
   const RegionView<Tape> byMaterial = all.withColoring(RegionColoring::Material);
 

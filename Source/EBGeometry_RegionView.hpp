@@ -81,6 +81,7 @@ public:
    * @return The value.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -108,6 +109,7 @@ public:
    * @return The key in m_leaf, or LeafRef::None outside the visible regions.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline LeafRef<T>
   closestLeaf(const Vec3T<T>& a_point) const noexcept
   {
@@ -134,6 +136,7 @@ public:
    * the one entered, m_primitive the coloring's key; or a miss.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
   firstHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
@@ -149,26 +152,33 @@ public:
       const uint32_t from = change.m_surface.m_minusRegion;
       const uint32_t to   = change.m_surface.m_plusRegion;
 
-      if (this->isVisible(from) || this->isVisible(to)) {
-        // The surface crossed lies on the later region's operand (an interface is on the surface of the region on
-        // top), so it is that region's when it is visible, whichever way the ray goes, and else the other's. Named by
-        // the region entered, the core's far wall inside a jacket would be the jacket's, and vanish with it.
-        const uint32_t later    = Math::max(from, to);
-        const uint32_t seen     = this->isVisible(later) ? later : Math::min(from, to);
-        const bool     entering = (seen == to);
-        const uint32_t key      = this->keyOf(change.m_surface, seen);
+      // The surface crossed lies on the later region's operand (an interface is on the surface of the region on
+      // top), so it is shown as that region's, whichever way the ray goes; when that region is hidden, seen through or
+      // not the one shown alone, as the other region's. So with the core seen through, the core's wall inside a
+      // jacket is the jacket's bore; with the jacket seen through, the core's wall.
+      const uint32_t sides[2] = {Math::max(from, to), Math::min(from, to)};
 
-        // Showing only one key, every other surface is passed through.
-        if (m_only == None || key == m_only) {
-          HitT<T> hit = change.m_hit;
-
-          // The crossing's normal points into the region entered: outward of the region left.
-          hit.m_normal    = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
-          hit.m_entering  = entering;
-          hit.m_primitive = key;
-
-          return hit;
+      for (const uint32_t seen : sides) {
+        if (!this->isVisible(seen)) {
+          continue;
         }
+
+        const uint32_t key = this->keyOf(change.m_surface, seen);
+
+        if (this->isSeenThrough(key) || (m_only != None && key != m_only)) {
+          continue;
+        }
+
+        const bool entering = (seen == to);
+
+        HitT<T> hit = change.m_hit;
+
+        // The crossing's normal points into the region entered: outward of the region left.
+        hit.m_normal    = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
+        hit.m_entering  = entering;
+        hit.m_primitive = key;
+
+        return hit;
       }
 
       t = change.m_hit.m_t;
@@ -301,6 +311,91 @@ public:
   }
 
   /**
+   * @brief How many keys can be seen through at once.
+   */
+  static constexpr uint32_t MaxSeenThrough = 8;
+
+  /**
+   * @brief Whether the surfaces with a key are seen through.
+   * @param[in] a_key The key.
+   * @return True if they are.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isSeenThrough(const uint32_t a_key) const noexcept
+  {
+    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
+      if (m_through[i] == a_key && a_key != None) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * @brief The same view with the surfaces of a key seen through, or opaque again: a surface seen through is passed
+   * through and casts no shadow, and a surface between its region and another is shown as the other's (with the
+   * core seen through, the jacket's bore). At most MaxSeenThrough keys; beyond them, none is added.
+   * @param[in] a_key     The key, as HitT::m_primitive reports it (a pick).
+   * @param[in] a_through Whether to see through it.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline RegionView
+  withSeenThrough(const uint32_t a_key, const bool a_through) const noexcept
+  {
+    RegionView view = *this;
+
+    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
+      if (view.m_through[i] == a_key) {
+        view.m_through[i] = None;
+      }
+    }
+
+    if (a_through) {
+      for (uint32_t i = 0; i < MaxSeenThrough; i++) {
+        if (view.m_through[i] == None) {
+          view.m_through[i] = a_key;
+
+          break;
+        }
+      }
+    }
+
+    return view;
+  }
+
+  /**
+   * @brief An entry of the keys seen through.
+   * @param[in] a_entry Entry (below MaxSeenThrough).
+   * @return The key, or None for an unused entry.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getSeenThrough(const uint32_t a_entry) const noexcept
+  {
+    return (a_entry < MaxSeenThrough) ? m_through[a_entry] : None;
+  }
+
+  /**
+   * @brief The same view with every surface opaque.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline RegionView
+  withNoneSeenThrough() const noexcept
+  {
+    RegionView view = *this;
+
+    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
+      view.m_through[i] = None;
+    }
+
+    return view;
+  }
+
+  /**
    * @brief The key shown alone, or None.
    * @return The key.
    */
@@ -336,7 +431,8 @@ public:
     view.m_coloring = a_coloring;
     view.m_only     = None;
 
-    return view;
+    // Keys mean another thing under another coloring.
+    return view.withNoneSeenThrough();
   }
 
 private:
@@ -359,6 +455,11 @@ private:
    * @brief The key shown alone, or None.
    */
   uint32_t m_only = None;
+
+  /**
+   * @brief The keys seen through; None marks an unused entry.
+   */
+  uint32_t m_through[MaxSeenThrough] = {None, None, None, None, None, None, None, None};
 
   /**
    * @brief A surface's key, by the coloring.
@@ -448,7 +549,8 @@ inline constexpr bool
                                   decltype(std::declval<const S&>().withAllVisible()),
                                   decltype(std::declval<const S&>().getColoring()),
                                   decltype(std::declval<const S&>().withColoring(RegionColoring::Region)),
-                                  decltype(std::declval<const S&>().withOnlyKey(0U))>> = true;
+                                  decltype(std::declval<const S&>().withOnlyKey(0U)),
+                                  decltype(std::declval<const S&>().withSeenThrough(0U, true))>> = true;
 
 } // namespace EBGeometry
 

@@ -967,6 +967,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         {std::string("Colored by ") + colorings[static_cast<int>(shape.getColoring())] +
            ((shape.getOnlyKey() != S::None) ? "; showing only " + keyName(shape.getOnlyKey()) : std::string()),
          picked ? "Picked: " + keyName(pick.m_primitive) : std::string("Nothing picked"),
+         [&shape, &keyName]() {
+           std::string through;
+
+           for (uint32_t i = 0; i < S::MaxSeenThrough; i++) {
+             if (shape.getSeenThrough(i) != S::None) {
+               through += (through.empty() ? "Seen through: " : ", ") + keyName(shape.getSeenThrough(i));
+             }
+           }
+
+           return through.empty() ? std::string("Every surface opaque (T sees through the picked one)") : through;
+         }(),
          hiddenRegions.empty()
            ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
            : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions});
@@ -1665,6 +1676,29 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           break;
         }
         case SDLK_t: {
+          // A shape with regions sees through in itself, so that a surface between a region seen through and another
+          // shows as the other's (see RegionView::withSeenThrough()).
+          if constexpr (hasRegionVisibility<S>) {
+            if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+              shape       = shape.withNoneSeenThrough();
+              deviceShape = deviceShape.withNoneSeenThrough();
+            }
+            else if (picked) {
+              const bool through = !shape.isSeenThrough(pick.m_primitive);
+
+              shape       = shape.withSeenThrough(pick.m_primitive, through);
+              deviceShape = deviceShape.withSeenThrough(pick.m_primitive, through);
+              picked      = false;
+
+              settings.m_highlightPrimitive = Settings<T>::NoPrimitive;
+            }
+            else {
+              changed = pending;
+            }
+
+            break;
+          }
+
           // Shift and T make every surface opaque again; T alone toggles the picked surface.
           if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
             for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {

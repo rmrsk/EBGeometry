@@ -2554,6 +2554,7 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline HitT<T>
 Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
                                          const RayT<T>&       a_ray,
@@ -3412,6 +3413,7 @@ Tape<T, UserPrimitives...>::getNumRegions() const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::regionSolid(const uint32_t  a_region,
                                         const uint32_t  a_level,
@@ -3454,6 +3456,7 @@ Tape<T, UserPrimitives...>::sharedMasks(const uint32_t a_first, const uint32_t a
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline uint32_t
 Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 {
@@ -3477,6 +3480,7 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
 {
@@ -3507,6 +3511,7 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point,
                                            const Phases&   a_phases,
@@ -3537,6 +3542,7 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point,
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point,
                                            const Phases&   a_phases,
@@ -3566,6 +3572,7 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point,
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceHitT<T>
 Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
                                               const T              a_tMin,
@@ -3681,6 +3688,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const Vec3T<T>&      a_from,
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceHitT<T>
 Tape<T, UserPrimitives...>::firstSurface(const RayT<T>&       a_ray,
                                          const T              a_tMin,
@@ -3715,6 +3723,7 @@ Tape<T, UserPrimitives...>::firstSurface(const RayT<T>&       a_ray,
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline CSGOps::Tagged<T>
 Tape<T, UserPrimitives...>::regionSolidTagged(const uint32_t  a_region,
                                               const uint32_t  a_level,
@@ -3734,6 +3743,7 @@ Tape<T, UserPrimitives...>::regionSolidTagged(const uint32_t  a_region,
 template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
 {

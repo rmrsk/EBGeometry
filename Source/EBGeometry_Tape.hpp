@@ -1229,6 +1229,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline uint32_t
   region(const Vec3T<T>& a_point) const noexcept;
 
@@ -1245,6 +1246,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   signedDistance(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
@@ -1262,6 +1264,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
   closestSurface(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
@@ -1279,6 +1282,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   signedDistance(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
 
@@ -1294,6 +1298,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
   closestSurface(const Vec3T<T>& a_point, const Phases& a_phases, uint32_t a_phase) const noexcept;
 
@@ -1315,6 +1320,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceHitT<T>
   firstRegionChange(const RayT<T>&       a_ray,
                     T                    a_tMin,
@@ -1355,6 +1361,7 @@ public:
    */
   template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceHitT<T>
   firstSurface(const RayT<T>&       a_ray,
                T                    a_tMin,
@@ -1550,6 +1557,7 @@ private:
    * @return The crossing, a miss, or an unresolved query.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
   traceProgram(
     uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
@@ -1952,6 +1960,7 @@ private:
    * @return The tagged value.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline CSGOps::Tagged<T>
   regionSolidTagged(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
 
@@ -1964,6 +1973,7 @@ private:
    * @return The value.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   regionSolid(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
 
