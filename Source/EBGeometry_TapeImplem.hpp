@@ -1691,41 +1691,48 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   // Each region's program: its operand, under the maps and masks above it, with the leaves numbered as in the
   // whole expression.
   if constexpr (hasFeature<TapeFeature::Regions>) {
+    std::vector<TapeDetail::RegionSolid<T>>                      solids;
+    std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> path;
+
     if (a_expr.node().m_partition) {
-      std::vector<TapeDetail::RegionSolid<T>>                      solids;
-      std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> path;
-
       TapeDetail::regionSolids(a_expr, 0U, path, solids);
+    }
 
-      // The table: the number of regions, each region's record's offset, then the records: the number of masks
-      // above the region, their numbers (outermost first), and its programs, level 0 (every mask) to the last.
-      std::vector<uint32_t>&                  table = staging.m_regionPrograms;
-      std::vector<const ExprDetail::Node<T>*> masks;
+    // The table: the number of operands n, each operand's record's offset, each region's material (the background
+    // first; two for an object with no Overlay), then the records: the number of masks above the region, their
+    // numbers (outermost first), and its programs, level 0 (every mask) to the last.
+    std::vector<uint32_t>&                  table = staging.m_regionPrograms;
+    std::vector<const ExprDetail::Node<T>*> masks;
 
-      table.assign(1U + solids.size(), 0U);
+    const ExprIndex<T> regions(a_expr);
 
-      table[0] = static_cast<uint32_t>(solids.size());
+    table.assign(1U + solids.size(), 0U);
 
-      for (size_t k = 0; k < solids.size(); k++) {
-        const TapeDetail::RegionSolid<T>& solid = solids[k];
+    table[0] = static_cast<uint32_t>(solids.size());
 
-        table[1U + k] = static_cast<uint32_t>(table.size());
+    for (uint32_t k = 0; k < regions.getNumRegions(); k++) {
+      table.push_back(regions.getMaterialOf(k).value());
+    }
 
-        table.push_back(static_cast<uint32_t>(solid.m_masks.size()));
+    for (size_t k = 0; k < solids.size(); k++) {
+      const TapeDetail::RegionSolid<T>& solid = solids[k];
 
-        for (const ExprDetail::Node<T>* mask : solid.m_masks) {
-          const auto found = std::find(masks.begin(), masks.end(), mask);
+      table[1U + k] = static_cast<uint32_t>(table.size());
 
-          table.push_back(static_cast<uint32_t>(found - masks.begin()));
+      table.push_back(static_cast<uint32_t>(solid.m_masks.size()));
 
-          if (found == masks.end()) {
-            masks.push_back(mask);
-          }
+      for (const ExprDetail::Node<T>* mask : solid.m_masks) {
+        const auto found = std::find(masks.begin(), masks.end(), mask);
+
+        table.push_back(static_cast<uint32_t>(found - masks.begin()));
+
+        if (found == masks.end()) {
+          masks.push_back(mask);
         }
+      }
 
-        for (size_t level = 0; level < solid.m_levels.size(); level++) {
-          table.push_back(compiler.compileRegion(solid.m_levels[level].node(), solid.m_starts[level]));
-        }
+      for (size_t level = 0; level < solid.m_levels.size(); level++) {
+        table.push_back(compiler.compileRegion(solid.m_levels[level].node(), solid.m_starts[level]));
       }
     }
   }
@@ -3370,12 +3377,37 @@ Tape<T, UserPrimitives...>::getNumSurfaceLabels() const noexcept
 }
 
 template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::numRegionOperands() const noexcept
+{
+  return (m_layout.m_regionPrograms.size() > 0U) ? m_layout.m_regionPrograms.at(this->base(), 0U) : 0U;
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline MaterialLabelId
+Tape<T, UserPrimitives...>::getMaterialOf(const uint32_t a_region) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  if (m_layout.m_regionPrograms.size() == 0U || a_region >= ((n > 0U) ? n + 1U : 2U)) {
+    return MaterialLabelId::none();
+  }
+
+  return MaterialLabelId(m_layout.m_regionPrograms.at(this->base(), 1U + n + a_region));
+}
+
+template <class T, class... UserPrimitives>
 template <class F, class>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumRegions() const noexcept
 {
-  return (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(this->base(), 0U) + 1U : 2U;
+  const uint32_t n = this->numRegionOperands();
+
+  return (n > 0U) ? n + 1U : 2U;
 }
 
 template <class T, class... UserPrimitives>
@@ -3426,11 +3458,11 @@ inline uint32_t
 Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 {
   // An object with no Overlay is one region.
-  if (m_layout.m_regionPrograms.size() == 0U) {
+  if (this->numRegionOperands() == 0U) {
     return (this->signedDistance(a_point) < T(0)) ? 1U : 0U;
   }
 
-  const uint32_t n = m_layout.m_regionPrograms.at(this->base(), 0U);
+  const uint32_t n = this->numRegionOperands();
 
   // The last region whose solid, with all its masks, holds the point: later regions are on top.
   for (uint32_t k = n; k > 0U; k--) {
@@ -3448,7 +3480,7 @@ EBGEOMETRY_HOST_DEVICE
 inline T
 Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
 {
-  const uint32_t n = (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(this->base(), 0U) : 0U;
+  const uint32_t n = this->numRegionOperands();
 
   EBGEOMETRY_EXPECT(a_region <= Math::max(n, 1U));
 
@@ -3542,7 +3574,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 {
   const void* base = this->base();
 
-  const uint32_t n = (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(base, 0U) : 0U;
+  const uint32_t n = this->numRegionOperands();
 
   // A step past a crossing, to name the region beyond it: the march's tolerance at the object's scale.
   const BoundingVolumes::AABBT<T> box = m_layout.m_boundingVolume;
@@ -3701,7 +3733,7 @@ EBGEOMETRY_HOST_DEVICE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
 {
-  const uint32_t n = (m_layout.m_regionPrograms.size() > 0) ? m_layout.m_regionPrograms.at(this->base(), 0U) : 0U;
+  const uint32_t n = this->numRegionOperands();
 
   EBGEOMETRY_EXPECT(a_region <= Math::max(n, 1U));
 

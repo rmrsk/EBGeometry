@@ -909,10 +909,11 @@ public:
     PODVector<uint32_t> m_partSurfaceLabels;
 
     /**
-     * @brief The regions (TapeFeature::Regions): the number of regions n (the background not counted), then each
-     * region's record's offset, then the records: the number m of masks above the region, their numbers (outermost
-     * first), and its m + 1 programs, the solid with every mask and then with the outermost 1, 2, ..., m left out.
-     * Empty without the feature or an Overlay.
+     * @brief The regions (TapeFeature::Regions): the number n of the Overlays' operands (0 without an Overlay), then
+     * each operand's record's offset, then each region's material (the background first; two for an object with no
+     * Overlay), then the records: the number m of masks above the region, their numbers (outermost first), and its
+     * m + 1 programs, the solid with every mask and then with the outermost 1, 2, ..., m left out. Empty without the
+     * feature.
      */
     PODVector<uint32_t> m_regionPrograms;
 
@@ -1206,6 +1207,17 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getNumRegions() const noexcept;
+
+  /**
+   * @brief A region's material (TapeFeature::Regions), as ExprIndex numbers the material labels. Callable on a device.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   * @param[in] a_region Region.
+   * @return The material, or none.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline MaterialLabelId
+  getMaterialOf(uint32_t a_region) const noexcept;
 
   /**
    * @brief The region a point is in (TapeFeature::Regions): the last operand of the Overlays whose solid holds it
@@ -1905,6 +1917,15 @@ private:
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
    * @return The value.
    */
+  /**
+   * @brief How many operands the Overlays have (TapeFeature::Regions): the regions but the background; 0 without
+   * an Overlay.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  numRegionOperands() const noexcept;
+
   /**
    * @brief The leaf a tagged value comes from.
    * @param[in] a_value The value.

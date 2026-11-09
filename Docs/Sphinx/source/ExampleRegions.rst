@@ -62,6 +62,9 @@ jacket, while the core's surface is that solver's conductor boundary.
 Looking at the regions
 ----------------------
 
-``RegionView`` shows a tape's regions as one shape whose parts are the regions, so the viewer colors by region
-(coloring by primitive) and names the region a click picked. V shows one region at a time, Shift + V hides the
-picked one, and Ctrl + V shows them all.
+``RegionView`` shows a tape's regions as a shape whose surfaces are the regions' own, the internal ones between
+two regions included: along a camera ray, its crossings are the changes of region that touch a visible region,
+found exactly (``firstRegionChange()``). Seeing through the jacket (click it, then T) shows the core's surface
+inside it; hiding a region removes it, shadows included. Each surface is colored by the view's coloring: by
+region, material, surface label, surface or part (``withColoring()``, or K in the viewer). V shows one region at a
+time, Shift + V hides the picked one, and Ctrl + V shows them all.

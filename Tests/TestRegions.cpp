@@ -337,7 +337,7 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
   CHECK(one.signedDistance(Vec3::zeros(), 0U) == -one.signedDistance(Vec3::zeros()));
 }
 
-TEMPLATE_TEST_CASE("RegionView: the visible regions as one shape, named by the region a surface point belongs to",
+TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones and hidden regions included",
                    "[Overlay][RegionView]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -345,10 +345,8 @@ TEMPLATE_TEST_CASE("RegionView: the visible regions as one shape, named by the r
   using Vec3 = Vec3T<T>;
   using Tape = Tape<T, TapeFeature::Regions>;
 
-  constexpr uint32_t None = LeafRef<T>::None;
-
-  // The cable (concentric spheres), its half x > 0 cut away along 0 < z < 1: the cut face at x = 0 is the
-  // jacket's and the core's.
+  // The cable (concentric spheres: jacket radius 1, region 1, PTFE; core radius 0.5, region 2, copper; air 0), its
+  // half x > 0 cut away along 0 < z < 1.
   const Expr<T> cut = Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(0)), Vec3(T(2), T(2), T(1))));
 
   Pool pool(hostMemoryResource());
@@ -361,22 +359,59 @@ TEMPLATE_TEST_CASE("RegionView: the visible regions as one shape, named by the r
   CHECK(all.isVisible(1));
   CHECK(all.isVisible(2));
 
-  for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
-    CHECK(all.signedDistance(p) == Math::min(tape.signedDistance(p, 1), tape.signedDistance(p, 2)));
-  }
+  const RayOptions<T> options;
 
-  // On the cut face, inside the core's radius (0.5), the surface is the core's; outside it, the jacket's.
-  CHECK(all.closestLeaf(Vec3(T(0), T(0.1), T(0.2))).m_leaf == 2U);
-  CHECK(all.closestLeaf(Vec3(T(0), T(0.8), T(0.5))).m_leaf == 1U);
+  // From the cut side: the core's and the jacket's cut faces, outward normals facing the ray.
+  const RayT<T> intoCore{Vec3(T(1.5), T(0.1), T(0.2)), Vec3(T(-1), T(0), T(0))};
+  const RayT<T> intoJacket{Vec3(T(1.5), T(0.8), T(0.5)), Vec3(T(-1), T(0), T(0))};
 
-  // The core alone: its value is the core's function; the jacket hidden is named nowhere.
+  const HitT<T> coreFace   = all.firstHit(intoCore, T(0), T(5), options);
+  const HitT<T> jacketFace = all.firstHit(intoJacket, T(0), T(5), options);
+
+  REQUIRE(coreFace.hit());
+  REQUIRE(jacketFace.hit());
+  CHECK(coreFace.m_primitive == 2U);
+  CHECK(jacketFace.m_primitive == 1U);
+  CHECK_THAT(coreFace.m_t, withinAbsT<T>(T(1.5), looseMargin<T>()));
+  CHECK(coreFace.m_entering);
+  CHECK(dot(coreFace.m_normal, intoCore.m_direction) < T(0));
+
+  // Along x at z = -0.4: the jacket, then, seeing on from inside it, the core's surface inside it.
+  const RayT<T> along{Vec3(T(-2), T(0), T(-0.4)), Vec3(T(1), T(0), T(0))};
+
+  const HitT<T> outer = all.firstHit(along, T(0), T(5), options);
+  const HitT<T> inner = all.firstHit(along, outer.m_t, T(5), options);
+
+  CHECK_THAT(outer.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.84)), looseMargin<T>()));
+  CHECK(outer.m_primitive == 1U);
+  CHECK_THAT(inner.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
+  CHECK(inner.m_primitive == 2U);
+  CHECK(dot(inner.m_normal, along.m_direction) < T(0));
+
+  // The core alone: the jacket is seen through, and a ray that meets only hidden regions misses.
   const RegionView<Tape> core = all.withOnly(2);
 
   CHECK(!core.isVisible(1));
   CHECK(core.isVisible(2));
-  CHECK(core.signedDistance(Vec3(T(0.7), T(0), T(-0.5))) == tape.signedDistance(Vec3(T(0.7), T(0), T(-0.5)), 2));
-  CHECK(core.closestLeaf(Vec3(T(-0.3), T(0), T(-0.4))).m_leaf == 2U);
-  CHECK(core.closestLeaf(Vec3(T(-1), T(0), T(-0.5))).m_leaf == None);
+  CHECK_THAT(core.firstHit(along, T(0), T(5), options).m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
+  CHECK(!core.firstHit(RayT<T>{Vec3(T(-2), T(0.8), T(-0.4)), Vec3(T(1), T(0), T(0))}, T(0), T(5), options).hit());
+
+  // Colored by material: the materials' numbers (air 0, PTFE 1, copper 2).
+  const RegionView<Tape> byMaterial = all.withColoring(RegionColoring::Material);
+
+  CHECK(byMaterial.firstHit(intoCore, T(0), T(5), options).m_primitive == 2U);
+  CHECK(byMaterial.firstHit(intoJacket, T(0), T(5), options).m_primitive == 1U);
+
+  // The value: the visible regions' phase function; a cut face's point names its region.
+  Phases visible;
+
+  (void)visible.addPhase({1, 2});
+
+  for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
+    CHECK(all.signedDistance(p) == tape.signedDistance(p, visible, 0U));
+  }
+
+  CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);
 
   CHECK(all.withVisible(1, false).isVisible(2));
   CHECK(!all.withVisible(1, false).isVisible(1));

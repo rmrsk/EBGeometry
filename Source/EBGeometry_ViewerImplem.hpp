@@ -179,11 +179,13 @@ keys(const bool a_device, const bool a_regions = false)
 
   // A shape whose regions can be shown and hidden (see RegionView) gets a group of its own, before the window's.
   if (a_regions) {
-    groups.insert(groups.end() - 1,
-                  KeyGroup{"Regions",
-                           {{"V", "Show one region at a time, in turn, then all"},
-                            {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
-                            {"Ctrl + V", "Show every region"}}});
+    groups.insert(
+      groups.end() - 1,
+      KeyGroup{"Regions",
+               {{"K", "Color the regions by region, material, surface label, surface or part (P colors by it)"},
+                {"V", "Show one region at a time, in turn, then all"},
+                {"Shift + V", "Hide the picked region (Ctrl + V shows them all again)"},
+                {"Ctrl + V", "Show every region"}}});
   }
 
   return groups;
@@ -949,8 +951,11 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
         list += (list.empty() ? "" : ", ") + std::to_string(k);
       }
 
+      const char* colorings[] = {"region", "material", "surface label", "surface", "part"};
+
       states.insert(states.end() - 1,
-                    {hiddenRegions.empty()
+                    {std::string("Colored by ") + colorings[static_cast<int>(shape.getColoring())],
+                     hiddenRegions.empty()
                        ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
                        : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions});
     }
@@ -1587,6 +1592,21 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
           break;
         }
+        case SDLK_k: {
+          if constexpr (hasRegionVisibility<S>) {
+            const auto next = static_cast<RegionColoring>((static_cast<int>(shape.getColoring()) + 1) % 5);
+
+            shape       = shape.withColoring(next);
+            deviceShape = deviceShape.withColoring(next);
+
+            settings.m_colorBy = ColorBy::Primitive;
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
         case SDLK_v: {
           if constexpr (hasRegionVisibility<S>) {
             if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
@@ -1604,7 +1624,8 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
               shape      = (soloRegion == 0U) ? shape.withAllVisible() : shape.withOnly(soloRegion);
             }
 
-            deviceShape = (a_deviceShape != nullptr) ? deviceShape.withAllVisible() : shape;
+            deviceShape =
+              (a_deviceShape != nullptr) ? deviceShape.withAllVisible().withColoring(shape.getColoring()) : shape;
 
             if (a_deviceShape != nullptr) {
               for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
