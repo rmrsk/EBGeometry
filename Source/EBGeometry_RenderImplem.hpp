@@ -994,9 +994,33 @@ private:
   }
 
   /**
+   * @brief Whether a ray meets a surface that is not seen through (Settings::m_hidden) in an interval.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMax End of the interval.
+   * @return True if it does.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  blocked(const RayT<T>& a_ray, const T a_tMax) const noexcept
+  {
+    HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
+
+    // A surface seen through casts no shadow: the ray goes on past it, as a camera ray does.
+    if (m_settings.hidesAny()) {
+      for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
+        hit = this->trace(a_ray, hit.m_t + T(4) * m_eps, a_tMax);
+      }
+
+      return hit.hit() && !m_settings.hides(hit.m_primitive);
+    }
+
+    return hit.hit();
+  }
+
+  /**
    * @brief How much light reaches a point from the light's direction: 0 in shadow, 1 in light.
    * @details One ray towards the light (firstHit()); the light moving a little between a pixel's rays
-   * softens the edges.
+   * softens the edges. A surface seen through (Settings::m_hidden) casts no shadow.
    * @param[in] a_point  Point.
    * @param[in] a_normal Unit normal there.
    * @return The fraction of light.
@@ -1006,9 +1030,8 @@ private:
   shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
-    const HitT<T>  hit    = this->trace(RayT<T>{origin, m_light}, T(0), T(2) * m_scale);
 
-    return hit.hit() ? T(0) : T(1);
+    return this->blocked(RayT<T>{origin, m_light}, T(2) * m_scale) ? T(0) : T(1);
   }
 
   /**
@@ -1027,16 +1050,16 @@ private:
     const Vec3T<T> t2     = cross(a_normal, t1);
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
 
-    int blocked = 0;
+    int hits = 0;
 
     for (int k = 0; k < 4; k++) {
       const T        a = T(0.5) * pi<T> * T(k);
       const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
 
-      blocked += this->trace(RayT<T>{origin, r}, T(0), T(0.07) * m_scale).hit() ? 1 : 0;
+      hits += this->blocked(RayT<T>{origin, r}, T(0.07) * m_scale) ? 1 : 0;
     }
 
-    return T(1) - T(0.2) * T(blocked);
+    return T(1) - T(0.2) * T(hits);
   }
 
   /**

@@ -503,8 +503,8 @@ struct Settings
 
   /**
    * @brief Primitives to see through (see HitT::m_primitive): a camera ray that meets one goes on as if it were
-   * not there, and the surface behind it is shaded as one seen from outside. The geometry is unchanged: shadows,
-   * occlusion and the solid's inside are those of the whole shape. NoPrimitive marks an unused entry.
+   * not there, and the surface behind it is shaded as one seen from outside; it casts no shadow and no ambient
+   * occlusion either. The solid's inside is the whole shape's. NoPrimitive marks an unused entry.
    */
   Array<uint32_t, HiddenPrimitives> m_hidden = noneHidden();
 
