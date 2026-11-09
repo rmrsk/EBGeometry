@@ -87,8 +87,8 @@ struct RegionQuery
 
     const SurfaceRef<T> surface = m_tape.closestSurface(a_point, 1U);
 
-    answer.m_minus   = surface.m_insideRegion;
-    answer.m_plus    = surface.m_outsideRegion;
+    answer.m_minus   = surface.m_ownerRegion;
+    answer.m_plus    = surface.m_neighborRegion;
     answer.m_surface = surface.m_surface;
     answer.m_group   = m_domain.m_scheme.surfaceGroupOf(surface);
 
@@ -103,8 +103,8 @@ struct RegionQuery
     const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
 
     answer.m_t    = change.m_hit.hit() ? change.m_hit.m_t : T(-1);
-    answer.m_from = change.m_surface.m_insideRegion;
-    answer.m_to   = change.m_surface.m_outsideRegion;
+    answer.m_from = change.m_surface.m_ownerRegion;
+    answer.m_to   = change.m_surface.m_neighborRegion;
 
     return answer;
   }
@@ -536,12 +536,12 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   const SurfaceRef<T> wallPiece = all.pieceAt(inner.m_point, inner.m_normal);
   const SurfaceRef<T> skinPiece = all.pieceAt(outer.m_point, outer.m_normal);
 
-  CHECK(cutPiece.m_insideRegion == 2U);
-  CHECK(cutPiece.m_outsideRegion == 0U);
-  CHECK(wallPiece.m_insideRegion == 2U);
-  CHECK(wallPiece.m_outsideRegion == 1U);
-  CHECK(skinPiece.m_insideRegion == 1U);
-  CHECK(skinPiece.m_outsideRegion == 0U);
+  CHECK(cutPiece.m_ownerRegion == 2U);
+  CHECK(cutPiece.m_neighborRegion == 0U);
+  CHECK(wallPiece.m_ownerRegion == 2U);
+  CHECK(wallPiece.m_neighborRegion == 1U);
+  CHECK(skinPiece.m_ownerRegion == 1U);
+  CHECK(skinPiece.m_neighborRegion == 0U);
   CHECK(wallPiece.m_surface != cutPiece.m_surface);
   CHECK(SurfaceSelector::piece(wallPiece).matches(wallPiece));
   CHECK(!SurfaceSelector::piece(wallPiece).matches(skinPiece));
@@ -549,8 +549,8 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   // With the core hidden, its wall seen from the jacket is the jacket's bore: the jacket is the region seen.
   const SurfaceRef<T> borePiece = all.withVisible(2, false).pieceAt(inner.m_point, inner.m_normal);
 
-  CHECK(borePiece.m_insideRegion == 1U);
-  CHECK(borePiece.m_outsideRegion == 2U);
+  CHECK(borePiece.m_ownerRegion == 1U);
+  CHECK(borePiece.m_neighborRegion == 2U);
   CHECK(all.pieceAt(inner.m_point, Vec3::zeros()).m_surface == SurfaceRef<T>::None);
 
   CHECK(all.withVisible(1, false).isVisible(2));
@@ -634,28 +634,28 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
   const SurfaceRef<T> jacketOuter = cableTape.closestSurface(outer, 1U);
 
   CHECK(jacketOuter.m_leaf == 0U);
-  CHECK(jacketOuter.m_insideRegion == 1U);
-  CHECK(jacketOuter.m_outsideRegion == 0U);
+  CHECK(jacketOuter.m_ownerRegion == 1U);
+  CHECK(jacketOuter.m_neighborRegion == 0U);
 
   // The inner sphere, from the jacket: an interface with the core, on the core's surface.
   const SurfaceRef<T> jacketInner = cableTape.closestSurface(inner, 1U);
 
   CHECK(jacketInner.m_leaf == 1U);
-  CHECK(jacketInner.m_insideRegion == 1U);
-  CHECK(jacketInner.m_outsideRegion == 2U);
+  CHECK(jacketInner.m_ownerRegion == 1U);
+  CHECK(jacketInner.m_neighborRegion == 2U);
 
   // The same interface from the core, and the outer sphere from the air.
   const SurfaceRef<T> core = cableTape.closestSurface(inner, 2U);
 
   CHECK(core.m_leaf == 1U);
-  CHECK(core.m_insideRegion == 2U);
-  CHECK(core.m_outsideRegion == 1U);
+  CHECK(core.m_ownerRegion == 2U);
+  CHECK(core.m_neighborRegion == 1U);
 
   const SurfaceRef<T> air = cableTape.closestSurface(outer, 0U);
 
   CHECK(air.m_leaf == 0U);
-  CHECK(air.m_insideRegion == 0U);
-  CHECK(air.m_outsideRegion == 1U);
+  CHECK(air.m_ownerRegion == 0U);
+  CHECK(air.m_neighborRegion == 1U);
 
   // A triple point: a sphere centered on another's surface faces the air on its outer half and the other sphere on
   // its inner half, so its sides belong to the point.
@@ -664,8 +664,8 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
 
   const Tape<T> triple(pool, Overlay(big, small));
 
-  CHECK(triple.closestSurface(Vec3(T(1.3), T(0), T(0)), 2U).m_outsideRegion == 0U);
-  CHECK(triple.closestSurface(Vec3(T(0.7), T(0), T(0)), 2U).m_outsideRegion == 1U);
+  CHECK(triple.closestSurface(Vec3(T(1.3), T(0), T(0)), 2U).m_neighborRegion == 0U);
+  CHECK(triple.closestSurface(Vec3(T(0.7), T(0), T(0)), 2U).m_neighborRegion == 1U);
 
   // A mask's cut: the slab's face where it cuts the core is the slab's surface, with its label, the core inside
   // and the air across.
@@ -679,14 +679,14 @@ TEMPLATE_TEST_CASE("Tape: closestSurface(p, region) names a region's surface and
 
   CHECK(face.m_leaf == 2U);
   CHECK(face.m_surfaceLabel == index.findSurfaceLabel("cut"));
-  CHECK(face.m_insideRegion == 2U);
-  CHECK(face.m_outsideRegion == 0U);
+  CHECK(face.m_ownerRegion == 2U);
+  CHECK(face.m_neighborRegion == 0U);
 
   // An object with no Overlay: its surface, between it and the background.
   const Tape<T> one(pool, toExpr(big));
 
-  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_insideRegion == 1U);
-  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_outsideRegion == 0U);
+  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_ownerRegion == 1U);
+  CHECK(one.closestSurface(Vec3(T(1), T(0), T(0)), 1U).m_neighborRegion == 0U);
   CHECK(one.getNumRegions() == 2U);
   CHECK(one.region(Vec3::zeros()) == 1U);
   CHECK(one.region(Vec3(T(5), T(0), T(0))) == 0U);
@@ -777,8 +777,8 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
   // The subdomain's surface: from its region whose function is smallest.
   const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostatics, 1U);
 
-  CHECK(jacket.m_insideRegion == 1U);
-  CHECK(jacket.m_outsideRegion == 2U);
+  CHECK(jacket.m_ownerRegion == 1U);
+  CHECK(jacket.m_neighborRegion == 2U);
   CHECK(electrostatics.role(jacket) == SurfaceRole::Boundary);
 
   REQUIRE(abortsWith([] { (void)Subdomains().addSubdomain({}); }, "Subdomains: a subdomain needs at least one region"));
@@ -829,8 +829,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
       REQUIRE(change.m_hit.hit());
       CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(ts[i], looseMargin<T>()));
-      CHECK(change.m_surface.m_insideRegion == leftRegions[i]);
-      CHECK(change.m_surface.m_outsideRegion == enteredRegions[i]);
+      CHECK(change.m_surface.m_ownerRegion == leftRegions[i]);
+      CHECK(change.m_surface.m_neighborRegion == enteredRegions[i]);
       CHECK(change.m_surface.m_leaf == leaves[i]);
 
       // The normal points from the region left into the region entered: along the ray.
@@ -851,8 +851,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
     const SurfaceHitT<T> c = tape.firstRegionChange(ray, b.m_hit.m_t, T(5));
 
     CHECK_THAT(c.m_hit.m_t, withinAbsT<T>(T(2), looseMargin<T>()));
-    CHECK(c.m_surface.m_insideRegion == 2U);
-    CHECK(c.m_surface.m_outsideRegion == 0U);
+    CHECK(c.m_surface.m_ownerRegion == 2U);
+    CHECK(c.m_surface.m_neighborRegion == 0U);
     CHECK(c.m_surface.m_surfaceLabel == index.findSurfaceLabel("cut"));
     CHECK(!tape.firstRegionChange(ray, c.m_hit.m_t, T(5)).m_hit.hit());
   }
@@ -863,8 +863,8 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
     REQUIRE(fromCore.m_hit.hit());
     CHECK_THAT(fromCore.m_hit.m_t, withinAbsT<T>(T(0.5), looseMargin<T>()));
-    CHECK(fromCore.m_surface.m_insideRegion == 2U);
-    CHECK(fromCore.m_surface.m_outsideRegion == 1U);
+    CHECK(fromCore.m_surface.m_ownerRegion == 2U);
+    CHECK(fromCore.m_surface.m_neighborRegion == 1U);
   }
 
   // Rendering: the first entry into the visible regions, the others seen through.
@@ -885,14 +885,14 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
 
     CHECK_THAT(jacket.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.84)), looseMargin<T>()));
     CHECK_THAT(core.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
-    CHECK(core.m_surface.m_outsideRegion == 2U);
-    CHECK(solid.m_surface.m_outsideRegion == 1U);
+    CHECK(core.m_surface.m_neighborRegion == 2U);
+    CHECK(solid.m_surface.m_neighborRegion == 1U);
 
     // Leaving the solid: the contact between the jacket and the core is passed through.
     const SurfaceHitT<T> leave = tape.firstSurface(ray, solid.m_hit.m_t, T(5), both, 0U);
 
     CHECK_THAT(leave.m_hit.m_t, withinAbsT<T>(T(2) + std::sqrt(T(0.84)), looseMargin<T>()));
-    CHECK(leave.m_surface.m_outsideRegion == 0U);
+    CHECK(leave.m_surface.m_neighborRegion == 0U);
   }
 }
 
@@ -1037,8 +1037,8 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the air
   const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
 
-  CHECK(outer.m_insideMaterial == index.findMaterialLabel("PTFE"));
-  CHECK(outer.m_outsideMaterial == index.findMaterialLabel("air"));
+  CHECK(outer.m_ownerMaterial == index.findMaterialLabel("PTFE"));
+  CHECK(outer.m_neighborMaterial == index.findMaterialLabel("air"));
 
   // Electrostatics: every surface of the conductor, inside the jacket included (dirichlet); the jacket's outside
   // (a jump).
@@ -1136,13 +1136,13 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
 
   SurfaceRef<double> wall;
 
-  wall.m_insideRegion  = 2;
-  wall.m_outsideRegion = 1;
+  wall.m_ownerRegion    = 2;
+  wall.m_neighborRegion = 1;
 
   SurfaceRef<double> skin;
 
-  skin.m_insideRegion  = 1;
-  skin.m_outsideRegion = 0;
+  skin.m_ownerRegion    = 1;
+  skin.m_neighborRegion = 0;
 
   CHECK(ordered.surfaceGroupOf(wall) == core);
   CHECK(ordered.surfaceGroupOf(skin) == other);
@@ -1224,17 +1224,17 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
     const SurfaceRef<T>& s = piece.m_surface;
 
     // The later region inside, and the normal pointing out of it: the point a little along it is outside.
-    CHECK(s.m_insideRegion > s.m_outsideRegion);
-    CHECK(tape.region(piece.m_point + T(1e-3) * piece.m_normal) == s.m_outsideRegion);
-    CHECK(tape.region(piece.m_point - T(1e-3) * piece.m_normal) == s.m_insideRegion);
+    CHECK(s.m_ownerRegion > s.m_neighborRegion);
+    CHECK(tape.region(piece.m_point + T(1e-3) * piece.m_normal) == s.m_neighborRegion);
+    CHECK(tape.region(piece.m_point - T(1e-3) * piece.m_normal) == s.m_ownerRegion);
     CHECK(piece.m_crossings > 0U);
 
     // The box's pieces cross two of its faces; the spheres have one part.
     CHECK(piece.m_parts.size() == ((s.m_surface == 2U) ? 2U : 1U));
 
-    coreWall += (s.m_insideRegion == 2U && s.m_outsideRegion == 1U) ? 1U : 0U;
-    onCore += (s.m_insideRegion == 2U) ? 1U : 0U;
-    onAir += (s.m_outsideRegion == 0U) ? 1U : 0U;
+    coreWall += (s.m_ownerRegion == 2U && s.m_neighborRegion == 1U) ? 1U : 0U;
+    onCore += (s.m_ownerRegion == 2U) ? 1U : 0U;
+    onAir += (s.m_neighborRegion == 0U) ? 1U : 0U;
   }
 
   CHECK(coreWall == 1U);
@@ -1258,16 +1258,16 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
     const SurfaceRef<T>& s = piece.m_surface;
 
     CHECK(std::any_of(possible.begin(), possible.end(), [&s](const PossiblePiece& a_possible) {
-      return a_possible.m_surface == s.m_surface && a_possible.m_insideRegion == s.m_insideRegion &&
-             a_possible.m_outsideRegion == s.m_outsideRegion;
+      return a_possible.m_surface == s.m_surface && a_possible.m_ownerRegion == s.m_ownerRegion &&
+             a_possible.m_neighborRegion == s.m_neighborRegion;
     }));
   }
 
   // How a scheme covers them: the core's surfaces wholly; one face of the box against the jacket partly.
   const auto find = [&possible](const uint32_t a_surface, const uint32_t a_inside, const uint32_t a_outside) {
     return *std::find_if(possible.begin(), possible.end(), [&](const PossiblePiece& a_possible) {
-      return a_possible.m_surface == a_surface && a_possible.m_insideRegion == a_inside &&
-             a_possible.m_outsideRegion == a_outside;
+      return a_possible.m_surface == a_surface && a_possible.m_ownerRegion == a_inside &&
+             a_possible.m_neighborRegion == a_outside;
     });
   };
 
@@ -1280,10 +1280,10 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
 
   SurfaceRef<T> boxOnJacket;
 
-  boxOnJacket.m_surface       = 2;
-  boxOnJacket.m_part          = 0;
-  boxOnJacket.m_insideRegion  = 1;
-  boxOnJacket.m_outsideRegion = 0;
+  boxOnJacket.m_surface        = 2;
+  boxOnJacket.m_part           = 0;
+  boxOnJacket.m_ownerRegion    = 1;
+  boxOnJacket.m_neighborRegion = 0;
 
   scheme.add(face, SurfaceSelector::piece(boxOnJacket).withPart(0));
 

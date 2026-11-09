@@ -95,8 +95,8 @@ struct SurfaceSelector
     SurfaceSelector selector;
 
     selector.m_surface = a_surface.m_surface;
-    selector.m_regionA = a_surface.m_insideRegion;
-    selector.m_regionB = a_surface.m_outsideRegion;
+    selector.m_regionA = a_surface.m_ownerRegion;
+    selector.m_regionB = a_surface.m_neighborRegion;
 
     return selector;
   }
@@ -247,8 +247,8 @@ struct SurfaceSelector
 
     return is(m_surface, a_surface.m_surface) && is(m_part, a_surface.m_part) &&
            is(m_label, a_surface.m_surfaceLabel.value()) &&
-           sides(m_regionA, m_regionB, a_surface.m_insideRegion, a_surface.m_outsideRegion) &&
-           sides(m_materialA, m_materialB, a_surface.m_insideMaterial.value(), a_surface.m_outsideMaterial.value());
+           sides(m_regionA, m_regionB, a_surface.m_ownerRegion, a_surface.m_neighborRegion) &&
+           sides(m_materialA, m_materialB, a_surface.m_ownerMaterial.value(), a_surface.m_neighborMaterial.value());
   }
 };
 

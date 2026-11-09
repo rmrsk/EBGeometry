@@ -111,7 +111,7 @@ main(int argc, char* argv[])
   for (const T x : {T(1), T(0.4)}) {
     const EBGeometry::SurfaceRef<T> s = tape.closestSurface(Vec3(x, T(0), T(1.5)), 1);
 
-    std::cout << "  x = " << x << ": between regions " << s.m_insideRegion << " and " << s.m_outsideRegion
+    std::cout << "  x = " << x << ": between regions " << s.m_ownerRegion << " and " << s.m_neighborRegion
               << "; to flow " << roleName(cfd.role(s)) << ", to electrostatics " << roleName(electrostatics.role(s))
               << '\n';
   }

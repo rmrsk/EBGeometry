@@ -225,7 +225,7 @@ are colored by (material, region, surface group, surface label, surface, part, i
 and a swatch beside each region or surface group shows its color; colors given to names
 (``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
 the palette's. Below, it shows the picked piece (its surface,
-part, the regions inside and outside, and its surface group) with the ways to add it to the current surface group,
+part, the regions on its two sides, and its surface group) with the ways to add it to the current surface group,
 each saying how many of the object's pieces it takes in: this piece only, all of its surface, all surfaces of its
 region, or everything between its two regions; and a button to remove it; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
 either side lights; the background is listed and highlighted so, never drawn); and the

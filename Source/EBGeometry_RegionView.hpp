@@ -171,8 +171,8 @@ public:
         return change.m_hit;
       }
 
-      const uint32_t from = change.m_surface.m_insideRegion;
-      const uint32_t to   = change.m_surface.m_outsideRegion;
+      const uint32_t from = change.m_surface.m_ownerRegion;
+      const uint32_t to   = change.m_surface.m_neighborRegion;
 
       // The surface crossed lies on the later region's operand (an interface is on the surface of the region on
       // top), so it is shown as that region's, whichever way the ray goes; when that region is hidden, seen through or
@@ -246,8 +246,8 @@ public:
 
   /**
    * @brief The piece of surface at a point a ray met (firstHit()): the surface, its part and label, and the regions on
-   * its two sides there, the region whose surface was seen inside (SurfaceRef::m_insideRegion) and the one across
-   * outside, with their materials; what a click picks, for a scheme's selector (SurfaceSelector::piece()).
+   * its two sides there, the region whose surface was seen the owner (SurfaceRef::m_ownerRegion) and the one across
+   * the neighbor, with their materials; what a click picks, for a scheme's selector (SurfaceSelector::piece()).
    * @details The region seen is the one just behind the surface (against the normal, which points out of it) and the
    * one across just in front, a small step away; the surface and its sides then come from Tape::closestSurface(p,
    * region).
@@ -534,7 +534,7 @@ private:
   {
     switch (m_settings.m_coloring) {
     case RegionColoring::Interface: {
-      return RegionSettings::interfaceKey(a_surface.m_insideRegion, a_surface.m_outsideRegion);
+      return RegionSettings::interfaceKey(a_surface.m_ownerRegion, a_surface.m_neighborRegion);
     }
     case RegionColoring::SurfaceGroup: {
       return m_settings.m_scheme.surfaceGroupOf(a_surface);

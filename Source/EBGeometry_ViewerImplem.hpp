@@ -697,8 +697,8 @@ run(const S&           a_shape,
     for (std::size_t f = 0; f < pieces.size(); f++) {
       const SurfaceRef<T>& s = pieces[f].m_surface;
 
-      if (s.m_surface == possible[c].m_surface && s.m_insideRegion == possible[c].m_insideRegion &&
-          s.m_outsideRegion == possible[c].m_outsideRegion) {
+      if (s.m_surface == possible[c].m_surface && s.m_ownerRegion == possible[c].m_ownerRegion &&
+          s.m_neighborRegion == possible[c].m_neighborRegion) {
         foundOf[c] = f;
         listed[f]  = true;
       }
@@ -709,7 +709,7 @@ run(const S&           a_shape,
     if (!listed[f]) {
       const SurfaceRef<T>& s = pieces[f].m_surface;
 
-      possible.push_back(PossiblePiece{s.m_surface, s.m_insideRegion, s.m_outsideRegion});
+      possible.push_back(PossiblePiece{s.m_surface, s.m_ownerRegion, s.m_neighborRegion});
       foundOf.push_back(f);
     }
   }
@@ -976,10 +976,10 @@ run(const S&           a_shape,
       return SurfaceSelector::surface(a_piece.m_surface);
     }
     case PanelAction::AddRegion: {
-      return SurfaceSelector::region(a_piece.m_insideRegion);
+      return SurfaceSelector::region(a_piece.m_ownerRegion);
     }
     case PanelAction::AddInterface: {
-      return SurfaceSelector::interface(a_piece.m_insideRegion, a_piece.m_outsideRegion);
+      return SurfaceSelector::interface(a_piece.m_ownerRegion, a_piece.m_neighborRegion);
     }
     case PanelAction::AddPart: {
       return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
@@ -998,7 +998,7 @@ run(const S&           a_shape,
   const auto relevant = [&](const std::size_t a_piece) {
     return names.getNumDomains() == 0U ||
            names.getDomain(names.getActiveDomain())
-             .touches(possible[a_piece].m_insideRegion, possible[a_piece].m_outsideRegion);
+             .touches(possible[a_piece].m_ownerRegion, possible[a_piece].m_neighborRegion);
   };
 
   // The drawn regions (1 to 63) of a subdomain of the active domain, a bit each; of all its subdomains (None).
@@ -1635,10 +1635,10 @@ run(const S&           a_shape,
       const auto surface = [&](const uint32_t a_surface) { return names.surface(a_surface, details); };
       const auto group   = [&](const uint32_t a_group) { return names.surfaceGroup(a_group, details); };
 
-      // A piece in words: its surface (and part, with details) between the regions inside and outside.
+      // A piece in words: its surface (and part, with details) between its owner and its neighbor.
       const auto pieceWords = [&](const SurfaceRef<T>& a_piece) {
         return surface(a_piece.m_surface) + (details ? ", part " + std::to_string(a_piece.m_part) : std::string()) +
-               ", between " + region(a_piece.m_insideRegion) + " and " + region(a_piece.m_outsideRegion);
+               ", between " + region(a_piece.m_ownerRegion) + " and " + region(a_piece.m_neighborRegion);
       };
 
       // A selector in words: what surfaces, then where.
@@ -1893,9 +1893,9 @@ run(const S&           a_shape,
         const std::pair<PanelAction, std::string> ways[] = {
           {PanelAction::AddPiece, "This piece"},
           {PanelAction::AddSurface, "All of " + surface(piece.m_surface)},
-          {PanelAction::AddRegion, "All surfaces of " + region(piece.m_insideRegion)},
+          {PanelAction::AddRegion, "All surfaces of " + region(piece.m_ownerRegion)},
           {PanelAction::AddInterface,
-           "Everything between " + region(piece.m_insideRegion) + " and " + region(piece.m_outsideRegion)}};
+           "Everything between " + region(piece.m_ownerRegion) + " and " + region(piece.m_neighborRegion)}};
 
         for (const auto& [action, words] : ways) {
           line("    ");
@@ -2051,14 +2051,14 @@ run(const S&           a_shape,
 
           SurfaceRef<T> s;
 
-          s.m_surface       = possible[c].m_surface;
-          s.m_insideRegion  = possible[c].m_insideRegion;
-          s.m_outsideRegion = possible[c].m_outsideRegion;
+          s.m_surface        = possible[c].m_surface;
+          s.m_ownerRegion    = possible[c].m_ownerRegion;
+          s.m_neighborRegion = possible[c].m_neighborRegion;
 
           const PieceCoverage& in   = covered[c];
           const bool           seen = foundOf[c] != std::size_t(-1);
           std::string          words =
-            surface(s.m_surface) + ", between " + region(s.m_insideRegion) + " and " + region(s.m_outsideRegion) + ": ";
+            surface(s.m_surface) + ", between " + region(s.m_ownerRegion) + " and " + region(s.m_neighborRegion) + ": ";
 
           words += (in.m_coverage == Coverage::None)     ? std::string("none")
                    : (in.m_coverage == Coverage::Partly) ? std::string("partly")

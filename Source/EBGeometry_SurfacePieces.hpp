@@ -36,7 +36,7 @@ struct SurfacePiece
 {
   /**
    * @brief The piece where it was first crossed: its surface, part and labels, and its two sides, the later region
-   * (the one on top in the Overlay) inside, the earlier outside; with their materials.
+   * (the one on top in the Overlay) its owner, the earlier its neighbor; with their materials.
    */
   SurfaceRef<T> m_surface;
 
@@ -46,7 +46,7 @@ struct SurfacePiece
   Vec3T<T> m_point = Vec3T<T>::zeros();
 
   /**
-   * @brief The normal there, pointing outside (into m_surface.m_outsideRegion).
+   * @brief The normal there, pointing outside (into m_surface.m_neighborRegion).
    */
   Vec3T<T> m_normal = Vec3T<T>::zeros();
 
@@ -131,18 +131,18 @@ findSurfacePieces(const TapeType& a_tape, const uint32_t a_resolution = 64)
 
           t = change.m_hit.m_t;
 
-          // The piece the same whichever way it was crossed: the later region inside, the normal pointing out of it.
+          // The piece the same whichever way it was crossed: the later region the owner, the normal pointing out of it.
           SurfaceRef<T> surface = change.m_surface;
           Vec3T<T>      normal  = change.m_hit.m_normal;
 
-          if (surface.m_insideRegion < surface.m_outsideRegion) {
-            const uint32_t        region   = surface.m_insideRegion;
-            const MaterialLabelId material = surface.m_insideMaterial;
+          if (surface.m_ownerRegion < surface.m_neighborRegion) {
+            const uint32_t        region   = surface.m_ownerRegion;
+            const MaterialLabelId material = surface.m_ownerMaterial;
 
-            surface.m_insideRegion    = surface.m_outsideRegion;
-            surface.m_insideMaterial  = surface.m_outsideMaterial;
-            surface.m_outsideRegion   = region;
-            surface.m_outsideMaterial = material;
+            surface.m_ownerRegion      = surface.m_neighborRegion;
+            surface.m_ownerMaterial    = surface.m_neighborMaterial;
+            surface.m_neighborRegion   = region;
+            surface.m_neighborMaterial = material;
 
             // The crossing's normal points into the region entered, here the inside.
             normal = -normal;
@@ -153,8 +153,8 @@ findSurfacePieces(const TapeType& a_tape, const uint32_t a_resolution = 64)
           for (SurfacePiece<T>& piece : pieces) {
             const SurfaceRef<T>& other = piece.m_surface;
 
-            if (other.m_surface == surface.m_surface && other.m_insideRegion == surface.m_insideRegion &&
-                other.m_outsideRegion == surface.m_outsideRegion) {
+            if (other.m_surface == surface.m_surface && other.m_ownerRegion == surface.m_ownerRegion &&
+                other.m_neighborRegion == surface.m_neighborRegion) {
               known = &piece;
 
               break;
@@ -360,12 +360,12 @@ struct PossiblePiece
   /**
    * @brief The later region.
    */
-  uint32_t m_insideRegion = 0;
+  uint32_t m_ownerRegion = 0;
 
   /**
    * @brief The earlier region.
    */
-  uint32_t m_outsideRegion = 0;
+  uint32_t m_neighborRegion = 0;
 };
 
 /**
@@ -447,12 +447,12 @@ coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, co
   // The selectors match surface references; their precision does not enter.
   SurfaceRef<double> surface;
 
-  surface.m_surface         = a_piece.m_surface;
-  surface.m_leaf            = a_inventory.getLeaf(a_piece.m_surface);
-  surface.m_insideRegion    = a_piece.m_insideRegion;
-  surface.m_outsideRegion   = a_piece.m_outsideRegion;
-  surface.m_insideMaterial  = a_inventory.getMaterial(a_piece.m_insideRegion);
-  surface.m_outsideMaterial = a_inventory.getMaterial(a_piece.m_outsideRegion);
+  surface.m_surface          = a_piece.m_surface;
+  surface.m_leaf             = a_inventory.getLeaf(a_piece.m_surface);
+  surface.m_ownerRegion      = a_piece.m_ownerRegion;
+  surface.m_neighborRegion   = a_piece.m_neighborRegion;
+  surface.m_ownerMaterial    = a_inventory.getMaterial(a_piece.m_ownerRegion);
+  surface.m_neighborMaterial = a_inventory.getMaterial(a_piece.m_neighborRegion);
 
   const uint32_t checks  = perPart ? parts : 1U;
   uint32_t       covered = 0;

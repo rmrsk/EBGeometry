@@ -65,27 +65,29 @@ struct SurfaceRef
   uint32_t m_part = 0;
 
   /**
-   * @brief Set by a tape's region queries: the region on the inside of the surface at the queried point (for
-   * Tape::closestSurface(p, region), the region asked about; for a crossing along a ray, the region the ray leaves),
-   * or None.
+   * @brief Set by a tape's region queries: the owner, the region the surface is reported from at the queried point
+   * (for Tape::closestSurface(p, region), the region asked about; for a crossing along a ray, the region the ray
+   * leaves; for a piece, the later region, on top in the Overlay), or None. The normal points from the owner to the
+   * neighbor. Which side is in a subdomain is a question for the subdomains (Subdomains::role()), not a property of
+   * the surface.
    */
-  uint32_t m_insideRegion = None;
+  uint32_t m_ownerRegion = None;
 
   /**
-   * @brief Set by a tape's region queries: the region on the outside, across the surface at the queried point (for a
-   * crossing along a ray, the region the ray enters; 0 for the background), or None.
+   * @brief Set by a tape's region queries: the neighbor, the region across the surface from the owner at the queried
+   * point (for a crossing along a ray, the region the ray enters; 0 for the background), or None.
    */
-  uint32_t m_outsideRegion = None;
+  uint32_t m_neighborRegion = None;
 
   /**
-   * @brief Set with the sides: the material of the region on the inside (m_insideRegion, its MaterialLabel()), or none.
+   * @brief Set with the sides: the owner's material (m_ownerRegion's MaterialLabel()), or none.
    */
-  MaterialLabelId m_insideMaterial;
+  MaterialLabelId m_ownerMaterial;
 
   /**
-   * @brief Set with the sides: the material of the region on the outside, across (m_outsideRegion), or none.
+   * @brief Set with the sides: the neighbor's material (m_neighborRegion's), or none.
    */
-  MaterialLabelId m_outsideMaterial;
+  MaterialLabelId m_neighborMaterial;
 
   /**
    * @brief The point in the frame of the deepest shape reached: the primitive, or the container member, whose

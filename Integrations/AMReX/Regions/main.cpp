@@ -69,11 +69,11 @@ public:
     const EBGeometry::SurfaceRef<T> surface = tape().closestSurface(a_point, m_domain.m_subdomains, m_subdomain);
 
     const uint32_t group = m_domain.m_scheme.surfaceGroupOf(surface);
-    const uint32_t mine  = m_domain.m_subdomains.subdomainOf(surface.m_insideRegion);
+    const uint32_t mine  = m_domain.m_subdomains.subdomainOf(surface.m_ownerRegion);
 
     a_condition = (group == EBGeometry::Scheme::None) ? Real(-1) : Real(group);
     a_role      = Real(static_cast<int>(m_domain.m_subdomains.role(surface)));
-    a_across    = Real((mine == m_subdomain) ? surface.m_outsideRegion : surface.m_insideRegion);
+    a_across    = Real((mine == m_subdomain) ? surface.m_neighborRegion : surface.m_ownerRegion);
   }
 
 private:

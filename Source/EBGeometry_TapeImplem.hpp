@@ -3676,10 +3676,10 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
         result.m_hit.m_normal = -first.m_normal;
       }
 
-      result.m_surface.m_insideRegion    = from;
-      result.m_surface.m_outsideRegion   = to;
-      result.m_surface.m_insideMaterial  = this->getMaterialOf(result.m_surface.m_insideRegion);
-      result.m_surface.m_outsideMaterial = this->getMaterialOf(result.m_surface.m_outsideRegion);
+      result.m_surface.m_ownerRegion      = from;
+      result.m_surface.m_neighborRegion   = to;
+      result.m_surface.m_ownerMaterial    = this->getMaterialOf(result.m_surface.m_ownerRegion);
+      result.m_surface.m_neighborMaterial = this->getMaterialOf(result.m_surface.m_neighborRegion);
 
       return result;
     }
@@ -3730,8 +3730,8 @@ Tape<T, UserPrimitives...>::firstSurface(const RayT<T>&       a_ray,
       return change;
     }
 
-    const bool wasIn = a_subdomains.subdomainOf(change.m_surface.m_insideRegion) == a_subdomain;
-    const bool isIn  = a_subdomains.subdomainOf(change.m_surface.m_outsideRegion) == a_subdomain;
+    const bool wasIn = a_subdomains.subdomainOf(change.m_surface.m_ownerRegion) == a_subdomain;
+    const bool isIn  = a_subdomains.subdomainOf(change.m_surface.m_neighborRegion) == a_subdomain;
 
     if (wasIn != isIn) {
       return change;
@@ -3777,10 +3777,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     SurfaceRef<T> surface = this->surfaceOf(this->leafOf(
       this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, a_point, this->base(), this->location())));
 
-    surface.m_insideRegion    = a_region;
-    surface.m_outsideRegion   = 1U - Math::min(a_region, 1U);
-    surface.m_insideMaterial  = this->getMaterialOf(surface.m_insideRegion);
-    surface.m_outsideMaterial = this->getMaterialOf(surface.m_outsideRegion);
+    surface.m_ownerRegion      = a_region;
+    surface.m_neighborRegion   = 1U - Math::min(a_region, 1U);
+    surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+    surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
 
     return surface;
   }
@@ -3803,10 +3803,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
       }
     }
 
-    surface.m_insideRegion    = 0U;
-    surface.m_outsideRegion   = across;
-    surface.m_insideMaterial  = this->getMaterialOf(surface.m_insideRegion);
-    surface.m_outsideMaterial = this->getMaterialOf(surface.m_outsideRegion);
+    surface.m_ownerRegion      = 0U;
+    surface.m_neighborRegion   = across;
+    surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+    surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
 
     return surface;
   }
@@ -3850,10 +3850,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     }
   }
 
-  surface.m_insideRegion    = a_region;
-  surface.m_outsideRegion   = across;
-  surface.m_insideMaterial  = this->getMaterialOf(surface.m_insideRegion);
-  surface.m_outsideMaterial = this->getMaterialOf(surface.m_outsideRegion);
+  surface.m_ownerRegion      = a_region;
+  surface.m_neighborRegion   = across;
+  surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+  surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
 
   return surface;
 }

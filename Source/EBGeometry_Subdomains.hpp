@@ -187,9 +187,9 @@ public:
   role(const SurfaceRef<T>& a_surface) const noexcept
   {
     const uint32_t minus =
-      (a_surface.m_insideRegion != SurfaceRef<T>::None) ? this->subdomainOf(a_surface.m_insideRegion) : None;
+      (a_surface.m_ownerRegion != SurfaceRef<T>::None) ? this->subdomainOf(a_surface.m_ownerRegion) : None;
     const uint32_t plus =
-      (a_surface.m_outsideRegion != SurfaceRef<T>::None) ? this->subdomainOf(a_surface.m_outsideRegion) : None;
+      (a_surface.m_neighborRegion != SurfaceRef<T>::None) ? this->subdomainOf(a_surface.m_neighborRegion) : None;
 
     if (minus == None && plus == None) {
       return SurfaceRole::None;
