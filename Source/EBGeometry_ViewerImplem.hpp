@@ -464,7 +464,8 @@ enum class PanelAction : uint8_t
   ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
   RenameGroup,    ///< Type a surface group's name.
   Details,        ///< Show or hide details (numbers, coordinates, statistics).
-  HideGroup       ///< Hide a surface group's surfaces, or show them again.
+  HideGroup,      ///< Hide a surface group's surfaces, or show them again.
+  CopyGroup       ///< Copy a surface group: a new one with the same selectors.
 };
 
 /**
@@ -986,6 +987,32 @@ run(const S&           a_shape,
     }
 
     return std::to_string(count) + ((count == 1U) ? " piece" : " pieces");
+  };
+
+  // Whether a surface group's selector holds pieces that are all in another surface group (an earlier one holds them
+  // first), so that it gives this one nothing.
+  const auto shadowed = [&](const SurfaceSelector& a_selector, const uint32_t a_group) {
+    Scheme alone;
+
+    alone.add(alone.addSurfaceGroup(), a_selector);
+
+    const std::vector<PieceCoverage>& covered = coverages();
+
+    bool matched = false;
+
+    for (std::size_t c = 0; c < possible.size(); c++) {
+      if (foundOf[c] != std::size_t(-1) && coverageOfScheme(alone, c).m_coverage != Coverage::None) {
+        matched = true;
+
+        // Held here, only partly held, or held by several surface groups (perhaps this one too): not shadowed.
+        if (covered[c].m_surfaceGroup == a_group || covered[c].m_surfaceGroup == Scheme::None ||
+            covered[c].m_coverage != Coverage::Full) {
+          return false;
+        }
+      }
+    }
+
+    return matched;
   };
 
   // Highlight a surface group's surfaces (RegionSettings::Highlighted), or none (None): the picked surface's highlight
@@ -1777,11 +1804,17 @@ run(const S&           a_shape,
 
         button(regions.isSurfaceGroupHidden(g) ? "Show" : "Hide", PanelAction::HideGroup, g);
         button("Rename", PanelAction::RenameGroup, g);
+
+        if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
+          button("Copy", PanelAction::CopyGroup, g);
+        }
+
         button("Delete", PanelAction::DeleteGroup, g);
 
         for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
           if (scheme.getSurfaceGroupOfSelector(i) == g) {
-            line("        " + selectorWords(scheme.getSelector(i)) + ": " + piecesOf(scheme.getSelector(i)));
+            line("        " + selectorWords(scheme.getSelector(i)) + ": " + piecesOf(scheme.getSelector(i)) +
+                 (shadowed(scheme.getSelector(i), g) ? " (all held by another surface group first)" : ""));
             button("x", PanelAction::RemoveSelector, i);
           }
         }
@@ -2312,6 +2345,27 @@ run(const S&           a_shape,
                     scheme.remove(currentGroup, SurfaceSelector::rest());
                     scheme.add(currentGroup, SurfaceSelector::rest());
                   }
+
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::CopyGroup: {
+                  // The copy holds the same selectors; a surface is in the first surface group that holds it, so the
+                  // copy holds what the original leaves until one of them is changed.
+                  const uint32_t copy = scheme.addSurfaceGroup();
+                  const uint32_t from = clicked.m_value;
+
+                  for (uint32_t i = 0, n = scheme.getNumSelectors(); i < n; i++) {
+                    if (scheme.getSurfaceGroupOfSelector(i) == from &&
+                        scheme.getNumSelectors() < Scheme::MaxSelectors) {
+                      scheme.add(copy, scheme.getSelector(i));
+                    }
+                  }
+
+                  names.setSurfaceGroup(copy, names.surfaceGroup(from, false) + " (copy)");
+
+                  currentGroup = copy;
 
                   rekeyPick();
 
