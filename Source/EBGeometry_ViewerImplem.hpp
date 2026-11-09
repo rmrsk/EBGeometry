@@ -425,6 +425,19 @@ struct Background
 };
 
 /**
+ * @brief What a click on a line of the viewer's panel of regions and groups does.
+ * @details Internal helper; not part of the public API.
+ */
+enum class PanelAction : uint8_t
+{
+  None,           ///< Nothing.
+  ToggleRegion,   ///< Show or hide a region.
+  CurrentGroup,   ///< Make a group the one added to.
+  RemoveSelector, ///< Remove a selector from the scheme.
+  NewGroup        ///< Start a group.
+};
+
+/**
  * @brief The window's event loop.
  * @details Internal helper; not part of the public API. While the camera moves it draws a quick preview
  * (one ray per pixel, no shadows), at a resolution it lowers or raises to keep each preview at a few tens
@@ -437,10 +450,15 @@ struct Background
  * @param[in] a_deviceShape Device view of it, or null.
  * @param[in] a_camera      Initial camera.
  * @param[in] a_settings    Settings.
+ * @param[in] a_names       Names of the regions, materials, surfaces and groups, or null (numbers).
  */
 template <class T, class S>
 inline void
-run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const Settings<T>& a_settings)
+run(const S&           a_shape,
+    const S*           a_deviceShape,
+    const Camera<T>&   a_camera,
+    const Settings<T>& a_settings,
+    const RegionNames* a_names)
 {
   using Clock = std::chrono::steady_clock;
 
@@ -507,8 +525,77 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
 
   // The group of the scheme that Enter adds to (see RegionSettings::m_scheme).
   uint32_t currentGroup = 0;
-  const T  diag         = (box.getHighCorner() - box.getLowCorner()).length();
-  const T  scale        = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
+
+  // The names of the regions, materials, surfaces and groups, as the program gave them.
+  const RegionNames names = (a_names != nullptr) ? *a_names : RegionNames();
+
+  // A scheme's selector, in words and as C++.
+  const auto selectorName = [&names](const SurfaceSelector& a_selector) {
+    std::string name;
+
+    const auto add = [&name](const std::string& a_condition) { name += (name.empty() ? "" : ", ") + a_condition; };
+
+    if (a_selector.m_surface != SurfaceSelector::Any) {
+      add(names.surface(a_selector.m_surface));
+    }
+    if (a_selector.m_part != SurfaceSelector::Any) {
+      add("part " + std::to_string(a_selector.m_part));
+    }
+    if (a_selector.m_regionA != SurfaceSelector::Any) {
+      add((a_selector.m_regionB != SurfaceSelector::Any)
+            ? names.region(a_selector.m_regionA) + " | " + names.region(a_selector.m_regionB)
+            : names.region(a_selector.m_regionA) + " | any");
+    }
+    if (a_selector.m_label != SurfaceSelector::Any) {
+      add("label " + names.surfaceLabel(a_selector.m_label));
+    }
+    if (a_selector.m_materialA != SurfaceSelector::Any) {
+      add((a_selector.m_materialB != SurfaceSelector::Any)
+            ? names.material(a_selector.m_materialA) + " | " + names.material(a_selector.m_materialB)
+            : names.material(a_selector.m_materialA) + " | any");
+    }
+
+    return name.empty() ? std::string("everything") : name;
+  };
+
+  const auto selectorCode = [](const SurfaceSelector& a_selector) {
+    const auto value = [](const uint32_t a_value) {
+      return (a_value == SurfaceSelector::Any) ? std::string("SurfaceSelector::Any") : std::to_string(a_value) + "U";
+    };
+
+    const SurfaceSelector any;
+
+    const bool noLabelOrMaterial = a_selector.m_label == any.m_label && a_selector.m_materialA == any.m_materialA &&
+                                   a_selector.m_materialB == any.m_materialB;
+    const bool noSurface = a_selector.m_surface == any.m_surface && a_selector.m_part == any.m_part;
+
+    if (noLabelOrMaterial && noSurface && a_selector.m_regionA != any.m_regionA) {
+      return (a_selector.m_regionB != any.m_regionB)
+               ? "SurfaceSelector::interface(" + value(a_selector.m_regionA) + ", " + value(a_selector.m_regionB) + ")"
+               : "SurfaceSelector::region(" + value(a_selector.m_regionA) + ")";
+    }
+
+    if (noLabelOrMaterial && a_selector.m_part == any.m_part && a_selector.m_regionA == any.m_regionA &&
+        a_selector.m_surface != any.m_surface) {
+      return "SurfaceSelector::surface(" + value(a_selector.m_surface) + ")";
+    }
+
+    return "SurfaceSelector{" + value(a_selector.m_surface) + ", " + value(a_selector.m_part) + ", " +
+           value(a_selector.m_regionA) + ", " + value(a_selector.m_regionB) + ", " + value(a_selector.m_label) + ", " +
+           value(a_selector.m_materialA) + ", " + value(a_selector.m_materialB) + "}";
+  };
+
+  // The panel of regions and groups, drawn over the image's top right corner while the regions' menu is shown: its
+  // lines, and what a click on each does.
+  std::vector<std::string>                      panelLines;
+  std::vector<std::pair<PanelAction, uint32_t>> panelActions;
+  SDL_Texture*                                  panel       = nullptr;
+  int                                           panelWidth  = 0;
+  int                                           panelHeight = 0;
+  int                                           panelScale  = 1;
+  std::vector<uint32_t>                         panelPixels;
+  const T                                       diag  = (box.getHighCorner() - box.getLowCorner()).length();
+  const T                                       scale = (std::isfinite(diag) && diag > T(0)) ? diag : camera.m_distance;
 
   // The section plane: off (0), as the settings give it (1, only when they turn it on), or across the x, y
   // or z axis through the box's center (2 to 4); moved along its normal by an offset, and reversed (the
@@ -644,6 +731,17 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
       const SDL_Rect where{8, 8, overlayWidth, overlayHeight};
 
       SDL_RenderCopy(screen, overlay, nullptr, &where);
+    }
+
+    if (panel != nullptr && !panelLines.empty()) {
+      int outputWidth  = 0;
+      int outputHeight = 0;
+
+      SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+      const SDL_Rect where{outputWidth - panelWidth - 8, 8, panelWidth, panelHeight};
+
+      SDL_RenderCopy(screen, panel, nullptr, &where);
     }
 
     if (axes != nullptr) {
@@ -954,74 +1052,63 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
                          : std::string("Nothing measured")},
       {}};
 
-    // The regions shown and hidden, for a shape whose regions can be (see RegionView).
+    // The regions shown and hidden, for a shape whose regions can be (see RegionView), and the panel of regions and
+    // groups while the regions' menu is shown.
+    panelLines.clear();
+    panelActions.clear();
+
     if constexpr (hasRegionVisibility<S>) {
       std::string shown;
       std::string hiddenRegions;
 
       const RegionSettings& regions = settings.m_regions;
+      const Scheme&         scheme  = regions.m_scheme;
 
       for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
         std::string& list = regions.isVisible(k, shape.getNumRegions()) ? shown : hiddenRegions;
 
-        list += (list.empty() ? "" : ", ") + std::to_string(k);
+        list += (list.empty() ? "" : ", ") + names.region(k);
       }
 
       const char* colorings[] = {"region", "material", "surface label", "surface", "part", "interface", "group"};
 
-      // A piece of surface, and a selector, in words.
-      const auto number = [](const uint32_t a_value) {
-        return (a_value == SurfaceSelector::Any) ? std::string("any") : std::to_string(a_value);
-      };
-
-      const auto pieceName = [&number](const SurfaceRef<T>& a_piece) {
+      const auto pieceName = [&](const SurfaceRef<T>& a_piece) {
         if (a_piece.m_surface == SurfaceRef<T>::None) {
           return std::string("no surface");
         }
 
-        return "surface " + std::to_string(a_piece.m_surface) + ", part " + std::to_string(a_piece.m_part) +
-               ", region " + number(a_piece.m_insideRegion) + " inside, region " + number(a_piece.m_outsideRegion) +
-               " outside";
+        return names.surface(a_piece.m_surface) + ", part " + std::to_string(a_piece.m_part) + ", inside " +
+               names.region(a_piece.m_insideRegion) + ", outside " + names.region(a_piece.m_outsideRegion);
       };
 
-      const auto selectorName = [&number](const SurfaceSelector& a_selector) {
-        std::string name;
-
-        const auto add = [&name](const std::string& a_condition) { name += (name.empty() ? "" : ", ") + a_condition; };
-
-        if (a_selector.m_surface != SurfaceSelector::Any) {
-          add("surface " + number(a_selector.m_surface));
-        }
-        if (a_selector.m_part != SurfaceSelector::Any) {
-          add("part " + number(a_selector.m_part));
-        }
-        if (a_selector.m_regionA != SurfaceSelector::Any) {
-          add((a_selector.m_regionB != SurfaceSelector::Any)
-                ? "regions " + number(a_selector.m_regionA) + " | " + number(a_selector.m_regionB)
-                : "region " + number(a_selector.m_regionA));
-        }
-        if (a_selector.m_label != SurfaceSelector::Any) {
-          add("label " + number(a_selector.m_label));
-        }
-        if (a_selector.m_materialA != SurfaceSelector::Any) {
-          add((a_selector.m_materialB != SurfaceSelector::Any)
-                ? "materials " + number(a_selector.m_materialA) + " | " + number(a_selector.m_materialB)
-                : "material " + number(a_selector.m_materialA));
-        }
-
-        return name.empty() ? std::string("everything") : name;
-      };
-
-      const auto keyName = [&regions, &colorings](const uint32_t a_key) {
-        if (regions.m_coloring == RegionColoring::Interface) {
-          return "interface regions " + std::to_string(a_key >> 16U) + " | " + std::to_string(a_key & 0xFFFFU);
-        }
-
+      const auto keyName = [&](const uint32_t a_key) {
         if (a_key == RegionSettings::None) {
-          return std::string("nothing (") + colorings[static_cast<int>(regions.m_coloring)] + " none)";
+          return std::string("nothing");
         }
 
-        return std::string(colorings[static_cast<int>(regions.m_coloring)]) + " " + std::to_string(a_key);
+        switch (regions.m_coloring) {
+        case RegionColoring::Region: {
+          return names.region(a_key);
+        }
+        case RegionColoring::Material: {
+          return names.material(a_key);
+        }
+        case RegionColoring::SurfaceLabel: {
+          return names.surfaceLabel(a_key);
+        }
+        case RegionColoring::Surface: {
+          return names.surface(a_key);
+        }
+        case RegionColoring::Interface: {
+          return "interface " + names.region(a_key >> 16U) + " | " + names.region(a_key & 0xFFFFU);
+        }
+        case RegionColoring::Group: {
+          return names.group(a_key);
+        }
+        default: {
+          return "part " + std::to_string(a_key);
+        }
+        }
       };
 
       states.insert(
@@ -1044,24 +1131,43 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
          hiddenRegions.empty()
            ? "Every region shown (" + std::to_string(shape.getNumRegions() - 1U) + ")"
            : "Shown: " + (shown.empty() ? std::string("none") : shown) + "; hidden: " + hiddenRegions,
-         [&regions, &selectorName, currentGroup]() {
-           const Scheme& scheme = regions.m_scheme;
+         (scheme.getNumGroups() == 0U) ? std::string("No groups (Enter starts one with the picked piece)")
+                                       : "Adding to group " + names.group(currentGroup) + " (J: next)"});
 
-           if (scheme.getNumGroups() == 0U) {
-             return std::string("No groups (Enter starts one with the picked piece)");
-           }
+      // The panel: each region, shown or hidden, and each group with its selectors; a click on a line acts on it.
+      const std::vector<KeyGroup> menus = keys(a_deviceShape != nullptr, true);
 
-           std::string group = "Group " + std::to_string(currentGroup) + " of " + std::to_string(scheme.getNumGroups());
-           std::string held;
+      if (overlayOn && menu < menus.size() && std::string(menus[menu].m_title) == "Regions") {
+        const auto line = [&](const std::string& a_text, const PanelAction a_action, const uint32_t a_value) {
+          panelLines.push_back(a_text);
+          panelActions.emplace_back(a_action, a_value);
+        };
 
-           for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
-             if (scheme.getGroupOfSelector(i) == currentGroup) {
-               held += (held.empty() ? "" : "; ") + selectorName(scheme.getSelector(i));
-             }
-           }
+        line("Regions (click: show or hide)", PanelAction::None, 0U);
 
-           return group + ": " + (held.empty() ? std::string("empty") : held);
-         }()});
+        for (uint32_t k = 1; k < shape.getNumRegions(); k++) {
+          line(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + names.region(k),
+               PanelAction::ToggleRegion,
+               k);
+        }
+
+        line("", PanelAction::None, 0U);
+        line("Groups (click: add to it; a selector: remove it)", PanelAction::None, 0U);
+
+        for (uint32_t g = 0; g < scheme.getNumGroups(); g++) {
+          line(std::string(g == currentGroup ? "  > " : "    ") + names.group(g), PanelAction::CurrentGroup, g);
+
+          for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
+            if (scheme.getGroupOfSelector(i) == g) {
+              line("      " + selectorName(scheme.getSelector(i)), PanelAction::RemoveSelector, i);
+            }
+          }
+        }
+
+        if (scheme.getNumGroups() < Scheme::MaxGroups) {
+          line("    + new group", PanelAction::NewGroup, 0U);
+        }
+      }
     }
 
     std::vector<std::string> lines{
@@ -1128,6 +1234,29 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     }
 
     SDL_UpdateTexture(overlay, nullptr, overlayPixels.data(), 4 * overlayWidth);
+
+    // The panel of regions and groups, at the overlay's size.
+    if (!panelLines.empty()) {
+      const int oldPanelWidth  = panelWidth;
+      const int oldPanelHeight = panelHeight;
+
+      drawText(panelLines, scale, panelPixels, panelWidth, panelHeight);
+
+      panelScale = scale;
+
+      if (panel == nullptr || oldPanelWidth != panelWidth || oldPanelHeight != panelHeight) {
+        if (panel != nullptr) {
+          SDL_DestroyTexture(panel);
+        }
+
+        panel =
+          SDL_CreateTexture(screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, panelWidth, panelHeight);
+
+        SDL_SetTextureBlendMode(panel, SDL_BLENDMODE_BLEND);
+      }
+
+      SDL_UpdateTexture(panel, nullptr, panelPixels.data(), 4 * panelWidth);
+    }
 
     // The axes as the camera of this frame sees them.
     Vec3T<T> forward;
@@ -1276,6 +1405,61 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
             int windowHeight = 0;
 
             SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+            // A click on the panel of regions and groups acts on the line under it.
+            if constexpr (hasRegionVisibility<S>) {
+              int outputWidth  = 0;
+              int outputHeight = 0;
+
+              SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+              const int x = event.button.x * outputWidth / Math::max(windowWidth, 1);
+              const int y = event.button.y * outputHeight / Math::max(windowHeight, 1);
+
+              const int left = outputWidth - panelWidth - 8;
+              const int row  = (y - 8 - 6 * panelScale) / (GlyphHeight * panelScale);
+
+              if (!panelLines.empty() && x >= left && x < left + panelWidth && y >= 8 && y < 8 + panelHeight) {
+                if (y >= 8 + 6 * panelScale && row >= 0 && std::size_t(row) < panelActions.size()) {
+                  RegionSettings& regions = settings.m_regions;
+                  Scheme&         scheme  = regions.m_scheme;
+
+                  const uint32_t value = panelActions[std::size_t(row)].second;
+
+                  switch (panelActions[std::size_t(row)].first) {
+                  case PanelAction::ToggleRegion: {
+                    regions.setVisible(value, !regions.isVisible(value, shape.getNumRegions()));
+
+                    break;
+                  }
+                  case PanelAction::CurrentGroup: {
+                    currentGroup = value;
+
+                    break;
+                  }
+                  case PanelAction::RemoveSelector: {
+                    scheme.remove(scheme.getGroupOfSelector(value), scheme.getSelector(value));
+
+                    break;
+                  }
+                  case PanelAction::NewGroup: {
+                    currentGroup = scheme.addGroup();
+
+                    break;
+                  }
+                  default: {
+                    break;
+                  }
+                  }
+                }
+
+                dragging = false;
+                panning  = false;
+                changed  = true;
+
+                break;
+              }
+            }
 
             const Settings<T> frame  = stageSettings(2);
             const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
@@ -1671,6 +1855,27 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
           shown.m_recordPrimitives = a_settings.m_recordPrimitives;
 
           std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, shown).c_str());
+
+          // The scheme built by clicking, to paste into the program (into the settings' region settings).
+          if constexpr (hasRegionVisibility<S>) {
+            const Scheme& scheme = settings.m_regions.m_scheme;
+
+            if (scheme.getNumGroups() > 0U) {
+              std::printf("Scheme scheme;\n");
+
+              for (uint32_t g = 0; g < scheme.getNumGroups(); g++) {
+                std::printf("const uint32_t group%u = scheme.addGroup(); // %s\n", unsigned(g), names.group(g).c_str());
+              }
+
+              for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
+                std::printf("scheme.add(group%u, %s); // %s\n",
+                            unsigned(scheme.getGroupOfSelector(i)),
+                            selectorCode(scheme.getSelector(i)).c_str(),
+                            selectorName(scheme.getSelector(i)).c_str());
+              }
+            }
+          }
+
           std::fflush(stdout);
 
           changed = pending;
@@ -2065,6 +2270,10 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
     SDL_DestroyTexture(overlay);
   }
 
+  if (panel != nullptr) {
+    SDL_DestroyTexture(panel);
+  }
+
   if (axes != nullptr) {
     SDL_DestroyTexture(axes);
   }
@@ -2087,6 +2296,7 @@ run(const S& a_shape, const S* a_deviceShape, const Camera<T>& a_camera, const S
  * @param[in] a_settings    Settings.
  * @param[in] a_argc        Argument count.
  * @param[in] a_argv        Arguments.
+ * @param[in] a_names       Names of the regions, materials, surfaces and groups, or null.
  */
 template <class T, class S>
 inline void
@@ -2095,7 +2305,8 @@ start(const S&           a_shape,
       const Camera<T>&   a_camera,
       const Settings<T>& a_settings,
       const int          a_argc,
-      char**             a_argv)
+      char**             a_argv,
+      const RegionNames* a_names = nullptr)
 {
   static_assert(isShape<S>, "Render::view: the object to look at must be a shape (see isShape)");
 
@@ -2112,12 +2323,13 @@ start(const S&           a_shape,
     return;
   }
 
-  run(a_shape, a_deviceShape, a_camera, a_settings);
+  run(a_shape, a_deviceShape, a_camera, a_settings, a_names);
 #else
   (void)a_shape;
   (void)a_deviceShape;
   (void)a_camera;
   (void)a_settings;
+  (void)a_names;
 
   std::printf("EBGeometry: built without the viewer; build with VIEWER=SDL2 (make) or -DEBGEOMETRY_VIEWER=SDL2 "
               "(CMake) to look at the shape.\n");
@@ -2146,6 +2358,51 @@ initialCamera(const S& a_shape)
   }
 
   return Camera<T>();
+}
+
+/**
+ * @brief Open the window on a shape that lives in a pool: on the GPU, through a mirror of the pool, in a GPU build with
+ * a device and a window to open; on the host otherwise.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type, with rebasedView(const Pool&).
+ * @param[in]     a_shape    The shape, valid on the host.
+ * @param[in,out] a_pool     The pool it lives in (frozen when mirrored).
+ * @param[in]     a_camera   Initial camera.
+ * @param[in]     a_settings Settings.
+ * @param[in]     a_argc     Argument count.
+ * @param[in]     a_argv     Arguments.
+ * @param[in]     a_names    Names of the regions, materials, surfaces and groups, or null.
+ */
+template <class S>
+inline void
+startInPool(const S&                           a_shape,
+            Pool&                              a_pool,
+            const Camera<ShapePrecision<S>>&   a_camera,
+            const Settings<ShapePrecision<S>>& a_settings,
+            int                                a_argc,
+            char**                             a_argv,
+            const RegionNames*                 a_names)
+{
+  using T = ShapePrecision<S>;
+
+#ifdef EBGEOMETRY_VIEWER_SDL2
+  // Mirror only when a window will open on a device; the mirror lives as long as the window.
+  if (GPU::enabled && GPU::deviceAvailable() && !ViewerDetail::noViewRequested(a_argc, a_argv) &&
+      ViewerDetail::displayAvailable()) {
+    a_pool.freeze();
+
+    const Pool mirror      = Pool::mirror(a_pool, GPU::memoryResource());
+    const S    deviceShape = a_shape.rebasedView(mirror);
+
+    start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv, a_names);
+
+    return;
+  }
+#endif
+
+  (void)a_pool;
+
+  start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv, a_names);
 }
 
 } // namespace ViewerDetail
@@ -2210,26 +2467,32 @@ view(const S&                           a_shape,
      int                                a_argc,
      char**                             a_argv)
 {
-  using T = ShapePrecision<S>;
+  ViewerDetail::startInPool(a_shape, a_pool, a_camera, a_settings, a_argc, a_argv, nullptr);
+}
 
-#ifdef EBGEOMETRY_VIEWER_SDL2
-  // Mirror only when a window will open on a device; the mirror lives as long as the window.
-  if (GPU::enabled && GPU::deviceAvailable() && !ViewerDetail::noViewRequested(a_argc, a_argv) &&
-      ViewerDetail::displayAvailable()) {
-    a_pool.freeze();
+template <class S>
+inline void
+view(const S&                           a_shape,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
+     int                                a_argc,
+     char**                             a_argv)
+{
+  ViewerDetail::start<ShapePrecision<S>, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv, &a_names);
+}
 
-    const Pool mirror      = Pool::mirror(a_pool, GPU::memoryResource());
-    const S    deviceShape = a_shape.rebasedView(mirror);
-
-    ViewerDetail::start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv);
-
-    return;
-  }
-#endif
-
-  (void)a_pool;
-
-  ViewerDetail::start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv);
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
+     int                                a_argc,
+     char**                             a_argv)
+{
+  ViewerDetail::startInPool(a_shape, a_pool, a_camera, a_settings, a_argc, a_argv, &a_names);
 }
 
 } // namespace EBGeometry::Render

@@ -1026,6 +1026,34 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: group 0 of 0"));
 }
 
+TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their labels, groups as named, else numbers",
+                   "[Overlay][RegionNames]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // The cable with its core labeled; a region without a material.
+  const Expr<T> labeled = Overlay(MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), "PTFE"),
+                                  SurfaceLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(0.5)), "conductor"));
+
+  RegionNames names{ExprIndex<T>(labeled)};
+
+  CHECK(names.region(0) == "0 background");
+  CHECK(names.region(1) == "1 PTFE");
+  CHECK(names.region(2) == "region 2");
+  CHECK(names.region(7) == "region 7");
+  CHECK(names.material(0) == "0 PTFE");
+  CHECK(names.surface(0) == "surface 0");
+  CHECK(names.surface(1) == "1 conductor");
+  CHECK(names.surfaceLabel(0) == "0 conductor");
+
+  names.setGroup(1, "jump");
+
+  CHECK(names.group(0) == "group 0");
+  CHECK(names.group(1) == "1 jump");
+  CHECK(RegionNames().region(1) == "region 1");
+}
+
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",
                    "[Overlay][RegionView][Render]",
                    EBGEOMETRY_TEST_PRECISIONS)

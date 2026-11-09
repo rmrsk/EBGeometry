@@ -106,7 +106,9 @@ main(int argc, char* argv[])
   // RegionView shows the regions' surfaces, internal ones included. What it shows lives in the render settings
   // (m_regions): the coloring (K), the regions shown (V), the surfaces seen through (T) or shown alone (L), and a
   // solver's scheme, here the electrostatic one: every conductor surface (dirichlet), the jacket's outside (jump).
-  // K reaches the coloring by group.
+  // K reaches the coloring by group. In the regions' menu (F5), a click names the piece of surface under it, Enter
+  // adds it to the current group, and a panel lists the regions and the groups by their names; C prints the scheme
+  // as C++.
   EBGeometry::Render::Settings<T> settings;
 
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
@@ -119,6 +121,12 @@ main(int argc, char* argv[])
   scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
   scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
 
+  // The names the window shows: the regions by their materials, and the groups.
+  EBGeometry::RegionNames names(index);
+
+  names.setGroup(dirichlet, "dirichlet");
+  names.setGroup(jump, "jump");
+
   const EBGeometry::RegionView<Tape> regions(tape);
 
   // From the side the cut is on, so that the core shows in it.
@@ -127,7 +135,7 @@ main(int argc, char* argv[])
   camera.m_yaw = T(70);
 
   // With the tape's pool, a GPU build renders on the device (G switches between the GPU and the CPU).
-  EBGeometry::Render::view(regions, pool, camera, settings, argc, argv);
+  EBGeometry::Render::view(regions, pool, camera, settings, names, argc, argv);
 
   return 0;
 }

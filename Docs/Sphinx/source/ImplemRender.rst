@@ -201,7 +201,9 @@ opened with them.
        piece (its surface, part and the regions on its two sides) to the current group; add the picked surface
        whole; add the interface between the picked piece's two regions; remove what holds the picked piece from
        the current group; make the next group current, or start a new one past the last. The status lines name
-       the picked piece and list the current group.
+       the picked piece; while the regions' menu is shown, a panel at the top right lists the regions (a click
+       shows or hides one) and the groups with their selectors (a click on a group makes it current, on a
+       selector removes it). C also prints the scheme as C++.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.

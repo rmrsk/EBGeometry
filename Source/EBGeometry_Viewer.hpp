@@ -27,6 +27,7 @@
 
 // Our includes
 #include "EBGeometry_Expr.hpp"
+#include "EBGeometry_RegionNames.hpp"
 #include "EBGeometry_RegionView.hpp"
 #include "EBGeometry_Render.hpp"
 
@@ -139,6 +140,52 @@ view(const S&                           a_shape,
      Pool&                              a_pool,
      const Camera<ShapePrecision<S>>&   a_camera,
      const Settings<ShapePrecision<S>>& a_settings,
+     int                                a_argc,
+     char**                             a_argv);
+
+/**
+ * @brief Look at a shape in a window, from a given camera with given settings, naming its regions, materials,
+ * surfaces and a scheme's groups as a_names does.
+ * @details See view(const S&, int, char**). For a view of regions (RegionView), the status lines name the picked
+ * piece of surface, and the regions' menu shows a panel of the regions and the scheme's groups, by these names.
+ * @tparam S Shape type (see isShape).
+ * @param[in] a_shape    Shape, valid on the host.
+ * @param[in] a_camera   Initial camera.
+ * @param[in] a_settings Settings.
+ * @param[in] a_names    The names (RegionNames(index) of the expression's index).
+ * @param[in] a_argc     The program's argument count.
+ * @param[in] a_argv     The program's arguments.
+ */
+template <class S>
+inline void
+view(const S&                           a_shape,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
+     int                                a_argc,
+     char**                             a_argv);
+
+/**
+ * @brief Look at a shape that lives in a pool in a window, rendering on the GPU in a GPU build, from a given camera
+ * with given settings, naming its regions, materials, surfaces and a scheme's groups as a_names does.
+ * @details See view(const S&, Pool&, int, char**) and view(const S&, const Camera&, const Settings&, const
+ * RegionNames&, int, char**).
+ * @tparam S Shape type (see isShape), with rebasedView(const Pool&).
+ * @param[in]     a_shape    The shape, valid on the host.
+ * @param[in,out] a_pool     The pool a_shape lives in.
+ * @param[in]     a_camera   Initial camera.
+ * @param[in]     a_settings Settings.
+ * @param[in]     a_names    The names (RegionNames(index) of the expression's index).
+ * @param[in]     a_argc     The program's argument count.
+ * @param[in]     a_argv     The program's arguments.
+ */
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
      int                                a_argc,
      char**                             a_argv);
 
