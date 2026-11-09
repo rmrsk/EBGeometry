@@ -53,7 +53,8 @@ enum class RegionColoring : uint8_t
  * label, surface, part or interface (the pair of regions on its two sides), and a viewer's pick reports it; a view can
  * show only the surfaces with one key (withOnlyKey()), the conductor's inner surface alone, say, passing the others
  * through. Up to 64 regions can be hidden; later ones are always
- * shown. A value type: it holds the tape's handle, so the tape's pool must outlive it.
+ * shown. A value type: it holds the tape's handle, so the tape's pool must outlive it; rebasedView() views the same
+ * tape on a mirror of its pool, so Render::view(view, pool, ...) renders it on a device.
  * @tparam TapeType A Tape that lists TapeFeature::Regions.
  */
 template <class TapeType>
@@ -208,6 +209,23 @@ public:
     }
 
     return HitT<T>();
+  }
+
+  /**
+   * @brief The same view of the tape rebased onto another pool, a mirror of its own (for a device: see
+   * Tape::rebasedView()); the visibility, coloring and keys are kept.
+   * @param[in] a_pool The pool or its mirror.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline RegionView
+  rebasedView(const Pool& a_pool) const
+  {
+    RegionView view = *this;
+
+    view.m_tape = m_tape.rebasedView(a_pool);
+
+    return view;
   }
 
   /**

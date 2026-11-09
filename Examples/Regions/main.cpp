@@ -115,7 +115,8 @@ main(int argc, char* argv[])
 
   camera.m_yaw = T(70);
 
-  EBGeometry::Render::view(regions, camera, settings, argc, argv);
+  // With the tape's pool, a GPU build renders on the device (G switches between the GPU and the CPU).
+  EBGeometry::Render::view(regions, pool, camera, settings, argc, argv);
 
   return 0;
 }
