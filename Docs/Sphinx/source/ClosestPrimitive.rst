@@ -275,6 +275,22 @@ region a result belongs to (a union of an Overlay with a solid, an offset or a b
 of a solid) is rejected when the expression is built. A tape evaluates an Overlay as the whole object, so
 ``signedDistance()`` is the union of the regions.
 
+A tape that lists ``TapeFeature::Regions`` answers for each region, on the host and on a device:
+
+.. code-block:: c++
+
+   const Tape<T, TapeFeature::Regions> tape(pool, cable);
+
+   tape.getNumRegions();          // 3: the air, the jacket, the core
+   tape.region(p);                // the region p is in
+   tape.signedDistance(p, 1);     // the jacket's implicit function
+
+``region(p)`` is the last operand whose solid holds the point, or the background; every point is in exactly
+one region. ``signedDistance(p, k)`` is negative exactly inside region k, and its zero contour is the
+region's whole surface, the interfaces with the other regions included: the function a cut-cell code cuts
+for that region. It is a distance bound, exact near a smooth piece of surface. An object with no Overlay is
+one region, and a tape without the feature compiles none of this.
+
 Along a ray
 -----------
 

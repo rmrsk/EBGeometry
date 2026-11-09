@@ -157,6 +157,11 @@ struct Staging
    * @brief The part labels, laid out as Tape::Layout::m_partSurfaceLabels; empty when no leaf's parts are named.
    */
   std::vector<uint32_t> m_partSurfaceLabels;
+
+  /**
+   * @brief Each region's program (TapeFeature::Regions), from region 1; empty without the feature or an Overlay.
+   */
+  std::vector<uint32_t> m_regionPrograms;
 };
 
 /**
@@ -293,6 +298,30 @@ public:
   numPrimitives() const noexcept
   {
     return m_nextLeaf;
+  }
+
+  /**
+   * @brief Compile a region's program (TapeFeature::Regions): a subexpression emitted again, with the leaves of
+   * the given subtrees numbered from the given leaves, as in the whole expression.
+   * @param[in] a_node   The region's solid (its operand under the maps and masks above it).
+   * @param[in] a_starts The first leaf of each subtree emitted again (the operand and the masks).
+   * @return The program's index.
+   */
+  uint32_t
+  compileRegion(const ExprDetail::Node<T>&                                          a_node,
+                const std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>& a_starts)
+  {
+    const uint32_t next = m_nextLeaf;
+
+    m_leafStarts = a_starts;
+
+    const uint32_t program = this->compileProgram(a_node, nullptr);
+
+    m_leafStarts.clear();
+
+    m_nextLeaf = next;
+
+    return program;
   }
 
   /**
@@ -487,6 +516,11 @@ private:
    * @brief The number the next primitive leaf gets (see Tape::closestLeaf()).
    */
   uint32_t m_nextLeaf = 0;
+
+  /**
+   * @brief While a region's program is compiled, the subtrees whose leaves are numbered from a given leaf.
+   */
+  std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> m_leafStarts;
 
   /**
    * @brief The most objects in one union evaluated as written (see plainUnionSize()).
@@ -1046,6 +1080,18 @@ private:
   {
     using ExprDetail::Kind;
 
+    // In a region's program, a subtree emitted again keeps its leaves' numbers. The subtrees are emitted in the
+    // order they were listed, so each start is used once, in order, even for a subexpression listed twice.
+    for (auto start = m_leafStarts.begin(); start != m_leafStarts.end(); ++start) {
+      if (start->first == &a_node) {
+        m_nextLeaf = start->second;
+
+        m_leafStarts.erase(start);
+
+        break;
+      }
+    }
+
     if (a_ray != nullptr && (!traced(a_node) || a_ray->m_level + this->raySlots(a_node) > m_rayStackSize)) {
       const auto begin = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
 
@@ -1420,6 +1466,164 @@ storeEndByte(const Store& a_store) noexcept
   }
 }
 
+/**
+ * @brief How many leaves an expression has, each occurrence counted (as the compiler numbers them).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node Expression.
+ * @return The count.
+ */
+template <class T>
+[[nodiscard]] inline uint32_t
+countLeaves(const ExprDetail::Node<T>& a_node) noexcept
+{
+  if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+    return 1U;
+  }
+
+  uint32_t count = 0;
+
+  for (const Expr<T>& child : a_node.m_children) {
+    count += countLeaves(child.node());
+  }
+
+  return count;
+}
+
+/**
+ * @brief A region's solid (TapeFeature::Regions): its operand, under the maps and masks above it, and the first leaf
+ * of the operand and of each mask in the whole expression.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RegionSolid
+{
+  /**
+   * @brief The solid.
+   */
+  Expr<T> m_expr;
+
+  /**
+   * @brief The first leaf of each subtree it holds from the whole expression.
+   */
+  std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> m_starts;
+};
+
+/**
+ * @brief An operand without its material labels: a region's solid is clipped by masks like any solid, and a
+ * material there would be refused.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_operand Operand.
+ * @return The operand, or a copy without material labels along its maps.
+ */
+template <class T>
+[[nodiscard]] inline Expr<T>
+withoutMaterial(const Expr<T>& a_operand)
+{
+  if (!a_operand.node().m_carriesMaterial) {
+    return a_operand;
+  }
+
+  auto node = std::make_shared<ExprDetail::Node<T>>(a_operand.node());
+
+  node->m_materialLabel.clear();
+  node->m_carriesMaterial = false;
+
+  if (node->m_kind == ExprDetail::Kind::Affine) {
+    node->m_children.front() = withoutMaterial(node->m_children.front());
+  }
+
+  return Expr<T>(std::move(node));
+}
+
+/**
+ * @brief The solids of the regions of a partition, in region order (TapeFeature::Regions).
+ * @details Internal helper; not part of the public API. Walks the partition depth first, as ExprIndex numbers the
+ * regions: an Overlay's operands in order; a map or a clipping intersection wraps the solids below it in itself.
+ * @tparam T Floating-point precision.
+ * @param[in]     a_expr      A partition, or an operand of one.
+ * @param[in]     a_firstLeaf Its first leaf in the whole expression.
+ * @param[in]     a_path      The maps and clipping intersections above it, outermost first, with their first leaves.
+ * @param[in,out] a_solids    The solids found so far.
+ */
+template <class T>
+inline void
+regionSolids(const Expr<T>&                                                a_expr,
+             const uint32_t                                                a_firstLeaf,
+             std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>& a_path,
+             std::vector<RegionSolid<T>>&                                  a_solids)
+{
+  using ExprDetail::Kind;
+
+  const ExprDetail::Node<T>& node = a_expr.node();
+
+  if (!node.m_partition) {
+    RegionSolid<T> solid{withoutMaterial(a_expr), {}};
+
+    solid.m_starts.emplace_back(&solid.m_expr.node(), a_firstLeaf);
+
+    // Wrap in the maps and masks above, innermost first.
+    for (auto step = a_path.rbegin(); step != a_path.rend(); ++step) {
+      const ExprDetail::Node<T>& above = *step->first;
+
+      if (above.m_kind == Kind::Affine) {
+        auto wrapped = ExprDetail::makeNode<T>(Kind::Affine, {solid.m_expr});
+
+        wrapped->m_map            = above.m_map;
+        wrapped->m_inverse        = above.m_inverse;
+        wrapped->m_valueScale     = above.m_valueScale;
+        wrapped->m_boundingVolume = above.m_inverse.transform(solid.m_expr.computeBoundingVolume());
+        wrapped->m_quality        = solid.m_expr.getDistanceQuality();
+
+        solid.m_expr = Expr<T>(std::move(wrapped));
+      }
+      else {
+        std::vector<Expr<T>> operands{solid.m_expr};
+
+        uint32_t leaf = step->second + countLeaves(above.m_children.front().node());
+
+        for (size_t i = 1; i < above.m_children.size(); i++) {
+          operands.push_back(above.m_children[i]);
+
+          solid.m_starts.emplace_back(&above.m_children[i].node(), leaf);
+
+          leaf += countLeaves(above.m_children[i].node());
+        }
+
+        auto wrapped = ExprDetail::makeNode<T>(Kind::Intersection, std::move(operands));
+
+        wrapped->m_boundingVolume = above.m_boundingVolume;
+        wrapped->m_quality        = above.m_quality;
+
+        solid.m_expr = Expr<T>(std::move(wrapped));
+      }
+    }
+
+    a_solids.push_back(std::move(solid));
+
+    return;
+  }
+
+  if (node.m_overlay) {
+    uint32_t leaf = a_firstLeaf;
+
+    for (const Expr<T>& child : node.m_children) {
+      regionSolids(child, leaf, a_path, a_solids);
+
+      leaf += countLeaves(child.node());
+    }
+  }
+  else {
+    a_path.emplace_back(&node, a_firstLeaf);
+
+    regionSolids(node.m_children.front(), a_firstLeaf, a_path, a_solids);
+
+    a_path.pop_back();
+  }
+}
+
 } // namespace TapeDetail
 
 template <class T, class... UserPrimitives>
@@ -1449,6 +1653,21 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_quality           = a_expr.getDistanceQuality();
   staging.m_numPrimitives     = compiler.numPrimitives();
   staging.m_largestPlainUnion = compiler.largestPlainUnion();
+
+  // Each region's program: its operand, under the maps and masks above it, with the leaves numbered as in the
+  // whole expression.
+  if constexpr (hasFeature<TapeFeature::Regions>) {
+    if (a_expr.node().m_partition) {
+      std::vector<TapeDetail::RegionSolid<T>>                      solids;
+      std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> path;
+
+      TapeDetail::regionSolids(a_expr, 0U, path, solids);
+
+      for (const TapeDetail::RegionSolid<T>& solid : solids) {
+        staging.m_regionPrograms.push_back(compiler.compileRegion(solid.m_expr.node(), solid.m_starts));
+      }
+    }
+  }
 
   // The labels and the surfaces, numbered as ExprIndex numbers them; a tape without labels stores none, one
   // without a container leaf no surfaces, and one with neither does not build the index (which allocates per
@@ -1535,6 +1754,7 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_surfaceLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaceLabels.size()));
   layout.m_surfaces.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaces.size()));
   layout.m_partSurfaceLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_partSurfaceLabels.size()));
+  layout.m_regionPrograms.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_regionPrograms.size()));
 
   TapeDetail::reserveStore<0>(a_pool, layout.m_primitives, a_staging.m_primitives);
 
@@ -1551,6 +1771,8 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_surfaces.assign(base, a_staging.m_surfaces.data(), static_cast<uint32_t>(a_staging.m_surfaces.size()));
   layout.m_partSurfaceLabels.assign(
     base, a_staging.m_partSurfaceLabels.data(), static_cast<uint32_t>(a_staging.m_partSurfaceLabels.size()));
+  layout.m_regionPrograms.assign(
+    base, a_staging.m_regionPrograms.data(), static_cast<uint32_t>(a_staging.m_regionPrograms.size()));
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
@@ -3070,6 +3292,77 @@ Tape<T, UserPrimitives...>::getNumSurfaceLabels() const noexcept
 }
 
 template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getNumRegions() const noexcept
+{
+  const uint32_t n = m_layout.m_regionPrograms.size();
+
+  return (n > 0) ? n + 1U : 2U;
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
+{
+  const uint32_t n = m_layout.m_regionPrograms.size();
+
+  // An object with no Overlay is one region.
+  if (n == 0U) {
+    return (this->signedDistance(a_point) < T(0)) ? 1U : 0U;
+  }
+
+  // The last region whose solid holds the point: later regions are on top.
+  for (uint32_t k = n; k > 0U; k--) {
+    const uint32_t program = m_layout.m_regionPrograms.at(this->base(), k - 1U);
+
+    if (this->template evaluate<MaxCallDepth, T>(program, a_point, this->base(), this->location()) < T(0)) {
+      return k;
+    }
+  }
+
+  return 0U;
+}
+
+template <class T, class... UserPrimitives>
+template <class F, class>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
+{
+  const uint32_t n = m_layout.m_regionPrograms.size();
+
+  EBGEOMETRY_EXPECT(a_region < ((n > 0) ? n + 1U : 2U));
+
+  // The background is the outside of the whole object; an object with no Overlay is region 1.
+  if (a_region == 0U) {
+    return -this->signedDistance(a_point);
+  }
+
+  if (n == 0U) {
+    return this->signedDistance(a_point);
+  }
+
+  const auto solid = [this, &a_point](const uint32_t a_k) -> T {
+    const uint32_t program = m_layout.m_regionPrograms.at(this->base(), a_k - 1U);
+
+    return this->template evaluate<MaxCallDepth, T>(program, a_point, this->base(), this->location());
+  };
+
+  // Region k is its solid minus the later ones: max(S_k, -min_{j>k} S_j).
+  T later = Math::Limits<T>::max();
+
+  for (uint32_t j = a_region + 1U; j <= n; j++) {
+    later = Math::min(later, solid(j));
+  }
+
+  return Math::max(solid(a_region), -later);
+}
+
+template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexcept
@@ -3235,10 +3528,11 @@ Tape<T, UserPrimitives...>::rebasedView(const Pool& a_pool) const noexcept
 
   const uint64_t endByte = Math::max(
     Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
-    Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
-              Math::max(Math::max(Math::max(m_layout.m_surfaceLabels.endByte(), m_layout.m_surfaces.endByte()),
-                                  m_layout.m_partSurfaceLabels.endByte()),
-                        TapeDetail::storeEndByte(m_layout.m_primitives))));
+    Math::max(
+      Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
+      Math::max(Math::max(Math::max(m_layout.m_surfaceLabels.endByte(), m_layout.m_surfaces.endByte()),
+                          Math::max(m_layout.m_partSurfaceLabels.endByte(), m_layout.m_regionPrograms.endByte())),
+                TapeDetail::storeEndByte(m_layout.m_primitives))));
 
   Tape view = *this;
 
@@ -3268,6 +3562,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     const auto labels   = m_layout.m_surfaceLabels.bind(base);
     const auto surfaces = m_layout.m_surfaces.bind(base);
     const auto parts    = m_layout.m_partSurfaceLabels.bind(base);
+    const auto regions  = m_layout.m_regionPrograms.bind(base);
 
     // The arrays are copied as they are laid out: the marched ranges overlap the sub-programs.
     staging.m_flatClauses.assign(clauses.begin(), clauses.end());
@@ -3280,6 +3575,7 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     staging.m_surfaceLabels.assign(labels.begin(), labels.end());
     staging.m_surfaces.assign(surfaces.begin(), surfaces.end());
     staging.m_partSurfaceLabels.assign(parts.begin(), parts.end());
+    staging.m_regionPrograms.assign(regions.begin(), regions.end());
   }
 
   TapeDetail::deepCopyStore<0, Primitives>(m_layout.m_primitives, location, a_dstPool, staging.m_primitives);

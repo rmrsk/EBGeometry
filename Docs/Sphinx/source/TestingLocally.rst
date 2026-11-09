@@ -436,6 +436,9 @@ Test coverage
        order), their materials and groups in ``ExprIndex`` against a hand-numbered expression, nested
        Overlays flattened with default materials, maps and masks keeping the regions (a mask's leaves in
        none), a tape's value as the whole object, and the rejected placements of a partition or a material.
+       A tape's ``region()`` and ``signedDistance(p, region)`` against the regions' solids by hand on a grid
+       (exactly one region's function negative, the values the formula's; nested Overlays, maps and masks;
+       also after ``deepCopy()``), the leaves numbered as without regions, and an object with no Overlay.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

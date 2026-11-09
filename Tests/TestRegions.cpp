@@ -236,3 +236,101 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
     },
     "ExprIndex: region 3 of 3"));
 }
+
+TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space as the regions' solids say",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A scene: a matrix holding two particles (a shell around a grain), the second moved; the whole clipped to a
+  // half-space box and drilled by a slab. Each region's solid, by hand: the operand clipped by both masks.
+  const BoxSDF<T>    matrix(-T(3) * Vec3::ones(), T(3) * Vec3::ones());
+  const SphereSDF<T> shell(Vec3(T(-1), T(0), T(0)), T(1));
+  const SphereSDF<T> grain(Vec3(T(-1), T(0), T(0)), T(0.4));
+  const SphereSDF<T> shell2(Vec3(T(1.2), T(0), T(0)), T(1));
+  const SphereSDF<T> grain2(Vec3(T(1.2), T(0), T(0)), T(0.4));
+  const BoxSDF<T>    domain(Vec3(T(-4), T(-4), T(-0.5)), Vec3(T(4), T(4), T(4)));
+  const BoxSDF<T>    slab(Vec3(T(-0.1), T(-4), T(-4)), Vec3(T(0.1), T(4), T(4)));
+
+  const Expr<T> scene = Difference(
+    Intersection(Overlay(std::vector<Expr<T>>{matrix, Overlay(shell, grain), Overlay(shell2, grain2)}, "air"), domain),
+    slab);
+
+  const auto mask  = [&](const Vec3& p) { return Math::max(domain.signedDistance(p), -slab.signedDistance(p)); };
+  const auto solid = [&](const uint32_t k, const Vec3& p) {
+    const T values[] = {T(0),
+                        matrix.signedDistance(p),
+                        shell.signedDistance(p),
+                        grain.signedDistance(p),
+                        shell2.signedDistance(p),
+                        grain2.signedDistance(p)};
+
+    return Math::max(values[k], mask(p));
+  };
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T, TapeFeature::Regions> tape(pool, scene);
+  const Tape<T>                       plain(pool, scene);
+  const ExprIndex<T>                  index(scene);
+
+  REQUIRE(tape.getNumRegions() == 6U);
+  REQUIRE(index.getNumRegions() == 6U);
+
+  // The region programs leave the leaves as the whole expression numbers them.
+  CHECK(tape.getNumPrimitives() == plain.getNumPrimitives());
+
+  const Tape<T, TapeFeature::Regions> copy = tape.deepCopy(pool);
+
+  for (int i = -40; i <= 40; i++) {
+    for (int j = -8; j <= 8; j++) {
+      const Vec3 p(T(0.1) * T(i) + T(0.013), T(0.1) * T(j) + T(0.007), T(0.3) * T(j % 3) - T(0.4));
+
+      // The reference: the last region whose solid holds the point.
+      uint32_t expected = 0;
+
+      for (uint32_t k = 1; k < 6; k++) {
+        expected = (solid(k, p) < T(0)) ? k : expected;
+      }
+
+      INFO("point " << p);
+
+      CHECK(tape.region(p) == expected);
+      CHECK(copy.region(p) == expected);
+      CHECK(tape.closestLeaf(p).m_leaf == plain.closestLeaf(p).m_leaf);
+
+      // Exactly one region's function is negative: its own.
+      for (uint32_t k = 0; k < 6; k++) {
+        const T d = tape.signedDistance(p, k);
+
+        CHECK((d < T(0)) == (k == expected));
+
+        // Region k's function: its solid minus the later ones; the background's, minus the whole object.
+        T reference = -tape.signedDistance(p);
+
+        if (k > 0) {
+          T later = Math::Limits<T>::max();
+
+          for (uint32_t m = k + 1; m < 6; m++) {
+            later = Math::min(later, solid(m, p));
+          }
+
+          reference = Math::max(solid(k, p), -later);
+        }
+
+        CHECK_THAT(d, withinAbsT<T>(reference, tightMargin<T>()));
+      }
+    }
+  }
+
+  // An object with no Overlay is one region.
+  const Tape<T, TapeFeature::Regions> one(pool, Union(matrix, shell));
+
+  CHECK(one.getNumRegions() == 2U);
+  CHECK(one.region(Vec3::zeros()) == 1U);
+  CHECK(one.region(T(5) * Vec3::ones()) == 0U);
+  CHECK(one.signedDistance(Vec3::zeros(), 1U) == one.signedDistance(Vec3::zeros()));
+  CHECK(one.signedDistance(Vec3::zeros(), 0U) == -one.signedDistance(Vec3::zeros()));
+}

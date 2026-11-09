@@ -122,6 +122,15 @@ struct ExactOffsets : Tag
 {
 };
 
+/**
+ * @brief Regions (see Overlay()): the tape compiles one program per region of an Overlay, its operand under the
+ * maps and masks above it, and answers region(), signedDistance(p, region) and getNumRegions(). Without an Overlay
+ * the object is one region. A tape without the feature compiles none of it.
+ */
+struct Regions : Tag
+{
+};
+
 } // namespace TapeFeature
 
 namespace TapeDetail {
@@ -899,6 +908,11 @@ public:
     PODVector<uint32_t> m_partSurfaceLabels;
 
     /**
+     * @brief Each region's program, from region 1 (TapeFeature::Regions); empty without the feature or an Overlay.
+     */
+    PODVector<uint32_t> m_regionPrograms;
+
+    /**
      * @brief How many distinct labels the expression has.
      */
     uint32_t m_numLabels = 0;
@@ -1177,6 +1191,46 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getNumSurfaceLabels() const noexcept;
+
+  /**
+   * @brief How many regions the object has (TapeFeature::Regions): the background (region 0) and one per operand of
+   * its Overlays, numbered as ExprIndex numbers them; 2 for an object with no Overlay (the outside and the object).
+   * @return The count.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumRegions() const noexcept;
+
+  /**
+   * @brief The region a point is in (TapeFeature::Regions): the last operand of the Overlays whose solid holds it
+   * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region.
+   * Callable on a device.
+   * @param[in] a_point Point.
+   * @return The region.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  region(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief A region's implicit function (TapeFeature::Regions): negative exactly inside the region, its zero
+   * contour the region's surface, interfaces with other regions included. For region k it is max(S_k, -min of the
+   * later S_j), S_j being operand j's solid; for the background, minus signedDistance(). A distance bound, exact
+   * near a smooth piece of surface of exact operands; what a cut-cell code cuts for one region. Callable on a
+   * device.
+   * @param[in] a_point  Point.
+   * @param[in] a_region Region (below getNumRegions()).
+   * @return The value.
+   * @tparam F TapeFeature::Regions: the function exists only for a tape that lists it.
+   */
+  template <class F = TapeFeature::Regions, class = std::enable_if_t<hasFeature<F>>>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  signedDistance(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
 
   /**
    * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when
