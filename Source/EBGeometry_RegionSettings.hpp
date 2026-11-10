@@ -101,6 +101,12 @@ struct RegionSettings
   uint32_t m_through[MaxSeenThrough] = {None, None, None, None, None, None, None, None};
 
   /**
+   * @brief The regions seen through, a bit each (bit k for region k; regions from 64 on never are): every surface shown
+   * as the region's, whatever the coloring, as the keys of m_through are.
+   */
+  uint64_t m_throughRegions = 0U;
+
+  /**
    * @brief A solver's groups of surfaces (RegionColoring::SurfaceGroup colors by them).
    */
   Scheme m_scheme;
@@ -340,7 +346,35 @@ struct RegionSettings
   }
 
   /**
-   * @brief Make every surface opaque.
+   * @brief Whether a region is seen through (m_throughRegions).
+   * @param[in] a_region The region.
+   * @return True if it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isRegionSeenThrough(const uint32_t a_region) const noexcept
+  {
+    return a_region < 64U && ((m_throughRegions >> a_region) & 1U) != 0U;
+  }
+
+  /**
+   * @brief See through a region, or make it opaque again (regions from 64 on are left as they are).
+   * @param[in] a_region  The region.
+   * @param[in] a_through Whether to see through it.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  setRegionSeenThrough(const uint32_t a_region, const bool a_through) noexcept
+  {
+    if (a_region < 64U) {
+      const uint64_t bit = uint64_t(1) << a_region;
+
+      m_throughRegions = a_through ? (m_throughRegions | bit) : (m_throughRegions & ~bit);
+    }
+  }
+
+  /**
+   * @brief Make every surface opaque: no key and no region seen through.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
@@ -349,6 +383,8 @@ struct RegionSettings
     for (uint32_t i = 0; i < MaxSeenThrough; i++) {
       m_through[i] = None;
     }
+
+    m_throughRegions = 0U;
   }
 
   /**

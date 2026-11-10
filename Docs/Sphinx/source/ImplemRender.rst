@@ -250,8 +250,9 @@ taking it out), highlighted (``RegionSettings::m_selected`` in a program) and ou
 rims included, where the object does not hide them, with ``[Pick nothing]`` and the ways to
 add it to the current surface group, each saying how many of the object's pieces it takes in: what is picked, the
 whole pieces with all their parts, all of their surfaces, all surfaces of their regions, or everything between their
-two regions; and a button to remove them; the regions, each shown or hidden by its box (``[~]`` while it is seen through, T under
-the region or material coloring; a click on it makes it opaque again) and highlighted by a click on its name (every
+two regions; and a button to remove them; the regions, each shown or hidden by its box (``[~]`` while it is seen through, by its ``[t]`` or by T under
+the region or material coloring; a click on it makes it opaque again), made translucent by its ``[t]``
+(``RegionSettings::setRegionSeenThrough()``, whatever the coloring) and highlighted by a click on its name (every
 surface with it on either side lights; the background is listed and highlighted so, never drawn); and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;

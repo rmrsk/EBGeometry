@@ -1698,6 +1698,34 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
   settings.m_regions.setSeenThrough(1, true);
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, T(size / 2), T(size / 2)).m_primitive == 2U);
+
+  // The jacket seen through as a region, whatever the coloring: the same, colored by material too; Shift + T's
+  // clearSeenThrough() makes it opaque again.
+  settings.m_regions.clearSeenThrough();
+  settings.m_regions.setRegionSeenThrough(1, true);
+
+  CHECK(settings.m_regions.isRegionSeenThrough(1));
+  CHECK(!settings.m_regions.isRegionSeenThrough(2));
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, T(size / 2), T(size / 2)).m_primitive == 2U);
+
+  settings.m_regions.m_coloring = RegionColoring::Material;
+
+  const RayT<T> into{camera.eye(), (Vec3T<T>::zeros() - camera.eye()) / (Vec3T<T>::zeros() - camera.eye()).length()};
+  const RegionView<Tape> regionThrough = view.withSettings(settings.m_regions);
+
+  const HitT<T> veil = regionThrough.firstSeenThrough(into, T(0), T(100), RayOptions<T>());
+  const HitT<T> seen = regionThrough.firstHit(into, T(0), T(100), RayOptions<T>());
+
+  REQUIRE(veil.hit());
+  REQUIRE(seen.hit());
+  CHECK(veil.m_t < seen.m_t);
+  CHECK_THAT(veil.m_t, withinAbsT<T>((camera.eye()).length() - T(1), looseMargin<T>()));
+  CHECK_THAT(seen.m_t, withinAbsT<T>((camera.eye()).length() - T(0.5), looseMargin<T>()));
+
+  settings.m_regions.clearSeenThrough();
+
+  CHECK(!settings.m_regions.isRegionSeenThrough(1));
+  CHECK(!view.withSettings(settings.m_regions).firstSeenThrough(into, T(0), T(100), RayOptions<T>()).hit());
 }
 
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",

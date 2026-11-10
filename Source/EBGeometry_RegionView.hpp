@@ -197,7 +197,7 @@ public:
   inline HitT<T>
   firstSeenThrough(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
-    bool any = false;
+    bool any = m_settings.m_throughRegions != 0U;
 
     for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
       any = any || m_settings.m_through[i] != None;
@@ -286,7 +286,7 @@ private:
         }
 
         const uint32_t key     = this->keyOf(change.m_surface, seen);
-        const bool     through = this->isSeenThrough(key);
+        const bool     through = this->isSeenThrough(key) || m_settings.isRegionSeenThrough(seen);
 
         if (m_settings.m_only != None && key != m_settings.m_only) {
           continue;
