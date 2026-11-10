@@ -2602,8 +2602,9 @@ Tape<T, UserPrimitives...>::traceBody(const uint32_t       a_program,
                                       const T              a_tMax,
                                       const RayOptions<T>& a_options) const noexcept
 {
-  // The whole object's program is the constant 0.
-  const uint32_t program = Whole ? 0U : a_program;
+  // The whole object's program is 0. Not const: a constant (for the whole object) would need no capture in the lambdas
+  // below, which clang rejects as an unused capture; the compiler folds it all the same.
+  uint32_t program = Whole ? 0U : a_program;
 
   const void*        base     = this->base();
   const PoolLocation location = this->location();
@@ -3948,11 +3949,18 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
 
   uint32_t met = 0U;
 
-  // On a tie (two later solids sharing a mask's face), the later one, which lies on top.
+  // On a tie (two later solids sharing a mask's face, which decides both), the later one, which lies on top, where its
+  // own operand reaches the point: elsewhere on the face the earlier one shows there.
   for (uint32_t j = a_region + 1U; j <= n; j++) {
     const V value = this->regionSolidTagged(j, this->sharedMasks(a_region, j), a_point);
 
-    if (value.m_value <= later.m_value) {
+    const bool tie = (value.m_value == later.m_value) && met != 0U;
+    const bool top =
+      tie &&
+      this->regionSolid(
+        j, m_layout.m_regionPrograms.at(this->base(), m_layout.m_regionPrograms.at(this->base(), j)), a_point) < T(0);
+
+    if (value.m_value < later.m_value || top) {
       later = value;
       met   = j;
     }

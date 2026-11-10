@@ -1258,7 +1258,8 @@ public:
   getLeafOfSurface(uint32_t a_surface) const;
 
   /**
-   * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included.
+   * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included, except that a label
+   * above a chain of maps relabels the object below them (see SurfaceLabel()).
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
    * @return The label, or none if no node on the path has one.
    */

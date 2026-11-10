@@ -1161,7 +1161,8 @@ public:
   getLargestPlainUnion() const noexcept;
 
   /**
-   * @brief A leaf's label: that of the nearest node above it, or of the leaf itself, that SurfaceLabel() named.
+   * @brief A leaf's label, as SurfaceLabel() resolves it (ExprIndex::getSurfaceLabel()): the nearest label above the
+   * leaf, the leaf's own included, but a label above a chain of maps relabels the object below them.
    * @details Labels are numbered from 0 in the order their names first appear in the expression, depth first,
    * as ExprIndex numbers them, which also holds the names. A device reads the label from the tape's pool, so
    * per-label data (a boundary condition, a restitution coefficient) is an array indexed by it.

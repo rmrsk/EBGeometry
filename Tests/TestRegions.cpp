@@ -415,6 +415,21 @@ TEMPLATE_TEST_CASE("Tape: a region's surface names the region across it, past a 
     CHECK(tape.closestSurface(out, 1U).m_neighborRegion == 3U);
     CHECK(tape.closestSurface(in, 3U).m_neighborRegion == 1U);
   }
+
+  // On a shared mask's face, but where the one on top does not reach it: two concentric spheres clipped together
+  // (x < 0.2) on a big one. Beside the face, outside the inner sphere, the region across is the outer one (2).
+  {
+    const Expr<T> pair    = Overlay(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::zeros(), T(0.5)));
+    const Expr<T> clipped = Intersection(pair, BoxSDF<T>(Vec3(T(-5), T(-5), T(-5)), Vec3(T(0.2), T(5), T(5))));
+    const Tape<T> tape(pool, Overlay(SphereSDF<T>(Vec3::zeros(), T(3)), clipped));
+
+    const Vec3 p(T(0.214), T(-0.462), T(-0.031));
+
+    REQUIRE(tape.region(p) == 1U);
+    REQUIRE(tape.region(Vec3(T(0.1999), T(-0.462), T(-0.031))) == 2U);
+
+    CHECK(tape.closestSurface(p, 1U).m_neighborRegion == 2U);
+  }
 }
 
 TEMPLATE_TEST_CASE("Tape: a clipped Overlay used twice under different maps clips each copy with a mask of its own",
@@ -1856,7 +1871,7 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
   names.setColor("PTFE", Vec3T<double>(0.5, 0.5, 0.5));
   names.setColor("jump", Vec3T<double>(0.0, 0.0, 1.0));
 
-  Vec3T<double> color;
+  Vec3T<double> color = Vec3T<double>::zeros();
 
   CHECK(names.colorOf(RegionColoring::Material, 0, color));
   CHECK(color[0] == 0.5);

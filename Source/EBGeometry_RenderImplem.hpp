@@ -1696,8 +1696,8 @@ private:
     // The field is a distance in space: where a surface meets the plane at a shallow angle it changes along the plane
     // by much less than one per unit of length, and a line drawn where it is small widened into a band. Divided by
     // the slope, it is the distance along the plane, and every line is as wide on screen however the surface meets the
-    // plane. Where the field is flat along the plane (a ridge, the middle between two surfaces, a face lying in the plane)
-    // no line is drawn, rather than a blob.
+    // plane. Where the field is flat along the plane (a face lying in it) no line is drawn, and elsewhere the slope is kept
+    // above a floor (below).
     const Vec3T<T>& n = m_object.m_normal;
     const Vec3T<T>  a = cross(n, Vec3T<T>::unit(n.minDir(true)));
     const Vec3T<T>  u = a / a.length();
@@ -1731,8 +1731,9 @@ private:
 
       const T steep = std::sqrt(du * du + dv * dv);
 
-      // Flat along the plane (a ridge, the middle between two surfaces, a face lying in the plane): no line.
-      slope = (steep < T(0.05)) ? Math::Limits<T>::min() : steep;
+      // Flat along the plane (a face lying in it): no line. Otherwise the slope is kept above a floor, so that a
+      // surface meeting the plane at a few degrees keeps its contour, and a ridge draws a thin one, not a blob.
+      slope = (steep < T(1e-3)) ? Math::Limits<T>::min() : Math::max(steep, T(0.05));
     }
 
     const T field = sample.m_value / slope;

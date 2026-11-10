@@ -670,6 +670,30 @@ TEMPLATE_TEST_CASE("Render: the section's contour lies on the cut edge, however 
     CHECK(last >= edge);
     CHECK(last <= edge + 3);
   }
+
+  // A face tilted 2 degrees through the plane: the field changes little along the plane, yet the contour is drawn, on
+  // the line where the face crosses it (through the image's center).
+  {
+    const Expr<T> tilted = Rotate(BoxSDF<T>(-Vec3::ones(), Vec3(T(1), T(1), T(0))), T(2), 1);
+    Pool          pool(hostMemoryResource());
+    const Tape<T> tape(pool, tilted);
+
+    Render::Image image;
+
+    (void)Render::Renderer<T>(settings).render(tape, camera, image);
+
+    int green = 0;
+
+    for (int dy = -2; dy <= 2; dy++) {
+      for (int dx = -2; dx <= 2; dx++) {
+        const Channels c = channels(image.at(uint32_t(int(size / 2) + dx), uint32_t(int(size / 2) + dy)));
+
+        green += (c.g > 150 && c.r < 100 && c.b < 100) ? 1 : 0;
+      }
+    }
+
+    CHECK(green > 0);
+  }
 }
 
 TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
