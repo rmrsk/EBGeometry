@@ -185,6 +185,11 @@ opened with them.
        opaque again; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
+   * - Z
+     - The slice view: the section plane flat on screen, seen square from the removed side by an orthographic camera,
+       without the floor and shadows (a plane across x is turned on first if there is none). The wheel moves the plane
+       through the object, a drag pans, + and - zoom, and X and N turn the view with the plane. Z again, Ctrl + X, O
+       or R leave it, the camera as it was before.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
        of the box's diagonal, every 1/50, every 1/100.

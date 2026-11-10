@@ -138,58 +138,60 @@ struct KeyGroup
 inline std::vector<KeyGroup>
 keys(const bool a_device, const bool a_regions = false)
 {
-  std::vector<KeyGroup> groups{{"Camera and light",
-                                "Camera",
-                                {{nullptr, "Camera"},
-                                 {"Drag", "Orbit the camera"},
-                                 {"Ctrl + drag", "Pan the camera"},
-                                 {"Wheel", "Zoom"},
-                                 {"Double-click", "Center the camera on the point under the cursor"},
-                                 {"1, 2, 3", "Look from the front, the side, the top"},
-                                 {"O", "Switch between perspective and orthographic"},
-                                 {"+, -", "Narrower or wider field of view"},
-                                 {"R", "Reset the camera, the light, what is picked and what is shown"},
-                                 {nullptr, "Light"},
-                                 {"Right drag", "Move the light"},
-                                 {"Left, Right", "Weaker or stronger highlights"},
-                                 {"Shift + Left, Right", "Broader or tighter highlights"}}},
-                               {"Rendering",
-                                "Rendering",
-                                {{"M, Shift + M", "Next or previous view: shaded, depth, x-ray, costs"},
-                                 {"P", "Next coloring: by normal, one color, by object"},
-                                 {"S", "Shadows on or off"},
-                                 {"A", "Ambient occlusion on or off"},
-                                 {"F", "Floor on or off"},
-                                 {"B", "Sky on or off"},
-                                 {"Shift + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
-                               {"Section and contours",
-                                "Section",
-                                {{"X", "Cut across x, then y, then z"},
-                                 {"Ctrl + X", "Remove the cut"},
-                                 {"Shift + X", "See through the cut face, or make it opaque"},
-                                 {"N", "Reverse the cut (keep the other side)"},
-                                 {"Up, Down", "Move the plane in coarse steps"},
-                                 {"Ctrl + wheel", "Move the plane in fine steps"},
-                                 {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
-                               {"Picking and measuring",
-                                "Picking",
-                                {{"Click", "Pick what is under the cursor (the background clears it)"},
-                                 {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
-                                 {"T", "See through the picked surface, or make it opaque again"},
-                                 {"Shift + T", "Make every surface opaque again"},
-                                 {"Shift + click", "Measure between two points (the background clears it)"},
-                                 {"Right click",
-                                  "Probe a point: where it is, its region and functions (the background "
-                                  "clears it)"}}},
-                               {"Window",
-                                "Window",
-                                {{"Tab, Shift + Tab", "Next or previous menu"},
-                                 {"F1 to F6", "Show a menu"},
-                                 {"H", "Hide or show the menu"},
-                                 {"D", "Show or hide details (numbers, coordinates, statistics)"},
-                                 {"C", "Print the camera and settings as C++"},
-                                 {"W", "Save the full frame as a PPM image"},
-                                 {"Esc, Q", "Close the window"}}}};
+  std::vector<KeyGroup> groups{
+    {"Camera and light",
+     "Camera",
+     {{nullptr, "Camera"},
+      {"Drag", "Orbit the camera"},
+      {"Ctrl + drag", "Pan the camera"},
+      {"Wheel", "Zoom"},
+      {"Double-click", "Center the camera on the point under the cursor"},
+      {"1, 2, 3", "Look from the front, the side, the top"},
+      {"O", "Switch between perspective and orthographic"},
+      {"+, -", "Narrower or wider field of view"},
+      {"R", "Reset the camera, the light, what is picked and what is shown"},
+      {nullptr, "Light"},
+      {"Right drag", "Move the light"},
+      {"Left, Right", "Weaker or stronger highlights"},
+      {"Shift + Left, Right", "Broader or tighter highlights"}}},
+    {"Rendering",
+     "Rendering",
+     {{"M, Shift + M", "Next or previous view: shaded, depth, x-ray, costs"},
+      {"P", "Next coloring: by normal, one color, by object"},
+      {"S", "Shadows on or off"},
+      {"A", "Ambient occlusion on or off"},
+      {"F", "Floor on or off"},
+      {"B", "Sky on or off"},
+      {"Shift + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
+    {"Section and contours",
+     "Section",
+     {{"X", "Cut across x, then y, then z"},
+      {"Ctrl + X", "Remove the cut"},
+      {"Shift + X", "See through the cut face, or make it opaque"},
+      {"N", "Reverse the cut (keep the other side)"},
+      {"Up, Down", "Move the plane in coarse steps"},
+      {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
+      {"Ctrl + wheel", "Move the plane in fine steps"},
+      {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
+    {"Picking and measuring",
+     "Picking",
+     {{"Click", "Pick what is under the cursor (the background clears it)"},
+      {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
+      {"T", "See through the picked surface, or make it opaque again"},
+      {"Shift + T", "Make every surface opaque again"},
+      {"Shift + click", "Measure between two points (the background clears it)"},
+      {"Right click",
+       "Probe a point: where it is, its region and functions (the background "
+       "clears it)"}}},
+    {"Window",
+     "Window",
+     {{"Tab, Shift + Tab", "Next or previous menu"},
+      {"F1 to F6", "Show a menu"},
+      {"H", "Hide or show the menu"},
+      {"D", "Show or hide details (numbers, coordinates, statistics)"},
+      {"C", "Print the camera and settings as C++"},
+      {"W", "Save the full frame as a PPM image"},
+      {"Esc, Q", "Close the window"}}}};
 
   if (a_device) {
     groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
@@ -928,6 +930,15 @@ run(const S&           a_shape,
   T              sectionOffset = T(0);
 
   const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
+
+  // The slice view (Z): the section plane flat on screen, seen square from the removed side by an orthographic camera,
+  // without the floor and shadows; the wheel moves the plane and a drag pans. The camera and the settings it changes,
+  // as they were, to go back to.
+  bool      slicing        = false;
+  Camera<T> beforeSlice    = camera;
+  bool      sliceFloor     = settings.m_floor;
+  bool      sliceShadows   = settings.m_shadows;
+  bool      sliceOcclusion = settings.m_occlusion;
 
   // The views, in the order of ViewMode, for the overlay and the window's title.
   const char* viewNames[] = {
@@ -1794,6 +1805,33 @@ run(const S&           a_shape,
     return renderer.render(a_host, a_view, a_image);
   };
 
+  // The slice view's camera turned square to the plane, from its removed side; its target, distance and field of view
+  // kept (a pan or a zoom).
+  const auto aimAtSlice = [&]() {
+    const Settings<T> frame = stageSettings(2);
+    const Vec3T<T>    n     = RenderDetail::unit(frame.m_sectionNormal);
+
+    Vec3T<T> first;
+    Vec3T<T> second;
+
+    camera.horizontal(first, second);
+
+    camera.m_orthographic = true;
+    camera.m_pitch = std::asin(Math::clamp(dot(n, RenderDetail::unit(camera.m_up)), T(-1), T(1))) * T(180) / pi<T>;
+    camera.m_yaw   = std::atan2(dot(n, first), dot(n, second)) * T(180) / pi<T>;
+  };
+
+  // Leave the slice view: the camera and the settings as they were before it.
+  const auto leaveSlice = [&]() {
+    if (slicing) {
+      camera               = beforeSlice;
+      settings.m_floor     = sliceFloor;
+      settings.m_shadows   = sliceShadows;
+      settings.m_occlusion = sliceOcclusion;
+      slicing              = false;
+    }
+  };
+
   // The point under the cursor (window coordinates) on the section plane, within the shape's box, and the
   // shape's value there: the ray PixelQuery casts through it, met with the plane.
   const auto readCursor = [&](const int a_x, const int a_y) {
@@ -1925,9 +1963,9 @@ run(const S&           a_shape,
         std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
           std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
       {{std::string("Cut: ") + sectionNames[sectionMode] +
-          ((sectionMode != 0)
-             ? std::string(sectionFlip ? ", reversed" : "") + ", moved " + fixed(double(sectionOffset), 3)
-             : std::string()),
+          ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") + ", moved " +
+                                  fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
+                              : std::string()),
         (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
                                        : std::string("No lines of equal distance")},
        {"Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
@@ -2912,7 +2950,8 @@ run(const S&           a_shape,
       case SDL_MOUSEBUTTONDOWN: {
         // A drag orbits the camera, or pans it with Ctrl held; a drag with the right button moves the light.
         if (event.button.button == SDL_BUTTON_LEFT) {
-          panning  = (SDL_GetModState() & KMOD_CTRL) != 0;
+          // In the slice view a drag pans: an orbit would turn the plane away.
+          panning  = slicing || (SDL_GetModState() & KMOD_CTRL) != 0;
           dragging = !panning;
           pressX   = event.button.x;
           pressY   = event.button.y;
@@ -3597,6 +3636,10 @@ run(const S&           a_shape,
           else if ((SDL_GetModState() & KMOD_CTRL) != 0 && sectionMode != 0) {
             sectionOffset += T(0.005) * scale * T(event.wheel.y);
           }
+          else if (slicing) {
+            // In the slice view the wheel moves the plane through the object, in coarse steps.
+            sectionOffset += T(0.02) * scale * T(event.wheel.y);
+          }
           else {
             camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
 
@@ -3688,6 +3731,44 @@ run(const S&           a_shape,
         }
         case SDLK_o: {
           camera.m_orthographic = !camera.m_orthographic;
+
+          break;
+        }
+        case SDLK_z: {
+          // The slice view, or back to the view before it. Without a plane, it cuts across x first.
+          if (slicing) {
+            leaveSlice();
+
+            break;
+          }
+
+          if (sectionMode == 0) {
+            if constexpr (hasRegionVisibility<S>) {
+              RegionSettings& regions = settings.m_regions;
+
+              if (names.getNumDomains() > 0U && !regions.m_sectionDomain && regions.m_sectionRegions == 0U) {
+                regions.m_sectionDomain = true;
+
+                sectionLabels();
+              }
+            }
+
+            sectionMode   = 2;
+            sectionOffset = T(0);
+          }
+
+          beforeSlice    = camera;
+          sliceFloor     = settings.m_floor;
+          sliceShadows   = settings.m_shadows;
+          sliceOcclusion = settings.m_occlusion;
+
+          settings.m_floor     = false;
+          settings.m_shadows   = false;
+          settings.m_occlusion = false;
+          camera.m_target      = center;
+          slicing              = true;
+
+          aimAtSlice();
 
           break;
         }
@@ -4169,7 +4250,9 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_r: {
-          // The camera, the light and the picked surfaces, as the window opened with them.
+          // The camera, the light and the picked surfaces, as the window opened with them (out of the slice view).
+          leaveSlice();
+
           camera                        = a_camera;
           settings.m_light              = a_settings.m_light;
           settings.m_hidden             = a_settings.m_hidden;
@@ -4229,6 +4312,14 @@ run(const S&           a_shape,
 
     // The camera or the settings changed: drop any refinement, and draw a preview now.
     if (changed) {
+      // The slice view follows the plane (X, N), and ends with it (Ctrl + X) or with a perspective camera (O).
+      if (slicing && (sectionMode == 0 || !camera.m_orthographic)) {
+        leaveSlice();
+      }
+      else if (slicing) {
+        aimAtSlice();
+      }
+
       if (job != nullptr) {
         job->stop();
         job.reset();
