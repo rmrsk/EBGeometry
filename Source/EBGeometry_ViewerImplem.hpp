@@ -485,13 +485,12 @@ enum class PanelAction : uint8_t
   HideDomain,         ///< Hide the active domain's regions.
   OnlyDomain,         ///< Show only the active domain's regions.
   ShowAllRegions,     ///< Show every region again.
-  HighlightRegion,    ///< Highlight a region's surfaces (those with it on either side), or stop.
-  SeeThroughRegion    ///< See through a region (translucent), or make it opaque again.
+  HighlightRegion     ///< Highlight a region's surfaces (those with it on either side), or stop.
 };
 
 /**
  * @brief A line of the viewer's overlay or panel, leading with a capital letter: the first letter past its
- * indentation and its markers ("> ", "[x] ", "[~] ", "[ ] ", "[t] ") is capitalized.
+ * indentation and its markers ("> ", "[x] ", "[~] ", "[ ] ") is capitalized.
  * @details Internal helper; not part of the public API.
  * @param[in] a_line The line.
  * @return The line.
@@ -505,7 +504,7 @@ sentenceCase(std::string a_line)
     return a_line;
   }
 
-  for (const char* marker : {"> ", "[x] ", "[~] ", "[ ] ", "[t] "}) {
+  for (const char* marker : {"> ", "[x] ", "[~] ", "[ ] "}) {
     if (a_line.compare(i, std::strlen(marker), marker) == 0) {
       i += std::strlen(marker);
     }
@@ -1657,13 +1656,21 @@ run(const S&           a_shape,
     frame.m_sectionNormal = normal;
     frame.m_sectionPoint  = point + sectionOffset * normal;
 
-    // While stepping through the surfaces under the cursor, those in front of the one picked are seen through, in
-    // the entries of m_hidden left free.
-    std::size_t next = 0;
+    // While stepping through the surfaces under the cursor, those in front of the one picked are seen through: for a
+    // view of regions drawn translucent, as its keys seen through (T) are; otherwise left out, in the entries of
+    // m_hidden left free.
+    if constexpr (hasRegionVisibility<S>) {
+      for (const uint32_t id : depthHidden) {
+        frame.m_regions.setSeenThrough(id, true);
+      }
+    }
+    else {
+      std::size_t next = 0;
 
-    for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives && next < depthHidden.size(); i++) {
-      if (frame.m_hidden[i] == Settings<T>::NoPrimitive) {
-        frame.m_hidden[i] = depthHidden[next++];
+      for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives && next < depthHidden.size(); i++) {
+        if (frame.m_hidden[i] == Settings<T>::NoPrimitive) {
+          frame.m_hidden[i] = depthHidden[next++];
+        }
       }
     }
 
@@ -2283,13 +2290,13 @@ run(const S&           a_shape,
       }
 
       line("");
-      line("Regions (box: show or hide, ~ seen through; t: translucent; name: highlight)");
+      line("Regions (box: shown, ~ translucent, off; name: highlight)");
 
       // The background, everything outside: never drawn, but named, with its material's color.
-      line("          " + region(0) + ", outside everything" +
+      line("      " + region(0) + ", outside everything" +
            (regions.isRegionHighlighted(0) && regions.m_highlightRegions == 1U ? " (highlighted)" : ""));
 
-      panelActions.back().push_back(PanelSpan{10, panelLines.back().size(), PanelAction::HighlightRegion, 0U});
+      panelActions.back().push_back(PanelSpan{6, panelLines.back().size(), PanelAction::HighlightRegion, 0U});
 
       if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Material) {
         swatch(names.materialOf(0));
@@ -2305,12 +2312,11 @@ run(const S&           a_shape,
         line(std::string(!shown    ? "  [ ] "
                          : through ? "  [~] "
                                    : "  [x] ") +
-             "[t] " + region(k) + (inDomain ? ", in the domain" : "") + (through ? ", seen through" : "") +
+             region(k) + (inDomain ? ", in the domain" : "") + (through ? ", translucent" : "") +
              ((k < 64U && regions.m_highlightRegions == (uint64_t(1) << k)) ? " (highlighted)" : ""));
 
         panelActions.back().push_back(PanelSpan{2, 5, PanelAction::ToggleRegion, k});
-        panelActions.back().push_back(PanelSpan{6, 9, PanelAction::SeeThroughRegion, k});
-        panelActions.back().push_back(PanelSpan{10, panelLines.back().size(), PanelAction::HighlightRegion, k});
+        panelActions.back().push_back(PanelSpan{6, panelLines.back().size(), PanelAction::HighlightRegion, k});
 
         if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::Region) {
           swatch(k);
@@ -2946,36 +2952,30 @@ run(const S&           a_shape,
 
                   break;
                 }
-                case PanelAction::SeeThroughRegion: {
-                  // The region translucent (see Settings::m_seenThroughOpacity), or opaque again; shown if hidden.
-                  const bool through = !regions.isRegionSeenThrough(clicked.m_value);
-
-                  regions.setRegionSeenThrough(clicked.m_value, through);
-
-                  if (through) {
-                    regions.setVisible(clicked.m_value, true);
-                  }
-
-                  rekeyPick();
-
-                  break;
-                }
                 case PanelAction::ToggleRegion: {
-                  // A region seen through is made opaque again; otherwise the box shows or hides it.
-                  if (regions.isVisible(clicked.m_value, shape.getNumRegions()) && regionSeenThrough(clicked.m_value)) {
-                    const MaterialLabelId material = shape.getTape().getMaterialOf(clicked.m_value);
+                  // The box cycles: shown, translucent (see Settings::m_seenThroughOpacity), off, shown again. A
+                  // region seen through by its key (T) is translucent too; turned off, its key is made opaque.
+                  const uint32_t k = clicked.m_value;
 
-                    regions.setRegionSeenThrough(clicked.m_value, false);
+                  if (!regions.isVisible(k, shape.getNumRegions())) {
+                    regions.setVisible(k, true);
+                  }
+                  else if (!regionSeenThrough(k)) {
+                    regions.setRegionSeenThrough(k, true);
+                  }
+                  else {
+                    const MaterialLabelId material = shape.getTape().getMaterialOf(k);
+
+                    regions.setRegionSeenThrough(k, false);
 
                     if (regions.m_coloring == RegionColoring::Region) {
-                      regions.setSeenThrough(clicked.m_value, false);
+                      regions.setSeenThrough(k, false);
                     }
                     else if (regions.m_coloring == RegionColoring::Material && !material.isNone()) {
                       regions.setSeenThrough(material.value(), false);
                     }
-                  }
-                  else {
-                    regions.setVisible(clicked.m_value, !regions.isVisible(clicked.m_value, shape.getNumRegions()));
+
+                    regions.setVisible(k, false);
                   }
 
                   rekeyPick();
