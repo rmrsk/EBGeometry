@@ -140,7 +140,7 @@ plane and the shape's value there; Shift and a click on two surfaces measures th
 
 M cycles the views, Shift + M backwards. T makes the picked surface see-through (or opaque again), so that what is behind or
 inside it can be picked and looked at; for a view of regions it is drawn translucent (``Settings::m_seenThroughOpacity``,
-up to four along each ray), and a pick passes through it; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
+up to four along each ray), and a pick passes through it; what is picked or highlighted stays solid; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
 each is picked in turn, and those in front of it are seen through while stepping (drawn translucent for a view of
 regions; for a mesh SDF, whose
 primitives are its faces, only the faces under the cursor); a click, or moving the camera, keeps the one stepped to

@@ -286,9 +286,18 @@ private:
           return hit;
         }
 
-        const uint32_t key     = this->keyOf(change.m_surface, seen);
-        const bool     through = this->isSeenThrough(key) || m_settings.isRegionSeenThrough(seen) ||
-                             m_settings.isSurfaceGroupSeenThrough(group);
+        const uint32_t key = this->keyOf(change.m_surface, seen);
+
+        // The surfaces of the highlighted surface group or regions, whatever the coloring; a selected one, by its
+        // entry. Either is never seen through: what is highlighted or picked stays solid.
+        const bool lit = (m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) ||
+                         m_settings.isRegionHighlighted(from) || m_settings.isRegionHighlighted(to);
+        const uint32_t chosen =
+          (!lit && m_settings.m_numSelected != 0U) ? m_settings.selectionOf(change.m_surface) : None;
+
+        const bool through = !lit && chosen == None &&
+                             (this->isSeenThrough(key) || m_settings.isRegionSeenThrough(seen) ||
+                              m_settings.isSurfaceGroupSeenThrough(group));
 
         if (m_settings.m_only != None && key != m_settings.m_only) {
           continue;
@@ -309,18 +318,9 @@ private:
           continue;
         }
 
-        hit.m_primitive = key;
-
-        // The surfaces of the highlighted surface group, whatever the coloring; a selected one, by its entry.
-        if ((m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) ||
-            m_settings.isRegionHighlighted(from) || m_settings.isRegionHighlighted(to)) {
-          hit.m_primitive = RegionSettings::Highlighted;
-        }
-        else if (m_settings.m_numSelected != 0U) {
-          const uint32_t entry = m_settings.selectionOf(change.m_surface);
-
-          hit.m_primitive = (entry != None) ? RegionSettings::Selected + entry : hit.m_primitive;
-        }
+        hit.m_primitive = lit                ? RegionSettings::Highlighted
+                          : (chosen != None) ? RegionSettings::Selected + chosen
+                                             : key;
 
         return hit;
       }

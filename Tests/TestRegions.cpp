@@ -1722,6 +1722,30 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
   CHECK_THAT(veil.m_t, withinAbsT<T>((camera.eye()).length() - T(1), looseMargin<T>()));
   CHECK_THAT(seen.m_t, withinAbsT<T>((camera.eye()).length() - T(0.5), looseMargin<T>()));
 
+  // What is highlighted or picked stays solid: the jacket seen through but highlighted, or with its outside picked, is
+  // hit, keyed so, and nothing in front of it is seen through.
+  {
+    RegionSettings lit = settings.m_regions;
+
+    lit.m_highlightRegions = uint64_t(1) << 1;
+
+    const HitT<T> highlighted = view.withSettings(lit).firstHit(into, T(0), T(100), RayOptions<T>());
+
+    CHECK(highlighted.m_primitive == RegionSettings::Highlighted);
+    CHECK_THAT(highlighted.m_t, withinAbsT<T>((camera.eye()).length() - T(1), looseMargin<T>()));
+    CHECK(!view.withSettings(lit).firstSeenThrough(into, T(0), T(100), RayOptions<T>()).hit());
+
+    RegionSettings chosen = settings.m_regions;
+
+    chosen.m_numSelected = 1U;
+    chosen.m_selected[0] = SurfaceSelector::interface(1, 0);
+
+    const HitT<T> picked = view.withSettings(chosen).firstHit(into, T(0), T(100), RayOptions<T>());
+
+    CHECK(picked.m_primitive == RegionSettings::Selected);
+    CHECK_THAT(picked.m_t, withinAbsT<T>((camera.eye()).length() - T(1), looseMargin<T>()));
+  }
+
   // A surface group seen through: the jacket's outside, in group 0. A pick passes through it to the core, and it is
   // the layer in front.
   settings.m_regions.clearSeenThrough();

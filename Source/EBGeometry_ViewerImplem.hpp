@@ -1700,6 +1700,18 @@ run(const S&           a_shape,
       for (const uint32_t id : depthHidden) {
         frame.m_regions.setSeenThrough(id, true);
       }
+
+      // The surface stepped to is shown as picked, and so solid even where it is seen through.
+      if (!depthHits.empty()) {
+        const SurfaceRef<T> piece = shape.pieceAt(pick.m_point, pick.m_normal);
+
+        if (piece.m_surface != SurfaceRef<T>::None) {
+          frame.m_regions.m_numSelected = 1U;
+          frame.m_regions.m_selected[0] = selectorOf(piece);
+          frame.m_highlightPrimitive    = RegionSettings::Selected;
+          frame.m_highlightCount        = 1U;
+        }
+      }
     }
     else {
       std::size_t next = 0;
@@ -3540,8 +3552,14 @@ run(const S&           a_shape,
 
             Settings<T> frame = stageSettings(2);
 
-            // The surfaces are listed as the user's settings show them, without those stepped past.
+            // The surfaces are listed as the user's settings show them, without those stepped past, the translucent
+            // ones included (a view of regions): stepping onto one picks it.
             frame.m_hidden = settings.m_hidden;
+
+            if constexpr (hasRegionVisibility<S>) {
+              frame.m_regions.clearSeenThrough();
+              frame.m_regions.m_numSelected = 0U;
+            }
 
             const T column = T(mouseX) * T(frame.m_width) / T(Math::max(windowWidth, 1));
             const T row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
