@@ -1451,7 +1451,7 @@ private:
       (RenderDetail::HasContourSample<S, T>::value || RenderDetail::HasContourValue<S, T>::value)
         ? m_object.contourDistance(q)
         : ContourSample<T>{value};
-    // The field's slope along the plane, from one step of a pixel's width along each of two directions in it.
+    // The field's slope along the plane, from steps of a pixel's width along two directions in it.
     // The field is a distance in space: where a surface meets the plane at a shallow angle it changes along the plane
     // by much less than one per unit of length, and a line drawn where it is small widened into a band. Divided by
     // the slope, it is the distance along the plane, and every line is as wide on screen however the surface meets the
@@ -1462,8 +1462,16 @@ private:
     const Vec3T<T>  u = a / a.length();
     const Vec3T<T>  v = cross(n, u);
 
-    const T du    = (m_object.contourDistance(q + width * u).m_value - sample.m_value) / width;
-    const T dv    = (m_object.contourDistance(q + width * v).m_value - sample.m_value) / width;
+    // Each direction takes the steeper of a step forward and one back: the field can have a kink at zero (it is zero on
+    // an interface between two regions), and one step across it saw the field come back up to about where it was.
+    const T f  = sample.m_value;
+    const T du = Math::max(std::abs(m_object.contourDistance(q + width * u).m_value - f),
+                           std::abs(m_object.contourDistance(q - width * u).m_value - f)) /
+                 width;
+    const T dv = Math::max(std::abs(m_object.contourDistance(q + width * v).m_value - f),
+                           std::abs(m_object.contourDistance(q - width * v).m_value - f)) /
+                 width;
+
     const T slope = Math::max(std::sqrt(du * du + dv * dv), T(0.05));
 
     const T field = sample.m_value / slope;
