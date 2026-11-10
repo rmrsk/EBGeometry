@@ -541,6 +541,7 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
     CHECK(airView.signedDistance(p) == tape.signedDistance(p, visible, 0U));
     CHECK(airView.contourValue(p) == tape.signedDistance(p, air, 0U));
+    CHECK(airView.contourSample(p).m_secondary == (tape.signedDistance(p, air, 0U) > T(0)));
   }
 
   // With the whole domain shown (the air and the jacket; the core excluded), each point's field is its own label's

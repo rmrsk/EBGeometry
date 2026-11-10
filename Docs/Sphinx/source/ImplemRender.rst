@@ -200,13 +200,16 @@ opened with them.
    * - V; Shift + V; Ctrl + V
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
-   * - E
+   * - E; Shift + E
      - For a view of regions with domains, what the section plane shows, in turn: the whole active domain, each
-       point its own label's function (``Domain::signedDistances()``), so that every subdomain's lines show at once,
-       the excluded regions' in another color (``Settings::m_isoSecondaryColor``), and the zero line is every
-       boundary and interface (``RegionSettings::m_sectionDomain``); each subdomain's function alone, what a
-       cut-cell code cuts for it (``RegionSettings::m_sectionRegions``); then the visible regions' again. The value
-       under the cursor is the function shown.
+       point its own label's function (``Domain::signedDistances()``), so that every subdomain's lines show at once
+       and the zero line is every boundary and interface (``RegionSettings::m_sectionDomain``); each subdomain's
+       function alone, what a cut-cell code cuts for it (``RegionSettings::m_sectionRegions``); then the visible
+       regions' again. The value under the cursor is the function shown. The section starts on the active domain,
+       follows the domain made active in the panel, and a click on a subdomain shows it. Where the domain or
+       subdomain shown does not compute (the excluded regions, or outside the subdomain), the plane has no lines and
+       is filled gray (``Settings::m_fillSecondaryColor``); Shift + E draws their lines, in another color
+       (``Settings::m_isoSecondary``, ``m_isoSecondaryColor``).
    * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
      - For a view of regions, shortcuts for the panel's buttons (below): add what is picked to the current
        surface group; add the picked pieces' whole surfaces; add the interfaces between their two regions;

@@ -1462,12 +1462,15 @@ private:
     Vec3T<T> color = a_color;
 
     if (fill > T(0)) {
-      color = (T(1) - fill) * a_color + fill * this->keyColor(m_object.sectionKey(q));
+      const Vec3T<T> what =
+        sample.m_secondary ? m_settings.m_fillSecondaryColor : this->keyColor(m_object.sectionKey(q));
+
+      color = (T(1) - fill) * a_color + fill * what;
     }
 
     // Lines of equal distance, every m_isoSpacing, thinner than the contour.
 
-    if (m_settings.m_isoSpacing > T(0)) {
+    if (m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary)) {
       const T s = m_settings.m_isoSpacing;
       const T r = field - s * std::floor(field / s + T(0.5));
 
@@ -2239,8 +2242,10 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_isoSpacing", a_settings.m_isoSpacing, settings.m_isoSpacing);
   field("settings", "m_isoColor", a_settings.m_isoColor, settings.m_isoColor);
   field("settings", "m_isoSecondaryColor", a_settings.m_isoSecondaryColor, settings.m_isoSecondaryColor);
+  field("settings", "m_isoSecondary", a_settings.m_isoSecondary, settings.m_isoSecondary);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
   field("settings", "m_sectionFill", a_settings.m_sectionFill, settings.m_sectionFill);
+  field("settings", "m_fillSecondaryColor", a_settings.m_fillSecondaryColor, settings.m_fillSecondaryColor);
   field("settings", "m_sheetColor", a_settings.m_sheetColor, settings.m_sheetColor);
   field("settings", "m_sheetEdgeColor", a_settings.m_sheetEdgeColor, settings.m_sheetEdgeColor);
   field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);

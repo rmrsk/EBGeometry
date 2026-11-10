@@ -202,6 +202,7 @@ keys(const bool a_device, const bool a_regions = false)
                             {"L", "Show only surfaces like the picked one, or everything again"},
                             {"V", "Show one region at a time, in turn, then all"},
                             {"E", "Section shows: the domain's functions, each subdomain's, the visible regions'"},
+                            {"Shift + E", "Lines where the domain shown does not compute, or none"},
                             {"Shift + V", "Hide the picked region"},
                             {"Ctrl + V", "Show every region"},
                             {nullptr, "Surface groups (as the panel's buttons)"},
@@ -1100,6 +1101,21 @@ run(const S&           a_shape,
     }
 
     return mask;
+  };
+
+  // The section plane's labels from the active domain (RegionSettings::m_sectionLabels): each region's subdomain, or
+  // excluded.
+  const auto sectionLabels = [&]() {
+    if constexpr (hasRegionVisibility<S>) {
+      const bool any = names.getNumDomains() > 0U;
+
+      for (uint32_t k = 0; k < 64U; k++) {
+        const uint32_t d =
+          any ? names.getDomain(names.getActiveDomain()).m_subdomains.subdomainOf(k) : Subdomains::None;
+
+        settings.m_regions.m_sectionLabels[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedLabel;
+      }
+    }
   };
 
   // How many of the object's pieces (those found) some selectors hold, all or part of, in words.
@@ -2888,10 +2904,14 @@ run(const S&           a_shape,
                     scheme                   = names.getDomain(clicked.m_value).m_scheme;
                     currentGroup             = 0;
                     regions.m_hiddenGroups   = 0U;
-                    regions.m_sectionRegions = 0U;
-                    regions.m_sectionDomain  = false;
                     regions.m_highlightGroup = RegionSettings::None;
-                    pieceIndex               = std::size_t(-1);
+
+                    // A section showing a domain or a subdomain shows the new domain.
+                    regions.m_sectionDomain  = regions.m_sectionDomain || regions.m_sectionRegions != 0U;
+                    regions.m_sectionRegions = 0U;
+
+                    sectionLabels();
+                    pieceIndex = std::size_t(-1);
 
                     applyColors();
                     rekeyPick();
@@ -2908,6 +2928,11 @@ run(const S&           a_shape,
                 }
                 case PanelAction::HighlightSubdomain: {
                   const uint64_t mask = subdomainAllRegions(clicked.m_value);
+
+                  // A section showing a subdomain shows the one clicked.
+                  if (regions.m_sectionRegions != 0U) {
+                    regions.m_sectionRegions = mask;
+                  }
 
                   highlight(RegionSettings::None, (regions.m_highlightRegions == mask) ? uint64_t(0) : mask);
 
@@ -3513,6 +3538,18 @@ run(const S&           a_shape,
             sectionMode = 0;
           }
           else {
+            // Turned on with domains registered, the plane shows the active domain first.
+            if constexpr (hasRegionVisibility<S>) {
+              RegionSettings& regions = settings.m_regions;
+
+              if (sectionMode == 0 && names.getNumDomains() > 0U && !regions.m_sectionDomain &&
+                  regions.m_sectionRegions == 0U) {
+                regions.m_sectionDomain = true;
+
+                sectionLabels();
+              }
+            }
+
             sectionMode = (sectionMode < 2) ? 2 : 2 + (sectionMode - 1) % 3;
           }
 
@@ -3651,6 +3688,13 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_e: {
+          // Shift and E draw lines where the domain or subdomain shown does not compute, or stop.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_isoSecondary = !settings.m_isoSecondary;
+
+            break;
+          }
+
           // The section plane shows, in turn: the whole active domain (each point its own subdomain's function, so
           // that every subdomain's lines show at once), each subdomain's function alone, what a cut-cell code cuts
           // for it, and the visible regions' again (the plane turned on across x if it was off).
@@ -3675,11 +3719,7 @@ run(const S&           a_shape,
             regions.m_sectionDomain  = next == 1U;
             regions.m_sectionRegions = (next >= 2U) ? subdomainAllRegions(next - 2U) : uint64_t(0);
 
-            for (uint32_t k = 0; k < 64U; k++) {
-              const uint32_t d = (count > 0U) ? subdomains.subdomainOf(k) : Subdomains::None;
-
-              regions.m_sectionLabels[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedLabel;
-            }
+            sectionLabels();
 
             if ((regions.m_sectionDomain || regions.m_sectionRegions != 0U) && sectionMode == 0) {
               sectionMode   = 2;

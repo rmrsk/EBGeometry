@@ -490,6 +490,12 @@ struct Settings
   Vec3T<T> m_isoSecondaryColor = Vec3T<T>(T(0.60), T(0.12), T(0.10));
 
   /**
+   * @brief Whether lines of equal distance are drawn where a shape marks them secondary (where a view of regions'
+   * domain or subdomain does not compute); the zero line is drawn either way.
+   */
+  bool m_isoSecondary = false;
+
+  /**
    * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted
    * sheet that shows where the plane is, edged by a line where it meets the box (0: none, 1: opaque).
    */
@@ -502,6 +508,12 @@ struct Settings
    * sheet's place. Shapes without a key are not filled.
    */
   T m_sectionFill = T(0);
+
+  /**
+   * @brief The fill's color where a shape marks the field secondary (where a view of regions' domain or subdomain does
+   * not compute): not computed, whatever the material.
+   */
+  Vec3T<T> m_fillSecondaryColor = Vec3T<T>(T(0.45), T(0.45), T(0.47));
 
   /**
    * @brief The sheet's color.

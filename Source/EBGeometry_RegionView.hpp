@@ -96,7 +96,7 @@ public:
    * (RegionSettings::m_sectionDomain), the function of each point's own label (see domainSample()), secondary in the
    * excluded regions; with section
    * regions set (RegionSettings::m_sectionRegions), their function as a subdomain's, what a cut-cell code cuts for it,
-   * zero on the subdomain's boundary alone; without them, the distance to the nearest surface of a visible region
+   * zero on the subdomain's boundary alone, secondary outside it; without them, the distance to the nearest surface of a visible region
    * (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces between two
    * of them included, which the value (the visible regions' outer surface) does not have, signed as the value.
    * Negative inside.
@@ -112,8 +112,11 @@ public:
       return this->domainSample(a_point);
     }
 
+    // A subdomain's function: what lies outside it is not computed there, its lines secondary.
     if (m_settings.m_sectionRegions != 0U) {
-      return ContourSample<T>{this->functionOf(a_point, true)};
+      const T value = this->functionOf(a_point, true);
+
+      return ContourSample<T>{value, value > T(0)};
     }
 
     T field = Math::Limits<T>::max();
