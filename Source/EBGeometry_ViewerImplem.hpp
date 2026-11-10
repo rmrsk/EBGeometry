@@ -166,6 +166,7 @@ keys(const bool a_device, const bool a_regions = false)
                                 "Section",
                                 {{"X", "Cut across x, then y, then z"},
                                  {"Ctrl + X", "Remove the cut"},
+                                 {"Shift + X", "See through the cut face, or make it opaque"},
                                  {"N", "Reverse the cut (keep the other side)"},
                                  {"Up, Down", "Move the plane in coarse steps"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
@@ -2520,14 +2521,47 @@ run(const S&           a_shape,
 
     // A pick with no key (a surface in no group, colored by group) has nothing to outline: the background has no key
     // either.
-    // What is picked is outlined: each surface picked along its own edges, or the one picked around what shows of it.
+    // What is highlighted or picked is outlined: in a view of regions, the surfaces of a highlighted subdomain,
+    // domain or surface group, or each surface picked, along their own edges; otherwise the one picked, around what
+    // shows of it.
     constexpr uint32_t Outside = 0xFFFFFFFFU;
 
-    const bool     several = settings.m_highlightPrimitive == RegionSettings::Selected && !selection.empty();
-    const uint32_t key     = pick.m_primitive;
-    const bool     outline = picked && (primitivesAreFaces<S> || several || key != Outside);
+    std::vector<SurfaceSelector> outlinedBy;
 
-    // The surfaces picked, rendered again alone at the frame's size, each side of each keyed apart: their edges are
+    if constexpr (hasRegionVisibility<S>) {
+      const RegionSettings& regions = settings.m_regions;
+
+      if (regions.m_highlightRegions != 0U) {
+        // Every surface with a highlighted region on either side.
+        for (uint32_t k = 0; k < 64U && outlinedBy.size() < RegionSettings::MaxSelected; k++) {
+          if (regions.isRegionHighlighted(k)) {
+            outlinedBy.push_back(SurfaceSelector::region(k));
+          }
+        }
+      }
+      else if (regions.m_highlightGroup != RegionSettings::None) {
+        // The highlighted surface group's selectors (the remaining surfaces, which no selector names, are not).
+        for (uint32_t i = 0; i < regions.m_scheme.getNumSelectors() && outlinedBy.size() < RegionSettings::MaxSelected;
+             i++) {
+          const SurfaceSelector selector = regions.m_scheme.getSelector(i);
+
+          if (regions.m_scheme.getSurfaceGroupOfSelector(i) == regions.m_highlightGroup && !selector.m_rest) {
+            outlinedBy.push_back(selector);
+          }
+        }
+      }
+      else if (settings.m_highlightPrimitive == RegionSettings::Selected) {
+        for (const Picked& entry : selection) {
+          outlinedBy.push_back(entry.m_selector);
+        }
+      }
+    }
+
+    const bool     several = !outlinedBy.empty();
+    const uint32_t key     = pick.m_primitive;
+    const bool     outline = several || (picked && (primitivesAreFaces<S> || key != Outside));
+
+    // The surfaces outlined, rendered again alone at the frame's size, each side of each keyed apart: their edges are
     // where the keys change, at their silhouettes and at their rims, wherever the rest of the object hides them.
     Image edges;
 
@@ -2541,6 +2575,11 @@ run(const S&           a_shape,
 
     alone.m_recordPrimitives       = true;
     alone.m_regions.m_onlySelected = true;
+    alone.m_regions.m_numSelected  = static_cast<uint32_t>(outlinedBy.size());
+
+    for (std::size_t i = 0; i < outlinedBy.size(); i++) {
+      alone.m_regions.m_selected[i] = outlinedBy[i];
+    }
 
     if constexpr (hasRegionVisibility<S>) {
       if (outline && several) {
@@ -3535,7 +3574,14 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_x: {
-          // X turns the plane on across x, then steps it to y, z and x again; Ctrl and X turn it off.
+          // X turns the plane on across x, then steps it to y, z and x again; Ctrl and X turn it off; Shift and X
+          // make the cut face see-through (the shape's surfaces behind it show), or opaque again.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_cutOpacity = (settings.m_cutOpacity < T(1)) ? T(1) : T(0.5);
+
+            break;
+          }
+
           if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
             sectionMode = 0;
           }

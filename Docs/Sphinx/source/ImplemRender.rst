@@ -45,7 +45,7 @@ The classes are in namespace ``Render``:
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
   its intensity, the ambient level, and the highlights' strength and shininess), the section plane
   (``m_section``, a point and a normal; the side the normal points to is removed; ``m_isoSpacing`` draws lines of equal distance on it; the cut face is
-  colored as a surface facing along the plane's normal would be, and partly transparent, ``m_cutOpacity``, so that the shape's
+  colored as a surface facing along the plane's normal would be, opaque unless ``m_cutOpacity`` is below 1, when the shape's
   next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
   box), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
@@ -171,9 +171,10 @@ opened with them.
      - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
    * - G
      - Render on the GPU or the CPU (with a device view).
-   * - X; Ctrl + X; N
+   * - X; Ctrl + X; Shift + X; N
      - Cut with a section plane across x, then y, then z, through the box's center (a plane the settings
-       turn on comes first); remove the cut; reverse it (remove the other side).
+       turn on comes first); remove the cut; see through the cut face to the surfaces behind it, or make it
+       opaque again; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
    * - I; Shift + I
@@ -229,8 +230,8 @@ A view of regions also gets a panel at the top left, used with the mouse (the me
 click on the panel away from its buttons picks the surface behind it). It names things in words ("Surface 1,
 between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. With domains
 registered (``RegionNames::addDomain()``), they are listed first, one a line: a click on one makes it the active
-domain and highlights it, the surfaces of its regions (a second click stops it), and lists its subdomains under it.
-A click on a subdomain highlights its boundary, every surface with one of its regions on either side, the
+domain and highlights it, the surfaces of its regions, tinted and outlined (a second click stops it), and lists its
+subdomains under it. A click on a subdomain highlights its boundary, tinted and outlined, every surface with one of its regions on either side, the
 background's subdomain included (``RegionSettings::m_highlightRegions`` in a program); ``[Hide]`` and ``[Only]``
 hide a subdomain's or the domain's regions or show only them, and ``[Show all regions]`` shows every region again. The active domain's surface groups are shown and edited, its regions marked, and the
 pieces counted those it touches. A "Color by" row sets what the surfaces

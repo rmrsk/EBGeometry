@@ -380,7 +380,7 @@ struct Settings
    * @brief Opacity of the cut face (1: opaque): below 1, the shape's next surface behind it along the ray
    * shows through, seen from inside the solid without the inside tint (cavities, bores, the far wall).
    */
-  T m_cutOpacity = T(0.6);
+  T m_cutOpacity = T(1);
 
   /**
    * @brief The floor's color.
