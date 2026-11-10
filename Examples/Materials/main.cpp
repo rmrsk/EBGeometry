@@ -31,11 +31,9 @@ main(int argc, char* argv[])
   // A cable along z in a box of air: the air, the jacket on top of it, then the core on top of that (later operands
   // win where they overlap). A union would make one solid of them, and the core's surface would vanish inside the
   // jacket. Each region has a name (which region it is) and a material (what it is made of). The air is a region like
-  // the others: its box is the outer boundary of what a solver computes on, and the core, longer than the box, passes
-  // through its ends.
+  // the others: its box, around the whole cable, is the outer boundary of what a solver computes on.
   const auto air = EBGeometry::RegionName(
-    EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-2.25)), Vec3(T(1.5), T(1.5), T(2.25))),
-                              "air"),
+    EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))), "air"),
     "air");
   const auto jacket =
     EBGeometry::RegionName(EBGeometry::MaterialLabel(

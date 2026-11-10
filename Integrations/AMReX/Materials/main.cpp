@@ -109,10 +109,10 @@ main(int argc, char* argv[])
     pp.query("subdomain", subdomain);
 
     // The regions: the air (1), the jacket (2) on top of it, then the core (3); beyond the air's box, the outside (0).
-    const Expr air = EBGeometry::RegionName(
-      EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-2.25)), Vec3(T(1.5), T(1.5), T(2.25))),
-                                "air"),
-      "air");
+    const Expr air =
+      EBGeometry::RegionName(EBGeometry::MaterialLabel(
+                               EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))), "air"),
+                             "air");
     const Expr jacket = EBGeometry::RegionName(
       EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)),
                                 "PTFE"),
