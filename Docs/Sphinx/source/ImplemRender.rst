@@ -178,7 +178,7 @@ opened with them.
      - Move the section plane in fine steps; in coarse ones.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
-       of the box's diagonal, every 1/50.
+       of the box's diagonal, every 1/50, every 1/100.
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
        and a line between them). On the background, either clears. For a view of regions, a click picks what
@@ -200,10 +200,12 @@ opened with them.
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
    * - E
-     - For a view of regions with domains: the section plane shows each subdomain's function of the active domain
-       in turn, what a cut-cell code cuts for it (its contour is the subdomain's boundary alone, and the value under
-       the cursor is that function's; ``RegionSettings::m_sectionRegions`` in a program), then the visible regions'
-       again.
+     - For a view of regions with domains, what the section plane shows, in turn: the whole active domain, each
+       point its own label's function (``Domain::signedDistances()``), so that every subdomain's lines show at once,
+       the excluded regions' in another color (``Settings::m_isoSecondaryColor``), and the zero line is every
+       boundary and interface (``RegionSettings::m_sectionDomain``); each subdomain's function alone, what a
+       cut-cell code cuts for it (``RegionSettings::m_sectionRegions``); then the visible regions' again. The value
+       under the cursor is the function shown.
    * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
      - For a view of regions, shortcuts for the panel's buttons (below): add what is picked to the current
        surface group; add the picked pieces' whole surfaces; add the interfaces between their two regions;
@@ -234,7 +236,8 @@ and a swatch beside each region or surface group shows its color; colors given t
 the palette's. Below, a "Pick" row sets what a click picks: the part of a surface clicked
 (a cylinder's cap, a box's face), or the region there, every surface of it. What is picked is listed (a part with its
 surface, the regions on its two sides and its surface group; several, picked with Ctrl + click, each with an ``[x]``
-taking it out) and highlighted (``RegionSettings::m_selected`` in a program), with ``[Pick nothing]`` and the ways to
+taking it out), highlighted (``RegionSettings::m_selected`` in a program) and outlined along its own edges, its
+rims included, where the object does not hide them, with ``[Pick nothing]`` and the ways to
 add it to the current surface group, each saying how many of the object's pieces it takes in: what is picked, the
 whole pieces with all their parts, all of their surfaces, all surfaces of their regions, or everything between their
 two regions; and a button to remove them; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on

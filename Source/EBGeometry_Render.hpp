@@ -484,6 +484,12 @@ struct Settings
   Vec3T<T> m_isoColor = Vec3T<T>(T(0.10), T(0.11), T(0.13));
 
   /**
+   * @brief The color of those lines where a shape marks them secondary: a view of regions showing a whole domain, in
+   * the regions it excludes (RegionSettings::m_sectionDomain).
+   */
+  Vec3T<T> m_isoSecondaryColor = Vec3T<T>(T(0.60), T(0.12), T(0.10));
+
+  /**
    * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted
    * sheet that shows where the plane is, edged by a line where it meets the box (0: none, 1: opaque).
    */

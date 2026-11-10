@@ -79,27 +79,41 @@ public:
   }
 
   /**
+   * @brief The field a section plane shows (its contours and lines of equal distance), its value (see
+   * contourSample()).
+   * @param[in] a_point Point.
+   * @return The field.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  contourValue(const Vec3T<T>& a_point) const noexcept
+  {
+    return this->contourSample(a_point).m_value;
+  }
+
+  /**
    * @brief The field a section plane shows (its contours and lines of equal distance): with a whole domain shown
-   * (RegionSettings::m_sectionDomain), the function of each point's own label (see domainValue()); with section
+   * (RegionSettings::m_sectionDomain), the function of each point's own label (see domainSample()), secondary in the
+   * excluded regions; with section
    * regions set (RegionSettings::m_sectionRegions), their function as a subdomain's, what a cut-cell code cuts for it,
    * zero on the subdomain's boundary alone; without them, the distance to the nearest surface of a visible region
    * (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces between two
    * of them included, which the value (the visible regions' outer surface) does not have, signed as the value.
    * Negative inside.
    * @param[in] a_point Point.
-   * @return The field.
+   * @return The field, and whether its lines there are secondary.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
-  inline T
-  contourValue(const Vec3T<T>& a_point) const noexcept
+  inline ContourSample<T>
+  contourSample(const Vec3T<T>& a_point) const noexcept
   {
     if (m_settings.m_sectionDomain) {
-      return this->domainValue(a_point);
+      return this->domainSample(a_point);
     }
 
     if (m_settings.m_sectionRegions != 0U) {
-      return this->functionOf(a_point, true);
+      return ContourSample<T>{this->functionOf(a_point, true)};
     }
 
     T field = Math::Limits<T>::max();
@@ -110,7 +124,7 @@ public:
       }
     }
 
-    return (this->signedDistance(a_point) < T(0)) ? -field : field;
+    return ContourSample<T>{(this->signedDistance(a_point) < T(0)) ? -field : field};
   }
 
   /**
@@ -520,13 +534,13 @@ private:
   /**
    * @brief The function of a point's own label in a domain (RegionSettings::m_sectionLabels), as
    * Domain::signedDistances() gives it: half the difference of the smallest function of a region with that label and
-   * of one with another, never positive; the largest value in the excluded regions, which show no lines.
+   * of one with another, never positive; in the excluded regions, theirs, secondary.
    * @param[in] a_point Point.
-   * @return The value.
+   * @return The value, and whether the point is in the excluded regions.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline T
-  domainValue(const Vec3T<T>& a_point) const noexcept
+  inline ContourSample<T>
+  domainSample(const Vec3T<T>& a_point) const noexcept
   {
     constexpr uint32_t Labels   = 33U;
     constexpr uint32_t Excluded = Labels - 1U;
@@ -560,7 +574,7 @@ private:
       }
     }
 
-    return (own == Excluded) ? Math::Limits<T>::max() : T(0.5) * (first - second);
+    return ContourSample<T>{T(0.5) * (first - second), own == Excluded};
   }
 
   /**

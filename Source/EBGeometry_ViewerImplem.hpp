@@ -2556,7 +2556,7 @@ run(const S&           a_shape,
       // An edge of the picked surfaces is hidden where the object is hit clearly in front of it. The edge lies between
       // the outline's pixel and the one beside it that showed it, at the nearer of the picked surfaces there (the
       // other may be a surface's back, seen past its rim); the ray through that pixel meets the object as shown
-      // before it. Hidden edges are drawn faded.
+      // before it. Hidden edges are not drawn.
       const Renderer<T> object(shown);
       const Renderer<T> picks(alone);
 
@@ -2570,20 +2570,6 @@ run(const S&           a_shape,
                                      : object.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
 
         return edge.hit() && front.hit() && front.m_t < edge.m_t - T(0.05) * edge.m_t;
-      };
-
-      // Faded: a third of the way from the pixel to gold.
-      const auto faded = [](const uint32_t a_pixel) {
-        uint32_t mixed = 0xFFU;
-
-        for (const uint32_t shift : {8U, 16U, 24U}) {
-          const uint32_t from = (a_pixel >> shift) & 0xFFU;
-          const uint32_t to   = (0xFFB81AFFU >> shift) & 0xFFU;
-
-          mixed |= ((2U * from + to) / 3U) << shift;
-        }
-
-        return mixed;
       };
 
       // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
@@ -2614,7 +2600,10 @@ run(const S&           a_shape,
           if (near) {
             const std::size_t pixel = std::size_t(y) * a_image.m_width + std::size_t(x);
 
-            outlined[pixel] = (several && hidden(x, y, nearU, nearV)) ? faded(a_image.m_pixels[pixel]) : 0xFFB81AFFU;
+            // Where the object hides the edge, nothing is drawn.
+            if (!several || !hidden(x, y, nearU, nearV)) {
+              outlined[pixel] = 0xFFB81AFFU;
+            }
           }
         }
       }

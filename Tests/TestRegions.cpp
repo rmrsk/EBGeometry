@@ -572,7 +572,8 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
     INFO("point " << p << ", label " << label);
 
     CHECK((label == Domain::Excluded) == (tape.region(p) == 2U));
-    CHECK(domainView.contourValue(p) == ((label == Domain::Excluded) ? Math::Limits<T>::max() : values[label]));
+    CHECK(domainView.contourValue(p) == values[(label == Domain::Excluded) ? 2U : label]);
+    CHECK(domainView.contourSample(p).m_secondary == (label == Domain::Excluded));
   }
 
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);

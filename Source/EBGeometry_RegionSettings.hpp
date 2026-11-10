@@ -36,6 +36,26 @@ enum class RegionColoring : uint8_t
 };
 
 /**
+ * @brief A section plane's field at a point (RegionView::contourSample()): its value, negative inside, and whether its
+ * lines there are secondary, drawn in another color (Render::Settings::m_isoSecondaryColor): a domain's excluded
+ * regions.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct ContourSample
+{
+  /**
+   * @brief The field's value.
+   */
+  T m_value;
+
+  /**
+   * @brief Whether the lines there are secondary.
+   */
+  bool m_secondary = false;
+};
+
+/**
  * @brief How the regions of an object are shown (see RegionView): which regions are visible, what a surface is
  * colored and named by, the surfaces shown alone or seen through, and a solver's scheme of groups.
  * @details A plain value, part of the render settings (Render::Settings::m_regions), so that a render, a viewer and
@@ -173,8 +193,9 @@ struct RegionSettings
 
   /**
    * @brief Whether the section plane shows a whole domain: at each point the function of its own label (its region's
-   * subdomain, m_sectionLabels), negative in it and zero on its boundary, so that every subdomain's lines show at once
-   * and its zero line is every boundary and interface; nothing in the excluded regions. Before m_sectionRegions.
+   * subdomain, m_sectionLabels, or the excluded regions'), negative in it and zero on its boundary, so that every
+   * subdomain's lines show at once and its zero line is every boundary and interface; the excluded regions' lines
+   * are secondary (ContourSample). Before m_sectionRegions.
    */
   bool m_sectionDomain = false;
 

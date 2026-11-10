@@ -63,6 +63,29 @@ unit(const Vec3T<T>& a_v) noexcept
  * @tparam S Shape type.
  */
 /**
+ * @brief Whether a shape has a field of its own for the section plane (contourSample(), negative inside, with lines that
+ * may be secondary): the primary template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasContourSample : std::false_type
+{
+};
+
+/**
+ * @brief A shape with contourSample(point).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasContourSample<S, T, std::void_t<decltype(std::declval<const S&>().contourSample(std::declval<Vec3T<T>>()))>>
+  : std::true_type
+{
+};
+
+/**
  * @brief Whether a shape has a field of its own for the section plane (contourValue(), negative inside): the primary
  * template is false.
  * @details Internal helper; not part of the public API.
@@ -177,22 +200,25 @@ struct Sectioned
   }
 
   /**
-   * @brief The field the section plane's contours, lines are drawn from, negative inside: the shape's
-   * contourValue() when it has one (a region view's, zero on its interfaces too), else its value; out of line on a
-   * device, as shapeDistance().
+   * @brief The field the section plane's contours and lines are drawn from, negative inside: the shape's
+   * contourSample() or contourValue() when it has one (a region view's, zero on its interfaces too), else its value;
+   * out of line on a device, as shapeDistance().
    * @param[in] a_point Point.
-   * @return The field.
+   * @return The field, and whether its lines there are secondary.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
-  inline T
+  inline ContourSample<T>
   contourDistance(const Vec3T<T>& a_point) const noexcept
   {
-    if constexpr (HasContourValue<S, T>::value) {
-      return m_shape.contourValue(a_point);
+    if constexpr (HasContourSample<S, T>::value) {
+      return m_shape.contourSample(a_point);
+    }
+    else if constexpr (HasContourValue<S, T>::value) {
+      return ContourSample<T>{m_shape.contourValue(a_point)};
     }
     else {
-      return m_shape.signedDistance(a_point);
+      return ContourSample<T>{m_shape.signedDistance(a_point)};
     }
   }
 
@@ -1367,7 +1393,11 @@ private:
 
     // The contours and the lines of equal distance follow the shape's contour field (a region view's is zero on its
     // interfaces too); which side of the surface the point is on follows its value.
-    const T field = RenderDetail::HasContourValue<S, T>::value ? m_object.contourDistance(q) : value;
+    const ContourSample<T> sample =
+      (RenderDetail::HasContourSample<S, T>::value || RenderDetail::HasContourValue<S, T>::value)
+        ? m_object.contourDistance(q)
+        : ContourSample<T>{value};
+    const T field = sample.m_value;
 
     if (std::abs(field) < half) {
       return m_settings.m_contourColor;
@@ -1381,7 +1411,7 @@ private:
       const T r = field - s * std::floor(field / s + T(0.5));
 
       if (std::abs(r) < T(0.75) * width) {
-        color = m_settings.m_isoColor;
+        color = sample.m_secondary ? m_settings.m_isoSecondaryColor : m_settings.m_isoColor;
       }
     }
 
@@ -2147,6 +2177,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_contourColor", a_settings.m_contourColor, settings.m_contourColor);
   field("settings", "m_isoSpacing", a_settings.m_isoSpacing, settings.m_isoSpacing);
   field("settings", "m_isoColor", a_settings.m_isoColor, settings.m_isoColor);
+  field("settings", "m_isoSecondaryColor", a_settings.m_isoSecondaryColor, settings.m_isoSecondaryColor);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
   field("settings", "m_sheetColor", a_settings.m_sheetColor, settings.m_sheetColor);
   field("settings", "m_sheetEdgeColor", a_settings.m_sheetEdgeColor, settings.m_sheetEdgeColor);
