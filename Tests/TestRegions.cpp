@@ -52,6 +52,7 @@ struct RegionAnswer
 {
   uint32_t m_region;
   T        m_values[3];
+  T        m_visited[3]; // the same, from regionDistances()
   uint32_t m_minus;
   uint32_t m_plus;
   uint32_t m_surface;
@@ -89,6 +90,12 @@ struct RegionQuery
     for (uint32_t k = 0; k < 3; k++) {
       answer.m_values[k] = m_tape.signedDistance(a_point, k);
     }
+
+    m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+      if (a_region < 3U) {
+        answer.m_visited[a_region] = a_value;
+      }
+    });
 
     const SurfaceRef<T> surface = m_tape.closestSurface(a_point, 1U);
 
@@ -178,7 +185,32 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, with no material, then 
 
   const ExprIndex<T> unlabeled(Overlay(big, middle, small));
 
+  // A braced list of shapes and Exprs of different types: the same regions.
+  const Expr<T>      bracedMiddle = Translate(middle, Vec3T<T>::zeros());
+  const ExprIndex<T> braced(
+    Overlay({big, bracedMiddle, BoxSDF<T>(-T(0.3) * Vec3T<T>::ones(), T(0.3) * Vec3T<T>::ones())}));
+
+  CHECK(braced.getNumRegions() == 4U);
+  CHECK(braced.getRegion(3).m_node != ExprIndex<T>::None);
+
   CHECK(unlabeled.getNumRegions() == 4U);
+
+  // An Overlay takes no BVH: however many operands it has, it is no union the large-union warning should flag.
+  {
+    std::vector<SphereSDF<T>> many;
+
+    for (int i = 0; i < 80; i++) {
+      many.emplace_back(Vec3T<T>(T(i), T(0), T(0)), T(0.4));
+    }
+
+    Pool        crowd(hostMemoryResource());
+    TapeOptions quiet;
+
+    quiet.m_largeUnionWarning = 0U;
+
+    CHECK(Tape<T>(crowd, Overlay(many), quiet).getLargestPlainUnion() == 0U);
+    CHECK(Tape<T>(crowd, Union(many), quiet).getLargestPlainUnion() == 80U);
+  }
   CHECK(materialName(unlabeled, 0) == "-");
   CHECK(materialName(unlabeled, 1) == "-");
 
@@ -330,6 +362,61 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
       (void)index.getRegion(3);
     },
     "ExprIndex: region 3 of 3"));
+}
+
+TEMPLATE_TEST_CASE("Tape: regionDistances() gives every region's function in one pass, as signedDistance() does",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const BoxSDF<T>    matrix(-T(3) * Vec3::ones(), T(3) * Vec3::ones());
+  const SphereSDF<T> shell(Vec3(T(-1), T(0), T(0)), T(1));
+  const SphereSDF<T> grain(Vec3(T(-1), T(0), T(0)), T(0.4));
+  const SphereSDF<T> shell2(Vec3(T(1.2), T(0), T(0)), T(1));
+  const SphereSDF<T> grain2(Vec3(T(1.2), T(0), T(0)), T(0.4));
+  const BoxSDF<T>    domain(Vec3(T(-4), T(-4), T(-0.5)), Vec3(T(4), T(4), T(4)));
+  const BoxSDF<T>    slab(Vec3(T(-0.1), T(-4), T(-4)), Vec3(T(0.1), T(4), T(4)));
+
+  const Expr<T> layers = Overlay(matrix, Overlay(shell, grain), Overlay(shell2, grain2));
+
+  // No masks; the same masks on every region (the shortcut); masks on some regions only (region by region).
+  const std::vector<Expr<T>> scenes{layers,
+                                    Difference(Intersection(layers, domain), slab),
+                                    Overlay(matrix, Difference(Overlay(shell, grain), slab), Overlay(shell2, grain2)),
+                                    SphereSDF<T>(Vec3::zeros(), T(1))};
+
+  Pool pool(hostMemoryResource());
+
+  for (const Expr<T>& scene : scenes) {
+    const Tape<T> tape(pool, scene);
+
+    for (int i = 0; i < 40; i++) {
+      for (int j = 0; j < 9; j++) {
+        const Vec3 p(T(0.11) * T(i) - T(2.3), T(0.013) * T(j) - T(0.05), T(0.17) * T(j) - T(0.7));
+
+        std::vector<T>        values(tape.getNumRegions(), Math::Limits<T>::max());
+        std::vector<uint32_t> order;
+
+        tape.regionDistances(p, [&](const uint32_t a_region, const T a_value) {
+          REQUIRE(a_region < tape.getNumRegions());
+
+          values[a_region] = a_value;
+
+          order.push_back(a_region);
+        });
+
+        // Every region once, from the last down to the background, each with signedDistance()'s value.
+        REQUIRE(order.size() == tape.getNumRegions());
+
+        for (uint32_t k = 0; k < tape.getNumRegions(); k++) {
+          CHECK(order[k] == tape.getNumRegions() - 1U - k);
+          CHECK(values[k] == tape.signedDistance(p, k));
+        }
+      }
+    }
+  }
 }
 
 TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space as the regions' solids say",
@@ -1141,6 +1228,10 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
 
     for (uint32_t k = 0; k < 3; k++) {
       CHECK_THAT(d.m_values[k], withinAbsT<T>(h.m_values[k], looseMargin<T>()));
+
+      // In one pass, the same values as region by region, on each side.
+      CHECK(d.m_visited[k] == d.m_values[k]);
+      CHECK(h.m_visited[k] == h.m_values[k]);
     }
 
     for (uint32_t k = 0; k < 2; k++) {

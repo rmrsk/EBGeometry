@@ -494,7 +494,8 @@ instantiateFunctionTemplates()
     (void)ExprIndex<T>(expr).getFirstSurface(0U);
     (void)ExprIndex<T>(expr).getLeafOfSurface(0U);
     {
-      const Expr<T>      regions = Overlay(MaterialLabel(expr, "a"), expr, expr);
+      const Expr<T> regions = Overlay(MaterialLabel(expr, "a"), expr, expr);
+      (void)Overlay({MaterialLabel(expr, "b"), expr, SphereSDF<T>(Vec3T<T>::zeros(), T(1))});
       const ExprIndex<T> index(regions);
 
       (void)index.getNumRegions();

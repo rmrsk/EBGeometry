@@ -121,11 +121,11 @@ public:
 
     T field = Math::Limits<T>::max();
 
-    for (uint32_t k = 1; k < m_tape.getNumRegions(); k++) {
-      if (this->isVisible(k)) {
-        field = Math::min(field, std::abs(m_tape.signedDistance(a_point, k)));
+    m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+      if (a_region > 0U && this->isVisible(a_region)) {
+        field = Math::min(field, std::abs(a_value));
       }
-    }
+    });
 
     return ContourSample<T>{(this->signedDistance(a_point) < T(0)) ? -field : field};
   }
@@ -637,12 +637,12 @@ private:
       smallest[l] = Math::Limits<T>::max();
     }
 
-    for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
-      const uint8_t  label = (k < 64U) ? m_settings.m_sectionLabels[k] : RegionSettings::ExcludedLabel;
+    m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+      const uint8_t  label = (a_region < 64U) ? m_settings.m_sectionLabels[a_region] : RegionSettings::ExcludedLabel;
       const uint32_t l     = (label < Excluded) ? uint32_t(label) : Excluded;
 
-      smallest[l] = Math::min(smallest[l], m_tape.signedDistance(a_point, k));
-    }
+      smallest[l] = Math::min(smallest[l], a_value);
+    });
 
     // The point's own label has the smallest of all; the other term is the second smallest.
     T        first  = Math::Limits<T>::max();
@@ -680,18 +680,17 @@ private:
 
     const uint64_t section = m_settings.m_sectionRegions;
 
-    for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
-      const T d = m_tape.signedDistance(a_point, k);
-
-      const bool member = a_section ? (k < 64U && ((section >> k) & 1U) != 0U) : this->isVisible(k);
+    m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+      const bool member =
+        a_section ? (a_region < 64U && ((section >> a_region) & 1U) != 0U) : this->isVisible(a_region);
 
       if (member) {
-        in = Math::min(in, d);
+        in = Math::min(in, a_value);
       }
       else {
-        out = Math::min(out, d);
+        out = Math::min(out, a_value);
       }
-    }
+    });
 
     return (in < Math::Limits<T>::max()) ? T(0.5) * (in - out) : Math::Limits<T>::max();
   }

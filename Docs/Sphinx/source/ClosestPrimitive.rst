@@ -296,6 +296,7 @@ two regions of the same material have names of their own:
    const auto core   = RegionName(MaterialLabel(SphereSDF<T>(center, T(0.5)), "copper"), "core");
 
    const Expr<T> cable = Overlay(air, jacket, core);     // region 0 the outside, 1 the air, 2 the jacket, 3 the core
+   // also: Overlay(std::vector<Expr<T>>{...}), or a braced list of mixed types, Overlay({air, jacket, core})
 
    const ExprIndex<T> index(cable);
    index.findRegion("core");                             // 3
@@ -320,11 +321,14 @@ region 1, in the background):
    tape.getNumRegions();          // 4: the outside, the air, the jacket, the core
    tape.region(p);                // the region p is in
    tape.signedDistance(p, 2);     // the jacket's implicit function
+   tape.regionDistances(p, [&](uint32_t k, T value) { /* every region's function, in one pass */ });
 
 ``region(p)`` is the last operand whose solid holds the point, or the background; every point is in exactly
 one region. ``signedDistance(p, k)`` is negative exactly inside region k, and its zero contour is the
 region's whole surface, the interfaces with the other regions included: the function a cut-cell code cuts
-for that region. It is a distance bound, exact near a smooth piece of surface. An object with no Overlay is
+for that region. It is a distance bound, exact near a smooth piece of surface. Every region's function at a point
+comes from ``regionDistances()`` in one pass, each operand's solid evaluated once (twice with masks), where asking
+region by region evaluates the later solids again for each; the domains' and subdomains' functions below use it. An object with no Overlay is
 one region, and a tape without the feature compiles none of this.
 
 A region's surface at a point, ``closestSurface(p, region)``, is reported as any surface is (its leaf, part and

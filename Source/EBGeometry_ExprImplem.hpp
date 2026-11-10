@@ -1072,6 +1072,18 @@ Overlay(const A& a_first, const B& a_second, const Rest&... a_rest)
   return Overlay(std::vector<Expr<T>>{toExpr(a_first), toExpr(a_second), toExpr(a_rest)...});
 }
 
+inline Expr<double>
+Overlay(std::initializer_list<Expr<double>> a_operands)
+{
+  return Overlay(std::vector<Expr<double>>(a_operands));
+}
+
+inline Expr<float>
+Overlay(std::initializer_list<Expr<float>> a_operands)
+{
+  return Overlay(std::vector<Expr<float>>(a_operands));
+}
+
 template <class A>
 inline Expr<ExprPrecision<A>>
 MaterialLabel(const A& a_operand, std::string a_name)

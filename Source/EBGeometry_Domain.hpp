@@ -141,12 +141,12 @@ struct Domain
       a_values[l] = Math::Limits<T>::max();
     }
 
-    for (uint32_t k = 0; k < a_tape.getNumRegions(); k++) {
-      const uint32_t subdomain = m_subdomains.subdomainOf(k);
+    a_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+      const uint32_t subdomain = m_subdomains.subdomainOf(a_region);
       const uint32_t label     = (subdomain == Subdomains::None) ? excluded : subdomain;
 
-      a_values[label] = Math::min(a_values[label], a_tape.signedDistance(a_point, k));
-    }
+      a_values[label] = Math::min(a_values[label], a_value);
+    });
 
     // A label's other term is the smallest of the other labels': the smallest of all, or the second smallest for the
     // label that has it.

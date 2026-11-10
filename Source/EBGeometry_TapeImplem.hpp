@@ -1317,7 +1317,8 @@ private:
         this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
       }
       else {
-        if (a_node.m_kind == Kind::Union) {
+        // An Overlay takes no BVH, so it is not counted: the warning's advice would not apply.
+        if (a_node.m_kind == Kind::Union && !a_node.m_overlay) {
           m_largestPlainUnion = Math::max(m_largestPlainUnion, this->plainUnionSize(a_node));
         }
 
@@ -3556,6 +3557,55 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
 }
 
 template <class T, class... UserPrimitives>
+template <class Visit>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_visit) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  // An object with no Overlay is region 1, the background its outside.
+  if (n == 0U) {
+    const T whole = this->wholeValue(a_point);
+
+    a_visit(1U, whole);
+    a_visit(0U, -whole);
+
+    return;
+  }
+
+  // Whether every region has the same masks: then every later solid drops all of them.
+  const void*    base    = this->base();
+  const uint32_t masks   = m_layout.m_regionPrograms.at(base, m_layout.m_regionPrograms.at(base, 1U));
+  bool           uniform = true;
+
+  for (uint32_t k = 2; k <= n && uniform; k++) {
+    uniform = m_layout.m_regionPrograms.at(base, m_layout.m_regionPrograms.at(base, k)) == masks &&
+              this->sharedMasks(1U, k) == masks;
+  }
+
+  if (uniform) {
+    T later = Math::Limits<T>::max();
+
+    for (uint32_t k = n; k > 0U; k--) {
+      const T masked   = this->regionSolid(k, 0U, a_point);
+      const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
+
+      a_visit(k, Math::max(masked, -later));
+
+      later = Math::min(later, unmasked);
+    }
+  }
+  else {
+    for (uint32_t k = n; k > 0U; k--) {
+      a_visit(k, this->signedDistance(a_point, k));
+    }
+  }
+
+  a_visit(0U, -this->wholeValue(a_point));
+}
+
+template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
@@ -3571,16 +3621,14 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>&   a_point,
   T in  = Math::Limits<T>::max();
   T out = Math::Limits<T>::max();
 
-  for (uint32_t k = 0; k < this->getNumRegions(); k++) {
-    const T d = this->signedDistance(a_point, k);
-
-    if (a_subdomains.subdomainOf(k) == a_subdomain) {
-      in = Math::min(in, d);
+  this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+    if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+      in = Math::min(in, a_value);
     }
     else {
-      out = Math::min(out, d);
+      out = Math::min(out, a_value);
     }
-  }
+  });
 
   return T(0.5) * (in - out);
 }
@@ -3596,20 +3644,13 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
   T        value  = Math::Limits<T>::max();
   uint32_t region = Subdomains::None;
 
-  for (uint32_t r = 0; r < a_subdomains.getNumRanges(); r++) {
-    const Subdomains::Range& range = a_subdomains.getRange(r);
-
-    if (range.m_subdomain == a_subdomain) {
-      for (uint32_t k = range.m_first; k < range.m_first + range.m_count; k++) {
-        const T d = this->signedDistance(a_point, k);
-
-        if (d < value) {
-          value  = d;
-          region = k;
-        }
-      }
+  // The subdomain's region whose function is smallest; on a tie, the lowest-numbered, as asked region by region.
+  this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+    if (a_subdomains.subdomainOf(a_region) == a_subdomain && a_value <= value) {
+      value  = a_value;
+      region = a_region;
     }
-  }
+  });
 
   return (region != Subdomains::None) ? this->closestSurface(a_point, region) : SurfaceRef<T>();
 }

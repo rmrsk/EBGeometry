@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -400,6 +401,30 @@ struct ExprLike<S, std::enable_if_t<isShape<S>>>
   using type = ShapePrecision<S>;
 };
 
+/**
+ * @brief Whether a type is expression-like with a precision other than T (a shape or an Expr): the primary template,
+ * for other types, is false.
+ * @details Internal helper; not part of the public API. Keeps Expr<T>'s implicit constructor out of overload
+ * resolution for such types, so that a braced list of shapes picks Overlay()'s overload of their precision.
+ * @tparam S Type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct OtherPrecision : std::false_type
+{
+};
+
+/**
+ * @brief An expression-like type: true when its precision is not T.
+ * @tparam S Shape or Expr type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct OtherPrecision<S, T, std::void_t<typename ExprLike<S>::type>>
+  : std::bool_constant<!std::is_same_v<typename ExprLike<S>::type, T>>
+{
+};
+
 } // namespace ExprDetail
 
 /**
@@ -444,7 +469,8 @@ public:
    */
   template <class S,
             class = std::enable_if_t<!std::is_same_v<std::decay_t<S>, Expr> &&
-                                     !std::is_convertible_v<S, std::shared_ptr<const ExprDetail::Node<T>>>>>
+                                     !std::is_convertible_v<S, std::shared_ptr<const ExprDetail::Node<T>>> &&
+                                     !ExprDetail::OtherPrecision<std::decay_t<S>, T>::value>>
   EBGEOMETRY_HOST
   Expr(const S& a_shape); // NOLINT(google-explicit-constructor): a shape is an expression
 
@@ -952,6 +978,25 @@ template <class A, class B, class... Rest>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
 Overlay(const A& a_first, const B& a_second, const Rest&... a_rest);
+
+/**
+ * @brief Regions by priority, of a braced list of shapes and Exprs of any types, double precision: Overlay({air,
+ * jacket, CylinderSDF<double>(...)}) (see Overlay()).
+ * @param[in] a_operands The regions, in priority order (must not be empty).
+ * @return The partition.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<double>
+Overlay(std::initializer_list<Expr<double>> a_operands);
+
+/**
+ * @brief Regions by priority, of a braced list of shapes and Exprs of any types, single precision (see Overlay()).
+ * @param[in] a_operands The regions, in priority order (must not be empty).
+ * @return The partition.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<float>
+Overlay(std::initializer_list<Expr<float>> a_operands);
 
 /**
  * @brief Name the material of a region: an operand of an Overlay, a whole Overlay nested in another (a default for

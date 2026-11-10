@@ -1152,7 +1152,8 @@ public:
 
   /**
    * @brief The most objects in one union evaluated as written (one not built with Accelerate::BVH), nested
-   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with.
+   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with. An Overlay, which is evaluated
+   * as written and takes no BVH, is not counted.
    * @return The count (0 if the tape has no such union).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1245,6 +1246,23 @@ public:
   EBGEOMETRY_DEVICE_NOINLINE
   inline T
   signedDistance(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
+
+  /**
+   * @brief Every region's function at a point (signedDistance(point, region), the same values), in one pass: calls
+   * a_visit(region, value) for each region, from the last one down to the background (0). Each operand's solid is
+   * evaluated once, twice when the regions share masks, where asking signedDistance() region by region evaluates the
+   * later solids again for each; regions with different masks are asked one by one. Callable on a device.
+   * @details Region k's function is max(S_k, -min of the later solids without the masks the two share). With the
+   * same masks on every region (none, usually), every later solid drops all of them, so a running minimum of the
+   * unmasked solids, taken from the top down, serves every region: n solids, or 2n with masks, instead of n^2 / 2.
+   * @tparam Visit A callable taking (uint32_t region, T value).
+   * @param[in] a_point Point.
+   * @param[in] a_visit What to do with each region's value.
+   */
+  template <class Visit>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  regionDistances(const Vec3T<T>& a_point, Visit&& a_visit) const noexcept;
 
   /**
    * @brief The surface of a region that decides its function at a point: the region's own
