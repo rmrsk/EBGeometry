@@ -2627,7 +2627,11 @@ run(const S&           a_shape,
         const HitT<T> front = nearer ? object.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5))
                                      : object.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
 
-        return edge.hit() && front.hit() && front.m_t < edge.m_t - T(0.05) * edge.m_t;
+        // Clearly: by more than a few pixels' width at the edge's depth (at the camera's distance, orthographic).
+        const T across    = T(2) * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) / T(height);
+        const T footprint = across * (camera.m_orthographic ? camera.m_distance : edge.m_t);
+
+        return edge.hit() && front.hit() && front.m_t < edge.m_t - T(4) * footprint;
       };
 
       // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
