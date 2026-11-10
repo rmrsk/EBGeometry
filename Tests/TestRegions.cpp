@@ -364,6 +364,63 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
     "ExprIndex: region 3 of 3"));
 }
 
+TEMPLATE_TEST_CASE("Tape: an object of one region changes region where a ray crosses it, its sides by the way it goes",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // An assembly with no Overlay, through a BVH: one region, the object; the outside region 0.
+  std::vector<Expr<T>> parts;
+
+  for (int i = 0; i < 6; i++) {
+    parts.push_back(SurfaceLabel(SphereSDF<T>(Vec3(T(1.5) * T(i), T(0), T(0)), T(0.8)), "part" + std::to_string(i)));
+  }
+
+  parts.push_back(BoxSDF<T>(Vec3(T(-1), T(-2), T(-0.3)), Vec3(T(9), T(-1), T(0.3))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, Union(parts, Accelerate::BVH));
+
+  REQUIRE(tape.getNumRegions() == 2U);
+
+  int crossings = 0;
+
+  for (int i = 0; i < 30; i++) {
+    for (int j = 0; j < 5; j++) {
+      // Rays from outside, and from inside a sphere.
+      const Vec3    origin = (j == 4) ? Vec3(T(0.3) * T(i % 6) * T(1.5) / T(0.3), T(0.1), T(0))
+                                      : Vec3(T(0.3) * T(i) - T(1), T(4), T(0.4) * T(j) - T(0.8));
+      const Vec3    toward = Vec3(T(0.37) * T(i % 5) - T(0.7), T(-1), T(0.11) * T(j) - T(0.2));
+      const RayT<T> ray{origin, toward / toward.length()};
+
+      const SurfaceHitT<T> change = tape.firstRegionChange(ray, T(0), T(20));
+      const HitT<T>        hit    = tape.firstHit(ray, T(0), T(20));
+
+      REQUIRE(change.m_hit.hit() == hit.hit());
+
+      if (!hit.hit()) {
+        continue;
+      }
+
+      crossings++;
+
+      // Where the tape's own ray query crosses; from outside into the object or back out, its normal pointing into
+      // the region entered; the surface closestSurface() names there.
+      CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(hit.m_t, looseMargin<T>()));
+      CHECK(change.m_surface.m_ownerRegion == (hit.m_entering ? 0U : 1U));
+      CHECK(change.m_surface.m_neighborRegion == (hit.m_entering ? 1U : 0U));
+      CHECK(dot(change.m_hit.m_normal, ray.m_direction) > T(0));
+      CHECK(change.m_surface.m_surface == tape.closestSurface(change.m_hit.m_point).m_surface);
+      CHECK(tape.region(change.m_hit.m_point + T(1e-3) * ray.m_direction) == change.m_surface.m_neighborRegion);
+    }
+  }
+
+  CHECK(crossings > 60);
+}
+
 TEMPLATE_TEST_CASE("Tape: regionDistances() gives every region's function in one pass, as signedDistance() does",
                    "[Overlay][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)

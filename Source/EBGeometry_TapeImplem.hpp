@@ -3679,11 +3679,39 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
                                                                               : T(1);
   const T nudge    = T(0.01) * a_options.m_tolerance * scale;
 
-  const auto regionAt = [this, n](const Vec3T<T>& a_point) {
-    return (n == 0U) ? ((this->wholeValue(a_point) < T(0)) ? 1U : 0U) : this->region(a_point);
-  };
-
   SurfaceHitT<T> result;
+
+  // An object with no Overlay is one region: every crossing of it changes the region, and whether the ray enters says
+  // which way, so no distance is asked to name the two sides. Asking them was two searches of the whole object per
+  // crossing (at the start and past the hit) on top of the one naming the surface; on an assembly of meshes, a view
+  // of its one region (RegionView) rendered several times slower than the tape itself.
+  if (n == 0U) {
+    const HitT<T> hit = this->traceProgram(0U, a_ray, a_tMin + nudge, a_tMax, a_options);
+
+    result.m_hit = hit;
+
+    if (!hit.hit()) {
+      return result;
+    }
+
+    const CSGOps::Tagged<T> value =
+      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, hit.m_point, base, this->location());
+
+    result.m_surface = this->surfaceOf(this->leafOf(value));
+
+    if (hit.m_entering) {
+      result.m_hit.m_normal = -hit.m_normal;
+    }
+
+    result.m_surface.m_ownerRegion      = hit.m_entering ? 0U : 1U;
+    result.m_surface.m_neighborRegion   = hit.m_entering ? 1U : 0U;
+    result.m_surface.m_ownerMaterial    = this->getMaterialOf(result.m_surface.m_ownerRegion);
+    result.m_surface.m_neighborMaterial = this->getMaterialOf(result.m_surface.m_neighborRegion);
+
+    return result;
+  }
+
+  const auto regionAt = [this](const Vec3T<T>& a_point) { return this->region(a_point); };
 
   // A crossing whose two sides are the same region (found again from the surface the query starts on, or a crossing
   // of one solid inside a later one) changes nothing: the search goes on past it.
@@ -3699,21 +3727,16 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
     first.m_t = a_tMax;
 
-    if (n == 0U) {
-      first = this->traceProgram(0U, a_ray, start, a_tMax, a_options);
-    }
-    else {
-      for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
-        const uint32_t record = m_layout.m_regionPrograms.at(base, k);
-        const uint32_t solid =
-          m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+    for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
+      const uint32_t record = m_layout.m_regionPrograms.at(base, k);
+      const uint32_t solid =
+        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
 
-        const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
+      const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
 
-        if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
-          first   = hit;
-          program = solid;
-        }
+      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
+        first   = hit;
+        program = solid;
       }
     }
 

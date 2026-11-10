@@ -8,7 +8,9 @@
 // asking signedDistance(point, region) for each (Case::relativeTo(), so that a comparison notes what the one pass
 // saves); domainLabels is what a cut-cell code samples at a node, Domain::signedDistances() for a domain of the matrix
 // and the shells (the grains excluded). A host build runs the host cases; a CUDA or HIP build runs them as host/device
-// pairs, which agree when their values do. In a probe of its own, so that adding it changes no other probe's
+// pairs, which agree when their values do. Rays at an assembly of one region (a union of spheres through a BVH, no
+// Overlay): firstRegionChange(), what a view of its regions traces per camera ray, names the firstHit() case of the same
+// rays (Case::relativeTo()), so that a comparison notes what naming the region and the surface costs. In a probe of its own, so that adding it changes no other probe's
 // translation unit (see Performance/Fused). See ../README.md and PerformanceTesting.rst.
 
 #include <cmath>
@@ -30,6 +32,12 @@ constexpr std::size_t SmokeParticles = 4;
 constexpr std::size_t HostQueries    = 20000;
 constexpr std::size_t PairQueries    = 262144;
 constexpr std::size_t SmokeQueries   = 1000;
+
+// Spheres in the one-region assembly, and its rays per case.
+constexpr std::size_t AssemblySpheres      = 512;
+constexpr std::size_t SmokeAssemblySpheres = 16;
+constexpr std::size_t HostRays             = 50000;
+constexpr std::size_t PairRays             = 262144;
 
 template <class T>
 using Vec3 = EBGeometry::Vec3T<T>;
@@ -164,6 +172,103 @@ domainOf(const std::size_t a_particles)
   return domain;
 }
 
+// The one-region assembly: spheres in the unit cube, through a BVH.
+template <class T>
+EBGeometry::Expr<T>
+assembly(const std::size_t a_spheres)
+{
+  const auto centers = Perf::pointsInBox<T>(Perf::cube(T(0), T(1)), a_spheres, Perf::Seed::Inclusions);
+  const T    radius  = T(0.25) / T(std::cbrt(double(a_spheres)));
+
+  std::vector<EBGeometry::Expr<T>> spheres;
+
+  for (const auto& c : centers) {
+    spheres.emplace_back(EBGeometry::SphereSDF<T>(c, radius));
+  }
+
+  return EBGeometry::Union(spheres, EBGeometry::Accelerate::BVH);
+}
+
+// A ray from an origin towards the assembly's center: where it first changes region (its surface in m_region), or
+// where it first crosses the object.
+template <class T, bool Regions>
+struct RayQuery
+{
+  EBGeometry::Tape<T> m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  RegionHit<T>
+  operator()(const Vec3<T>& a_origin) const noexcept
+  {
+    const Vec3<T>             toward = Vec3<T>(T(0.5), T(0.5), T(0.5)) - a_origin;
+    const EBGeometry::RayT<T> ray{a_origin, toward / toward.length()};
+    const T                   far = T(4);
+
+    if constexpr (Regions) {
+      const EBGeometry::SurfaceHitT<T> change = m_tape.firstRegionChange(ray, T(0), far);
+
+      return change.m_hit.hit() ? RegionHit<T>{change.m_surface.m_surface, change.m_hit.m_t} : RegionHit<T>{0U, -T(1)};
+    }
+    else {
+      const EBGeometry::HitT<T> hit = m_tape.firstHit(ray, T(0), far);
+
+      return RegionHit<T>{0U, hit.hit() ? hit.m_t : -T(1)};
+    }
+  }
+};
+
+template <class T, bool Regions>
+void
+addRays(Perf::Suite& a_suite)
+{
+  const std::string prec = Perf::precisionName<T>();
+  const std::string name = Regions ? "firstRegionChange" : "firstHit";
+
+  const auto origins = [](const std::size_t a_n) {
+    return Perf::pointsInBox<T>(Perf::cube(T(-1), T(2)), a_n, Perf::Seed::RayOrigins);
+  };
+
+  a_suite.add(Perf::caseName({"Regions", "assembly", name, prec, "host"}), [=](Perf::Case& c) {
+    EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
+    const std::size_t         spheres = c.size(AssemblySpheres, SmokeAssemblySpheres);
+    const EBGeometry::Tape<T> tape(pool, assembly<T>(spheres));
+    const auto                rays = origins(c.size(HostRays, SmokeQueries));
+
+    std::vector<RegionHit<T>> hits;
+
+    Perf::measureHostQuery(c, RayQuery<T, Regions>{tape}, rays, hits);
+
+    c.checksum(checksumOf(hits));
+    c.poolBytes(pool.usedBytes());
+    c.param("spheres", spheres);
+
+    if constexpr (!Regions) {
+      c.relativeTo(Perf::caseName({"Regions", "assembly", "firstRegionChange", prec, "host"}), "regions/hit");
+    }
+  });
+
+  a_suite.add(Perf::caseName({"Regions", "assembly", name, prec, "hostdevice"}), [=](Perf::Case& c) {
+    EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
+    const std::size_t         spheres = c.size(AssemblySpheres, SmokeAssemblySpheres);
+    const EBGeometry::Tape<T> tape(pool, assembly<T>(spheres));
+    const auto                rays = origins(c.size(PairRays, SmokeQueries));
+
+    const auto hits = Perf::measureHostAndDevice<RegionHit<T>>(
+      c,
+      pool,
+      rays,
+      [&](const EBGeometry::Pool& a_pool) { return RayQuery<T, Regions>{tape.rebasedView(a_pool)}; },
+      agreeValue<T>);
+
+    c.checksum(checksumOf(hits));
+    c.param("spheres", spheres);
+
+    if constexpr (!Regions) {
+      c.relativeTo(Perf::caseName({"Regions", "assembly", "firstRegionChange", prec, "hostdevice"}), "regions/hit");
+    }
+  });
+}
+
 const char*
 operationName(const Operation a_op)
 {
@@ -244,6 +349,8 @@ addPrecision(Perf::Suite& a_suite)
   addOperation<T, Operation::RegionDistances>(a_suite);
   addOperation<T, Operation::RegionByRegion>(a_suite);
   addOperation<T, Operation::DomainLabels>(a_suite);
+  addRays<T, true>(a_suite);
+  addRays<T, false>(a_suite);
 }
 
 } // namespace
