@@ -18,11 +18,12 @@ nearest. It answers them fast on CPUs and on GPUs, from the same code, with no d
 one header and compile with C++17.
 
 <p align="center">
-   <img src="Docs/Sphinx/source/_static/f18_assembly.gif" width="800" alt="A fighter jet assembled from its parts, then shown in X-ray and as the ray tracer's cost per pixel"/>
+   <img src="Docs/Sphinx/source/_static/f18_assembly.gif" width="800" alt="A fighter jet assembled from its parts, then cut open to show its distance field, shown in X-ray, and as the ray tracer's cost per pixel"/>
    <br/>
    <sub>A 61-part, 310,000-triangle assembly in one BVH-accelerated union: the parts come together,
-   then the jet in X-ray and the ray tracer's cost per pixel. Model adapted from the Boeing EA-18G
-   Growler by Leo Zeng, from <a href="https://grabcad.com/library/boeing-ea-18g-growler-1">GrabCAD</a>.</sub>
+   then its distance field on a slice, the jet in X-ray and the ray tracer's cost per pixel. Model
+   adapted from the Boeing EA-18G Growler by Leo Zeng, from
+   <a href="https://grabcad.com/library/boeing-ea-18g-growler-1">GrabCAD</a>.</sub>
 </p>
 
 ## Why EBGeometry
