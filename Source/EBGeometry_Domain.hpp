@@ -27,7 +27,7 @@ namespace EBGeometry {
 /**
  * @brief A computational domain, as a description for a downstream code (a solver EBGeometry does not provide): the
  * regions it computes in (its subdomains) and its surface groups, each a boundary condition's tag (the surface group's
- * name, kept with RegionNames) and id (its number in the scheme).
+ * name, which the caller keeps: the domain holds no names) and id (its number in the scheme).
  * @details A plain value, trivially copyable, that a kernel takes whole: at a cut cell, m_subdomains says what the
  * surface is to the domain (Subdomains::role()) and m_scheme its boundary condition (Scheme::surfaceGroupOf()). The
  * surfaces it must tag are those it touches, every surface with a side in one of its regions, the internal ones
