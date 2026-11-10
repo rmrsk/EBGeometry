@@ -576,6 +576,24 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
     CHECK(domainView.contourSample(p).m_secondary == (label == Domain::Excluded));
   }
 
+  // What a point is in, for a section plane's fill: its region's material, or its region when colored by region.
+  {
+    const ExprIndex<T> labels(cable<T>());
+
+    const Vec3 inCore(T(-0.1), T(0), T(0));
+    const Vec3 inAir(T(2), T(2), T(2));
+
+    CHECK(all.sectionKey(inCore) == 2U);
+    CHECK(all.sectionKey(inAir) == 0U);
+
+    RegionSettings byMaterial = all.getSettings();
+
+    byMaterial.m_coloring = RegionColoring::Material;
+
+    CHECK(all.withSettings(byMaterial).sectionKey(inCore) == labels.findMaterialLabel("copper").value());
+    CHECK(all.withSettings(byMaterial).sectionKey(inAir) == labels.findMaterialLabel("air").value());
+  }
+
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);
 
   // The piece a hit picks: the region seen inside, the one across outside (the core's cut face: core | air; the

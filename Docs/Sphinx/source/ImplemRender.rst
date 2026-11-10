@@ -176,9 +176,10 @@ opened with them.
        turn on comes first); remove the cut; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
-   * - I
+   * - I; Shift + I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
-       of the box's diagonal, every 1/50, every 1/100.
+       of the box's diagonal, every 1/50, every 1/100. Shift + I fills a view of regions' plane by what each point
+       is in, its region's material (its region, colored by region), the air included (``Settings::m_sectionFill``).
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
        and a line between them). On the background, either clears. For a view of regions, a click picks what

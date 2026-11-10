@@ -128,6 +128,21 @@ public:
   }
 
   /**
+   * @brief What a point is in, for a section plane's fill: its region's material, or its region when colored by region
+   * (the background's included, never drawn otherwise).
+   * @param[in] a_point Point.
+   * @return The key (the material's number, or none for a region without one), as the coloring names it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  sectionKey(const Vec3T<T>& a_point) const noexcept
+  {
+    const uint32_t region = m_tape.region(a_point);
+
+    return (m_settings.m_coloring == RegionColoring::Region) ? region : m_tape.getMaterialOf(region).value();
+  }
+
+  /**
    * @brief The key of the region a point inside the view is in (for a cut face), as a leaf reference (only m_leaf
    * is set).
    * @param[in] a_point Point.

@@ -169,7 +169,8 @@ keys(const bool a_device, const bool a_regions = false)
                                  {"N", "Reverse the cut (keep the other side)"},
                                  {"Up, Down", "Move the plane in coarse steps"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
-                                 {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
+                                 {"I", "Lines of equal distance: off, as set, coarse, fine, finer"},
+                                 {"Shift + I", "Fill the plane by material (a view of regions), or stop"}}},
                                {"Picking and measuring",
                                 "Picking",
                                 {{"Click", "Pick what is under the cursor (the background clears it)"},
@@ -3359,6 +3360,14 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_i: {
+          // Shift and I fill the section plane by what each point is in (a view of regions: its material, or its
+          // region when colored by region), or stop.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_sectionFill = (settings.m_sectionFill > T(0)) ? T(0) : T(0.6);
+
+            break;
+          }
+
           // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
           // diagonal, every 1/50, every 1/100.
           isoMode = (isoMode + 1) % 5;

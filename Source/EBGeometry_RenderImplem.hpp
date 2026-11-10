@@ -63,6 +63,29 @@ unit(const Vec3T<T>& a_v) noexcept
  * @tparam S Shape type.
  */
 /**
+ * @brief Whether a shape names what a point is in, for the section plane's fill (sectionKey()): the primary template is
+ * false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasSectionKey : std::false_type
+{
+};
+
+/**
+ * @brief A shape with sectionKey(point).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasSectionKey<S, T, std::void_t<decltype(std::declval<const S&>().sectionKey(std::declval<Vec3T<T>>()))>>
+  : std::true_type
+{
+};
+
+/**
  * @brief Whether a shape has a field of its own for the section plane (contourSample(), negative inside, with lines that
  * may be secondary): the primary template is false.
  * @details Internal helper; not part of the public API.
@@ -219,6 +242,27 @@ struct Sectioned
     }
     else {
       return ContourSample<T>{m_shape.signedDistance(a_point)};
+    }
+  }
+
+  /**
+   * @brief What a point is in, for the section plane's fill: the shape's sectionKey() (see HasSectionKey); out of line
+   * on a device, as shapeDistance().
+   * @param[in] a_point Point.
+   * @return The key, or Settings::NoPrimitive for a shape without one.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline uint32_t
+  sectionKey(const Vec3T<T>& a_point) const noexcept
+  {
+    if constexpr (HasSectionKey<S, T>::value) {
+      return m_shape.sectionKey(a_point);
+    }
+    else {
+      (void)a_point;
+
+      return 0xFFFFFFFFU;
     }
   }
 
@@ -477,9 +521,9 @@ public:
 
     m_boxLow  = lo - margin;
     m_boxHigh = hi + margin;
-    m_onPlane =
-      a_settings.m_section && bounded &&
-      (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0) || a_settings.m_isoSpacing > T(0));
+    m_onPlane = a_settings.m_section && bounded &&
+                (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0) ||
+                 a_settings.m_isoSpacing > T(0) || a_settings.m_sectionFill > T(0));
   }
 
   /**
@@ -1315,13 +1359,7 @@ private:
     Vec3T<T> albedo = m_settings.m_color;
 
     if (m_settings.m_colorBy == ColorBy::Primitive) {
-      const uint32_t id = a_hit.m_primitive;
-
-      // No key (a view of regions: a surface in no surface group, a region without a material) is a neutral gray.
-      albedo = (id < Settings<T>::PrimitiveColors && m_settings.m_primitiveColors[id][0] >= T(0))
-                 ? m_settings.m_primitiveColors[id]
-               : (id == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
-                                                  : palette<T>(id);
+      albedo = this->keyColor(a_hit.m_primitive);
     }
     else if (m_settings.m_colorBy == ColorBy::Normal) {
       albedo = T(0.5) * (n + Vec3T<T>::ones());
@@ -1343,6 +1381,22 @@ private:
     }
 
     return this->light(p, n, a_direction, albedo, a_tint);
+  }
+
+  /**
+   * @brief The color of a key, colored by primitive: the settings' (m_primitiveColors), else the palette's; no key (a
+   * view of regions: a surface in no surface group, a region without a material) is a neutral gray.
+   * @param[in] a_key The key.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  keyColor(const uint32_t a_key) const noexcept
+  {
+    return (a_key < Settings<T>::PrimitiveColors && m_settings.m_primitiveColors[a_key][0] >= T(0))
+             ? m_settings.m_primitiveColors[a_key]
+           : (a_key == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
+                                                 : palette<T>(a_key);
   }
 
   /**
@@ -1403,8 +1457,15 @@ private:
       return m_settings.m_contourColor;
     }
 
-    // Lines of equal distance, every m_isoSpacing, thinner than the contour.
+    // The fill by what the point is in, in place of the sheet.
+    const T  fill  = RenderDetail::HasSectionKey<S, T>::value ? m_settings.m_sectionFill : T(0);
     Vec3T<T> color = a_color;
+
+    if (fill > T(0)) {
+      color = (T(1) - fill) * a_color + fill * this->keyColor(m_object.sectionKey(q));
+    }
+
+    // Lines of equal distance, every m_isoSpacing, thinner than the contour.
 
     if (m_settings.m_isoSpacing > T(0)) {
       const T s = m_settings.m_isoSpacing;
@@ -1415,7 +1476,7 @@ private:
       }
     }
 
-    if (value > T(0) && m_settings.m_sheetOpacity > T(0)) {
+    if (value > T(0) && m_settings.m_sheetOpacity > T(0) && fill == T(0)) {
       // The sheet's edge, a pixel and a half wide, where the plane leaves the box.
       T edge = Math::Limits<T>::infinity();
 
@@ -2179,6 +2240,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_isoColor", a_settings.m_isoColor, settings.m_isoColor);
   field("settings", "m_isoSecondaryColor", a_settings.m_isoSecondaryColor, settings.m_isoSecondaryColor);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
+  field("settings", "m_sectionFill", a_settings.m_sectionFill, settings.m_sectionFill);
   field("settings", "m_sheetColor", a_settings.m_sheetColor, settings.m_sheetColor);
   field("settings", "m_sheetEdgeColor", a_settings.m_sheetEdgeColor, settings.m_sheetEdgeColor);
   field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);
@@ -2584,6 +2646,9 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_isoSpacing >= T(0),
                      "Render::Renderer: the iso-line spacing must not be negative (%g)",
                      double(m_settings.m_isoSpacing));
+  EBGEOMETRY_REQUIRE(m_settings.m_sectionFill >= T(0) && m_settings.m_sectionFill <= T(1),
+                     "Render::Renderer: the section plane's fill must be from 0 to 1 (%g)",
+                     double(m_settings.m_sectionFill));
   EBGEOMETRY_REQUIRE(m_settings.m_cutOpacity >= T(0) && m_settings.m_cutOpacity <= T(1),
                      "Render::Renderer: the cut face's opacity must be from 0 to 1 (%g)",
                      double(m_settings.m_cutOpacity));

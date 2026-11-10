@@ -496,6 +496,14 @@ struct Settings
   T m_sheetOpacity = T(0.35);
 
   /**
+   * @brief Opacity of the section plane's fill by what each point of it is in, within the shape's box (0: none, 1:
+   * opaque): a shape's sectionKey(point) (a view of regions: the region's material, or the region when colored by
+   * region), colored as surfaces with that key are (m_primitiveColors, else the palette). Where it fills, it takes the
+   * sheet's place. Shapes without a key are not filled.
+   */
+  T m_sectionFill = T(0);
+
+  /**
    * @brief The sheet's color.
    */
   Vec3T<T> m_sheetColor = Vec3T<T>(T(0.95), T(0.96), T(0.97));
