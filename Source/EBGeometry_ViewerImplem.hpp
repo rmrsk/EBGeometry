@@ -1077,15 +1077,20 @@ run(const S&           a_shape,
   const auto subdomainRegions = [&](const uint32_t a_subdomain) {
     uint64_t mask = 0U;
 
-    if (names.getNumDomains() > 0U) {
-      const Subdomains& subdomains = names.getDomain(names.getActiveDomain()).m_subdomains;
+    if constexpr (hasRegionVisibility<S>) {
+      if (names.getNumDomains() > 0U) {
+        const Subdomains& subdomains = names.getDomain(names.getActiveDomain()).m_subdomains;
 
-      for (uint32_t k = 1; k < Math::min(shape.getNumRegions(), 64U); k++) {
-        const uint32_t d = subdomains.subdomainOf(k);
+        for (uint32_t k = 1; k < Math::min(shape.getNumRegions(), 64U); k++) {
+          const uint32_t d = subdomains.subdomainOf(k);
 
-        mask |= (d != Subdomains::None && (a_subdomain == Subdomains::None || d == a_subdomain)) ? (uint64_t(1) << k)
-                                                                                                 : uint64_t(0);
+          mask |= (d != Subdomains::None && (a_subdomain == Subdomains::None || d == a_subdomain)) ? (uint64_t(1) << k)
+                                                                                                   : uint64_t(0);
+        }
       }
+    }
+    else {
+      (void)a_subdomain;
     }
 
     return mask;
@@ -1095,12 +1100,17 @@ run(const S&           a_shape,
   const auto subdomainAllRegions = [&](const uint32_t a_subdomain) {
     uint64_t mask = 0U;
 
-    if (names.getNumDomains() > 0U) {
-      const Subdomains& subdomains = names.getDomain(names.getActiveDomain()).m_subdomains;
+    if constexpr (hasRegionVisibility<S>) {
+      if (names.getNumDomains() > 0U) {
+        const Subdomains& subdomains = names.getDomain(names.getActiveDomain()).m_subdomains;
 
-      for (uint32_t k = 0; k < Math::min(shape.getNumRegions(), 64U); k++) {
-        mask |= (subdomains.subdomainOf(k) == a_subdomain) ? (uint64_t(1) << k) : uint64_t(0);
+        for (uint32_t k = 0; k < Math::min(shape.getNumRegions(), 64U); k++) {
+          mask |= (subdomains.subdomainOf(k) == a_subdomain) ? (uint64_t(1) << k) : uint64_t(0);
+        }
       }
+    }
+    else {
+      (void)a_subdomain;
     }
 
     return mask;
