@@ -156,7 +156,7 @@ keys(const bool a_device, const bool a_regions = false)
       {"Shift + Left, Right", "Broader or tighter highlights"}}},
     {"Rendering",
      "Rendering",
-     {{"M, Shift + M", "Next or previous view: shaded, depth, x-ray, costs"},
+     {{"M, Shift + M", "Next or previous view: shaded, x-ray, costs"},
       {"P", "Next coloring: by normal, one color, by object"},
       {"S", "Shadows on or off"},
       {"A", "Ambient occlusion on or off"},
@@ -4085,10 +4085,20 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_m: {
-          // M steps forward through the five views, Shift and M back.
-          const int step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? 4 : 1;
+          // M steps forward through the views, Shift and M back: shaded, x-ray and the two costs. The depth view is left
+          // out (a program can still set it); from it, M goes on as from the shaded view.
+          constexpr ViewMode cycle[] = {ViewMode::Shaded, ViewMode::XRay, ViewMode::CostHit, ViewMode::CostCrossing};
+          constexpr int      count   = 4;
 
-          settings.m_viewMode = static_cast<ViewMode>((static_cast<int>(settings.m_viewMode) + step) % 5);
+          int at = 0;
+
+          for (int i = 0; i < count; i++) {
+            at = (cycle[i] == settings.m_viewMode) ? i : at;
+          }
+
+          const int step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? count - 1 : 1;
+
+          settings.m_viewMode = cycle[(at + step) % count];
 
           break;
         }

@@ -170,7 +170,8 @@ opened with them.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
    * - M; Shift + M
-     - Cycle the view: shaded, depth, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
+     - Cycle the view: shaded, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards. (The depth
+       view, ``ViewMode::Depth``, is set by a program, not by M.)
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
    * - S, A, F, B
