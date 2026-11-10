@@ -662,6 +662,9 @@ run(const S&           a_shape,
   // Each frame records its pixels' objects, for outlining a picked one.
   settings.m_recordPrimitives = true;
 
+  // What is picked or highlighted stands out: the other surfaces fade (unless the settings fade them already).
+  settings.m_fadeOthers = (a_settings.m_fadeOthers > T(0)) ? a_settings.m_fadeOthers : T(0.6);
+
   // The scene's length scale, for moving the section plane.
   const auto box = a_shape.computeBoundingVolume();
 
@@ -2561,45 +2564,143 @@ run(const S&           a_shape,
     const uint32_t key     = pick.m_primitive;
     const bool     outline = several || (picked && (primitivesAreFaces<S> || key != Outside));
 
-    // The surfaces outlined, rendered again alone at the frame's size, each side of each keyed apart: their edges are
-    // where the keys change, at their silhouettes and at their rims, wherever the rest of the object hides them.
-    Image edges;
+    // In a view of regions the outlined surfaces are rendered again alone, at Fine times the frame's resolution each
+    // way, each side of each keyed apart: their edges are where the keys change, at their silhouettes and their rims,
+    // wherever the rest of the object hides them. The line is drawn at that resolution and averaged down, so that it is
+    // smooth. Previews, which must be fast, have none.
+    constexpr int Fine = 2;
 
-    Settings<T> shown = stageSettings(1);
+    const bool preview = std::string(a_what) == "preview";
 
-    shown.m_width    = a_image.m_width;
-    shown.m_height   = a_image.m_height;
-    shown.m_viewMode = ViewMode::Shaded;
+    if (several && !preview) {
+      Settings<T> shown = stageSettings(1);
 
-    Settings<T> alone = shown;
+      shown.m_width    = Fine * a_image.m_width;
+      shown.m_height   = Fine * a_image.m_height;
+      shown.m_viewMode = ViewMode::Shaded;
 
-    alone.m_recordPrimitives       = true;
-    alone.m_regions.m_onlySelected = true;
-    alone.m_regions.m_numSelected  = static_cast<uint32_t>(outlinedBy.size());
+      Settings<T> alone = shown;
 
-    for (std::size_t i = 0; i < outlinedBy.size(); i++) {
-      alone.m_regions.m_selected[i] = outlinedBy[i];
-    }
+      alone.m_recordPrimitives       = true;
+      alone.m_regions.m_onlySelected = true;
+      alone.m_regions.m_numSelected  = static_cast<uint32_t>(outlinedBy.size());
 
-    if constexpr (hasRegionVisibility<S>) {
-      if (outline && several) {
+      for (std::size_t i = 0; i < outlinedBy.size(); i++) {
+        alone.m_regions.m_selected[i] = outlinedBy[i];
+      }
+
+      Image edges;
+
+      if constexpr (hasRegionVisibility<S>) {
         (void)render(shape, deviceShape, alone, camera, onDevice, edges, nullptr);
       }
+
+      const int fineWidth  = static_cast<int>(shown.m_width);
+      const int fineHeight = static_cast<int>(shown.m_height);
+
+      if (edges.m_primitives.size() == std::size_t(fineWidth) * std::size_t(fineHeight)) {
+        // A fine pixel's outlined object: Outside, or a side of an outlined surface.
+        const auto objectAt = [&](const int a_x, const int a_y) {
+          const uint32_t id = edges.m_primitives[std::size_t(a_y) * std::size_t(fineWidth) + std::size_t(a_x)];
+
+          return (id - RegionSettings::Selected < 2U * RegionSettings::MaxSelected) ? id : Outside;
+        };
+
+        // An edge between two fine pixels is hidden where the object is hit clearly in front of it: the edge lies at
+        // the nearer of the outlined surfaces there (the other may be a surface's back, seen past its rim), and the ray
+        // through that pixel meets the object as shown before it, by more than a few pixels' width at that depth and
+        // more than the depth changes across the edge (a surface seen at a grazing angle).
+        const Renderer<T> object(shown);
+        const Renderer<T> picks(alone);
+
+        const T across = T(2) * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) / T(fineHeight);
+
+        const auto hidden = [&](const int a_x, const int a_y, const int a_u, const int a_v) {
+          const HitT<T> here   = picks.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5));
+          const HitT<T> beside = picks.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
+          const bool    nearer = here.hit() && (!beside.hit() || here.m_t < beside.m_t);
+          const HitT<T> edge   = nearer ? here : beside;
+
+          if (!edge.hit()) {
+            return false;
+          }
+
+          const HitT<T> front = nearer ? object.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5))
+                                       : object.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
+
+          const T footprint = across * (camera.m_orthographic ? camera.m_distance : edge.m_t);
+          const T slope     = (here.hit() && beside.hit()) ? std::abs(here.m_t - beside.m_t) : T(0);
+
+          return front.hit() && front.m_t < edge.m_t - T(4) * footprint - slope;
+        };
+
+        // The line: every fine pixel within Fine of a visible edge (between a pixel and the one right of or below it).
+        std::vector<uint8_t> line(std::size_t(fineWidth) * std::size_t(fineHeight), 0U);
+
+        for (int y = 0; y < fineHeight; y++) {
+          for (int x = 0; x < fineWidth; x++) {
+            const uint32_t own = objectAt(x, y);
+
+            for (const auto& [u, v] : {std::pair<int, int>{x + 1, y}, std::pair<int, int>{x, y + 1}}) {
+              if (u >= fineWidth || v >= fineHeight || objectAt(u, v) == own || hidden(x, y, u, v)) {
+                continue;
+              }
+
+              for (int dy = -Fine; dy <= Fine; dy++) {
+                for (int dx = -Fine; dx <= Fine; dx++) {
+                  const int a = x + dx;
+                  const int b = y + dy;
+
+                  if (dx * dx + dy * dy <= Fine * Fine && a >= 0 && b >= 0 && a < fineWidth && b < fineHeight) {
+                    line[std::size_t(b) * std::size_t(fineWidth) + std::size_t(a)] = 1U;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Each frame pixel takes gold by the share of its fine pixels on the line.
+        outlined = a_image.m_pixels;
+
+        for (uint32_t y = 0; y < a_image.m_height; y++) {
+          for (uint32_t x = 0; x < a_image.m_width; x++) {
+            uint32_t covered = 0;
+
+            for (uint32_t j = 0; j < uint32_t(Fine); j++) {
+              for (uint32_t i = 0; i < uint32_t(Fine); i++) {
+                covered += line[std::size_t(Fine * y + j) * std::size_t(fineWidth) + std::size_t(Fine * x + i)];
+              }
+            }
+
+            if (covered > 0U) {
+              const std::size_t pixel = std::size_t(y) * a_image.m_width + std::size_t(x);
+              const uint32_t    from  = a_image.m_pixels[pixel];
+
+              uint32_t mixed = 0xFFU;
+
+              for (const uint32_t shift : {8U, 16U, 24U}) {
+                const uint32_t a = (from >> shift) & 0xFFU;
+                const uint32_t b = (0xFFB81AFFU >> shift) & 0xFFU;
+
+                mixed |= ((a * (uint32_t(Fine * Fine) - covered) + b * covered) / uint32_t(Fine * Fine)) << shift;
+              }
+
+              outlined[pixel] = mixed;
+            }
+          }
+        }
+
+        pixels = outlined.data();
+      }
     }
-
-    const Image& keyed = several ? edges : a_image;
-
-    if (outline && keyed.m_primitives.size() == a_image.m_pixels.size()) {
-      // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one; a picked surface's side).
+    else if (!several && outline && a_image.m_primitives.size() == a_image.m_pixels.size()) {
+      // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one).
       const auto objectAt = [&](const int a_x, const int a_y) {
-        const uint32_t id = keyed.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
+        const uint32_t id = a_image.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
 
         if (primitivesAreFaces<S>) {
           return (id != Outside) ? 0U : Outside;
-        }
-
-        if (several) {
-          return (id - RegionSettings::Selected < 2U * RegionSettings::MaxSelected) ? id : Outside;
         }
 
         return (id == key) ? id : Outside;
@@ -2611,61 +2712,26 @@ run(const S&           a_shape,
 
       outlined = a_image.m_pixels;
 
-      // An edge of the picked surfaces is hidden where the object is hit clearly in front of it. The edge lies between
-      // the outline's pixel and the one beside it that showed it, at the nearer of the picked surfaces there (the
-      // other may be a surface's back, seen past its rim); the ray through that pixel meets the object as shown
-      // before it. Hidden edges are not drawn.
-      const Renderer<T> object(shown);
-      const Renderer<T> picks(alone);
-
-      const auto hidden = [&](const int a_x, const int a_y, const int a_u, const int a_v) {
-        const HitT<T> here   = picks.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5));
-        const HitT<T> beside = picks.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
-        const bool    nearer = here.hit() && (!beside.hit() || here.m_t < beside.m_t);
-        const HitT<T> edge   = nearer ? here : beside;
-
-        const HitT<T> front = nearer ? object.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5))
-                                     : object.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
-
-        // Clearly: by more than a few pixels' width at the edge's depth (at the camera's distance, orthographic).
-        const T across    = T(2) * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) / T(height);
-        const T footprint = across * (camera.m_orthographic ? camera.m_distance : edge.m_t);
-
-        return edge.hit() && front.hit() && front.m_t < edge.m_t - T(4) * footprint;
-      };
-
-      // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
-      // lower-keyed side of a border between two (a line one reach wide either way).
+      // A pixel is on the outline when the picked object is near and it is not part of it.
       for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-          const uint32_t own = objectAt(x, y);
+          if (objectAt(x, y) != Outside) {
+            continue;
+          }
 
-          bool near  = false;
-          int  nearU = x;
-          int  nearV = y;
+          bool near = false;
 
           for (int dy = -reach; dy <= reach && !near; dy++) {
             for (int dx = -reach; dx <= reach && !near; dx++) {
               const int u = x + dx;
               const int v = y + dy;
 
-              if (u >= 0 && v >= 0 && u < width && v < height) {
-                const uint32_t other = objectAt(u, v);
-
-                near  = other != Outside && other != own && (own == Outside || own < other);
-                nearU = u;
-                nearV = v;
-              }
+              near = u >= 0 && v >= 0 && u < width && v < height && objectAt(u, v) != Outside;
             }
           }
 
           if (near) {
-            const std::size_t pixel = std::size_t(y) * a_image.m_width + std::size_t(x);
-
-            // Where the object hides the edge, nothing is drawn.
-            if (!several || !hidden(x, y, nearU, nearV)) {
-              outlined[pixel] = 0xFFB81AFFU;
-            }
+            outlined[std::size_t(y) * a_image.m_width + std::size_t(x)] = 0xFFB81AFFU;
           }
         }
       }

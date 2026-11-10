@@ -242,7 +242,8 @@ the palette's. Below, a "Pick" row sets what a click picks: the part of a surfac
 (a cylinder's cap, a box's face), or the region there, every surface of it. What is picked is listed (a part with its
 surface, the regions on its two sides and its surface group; several, picked with Ctrl + click, each with an ``[x]``
 taking it out), highlighted (``RegionSettings::m_selected`` in a program) and outlined along its own edges, its
-rims included, where the object does not hide them, with ``[Pick nothing]`` and the ways to
+rims included, where the object does not hide them (on the refined frames, not the previews), with the other surfaces
+faded (``Settings::m_fadeOthers``), with ``[Pick nothing]`` and the ways to
 add it to the current surface group, each saying how many of the object's pieces it takes in: what is picked, the
 whole pieces with all their parts, all of their surfaces, all surfaces of their regions, or everything between their
 two regions; and a button to remove them; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
