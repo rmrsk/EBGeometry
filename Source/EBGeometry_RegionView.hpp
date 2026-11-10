@@ -131,18 +131,16 @@ public:
   }
 
   /**
-   * @brief What a point is in, for a section plane's fill: its region's material, or its region when colored by region
+   * @brief What a point is in, for a section plane's fill: its region's material, whatever the surfaces are colored by
    * (the background's included, never drawn otherwise).
    * @param[in] a_point Point.
-   * @return The key (the material's number, or none for a region without one), as the coloring names it.
+   * @return The material's number, or none for a region without one.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   sectionKey(const Vec3T<T>& a_point) const noexcept
   {
-    const uint32_t region = m_tape.region(a_point);
-
-    return (m_settings.m_coloring == RegionColoring::Region) ? region : m_tape.getMaterialOf(region).value();
+    return m_tape.getMaterialOf(m_tape.region(a_point)).value();
   }
 
   /**

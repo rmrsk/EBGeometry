@@ -320,6 +320,13 @@ struct Settings
   Array<Vec3T<T>, PrimitiveColors> m_primitiveColors = unsetColors();
 
   /**
+   * @brief Colors of the materials of a view of regions, for the section plane's fill (m_sectionFill), by material
+   * number (linear RGB in [0, 1]), whatever the surfaces are colored by. An entry left unset, and every number from
+   * PrimitiveColors on, takes the built-in palette's color, as the surfaces colored by material do.
+   */
+  Array<Vec3T<T>, PrimitiveColors> m_materialColors = unsetColors();
+
+  /**
    * @brief Whether a render records each pixel's object in Image::m_primitives (for a viewer's pick
    * outline); off, the image's m_primitives stays empty and a render stores and copies less per pixel.
    */
@@ -510,11 +517,12 @@ struct Settings
 
   /**
    * @brief Opacity of the section plane's fill by what each point of it is in, within the shape's box (0: none, 1:
-   * opaque): a shape's sectionKey(point) (a view of regions: the region's material, or the region when colored by
-   * region), colored as surfaces with that key are (m_primitiveColors, else the palette). Where it fills, it takes the
-   * sheet's place. Shapes without a key are not filled.
+   * opaque): a shape's sectionKey(point) (a view of regions: the material of the region there), in its material's
+   * color (m_materialColors, else the palette); gray where the region has no material, and where a domain shown on
+   * the plane does not compute (m_fillSecondaryColor). Where it fills, it takes the sheet's place. Shapes without a key
+   * are not filled.
    */
-  T m_sectionFill = T(0);
+  T m_sectionFill = T(1);
 
   /**
    * @brief The fill's color where a shape marks the field secondary (where a view of regions' domain or subdomain does

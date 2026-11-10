@@ -48,7 +48,9 @@ The classes are in namespace ``Render``:
   colored as a surface facing along the plane's normal would be, opaque unless ``m_cutOpacity`` is below 1, when the shape's
   next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
-  box), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
+  box; for a view of regions the plane is filled instead by the material of each point's region, in the material's
+  color (``m_sectionFill``, ``m_materialColors``), gray where the region has none or a domain shown on the plane does
+  not compute), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
   ``Settings::PrimitiveColors`` (16) primitive ids colors of their own; an entry left unset, and every
   later id, takes the built-in palette's (:ref:`Chap:ExampleSurfaceLabels` colors its bore steel gray).
   ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``. ``m_viewMode`` picks the
@@ -181,10 +183,9 @@ opened with them.
        opaque again; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
-   * - I; Shift + I
+   * - I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
-       of the box's diagonal, every 1/50, every 1/100. Shift + I fills a view of regions' plane by what each point
-       is in, its region's material (its region, colored by region), the air included (``Settings::m_sectionFill``).
+       of the box's diagonal, every 1/50, every 1/100.
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
        and a line between them). On the background, either clears. For a view of regions, a click picks what

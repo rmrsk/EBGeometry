@@ -170,13 +170,11 @@ main(int argc, char* argv[])
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
 
   // The window opens with the air hidden, so that the cable shows (V and the panel show it again), cut along its axis
-  // by the section plane, the cut filled by material, so that the core shows (X steps the plane on, Shift + I the
-  // fill).
+  // by the section plane, which is filled by material, so that the core shows (X steps the plane on).
   settings.m_regions.setVisible(1, false);
 
   settings.m_section       = true;
   settings.m_sectionNormal = Vec3(T(1), T(0), T(0));
-  settings.m_sectionFill   = T(1);
 
   // The names the window shows: the regions by their names and materials, the domains and their surface groups.
   EBGeometry::RegionNames names(index);

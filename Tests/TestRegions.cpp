@@ -589,22 +589,22 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
     CHECK(domainView.contourSample(p).m_secondary == (label == Domain::Excluded));
   }
 
-  // What a point is in, for a section plane's fill: its region's material, or its region when colored by region.
+  // What a point is in, for a section plane's fill: its region's material, whatever the surfaces are colored by; none
+  // outside.
   {
     const ExprIndex<T> labels(cable<T>());
 
     const Vec3 inCore(T(-0.1), T(0), T(0));
     const Vec3 inAir(T(2), T(2), T(2));
 
-    CHECK(all.sectionKey(inCore) == 2U);
-    CHECK(all.sectionKey(inAir) == 0U);
+    for (const RegionColoring coloring : {RegionColoring::Region, RegionColoring::Material, RegionColoring::Surface}) {
+      RegionSettings colored = all.getSettings();
 
-    RegionSettings byMaterial = all.getSettings();
+      colored.m_coloring = coloring;
 
-    byMaterial.m_coloring = RegionColoring::Material;
-
-    CHECK(all.withSettings(byMaterial).sectionKey(inCore) == labels.findMaterialLabel("copper").value());
-    CHECK(all.withSettings(byMaterial).sectionKey(inAir) == MaterialLabelId::none().value());
+      CHECK(all.withSettings(colored).sectionKey(inCore) == labels.findMaterialLabel("copper").value());
+      CHECK(all.withSettings(colored).sectionKey(inAir) == MaterialLabelId::none().value());
+    }
   }
 
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);

@@ -10,8 +10,7 @@ regions and their materials; the tape says which region a point is in
 code cuts for that region. The viewer shows the regions' surfaces, internal ones included, through a
 `RegionView`: K colors them by region, material, surface label, surface or part; V shows one region at a time,
 Shift + V hides the picked one, Ctrl + V shows them all; T on a picked region sees through it. The window opens
-with the air hidden and the cable cut along its axis by the section plane, filled by material (X moves the plane,
-Shift + I turns the fill off).
+with the air hidden and the cable cut along its axis by the section plane, filled by material (X moves the plane).
 
 Building
 --------

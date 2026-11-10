@@ -98,6 +98,10 @@ view(const S& a_shape, const EBGeometry::Render::Camera<EBGeometry::ShapePrecisi
     if (a_names.colorOf(settings.m_regions.m_coloring, i, color)) {
       settings.m_primitiveColors[i] = EBGeometry::Vec3T<T>(T(color[0]), T(color[1]), T(color[2]));
     }
+
+    if (a_names.colorOf(EBGeometry::RegionColoring::Material, i, color)) {
+      settings.m_materialColors[i] = EBGeometry::Vec3T<T>(T(color[0]), T(color[1]), T(color[2]));
+    }
   }
 
   Snapshot::view(a_shape, a_camera, settings, a_argc, a_argv);

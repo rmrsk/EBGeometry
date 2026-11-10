@@ -170,8 +170,7 @@ keys(const bool a_device, const bool a_regions = false)
                                  {"N", "Reverse the cut (keep the other side)"},
                                  {"Up, Down", "Move the plane in coarse steps"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
-                                 {"I", "Lines of equal distance: off, as set, coarse, fine, finer"},
-                                 {"Shift + I", "Fill the plane by material (a view of regions), or stop"}}},
+                                 {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
                                {"Picking and measuring",
                                 "Picking",
                                 {{"Click", "Pick what is under the cursor (the background clears it)"},
@@ -814,6 +813,9 @@ run(const S&           a_shape,
         settings.m_primitiveColors[i] = names.colorOf(settings.m_regions.m_coloring, i, color)
                                           ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
                                           : a_settings.m_primitiveColors[i];
+        settings.m_materialColors[i]  = names.colorOf(RegionColoring::Material, i, color)
+                                          ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
+                                          : a_settings.m_materialColors[i];
       }
     }
   };
@@ -3621,14 +3623,6 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_i: {
-          // Shift and I fill the section plane by what each point is in (a view of regions: its material, or its
-          // region when colored by region), or stop.
-          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
-            settings.m_sectionFill = (settings.m_sectionFill > T(0)) ? T(0) : T(0.6);
-
-            break;
-          }
-
           // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
           // diagonal, every 1/50, every 1/100.
           isoMode = (isoMode + 1) % 5;

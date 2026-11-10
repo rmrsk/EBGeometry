@@ -1487,6 +1487,22 @@ private:
   }
 
   /**
+   * @brief The color of a material, for the section plane's fill: the settings' (m_materialColors), else the
+   * palette's; no material is a neutral gray.
+   * @param[in] a_material The material's number.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  materialColor(const uint32_t a_material) const noexcept
+  {
+    return (a_material < Settings<T>::PrimitiveColors && m_settings.m_materialColors[a_material][0] >= T(0))
+             ? m_settings.m_materialColors[a_material]
+           : (a_material == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
+                                                      : palette<T>(a_material);
+  }
+
+  /**
    * @brief What the section plane adds where a camera ray meets it in front of what the ray sees: the
    * shape's contour, a line of constant width on screen where the shape's value is near zero, and outside
    * the shape a faint sheet. Inside the shape the plane is the cut face, already shaded.
@@ -1573,7 +1589,7 @@ private:
 
     if (fill > T(0)) {
       const Vec3T<T> what =
-        sample.m_secondary ? m_settings.m_fillSecondaryColor : this->keyColor(m_object.sectionKey(q));
+        sample.m_secondary ? m_settings.m_fillSecondaryColor : this->materialColor(m_object.sectionKey(q));
 
       color = (T(1) - fill) * a_color + fill * what;
     }
@@ -2323,6 +2339,12 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
     const std::string name = "m_primitiveColors[" + std::to_string(i) + "]";
 
     field("settings", name.c_str(), a_settings.m_primitiveColors[i], settings.m_primitiveColors[i]);
+  }
+
+  for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
+    const std::string name = "m_materialColors[" + std::to_string(i) + "]";
+
+    field("settings", name.c_str(), a_settings.m_materialColors[i], settings.m_materialColors[i]);
   }
 
   field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
