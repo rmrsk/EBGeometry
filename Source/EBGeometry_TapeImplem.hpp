@@ -1536,14 +1536,14 @@ template <class T>
 [[nodiscard]] inline Expr<T>
 withoutMaterial(const Expr<T>& a_operand)
 {
-  if (!a_operand.node().m_carriesMaterial) {
+  if (!a_operand.node().m_namesRegion) {
     return a_operand;
   }
 
   auto node = std::make_shared<ExprDetail::Node<T>>(a_operand.node());
 
   node->m_materialLabel.clear();
-  node->m_carriesMaterial = false;
+  node->m_namesRegion = false;
 
   if (node->m_kind == ExprDetail::Kind::Affine) {
     node->m_children.front() = withoutMaterial(node->m_children.front());

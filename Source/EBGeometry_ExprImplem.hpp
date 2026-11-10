@@ -231,7 +231,7 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
                          "as the first operand of an Intersection or Difference, or placed in another Overlay",
                          kindName(a_kind));
     }
-    else if (child.m_carriesMaterial) {
+    else if (child.m_namesRegion) {
       EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine,
                          "%s: MaterialLabel and RegionName name a region (an operand of an Overlay) or a whole "
                          "object, not a part of a solid; make the parts regions of an Overlay",
@@ -243,12 +243,11 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
 
   const bool firstIsPartition = !a_children.empty() && a_children.front().node().m_partition;
 
-  node->m_kind      = a_kind;
-  node->m_overlay   = a_overlay;
-  node->m_partition = a_overlay || ((a_kind == Kind::Affine || a_kind == Kind::Intersection) && firstIsPartition);
-  node->m_carriesMaterial =
-    (a_kind == Kind::Affine) && !a_children.empty() && a_children.front().node().m_carriesMaterial;
-  node->m_children = std::move(a_children);
+  node->m_kind        = a_kind;
+  node->m_overlay     = a_overlay;
+  node->m_partition   = a_overlay || ((a_kind == Kind::Affine || a_kind == Kind::Intersection) && firstIsPartition);
+  node->m_namesRegion = (a_kind == Kind::Affine) && !a_children.empty() && a_children.front().node().m_namesRegion;
+  node->m_children    = std::move(a_children);
 
   return node;
 }
@@ -1095,8 +1094,8 @@ MaterialLabel(const A& a_operand, std::string a_name)
   // A copy of the node, so that other uses of the same subexpression keep their own material.
   auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
 
-  node->m_materialLabel   = std::move(a_name);
-  node->m_carriesMaterial = true;
+  node->m_materialLabel = std::move(a_name);
+  node->m_namesRegion   = true;
 
   return Expr<T>(std::move(node));
 }
@@ -1112,8 +1111,8 @@ RegionName(const A& a_operand, std::string a_name)
   // A copy of the node, so that other uses of the same subexpression keep their own name.
   auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
 
-  node->m_regionName      = std::move(a_name);
-  node->m_carriesMaterial = true;
+  node->m_regionName  = std::move(a_name);
+  node->m_namesRegion = true;
 
   return Expr<T>(std::move(node));
 }
@@ -1725,7 +1724,10 @@ ExprIndex<T>::getInterfaces() const
 
 template <class T>
 inline void
-ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, const SurfaceLabelId a_label)
+ExprIndex<T>::add(const ExprDetail::Node<T>& a_node,
+                  const uint32_t             a_parent,
+                  const SurfaceLabelId       a_label,
+                  const bool                 a_object)
 {
   const auto id = static_cast<uint32_t>(m_nodes.size());
 
@@ -1741,9 +1743,15 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
     return entry->second;
   };
 
-  const SurfaceLabelId own = a_node.m_surfaceLabel.empty() ? SurfaceLabelId::none() : intern(a_node.m_surfaceLabel);
-
+  // A label on this very object (above it with only maps between) relabels it, as a material does, and the replaced
+  // name gets no number of its own; one on a composition above is a default that a label of its own wins over.
+  const bool           relabeled = a_object && !a_label.isNone();
+  const SurfaceLabelId own =
+    (relabeled || a_node.m_surfaceLabel.empty()) ? SurfaceLabelId::none() : intern(a_node.m_surfaceLabel);
   const SurfaceLabelId label = own.isNone() ? a_label : own;
+
+  // What the operands inherit names the same object only below a map.
+  const bool object = (a_node.m_kind == ExprDetail::Kind::Affine) && (relabeled || !own.isNone());
 
   Node node;
 
@@ -1807,7 +1815,7 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
   }
 
   for (const Expr<T>& child : a_node.m_children) {
-    this->add(child.node(), id, label);
+    this->add(child.node(), id, label, object);
   }
 
   m_nodes[id].m_numLeaves   = static_cast<uint32_t>(m_leafNodes.size()) - m_nodes[id].m_firstLeaf;

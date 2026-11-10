@@ -203,7 +203,8 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
        intersection of :math:`a` with the complement of each :math:`b_i`
    * - ``SurfaceLabel(a, name)``
      - :math:`a(\mathbf{x})`, unchanged: names the object, and every leaf below it gets the label unless a
-       label nearer the leaf names it (see :ref:`Sec:DecidingLeaf`)
+       part of it has its own; labeling an object again, through moves too, replaces its label (see
+       :ref:`Sec:DecidingLeaf`)
 
 The n-ary smooth operations blend only the two extreme values, which differs from folding a binary
 smooth minimum over the list. ``Polynomial`` uses ``SmoothMinOp``/``SmoothMaxOp`` and

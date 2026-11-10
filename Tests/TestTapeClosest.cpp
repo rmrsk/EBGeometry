@@ -454,9 +454,11 @@ TEMPLATE_TEST_CASE("ExprIndex: numbers nodes and leaves depth first, each node's
   }
 }
 
-TEMPLATE_TEST_CASE("ExprIndex: the innermost label wins, a relabel replaces, and shared names share a label",
-                   "[ExprIndex]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE(
+  "ExprIndex: an operand's own label wins over a composition's, a relabel replaces (through maps too), "
+  "and shared names share a label",
+  "[ExprIndex]",
+  EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -476,6 +478,19 @@ TEMPLATE_TEST_CASE("ExprIndex: the innermost label wins, a relabel replaces, and
   CHECK(relabeled.getNumSurfaceLabels() == 1U);
   CHECK(relabeled.findSurfaceLabel("x").isNone());
   CHECK(relabeled.getSurfaceLabel(0) == relabeled.findSurfaceLabel("y"));
+
+  // A move does not make another object: labeling the moved object relabels it, as MaterialLabel() does.
+  const ExprIndex<T> moved(SurfaceLabel(Translate(Rotate(SurfaceLabel(a, "x"), T(30), 2), Vec3::ones()), "y"));
+
+  CHECK(moved.getNumSurfaceLabels() == 1U);
+  CHECK(moved.findSurfaceLabel("x").isNone());
+  CHECK(moved.getSurfaceLabel(0) == moved.findSurfaceLabel("y"));
+
+  // Below a composition, though, the label is a default again: the operand labeled itself keeps its own.
+  const ExprIndex<T> assembly(SurfaceLabel(Translate(Union(SurfaceLabel(a, "x"), b), Vec3::ones()), "y"));
+
+  CHECK(assembly.getSurfaceLabel(0) == assembly.findSurfaceLabel("x"));
+  CHECK(assembly.getSurfaceLabel(1) == assembly.findSurfaceLabel("y"));
 
   // A subexpression used twice is numbered at each use; its label is shared, and the copy SurfaceLabel() makes leaves
   // the unlabeled use alone.

@@ -360,7 +360,7 @@ struct Node
    * @brief Whether the node, or a chain of maps below it, has a material label or a region name (MaterialLabel(),
    * RegionName()): what only a region can have.
    */
-  bool m_carriesMaterial = false;
+  bool m_namesRegion = false;
 };
 
 /**
@@ -902,13 +902,15 @@ inline Expr<ExprPrecision<A>>
 Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_samples);
 
 /**
- * @brief Name an object: every leaf below it gets the label, unless a label nearer the leaf names it.
+ * @brief Name an object: every leaf below it gets the label, unless a part of it has a label of its own.
  * @details Labels change nothing in how the object is evaluated; they say which surfaces belong together,
  * for boundary conditions, per-surface data and picking. A Tape reports a leaf's label on the host and on a
  * device (Tape::getSurfaceLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
  * are numbered from 0 in the order their names first appear, depth first, so the same expression gives the
- * same numbers to both; several objects may share a name, and so a label. Labeling an object that already
- * has a label replaces it: the replaced name is gone, and gets no number unless another object has it.
+ * same numbers to both; several objects may share a name, and so a label. On a composition (a union, an
+ * intersection, an Overlay, ...) the label is a default: an operand labeled itself keeps its own. Labeling an object
+ * that already has a label, directly or through maps (a move does not make another object), replaces it, as
+ * MaterialLabel() and RegionName() do: the replaced name is gone, and gets no number unless another object has it.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand Object.
  * @param[in] a_name    Name (not empty).
@@ -1648,9 +1650,11 @@ private:
    * @param[in] a_node   Node.
    * @param[in] a_parent Its parent's number, or None.
    * @param[in] a_label  The label it inherits, or none.
+   * @param[in] a_object Whether that label names this very object, given above it with only maps between (a move
+   * does not make another object, so it relabels this one), rather than a composition this node is part of.
    */
   void
-  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, SurfaceLabelId a_label);
+  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, SurfaceLabelId a_label, bool a_object = false);
 };
 
 } // namespace EBGeometry

@@ -187,7 +187,9 @@ Surface labels
 A leaf number is fine for a program that builds its expression itself, but it depends on the expression's
 order: an edit earlier in the expression renumbers everything after it. A name does not.
 ``SurfaceLabel(object, "name")`` names the surfaces of an object, and every leaf below it gets the label, unless
-a label nearer the leaf names it. Labels change nothing in how the object is evaluated, and nothing has to be
+a part of it has a label of its own: on a composition (a union, an Overlay, ...) the label is a default for its
+operands. Labeling an object again, directly or through moves (a move does not make another object), replaces its
+label, as ``MaterialLabel()`` and ``RegionName()`` do. Labels change nothing in how the object is evaluated, and nothing has to be
 labeled: an unlabeled leaf has no label (``SurfaceLabelId::none()``). Several objects may share a name, and so
 a label.
 
