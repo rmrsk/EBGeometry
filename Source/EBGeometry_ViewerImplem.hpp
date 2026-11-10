@@ -1384,6 +1384,39 @@ run(const S&           a_shape,
   std::size_t           depthIndex = 0;
   std::vector<uint32_t> depthHidden;
 
+  // Stop stepping through the surfaces under the cursor, keeping what it peeled: the surface stepped to is picked (with
+  // a_together, added to what is picked), and those in front of it stay seen through (a view of regions: translucent,
+  // as with T; otherwise left out). Shift + T makes them opaque again.
+  const auto endStepping = [&](const bool a_together) {
+    if (depthHits.empty()) {
+      return;
+    }
+
+    (void)pickAt(pick, a_together);
+
+    for (const uint32_t id : depthHidden) {
+      if constexpr (hasRegionVisibility<S>) {
+        settings.m_regions.setSeenThrough(id, true);
+      }
+      else {
+        for (uint32_t i = 0; i < Settings<T>::HiddenPrimitives; i++) {
+          if (settings.m_hidden[i] == id) {
+            break;
+          }
+
+          if (settings.m_hidden[i] == Settings<T>::NoPrimitive) {
+            settings.m_hidden[i] = id;
+
+            break;
+          }
+        }
+      }
+    }
+
+    depthHits.clear();
+    depthHidden.clear();
+  };
+
   // Measuring: none, one point, or two (Shift and a click marks them).
   int      measured = 0;
   Vec3T<T> measureA = Vec3T<T>::zeros();
@@ -3287,10 +3320,7 @@ run(const S&           a_shape,
             // A click while stepping through surfaces picks the one stepped to (with Ctrl, adds it to what is
             // picked), and stops stepping.
             if (!depthHits.empty()) {
-              (void)pickAt(pick, together);
-
-              depthHits.clear();
-              depthHidden.clear();
+              endStepping(together);
 
               dragging = false;
               panning  = false;
@@ -3415,8 +3445,10 @@ run(const S&           a_shape,
           changed = true;
         }
         else if (panning) {
-          depthHits.clear();
-          depthHidden.clear();
+          // A drag, not the jitter of a click, ends stepping through the surfaces.
+          if (moved) {
+            endStepping(false);
+          }
 
           // Move the target so that the point under the mouse follows it: at the target's distance, the
           // window's height spans 2 distance tan(fov / 2).
@@ -3439,8 +3471,9 @@ run(const S&           a_shape,
           changed = true;
         }
         else if (dragging) {
-          depthHits.clear();
-          depthHidden.clear();
+          if (moved) {
+            endStepping(false);
+          }
 
           camera.m_yaw -= T(0.4) * T(event.motion.xrel);
           camera.m_pitch = Math::clamp(camera.m_pitch + T(0.4) * T(event.motion.yrel), T(-90), T(90));
@@ -3526,8 +3559,7 @@ run(const S&           a_shape,
           else {
             camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
 
-            depthHits.clear();
-            depthHidden.clear();
+            endStepping(false);
           }
 
           changed = true;

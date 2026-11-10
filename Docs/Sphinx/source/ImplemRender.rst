@@ -143,7 +143,8 @@ inside it can be picked and looked at; for a view of regions it is drawn translu
 up to four along each ray), and a pick passes through it; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
 each is picked in turn, and those in front of it are seen through while stepping (drawn translucent for a view of
 regions; for a mesh SDF, whose
-primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked and see-through surfaces back as the window
+primitives are its faces, only the faces under the cursor); a click, or moving the camera, keeps the one stepped to
+picked and those in front of it seen through (Shift + T makes them opaque again). R puts the camera, the light and the picked and see-through surfaces back as the window
 opened with them.
 
 .. _Sec:ViewerKeys:
