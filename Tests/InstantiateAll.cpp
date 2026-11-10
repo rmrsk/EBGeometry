@@ -536,6 +536,13 @@ instantiateFunctionTemplates()
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
       (void)Domain{subdomains, scheme}.touches(0U, 1U);
+      (void)Domain{subdomains, scheme}.labelAt(regions, Vec3T<T>::zeros());
+      (void)Domain{subdomains, scheme}.signedDistance(regions, Vec3T<T>::zeros(), Domain::Excluded);
+      {
+        T values[Domain::MaxLabels];
+
+        Domain{subdomains, scheme}.signedDistances(regions, Vec3T<T>::zeros(), values);
+      }
       (void)RegionSettings{}.selectionOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       {
         const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));

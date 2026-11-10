@@ -136,6 +136,24 @@ main(int argc, char* argv[])
 
   flow.m_scheme.add(wall, EBGeometry::SurfaceSelector::region(0));
 
+  // What a cut-cell code samples at a node: every point has a label (a subdomain, or Excluded where the domain does
+  // not compute, the core), and each label a function negative exactly in it. An edge between two nodes of different
+  // labels crosses a surface, where the functions of both labels change sign.
+  std::cout << "Electrostatics at nodes along x, at z = 1.5 (air, jacket, excluded):\n";
+
+  for (const T x : {T(1.2), T(0.8), T(0.2)}) {
+    T values[EBGeometry::Domain::MaxLabels];
+
+    electrostatic.signedDistances(tape, Vec3(x, T(0), T(1.5)), values);
+
+    const uint32_t label = electrostatic.labelAt(tape, Vec3(x, T(0), T(1.5)));
+
+    std::cout << "  x = " << x << ": "
+              << ((label == EBGeometry::Domain::Excluded) ? std::string("excluded")
+                                                          : "subdomain " + std::to_string(label))
+              << "; functions " << values[0] << ", " << values[1] << ", " << values[2] << '\n';
+  }
+
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // RegionView shows the regions' surfaces, internal ones included. The window's panel switches between the

@@ -63,6 +63,10 @@ struct RegionAnswer
   T           m_subdomainValues[2];
   SurfaceRole m_roles[2];
   uint32_t    m_conditions[2];
+
+  // The domain's label there, and every label's function (the two subdomains', then the excluded regions').
+  uint32_t m_label;
+  T        m_labelValues[3];
 };
 
 // Device functor: the region queries of a tape at a point, and what a downstream code computing on a domain asks
@@ -98,6 +102,16 @@ struct RegionQuery
       answer.m_subdomainValues[d] = m_tape.signedDistance(a_point, m_domain.m_subdomains, d);
       answer.m_roles[d]           = m_domain.m_subdomains.role(s);
       answer.m_conditions[d]      = m_domain.m_scheme.surfaceGroupOf(s);
+    }
+
+    T values[Domain::MaxLabels];
+
+    m_domain.signedDistances(m_tape, a_point, values);
+
+    answer.m_label = m_domain.labelAt(m_tape, a_point);
+
+    for (uint32_t l = 0; l < 3; l++) {
+      answer.m_labelValues[l] = values[l];
     }
 
     const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
@@ -793,6 +807,106 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
     "Subdomains: region 2 is already in subdomain 0"));
 }
 
+TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negative exactly in it",
+                   "[Overlay][Tape][Domain]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The cable (jacket radius 1, region 1; core radius 0.5, region 2; air, region 0) cut by a slab (x > 0, |z| < 0.3),
+  // so that the core meets the air and the jacket along triple lines.
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)))));
+
+  // Electrostatics: the air (0) and the jacket (1); the core, a conductor, excluded (label 2 of the values).
+  Domain domain;
+
+  (void)domain.m_subdomains.addSubdomain({0});
+  (void)domain.m_subdomains.addSubdomain({1});
+
+  REQUIRE(domain.getNumLabels() == 3U);
+
+  // The whole domain as one subdomain: Excluded's function is its function's negative.
+  Subdomains together;
+
+  (void)together.addSubdomain({0, 1});
+
+  const auto valueOf = [&](const Vec3& a_point, const uint32_t a_label) {
+    T values[Domain::MaxLabels];
+
+    domain.signedDistances(tape, a_point, values);
+
+    return values[(a_label == Domain::Excluded) ? 2U : a_label];
+  };
+
+  // Everywhere: the values are signedDistance()'s, label by label; the label is the region's subdomain, and off the
+  // surfaces its function alone is negative.
+  size_t checked = 0;
+
+  for (int i = 0; i < 25; i++) {
+    for (int j = 0; j < 9; j++) {
+      const Vec3 p(T(0.1) * T(i) - T(1.2) + T(0.013), T(0.007), T(0.1) * T(j) - T(0.4) + T(0.004));
+
+      INFO("point " << p);
+
+      T values[Domain::MaxLabels];
+
+      domain.signedDistances(tape, p, values);
+
+      const uint32_t label = domain.labelAt(tape, p);
+
+      CHECK(values[0] == domain.signedDistance(tape, p, 0U));
+      CHECK(values[1] == domain.signedDistance(tape, p, 1U));
+      CHECK(values[2] == domain.signedDistance(tape, p, Domain::Excluded));
+      CHECK(values[2] == -tape.signedDistance(p, together, 0U));
+      CHECK(label == domain.m_subdomains.subdomainOf(tape.region(p)));
+
+      if (std::abs(values[0]) > T(1e-3) && std::abs(values[1]) > T(1e-3) && std::abs(values[2]) > T(1e-3)) {
+        const uint32_t negative = (values[0] < T(0)) ? 0U : (values[1] < T(0)) ? 1U : 2U;
+
+        CHECK(int(values[0] < T(0)) + int(values[1] < T(0)) + int(values[2] < T(0)) == 1);
+        CHECK(negative == ((label == Domain::Excluded) ? 2U : label));
+
+        checked++;
+      }
+    }
+  }
+
+  CHECK(checked > 200U);
+
+  // Across the air and the jacket (an interface, away from the cut): the two subdomains' functions change sign, with
+  // opposite signs, the excluded regions' not. Across the jacket and the core (the jacket's boundary with the
+  // conductor): the jacket's and the excluded regions' change sign, opposite, the air's not.
+  for (const T r : {T(0.95), T(1.05)}) {
+    const Vec3 p(-r, T(0), T(0));
+
+    INFO("r " << r);
+
+    CHECK(valueOf(p, 0U) == -valueOf(p, 1U));
+    CHECK((valueOf(p, 0U) < T(0)) == (r > T(1)));
+    CHECK(valueOf(p, Domain::Excluded) > T(0.2));
+  }
+
+  for (const T r : {T(0.45), T(0.55)}) {
+    const Vec3 p(-r, T(0), T(0));
+
+    INFO("r " << r);
+
+    CHECK(valueOf(p, 1U) == -valueOf(p, Domain::Excluded));
+    CHECK((valueOf(p, 1U) < T(0)) == (r > T(0.5)));
+    CHECK(valueOf(p, 0U) > T(0.2));
+  }
+
+  // Near a triple line (the core, the jacket and the cut's air meeting on the circle of radius 0.4 in the plane
+  // z = 0.3): the labels still divide space, the core's side excluded, the jacket's side the jacket's, the cut the
+  // air's.
+  CHECK(domain.labelAt(tape, Vec3(T(0.36), T(0.01), T(0.32))) == Domain::Excluded);
+  CHECK(domain.labelAt(tape, Vec3(T(0.44), T(0.01), T(0.32))) == 1U);
+  CHECK(domain.labelAt(tape, Vec3(T(0.4), T(0.01), T(0.28))) == 0U);
+}
+
 TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regions, and firstSurface() a subdomain",
                    "[Overlay][Tape][Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -954,12 +1068,12 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
     const RegionAnswer<T>& h = onHost[i];
 
     // Where two choices are equally right (a point on a surface), the device's rounding may pick the other.
-    differ +=
-      (d.m_region != h.m_region || d.m_minus != h.m_minus || d.m_plus != h.m_plus || d.m_surface != h.m_surface ||
-       d.m_group != h.m_group || d.m_from != h.m_from || d.m_to != h.m_to || d.m_roles[0] != h.m_roles[0] ||
-       d.m_roles[1] != h.m_roles[1] || d.m_conditions[0] != h.m_conditions[0] || d.m_conditions[1] != h.m_conditions[1])
-        ? 1U
-        : 0U;
+    differ += (d.m_region != h.m_region || d.m_minus != h.m_minus || d.m_plus != h.m_plus ||
+               d.m_surface != h.m_surface || d.m_group != h.m_group || d.m_from != h.m_from || d.m_to != h.m_to ||
+               d.m_roles[0] != h.m_roles[0] || d.m_roles[1] != h.m_roles[1] || d.m_conditions[0] != h.m_conditions[0] ||
+               d.m_conditions[1] != h.m_conditions[1] || d.m_label != h.m_label)
+                ? 1U
+                : 0U;
 
     for (uint32_t k = 0; k < 3; k++) {
       CHECK_THAT(d.m_values[k], withinAbsT<T>(h.m_values[k], looseMargin<T>()));
@@ -967,6 +1081,10 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
 
     for (uint32_t k = 0; k < 2; k++) {
       CHECK_THAT(d.m_subdomainValues[k], withinAbsT<T>(h.m_subdomainValues[k], looseMargin<T>()));
+    }
+
+    for (uint32_t l = 0; l < 3; l++) {
+      CHECK_THAT(d.m_labelValues[l], withinAbsT<T>(h.m_labelValues[l], looseMargin<T>()));
     }
 
     CHECK_THAT(d.m_t, withinAbsT<T>(h.m_t, looseMargin<T>()));

@@ -379,6 +379,25 @@ a device, and the surface carries the materials of its two sides too.
    electrostatics.m_subdomains.role(s);
    electrostatics.m_scheme.surfaceGroupOf(s);
 
+A cut-cell code that computes in several subdomains needs a function for each, not one: one function has one
+inside, but a domain divides space into its subdomains and the regions in none of them (where it does not compute, a
+conductor). So a domain gives every point a **label**, its subdomain or ``Domain::Excluded``
+(``labelAt(tape, p)``), and each label a function, negative exactly in it (``signedDistance(tape, p, label)``); off
+the surfaces exactly one is negative. ``signedDistances(tape, p, values)`` gives them all at once, each region's
+function evaluated once: what a code samples at a node. An edge whose two ends have different labels crosses a
+surface. Between two subdomains it is an interface, where both their functions are zero, with opposite signs, so that
+the two sides cut the same surface; between a subdomain and the excluded regions, the subdomain's boundary, where its
+function is zero; its root along the edge is where. An edge from one subdomain to another across a conductor crosses
+twice, once for each. The excluded regions hold no unknowns (their cells are covered for every subdomain), and their
+function is the negative of the function of all the subdomains together.
+
+.. code-block:: c++
+
+   // At a node, in a kernel: every label's function, the subdomains' first, then the excluded regions'.
+   T values[Domain::MaxLabels];
+   electrostatics.signedDistances(tape, p, values);   // values[0]: the air's, [1]: the jacket's, [2]: excluded
+   electrostatics.labelAt(tape, p);                   // 0, 1 or Domain::Excluded
+
 The surfaces a domain must tag are those it touches (``touches()``): every surface with a side in one of its
 regions, internal ones between two of its regions included. ``RegionNames::addDomain("electrostatics", domain)``
 registers a domain by name, with its subdomains' and surface groups' names, for a viewer to show and check it.
