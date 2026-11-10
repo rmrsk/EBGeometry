@@ -137,7 +137,8 @@ the background clears it. With a section plane on, the overlay shows the point u
 plane and the shape's value there; Shift and a click on two surfaces measures the distance between them.
 
 M cycles the views, Shift + M backwards. T makes the picked surface see-through (or opaque again), so that what is behind or
-inside it can be picked and looked at; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
+inside it can be picked and looked at; for a view of regions it is drawn translucent (``Settings::m_seenThroughOpacity``,
+the nearest one along each ray), and a pick passes through it; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
 each is picked in turn, and those in front of it are seen through while stepping (for a mesh SDF, whose
 primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked and see-through surfaces back as the window
 opened with them.

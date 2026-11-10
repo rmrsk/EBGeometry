@@ -383,6 +383,13 @@ struct Settings
   T m_cutOpacity = T(1);
 
   /**
+   * @brief Opacity of the surfaces of a view of regions that are seen through (RegionSettings::setSeenThrough()): drawn
+   * translucent over what lies behind them, the nearest one along each ray; 0 leaves them out. However opaque they are
+   * drawn, a pick passes through them.
+   */
+  T m_seenThroughOpacity = T(0.3);
+
+  /**
    * @brief The floor's color.
    */
   Vec3T<T> m_floorColor = Vec3T<T>(T(0.58), T(0.59), T(0.61));

@@ -179,9 +179,55 @@ public:
    * the one entered, m_primitive the coloring's key; or a miss.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
   firstHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    return this->crossingSeen(a_ray, a_tMin, a_tMax, a_options, false);
+  }
+
+  /**
+   * @brief The first crossing along a ray on a surface seen through (setSeenThrough()), where firstHit() passes on:
+   * what a renderer draws translucent in front of what firstHit() finds.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval (where firstHit() met a surface, say).
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, as firstHit() gives it, m_primitive the coloring's key; or a miss, also at the first surface
+   * firstHit() would show and when nothing is seen through.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  firstSeenThrough(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    bool any = false;
+
+    for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+      any = any || m_settings.m_through[i] != None;
+    }
+
+    return any ? this->crossingSeen(a_ray, a_tMin, a_tMax, a_options, true) : HitT<T>();
+  }
+
+private:
+  /**
+   * @brief The first crossing along a ray that firstHit() shows, or with a_seenThrough the first that it passes on
+   * because it is seen through (firstSeenThrough()); one body for both, a run-time choice, so that a device kernel
+   * holds one copy of the march.
+   * @param[in] a_ray         The ray, with a unit direction.
+   * @param[in] a_tMin        Start of the interval.
+   * @param[in] a_tMax        End of the interval.
+   * @param[in] a_options     How to march the parts without a ray form.
+   * @param[in] a_seenThrough Whether to find a surface seen through instead.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  crossingSeen(const RayT<T>&       a_ray,
+               const T              a_tMin,
+               const T              a_tMax,
+               const RayOptions<T>& a_options,
+               const bool           a_seenThrough) const noexcept
   {
     T t = a_tMin;
 
@@ -229,16 +275,37 @@ public:
         hit.m_normal   = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
         hit.m_entering = entering;
 
-        // Only the selected surfaces shown: keyed by their entry and the side seen (see RegionSettings::m_onlySelected).
+        // Only the selected surfaces shown: keyed by their entry and the side seen (see RegionSettings::m_onlySelected);
+        // nothing is seen through then.
         if (m_settings.m_onlySelected) {
+          if (a_seenThrough) {
+            return HitT<T>();
+          }
+
           hit.m_primitive = RegionSettings::Selected + entry + (entering ? 0U : RegionSettings::MaxSelected);
 
           return hit;
         }
 
-        const uint32_t key = this->keyOf(change.m_surface, seen);
+        const uint32_t key     = this->keyOf(change.m_surface, seen);
+        const bool     through = this->isSeenThrough(key);
 
-        if (this->isSeenThrough(key) || (m_settings.m_only != None && key != m_settings.m_only)) {
+        if (m_settings.m_only != None && key != m_settings.m_only) {
+          continue;
+        }
+
+        // Looking for a surface seen through: this one, or none in front of the surface shown.
+        if (a_seenThrough) {
+          if (through) {
+            hit.m_primitive = key;
+
+            return hit;
+          }
+
+          return HitT<T>();
+        }
+
+        if (through) {
           continue;
         }
 
@@ -264,6 +331,7 @@ public:
     return HitT<T>();
   }
 
+public:
   /**
    * @brief The same view of the tape rebased onto another pool, a mirror of its own (for a device: see
    * Tape::rebasedView()); the visibility, coloring and keys are kept.

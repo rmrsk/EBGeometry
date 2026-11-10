@@ -522,6 +522,11 @@ instantiateFunctionTemplates()
       (void)regions.signedDistance(Vec3T<T>::zeros(), 1U);
       (void)regions.closestSurface(Vec3T<T>::zeros(), 1U);
 
+      const RayT<T> along{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))};
+
+      (void)RegionView<Tape<T>>(regions).firstHit(along, T(0), T(1), RayOptions<T>());
+      (void)RegionView<Tape<T>>(regions).firstSeenThrough(along, T(0), T(1), RayOptions<T>());
+
       Subdomains subdomains;
 
       (void)subdomains.addSubdomain({0U, 1U});

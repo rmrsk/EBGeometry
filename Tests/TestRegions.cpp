@@ -1638,6 +1638,68 @@ TEMPLATE_TEST_CASE("Render: a surface between two regions near the section plane
   CHECK(std::abs(a.b - b.b) <= 16);
 }
 
+TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over what is behind it, and not picked",
+                   "[Overlay][RegionView][Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Tape = Tape<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape             tape(pool, cable<T>());
+  const RegionView<Tape> view(tape);
+
+  constexpr uint32_t size = 16;
+
+  Render::Settings<T> settings = EBGeometryTestRender::plain<T>(size);
+
+  settings.m_colorBy = Render::ColorBy::Primitive;
+
+  const Render::Camera<T> camera = Render::Camera<T>::fit(view.computeBoundingVolume());
+
+  // Through the middle of the image: the jacket, opaque; with it seen through and drawn fully transparent, the core;
+  // translucent, a blend of the two; fully opaque, the jacket again.
+  const auto middle = [&](const bool a_through, const T a_opacity) {
+    Render::Settings<T> s = settings;
+
+    s.m_regions.setSeenThrough(1, a_through);
+    s.m_seenThroughOpacity = a_opacity;
+
+    Render::Image image;
+
+    (void)Render::Renderer<T>(s).render(view, camera, image);
+
+    return EBGeometryTestRender::channels(image.at(size / 2, size / 2));
+  };
+
+  const EBGeometryTestRender::Channels jacket = middle(false, T(0.3));
+  const EBGeometryTestRender::Channels core   = middle(true, T(0));
+  const EBGeometryTestRender::Channels veiled = middle(true, T(0.3));
+  const EBGeometryTestRender::Channels opaque = middle(true, T(1));
+
+  REQUIRE((jacket.r != core.r || jacket.g != core.g || jacket.b != core.b));
+
+  const auto between = [](const int a_value, const int a_one, const int a_other) {
+    return a_value >= Math::min(a_one, a_other) - 1 && a_value <= Math::max(a_one, a_other) + 1;
+  };
+
+  CHECK(between(veiled.r, jacket.r, core.r));
+  CHECK(between(veiled.g, jacket.g, core.g));
+  CHECK(between(veiled.b, jacket.b, core.b));
+  CHECK((veiled.r != core.r || veiled.g != core.g || veiled.b != core.b));
+  CHECK((veiled.r != jacket.r || veiled.g != jacket.g || veiled.b != jacket.b));
+
+  CHECK(std::abs(opaque.r - jacket.r) <= 1);
+  CHECK(std::abs(opaque.g - jacket.g) <= 1);
+  CHECK(std::abs(opaque.b - jacket.b) <= 1);
+
+  // However it is drawn, a pick passes through it to the core.
+  settings.m_regions.setSeenThrough(1, true);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, T(size / 2), T(size / 2)).m_primitive == 2U);
+}
+
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",
                    "[Overlay][RegionView][Render]",
                    EBGEOMETRY_TEST_PRECISIONS)

@@ -86,6 +86,31 @@ struct HasSectionKey<S, T, std::void_t<decltype(std::declval<const S&>().section
 };
 
 /**
+ * @brief Whether a shape has surfaces seen through that a renderer draws translucent (firstSeenThrough()): the primary
+ * template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasSeenThrough : std::false_type
+{
+};
+
+/**
+ * @brief A shape with firstSeenThrough(ray, tMin, tMax, options).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasSeenThrough<S,
+                      T,
+                      std::void_t<decltype(std::declval<const S&>().firstSeenThrough(
+                        std::declval<RayT<T>>(), T(0), T(0), std::declval<RayOptions<T>>()))>> : std::true_type
+{
+};
+
+/**
  * @brief Whether a shape has a field of its own for the section plane (contourSample(), negative inside, with lines that
  * may be secondary): the primary template is false.
  * @details Internal helper; not part of the public API.
@@ -280,6 +305,46 @@ struct Sectioned
   shapeHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
     return EBGeometry::firstHit(m_shape, a_ray, a_tMin, a_tMax, a_options);
+  }
+
+  /**
+   * @brief The first surface seen through along a ray, in front of tMax, on the kept side of the plane (see
+   * HasSeenThrough); a miss for a shape without such surfaces. Out of line on a device.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval: where the ray meets what it sees.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  seenThroughHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    if constexpr (HasSeenThrough<S, T>::value) {
+      T t = a_tMin;
+
+      // A surface on the removed side is cut away: look on past it, a few times at most.
+      for (int i = 0; i < 8; i++) {
+        const HitT<T> hit = m_shape.firstSeenThrough(a_ray, t, a_tMax, a_options);
+
+        if (!hit.hit() || !m_on || this->plane(hit.m_point) <= T(0)) {
+          return hit;
+        }
+
+        t = hit.m_t;
+      }
+
+      return HitT<T>();
+    }
+    else {
+      (void)a_ray;
+      (void)a_tMin;
+      (void)a_tMax;
+      (void)a_options;
+
+      return HitT<T>();
+    }
   }
 
   /**
@@ -850,10 +915,30 @@ private:
       color = this->background(direction);
     }
 
-    if (m_onPlane) {
-      // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
-      const T tFront = onFloor ? tFloor : (a_hit.hit() ? a_hit.m_t : m_far);
+    // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
+    const T tFront = onFloor ? tFloor : (a_hit.hit() ? a_hit.m_t : m_far);
 
+    // A surface seen through in front of it is drawn translucent over it, and the section plane where it lies behind
+    // that surface under it, where it lies in front over it.
+    if constexpr (HasSeenThrough<S, T>::value) {
+      if (m_settings.m_seenThroughOpacity > T(0)) {
+        const HitT<T> veil = m_object.seenThroughHit(a_ray, a_near, tFront, m_rays);
+
+        if (veil.hit()) {
+          if (m_onPlane) {
+            color = this->drawOnPlane(a_ray, veil.m_t, tFront, color);
+          }
+
+          const T opacity = m_settings.m_seenThroughOpacity;
+
+          color = opacity * this->shadeSurface(veil, direction, true) + (T(1) - opacity) * color;
+
+          return m_onPlane ? this->drawOnPlane(a_ray, a_near, veil.m_t, color) : color;
+        }
+      }
+    }
+
+    if (m_onPlane) {
       color = this->drawOnPlane(a_ray, a_near, tFront, color);
     }
 
@@ -2247,6 +2332,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_insideColor", a_settings.m_insideColor, settings.m_insideColor);
   field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);
   field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
+  field("settings", "m_seenThroughOpacity", a_settings.m_seenThroughOpacity, settings.m_seenThroughOpacity);
   field("settings", "m_floorColor", a_settings.m_floorColor, settings.m_floorColor);
   field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
@@ -2682,6 +2768,9 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_cutOpacity >= T(0) && m_settings.m_cutOpacity <= T(1),
                      "Render::Renderer: the cut face's opacity must be from 0 to 1 (%g)",
                      double(m_settings.m_cutOpacity));
+  EBGEOMETRY_REQUIRE(m_settings.m_seenThroughOpacity >= T(0) && m_settings.m_seenThroughOpacity <= T(1),
+                     "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (%g)",
+                     double(m_settings.m_seenThroughOpacity));
   EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
                        m_settings.m_sheetOpacity <= T(1),
                      "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "

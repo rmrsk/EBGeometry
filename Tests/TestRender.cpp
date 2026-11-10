@@ -430,6 +430,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
     [&sphere] {
       Render::Settings<T> settings;
 
+      settings.m_seenThroughOpacity = T(-0.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (-0.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
       settings.m_isoSpacing = T(-1);
 
       Render::Image image;
