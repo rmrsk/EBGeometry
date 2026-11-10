@@ -1481,6 +1481,28 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
   settings.m_regions.m_hidden = 0U;
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+
+  // Selected surfaces (a viewer's pieces picked together): those any selector of the selection matches are keyed
+  // Highlighted. The jacket's outside (jacket | air) is hit through the middle; selecting the core's surface alone
+  // leaves it its key, selecting the jacket's outside too highlights it.
+  settings.m_regions.m_highlightRegions = 0U;
+  settings.m_regions.m_selected[0]      = SurfaceSelector::interface(1, 2);
+  settings.m_regions.m_numSelected      = 1U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 1U);
+
+  settings.m_regions.m_selected[1] = SurfaceSelector::interface(0, 1);
+  settings.m_regions.m_numSelected = 2U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+
+  settings.m_regions.showOnly(2);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+
+  settings.m_regions.m_numSelected = 0U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 2U);
 }
 
 TEMPLATE_TEST_CASE("ExprIndex: checkLabels reports a label a union covers or an intersection cuts away",

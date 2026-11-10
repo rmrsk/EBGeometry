@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_RegionSettings.hpp
- * @brief  RegionSettings: how the regions of an object are shown (visibility, coloring, a solver's scheme).
+ * @brief  RegionSettings: how the regions of an object are shown (visibility, coloring, a domain's scheme, a selection).
  * @author Robert Marskar
  */
 
@@ -106,6 +106,42 @@ struct RegionSettings
   isRegionHighlighted(const uint32_t a_region) const noexcept
   {
     return a_region < 64U && ((m_highlightRegions >> a_region) & 1U) != 0U;
+  }
+
+  /**
+   * @brief How many selectors the selection holds at most.
+   */
+  static constexpr uint32_t MaxSelected = 16;
+
+  /**
+   * @brief The selected surfaces, the first m_numSelected entries (a viewer's picked pieces): every surface one of
+   * them matches is keyed Highlighted, whatever the coloring.
+   */
+  SurfaceSelector m_selected[MaxSelected] = {};
+
+  /**
+   * @brief How many entries of m_selected are used.
+   */
+  uint32_t m_numSelected = 0U;
+
+  /**
+   * @brief Whether a surface is selected.
+   * @tparam T Floating-point precision.
+   * @param[in] a_surface The surface, with its sides and their materials set.
+   * @return True if a selector of the selection matches it.
+   */
+  template <typename T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isSelected(const SurfaceRef<T>& a_surface) const noexcept
+  {
+    for (uint32_t i = 0; i < m_numSelected && i < MaxSelected; i++) {
+      if (m_selected[i].matches(a_surface)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**

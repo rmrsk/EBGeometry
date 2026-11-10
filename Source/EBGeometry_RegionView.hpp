@@ -212,9 +212,10 @@ public:
         hit.m_entering  = entering;
         hit.m_primitive = key;
 
-        // The surfaces of the highlighted surface group, whatever the coloring.
+        // The surfaces of the highlighted surface group, or selected, whatever the coloring.
         if ((m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) ||
-            m_settings.isRegionHighlighted(from) || m_settings.isRegionHighlighted(to)) {
+            m_settings.isRegionHighlighted(from) || m_settings.isRegionHighlighted(to) ||
+            (m_settings.m_numSelected != 0U && m_settings.isSelected(change.m_surface))) {
           hit.m_primitive = RegionSettings::Highlighted;
         }
 

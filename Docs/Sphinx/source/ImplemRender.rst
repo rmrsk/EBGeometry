@@ -179,9 +179,11 @@ opened with them.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
        of the box's diagonal, every 1/50.
-   * - Click; Shift + click
+   * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
-       and a line between them). On the background, either clears.
+       and a line between them). On the background, either clears. For a view of regions, Ctrl + click picks
+       several pieces: it adds the piece under the cursor to those picked, or takes it out again (while
+       stepping through the surfaces under the cursor, the one stepped to).
    * - Shift + wheel
      - Step through the surfaces under the cursor, front to back, seeing through those in front.
    * - T; Shift + T
@@ -197,9 +199,9 @@ opened with them.
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
    * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
-     - For a view of regions, shortcuts for the panel's buttons (below): add the picked piece to the current
-       surface group; add its whole surface; add the interface between its two regions; remove it from the
-       current surface group; make the next surface group current, or start one past the last; delete the
+     - For a view of regions, shortcuts for the panel's buttons (below): add the picked pieces to the current
+       surface group; add their whole surfaces; add the interfaces between their two regions; remove them from
+       the current surface group; make the next surface group current, or start one past the last; delete the
        current surface group. C also prints the scheme as C++.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
@@ -225,9 +227,11 @@ are colored by (material, region, surface group, surface label, surface, part, i
 and a swatch beside each region or surface group shows its color; colors given to names
 (``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
 the palette's. Below, it shows the picked piece (its surface,
-part, the regions on its two sides, and its surface group) with the ways to add it to the current surface group,
-each saying how many of the object's pieces it takes in: this piece only, all of its surface, all surfaces of its
-region, or everything between its two regions; and a button to remove it; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
+part, the regions on its two sides, and its surface group), or the pieces picked together with Ctrl + click (each
+with an ``[x]`` taking it out, and ``[Pick none]``; they are highlighted together, ``RegionSettings::m_selected`` in a
+program), with the ways to add them to the current surface group, each saying how many of the object's pieces it
+takes in: these pieces only, all of their surfaces, all surfaces of their regions, or everything between their two
+regions; and a button to remove them; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
 either side lights; the background is listed and highlighted so, never drawn); and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
