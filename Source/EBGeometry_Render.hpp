@@ -391,7 +391,7 @@ struct Settings
 
   /**
    * @brief Opacity of the surfaces of a view of regions that are seen through (RegionSettings::setSeenThrough()): drawn
-   * translucent over what lies behind them, the nearest one along each ray; 0 leaves them out. However opaque they are
+   * translucent over what lies behind them, up to four along each ray, the nearest ones; 0 leaves them out. However opaque they are
    * drawn, a pick passes through them.
    */
   T m_seenThroughOpacity = T(0.3);

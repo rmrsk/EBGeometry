@@ -1726,6 +1726,41 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
 
   CHECK(!settings.m_regions.isRegionSeenThrough(1));
   CHECK(!view.withSettings(settings.m_regions).firstSeenThrough(into, T(0), T(100), RayOptions<T>()).hit());
+
+  // Several layers: three nested spheres, the two outer ones seen through. Both are drawn over the inner one; with the
+  // middle one hidden instead, only the outer one is, and the pixel differs.
+  const Expr<T>          nested = Overlay(SphereSDF<T>(Vec3T<T>::zeros(), T(1.5)),
+                                 SphereSDF<T>(Vec3T<T>::zeros(), T(1)),
+                                 SphereSDF<T>(Vec3T<T>::zeros(), T(0.5)));
+  const Tape             layered(pool, nested);
+  const RegionView<Tape> layers(layered);
+
+  const auto center = [&](const RegionSettings& a_regions) {
+    Render::Settings<T> s = EBGeometryTestRender::plain<T>(size);
+
+    s.m_colorBy = Render::ColorBy::Primitive;
+    s.m_regions = a_regions;
+
+    Render::Image image;
+
+    (void)Render::Renderer<T>(s).render(layers, Render::Camera<T>::fit(layers.computeBoundingVolume()), image);
+
+    return EBGeometryTestRender::channels(image.at(size / 2, size / 2));
+  };
+
+  RegionSettings two;
+
+  two.setRegionSeenThrough(1, true);
+  two.setRegionSeenThrough(2, true);
+
+  RegionSettings one = two;
+
+  one.setVisible(2, false);
+
+  const EBGeometryTestRender::Channels both  = center(two);
+  const EBGeometryTestRender::Channels outer = center(one);
+
+  CHECK((both.r != outer.r || both.g != outer.g || both.b != outer.b));
 }
 
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",

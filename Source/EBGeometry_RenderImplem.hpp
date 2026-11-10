@@ -510,6 +510,12 @@ class alignas(64) Shader
 {
 public:
   /**
+   * @brief How many surfaces seen through are drawn translucent along a camera ray at most, the nearest ones; those
+   * behind them are left out.
+   */
+  static constexpr int SeenThroughLayers = 4;
+
+  /**
    * @brief Set up the scene for a shape, a camera's view and settings.
    * @param[in] a_shape    Shape.
    * @param[in] a_view     The camera's view.
@@ -918,22 +924,44 @@ private:
     // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
     const T tFront = onFloor ? tFloor : (a_hit.hit() ? a_hit.m_t : m_far);
 
-    // A surface seen through in front of it is drawn translucent over it, and the section plane where it lies behind
-    // that surface under it, where it lies in front over it.
+    // The surfaces seen through in front of it, up to SeenThroughLayers of them, are drawn translucent over it, back
+    // to front, and the section plane in the gap where it lies: under the surfaces in front of it, over those behind.
     if constexpr (HasSeenThrough<S, T>::value) {
       if (m_settings.m_seenThroughOpacity > T(0)) {
-        const HitT<T> veil = m_object.seenThroughHit(a_ray, a_near, tFront, m_rays);
+        Vec3T<T> shades[SeenThroughLayers];
+        T        at[SeenThroughLayers];
+        int      layers = 0;
+        T        from   = a_near;
 
-        if (veil.hit()) {
-          if (m_onPlane) {
-            color = this->drawOnPlane(a_ray, veil.m_t, tFront, color);
+        while (layers < SeenThroughLayers) {
+          const HitT<T> veil = m_object.seenThroughHit(a_ray, from, tFront, m_rays);
+
+          if (!veil.hit()) {
+            break;
           }
 
+          shades[layers] = this->shadeSurface(veil, direction, true);
+          at[layers]     = veil.m_t;
+          from           = veil.m_t + T(4) * m_eps;
+
+          layers++;
+        }
+
+        if (layers > 0) {
           const T opacity = m_settings.m_seenThroughOpacity;
 
-          color = opacity * this->shadeSurface(veil, direction, true) + (T(1) - opacity) * color;
+          T behind = tFront;
 
-          return m_onPlane ? this->drawOnPlane(a_ray, a_near, veil.m_t, color) : color;
+          for (int i = layers - 1; i >= 0; i--) {
+            if (m_onPlane) {
+              color = this->drawOnPlane(a_ray, at[i], behind, color);
+            }
+
+            color  = opacity * shades[i] + (T(1) - opacity) * color;
+            behind = at[i];
+          }
+
+          return m_onPlane ? this->drawOnPlane(a_ray, a_near, behind, color) : color;
         }
       }
     }
