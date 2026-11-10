@@ -1438,7 +1438,7 @@ run(const S&           a_shape,
   Vec3T<T> measureA = Vec3T<T>::zeros();
   Vec3T<T> measureB = Vec3T<T>::zeros();
 
-  // Whether a region is seen through: by itself (its [t] in the panel), or by its key under the coloring now (T), the
+  // Whether a region is seen through: by itself (its box in the panel), or by its key under the coloring now (T), the
   // region's or its material's. Under another coloring, a key seen through belongs to no one region.
   const auto regionSeenThrough = [&](const uint32_t a_region) {
     if constexpr (hasRegionVisibility<S>) {
