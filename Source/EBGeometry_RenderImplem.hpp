@@ -831,10 +831,12 @@ private:
       }
 
       // A face cut by the section plane is where the plane, not the shape, gives the value: a fill, through
-      // which the shape's next surface along the ray shows.
+      // which the shape's next surface along the ray shows. It lies on the plane: a surface inside the solid (between
+      // two regions of a view of regions) has a value below the plane's near the plane too, and is no cut face.
       const Vec3T<T>& p = a_hit.m_point;
+      const T         d = m_object.m_on ? m_object.plane(p) : T(0);
 
-      if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
+      if (m_object.m_on && std::abs(d) <= T(4) * m_eps && d >= m_object.shapeDistance(p)) {
         color = this->shadeCutFace(a_ray, a_hit.m_t);
       }
       else {

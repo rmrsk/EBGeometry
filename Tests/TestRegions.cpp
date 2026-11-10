@@ -10,6 +10,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestRenderHelpers.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -1572,6 +1573,69 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
   CHECK(!names.colorOf(RegionColoring::SurfaceGroup, 0, color));
   CHECK(names.materialOf(1) == 0U);
   CHECK(names.materialOf(2) == RegionNames::None);
+}
+
+TEMPLATE_TEST_CASE("Render: a surface between two regions near the section plane is no cut face",
+                   "[Overlay][RegionView][Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // A block (x from 1 to 2) in a big box of air; the plane across y keeps y < 0. The eye, inside the air just below
+  // the plane, looks along +x at the block's face x = 1: a surface between two regions, inside the whole solid, close
+  // to the plane but not on it. It is shaded as a surface, as with no plane, not as the plane's cut face.
+  const Expr<T> object = Overlay(BoxSDF<T>(-T(4) * Vec3::ones(), T(4) * Vec3::ones()),
+                                 BoxSDF<T>(Vec3(T(1), T(-1), T(-1)), Vec3(T(2), T(1), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape             tape(pool, object);
+  const RegionView<Tape> view(tape);
+
+  constexpr uint32_t size = 16;
+
+  Render::Settings<T> settings = EBGeometryTestRender::plain<T>(size);
+
+  settings.m_colorBy = Render::ColorBy::Normal;
+
+  Render::Camera<T> camera;
+
+  camera.m_target   = Vec3(T(1), T(-0.2), T(0));
+  camera.m_distance = T(2);
+  camera.m_pitch    = T(0);
+
+  // The yaw that puts the eye on the -x side of the target.
+  for (const T yaw : {T(0), T(90), T(180), T(270)}) {
+    camera.m_yaw = yaw;
+
+    if (camera.eye()[0] < T(0)) {
+      break;
+    }
+  }
+
+  REQUIRE(camera.eye()[0] < T(0));
+  REQUIRE(tape.region(camera.eye()) == 1U);
+
+  Render::Image uncut;
+  Render::Image cut;
+
+  (void)Render::Renderer<T>(settings).render(view, camera, uncut);
+
+  settings.m_section       = true;
+  settings.m_sectionNormal = Vec3(T(0), T(1), T(0));
+
+  (void)Render::Renderer<T>(settings).render(view, camera, cut);
+
+  const EBGeometryTestRender::Channels a = EBGeometryTestRender::channels(uncut.at(size / 2, size / 2));
+  const EBGeometryTestRender::Channels b = EBGeometryTestRender::channels(cut.at(size / 2, size / 2));
+
+  // Colored by normal: the face (normal -x) has no red, the cut face (normal +y) would be bright green and red. The
+  // plane nearby darkens the face a little.
+  CHECK(std::abs(a.r - b.r) <= 6);
+  CHECK(std::abs(a.g - b.g) <= 16);
+  CHECK(std::abs(a.b - b.b) <= 16);
 }
 
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",

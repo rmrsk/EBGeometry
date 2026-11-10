@@ -2363,6 +2363,17 @@ run(const S&           a_shape,
 
     lines.emplace_back(states[3].m_now.front());
 
+    // From inside a region (the air around an object, zoomed into), its outer faces cannot show as a block.
+    if (shownStats.m_cameraInside) {
+      std::string where = "the solid";
+
+      if constexpr (hasRegionVisibility<S>) {
+        where = names.region(shape.getTape().region(camera.eye()));
+      }
+
+      lines.emplace_back("The camera is inside " + where + ": zoom out to see it from outside");
+    }
+
     std::string tabs;
 
     for (std::size_t g = 0; g < groups.size(); g++) {
