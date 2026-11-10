@@ -64,7 +64,7 @@ else ifneq ($(VIEWER),OFF)
   $(error VIEWER must be OFF or SDL2)
 endif
 
-TARGET := Regions.ex
+TARGET := SurfaceLabels.ex
 
 $(TARGET): main.cpp
 	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@ $(LDLIBS)

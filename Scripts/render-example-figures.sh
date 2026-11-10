@@ -11,7 +11,7 @@
 # automatically.
 #
 # Requires: a C++17 compiler (CXX, default g++) and ImageMagick's convert. The examples that read a mesh
-# by default (MeshSDF, MeshCSG, Shell, Materials, Repetition, Twist) need the common-3d-test-models
+# by default (MeshSDF, MeshCSG, Shell, SurfaceLabels, Repetition, Twist) need the common-3d-test-models
 # submodule: git submodule update --init.
 #
 # Usage:

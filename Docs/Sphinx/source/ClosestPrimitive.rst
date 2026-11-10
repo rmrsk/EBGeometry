@@ -475,11 +475,11 @@ parts; to tell parts apart, make them leaves of a tape (each part can be a fused
 Examples
 --------
 
-* :ref:`Chap:ExampleMaterials` bores a cylinder through a mesh, labels the two parts, names each point's
+* :ref:`Chap:ExampleSurfaceLabels` bores a cylinder through a mesh, labels the two parts, names each point's
   part with ``closestLeaf()`` and each ray's with ``HitT::m_primitive``, looks its label up in a table
-  of materials, and renders the object colored by part.
+  of its own, and renders the object colored by part.
 * :ref:`Chap:ExampleBasicCSG` prints the deciding leaf at a few points of the classic CSG solid, a cube
   intersected with a ball and drilled along three axes.
-* The AMReX ``Materials`` integration (see :ref:`Chap:Integrations`) labels every cut cell with its
+* The AMReX ``SurfaceLabels`` integration (see :ref:`Chap:Integrations`) labels every cut cell with its
   deciding leaf and, on the mesh, with the mesh's closest face at the local point, on a GPU when AMReX is
   built for one.

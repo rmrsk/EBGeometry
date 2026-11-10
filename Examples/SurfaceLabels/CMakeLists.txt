@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Standalone build file for the Regions example. It can be built on its own
+# Standalone build file for the SurfaceLabels example. It can be built on its own
 # (e.g. copied out as a template for a new project) or as part of the top-level
 # EBGeometry build.
 cmake_minimum_required(VERSION 3.16)
-project(Regions CXX)
+project(SurfaceLabels CXX)
 
 # Built on its own, the example defaults to an optimized build. Inside the EBGeometry project it
 # follows that project's build type, and its SIMD flags come from the EBGeometry target
@@ -78,32 +78,32 @@ elseif(NOT _example_gpu STREQUAL "OFF")
   message(FATAL_ERROR "EBGEOMETRY_EXAMPLE_GPU must be OFF, CUDA or HIP (got '${_example_gpu}')")
 endif()
 
-add_executable(Regions main.cpp)
+add_executable(SurfaceLabels main.cpp)
 
 if(_example_gpu STREQUAL "HIP" OR _example_gpu STREQUAL "CUDA")
   set_source_files_properties(main.cpp PROPERTIES LANGUAGE ${_example_gpu})
-  set_target_properties(Regions PROPERTIES
+  set_target_properties(SurfaceLabels PROPERTIES
     ${_example_gpu}_STANDARD 17
     ${_example_gpu}_STANDARD_REQUIRED ON)
 
   # Lets the EBGeometry project collect the examples it compiled for a GPU.
-  set_property(GLOBAL APPEND PROPERTY EBGEOMETRY_GPU_EXAMPLES Regions)
+  set_property(GLOBAL APPEND PROPERTY EBGEOMETRY_GPU_EXAMPLES SurfaceLabels)
 endif()
 
 # Give the binary a .ex extension so it's covered by the repo-wide *.ex .gitignore rule,
 # without needing a per-example ignore entry. Always place it directly in this
 # source directory (not wherever -B/--preset pointed the build tree), so all three
 # documented build methods (direct compile, GNU make, CMake) produce the binary in
-# the same place: ./Regions.ex.
-set_target_properties(Regions PROPERTIES
+# the same place: ./SurfaceLabels.ex.
+set_target_properties(SurfaceLabels PROPERTIES
   SUFFIX ".ex"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(Regions PRIVATE EBGeometry::EBGeometry)
+target_link_libraries(SurfaceLabels PRIVATE EBGeometry::EBGeometry)
 
 # The renderer draws on std::thread; older C libraries need -pthread for it.
 find_package(Threads REQUIRED)
-target_link_libraries(Regions PRIVATE Threads::Threads)
-target_compile_options(Regions PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall -Wextra -Wno-unused-parameter>)
+target_link_libraries(SurfaceLabels PRIVATE Threads::Threads)
+target_compile_options(SurfaceLabels PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall -Wextra -Wno-unused-parameter>)
 
 # ---------------------------------------------------------------------------
 # Floating-point precision for this example.
@@ -114,7 +114,7 @@ target_compile_options(Regions PRIVATE $<$<COMPILE_LANGUAGE:CXX,HIP>:-Wall -Wext
 # ---------------------------------------------------------------------------
 set(EBGEOMETRY_PRECISION double CACHE STRING "Floating-point precision (float or double)")
 set_property(CACHE EBGEOMETRY_PRECISION PROPERTY STRINGS float double)
-target_compile_definitions(Regions PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
+target_compile_definitions(SurfaceLabels PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRECISION})
 
 # ---------------------------------------------------------------------------
 # EBGEOMETRY_EXPECT() runtime assertions for this example.
@@ -125,7 +125,7 @@ target_compile_definitions(Regions PRIVATE EBGEOMETRY_PRECISION=${EBGEOMETRY_PRE
 # ---------------------------------------------------------------------------
 option(EBGEOMETRY_ENABLE_ASSERTIONS "Enable EBGEOMETRY_EXPECT() runtime assertion checks" OFF)
 if(EBGEOMETRY_ENABLE_ASSERTIONS)
-  target_compile_definitions(Regions PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
+  target_compile_definitions(SurfaceLabels PRIVATE EBGEOMETRY_ENABLE_ASSERTIONS)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -140,8 +140,8 @@ set_property(CACHE EBGEOMETRY_VIEWER PROPERTY STRINGS OFF SDL2)
 
 if(EBGEOMETRY_VIEWER STREQUAL "SDL2" AND CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   find_package(SDL2 REQUIRED)
-  target_compile_definitions(Regions PRIVATE EBGEOMETRY_VIEWER_SDL2 $<$<COMPILE_LANGUAGE:CUDA>:SDL_DISABLE_IMMINTRIN_H>)
-  target_link_libraries(Regions PRIVATE SDL2::SDL2)
+  target_compile_definitions(SurfaceLabels PRIVATE EBGEOMETRY_VIEWER_SDL2 $<$<COMPILE_LANGUAGE:CUDA>:SDL_DISABLE_IMMINTRIN_H>)
+  target_link_libraries(SurfaceLabels PRIVATE SDL2::SDL2)
 elseif(NOT EBGEOMETRY_VIEWER STREQUAL "OFF" AND NOT EBGEOMETRY_VIEWER STREQUAL "SDL2")
   message(FATAL_ERROR "EBGEOMETRY_VIEWER must be OFF or SDL2 (got '${EBGEOMETRY_VIEWER}')")
 endif()

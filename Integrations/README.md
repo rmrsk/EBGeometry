@@ -14,8 +14,8 @@ the object it builds to AMReX's embedded-boundary grid generation:
 | `Shapes` | One analytic shape, a torus, or the classic CSG solid, in a `Tape` or fused (`shape = torus`, `csg` or `fused`). |
 | `MeshSDF` | A surface mesh as a `TriMeshSDF`. |
 | `MeshCSG` | The dragon on a table, blended by a smooth union, in a `Tape`. |
-| `Materials` | The armadillo with a bored cylinder, in a `Tape`, and each cut cell labeled with its closest leaf and mesh face. |
-| `Regions` | One subdomain of a domain (a cable's regions: the air, or the jacket), and each cut cell labeled with its boundary condition, its role (a boundary or an interface) and the region across. |
+| `SurfaceLabels` | The armadillo with a bored cylinder, in a `Tape`, and each cut cell labeled with its closest leaf and mesh face. |
+| `Materials` | One subdomain of a domain (a cable's regions: the air, or the jacket), and each cut cell labeled with its boundary condition, its role (a boundary or an interface) and the region across. |
 | `ManyObjects` | Thousands of objects in a BVH union: spheres packed in a cylinder, or a city of boxes (`scene = spheres` or `city`). |
 
 > [!IMPORTANT]

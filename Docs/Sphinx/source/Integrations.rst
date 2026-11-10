@@ -41,15 +41,15 @@ EBGeometry object.
    * - :file:`MeshCSG`
      - The dragon on a table, blended by a smooth union, in a ``Tape``.
      - :ref:`Chap:ExampleMeshCSG`
-   * - :file:`Materials`
+   * - :file:`SurfaceLabels`
      - The armadillo with a bored cylinder, in a ``Tape``, and each cut cell labeled with its closest leaf
        (``closestLeaf()``) and, on the mesh, its closest face (``getClosestFace()``).
-     - :ref:`Chap:ExampleMaterials`
-   * - :file:`Regions`
+     - :ref:`Chap:ExampleSurfaceLabels`
+   * - :file:`Materials`
      - One subdomain of a ``Domain`` (a cable's air, or its jacket), its own function cut, and each cut cell
        labeled with its surface group (the boundary condition's id), its role (a boundary or an interface) and
        the region on the other side (``closestSurface(p, subdomains, subdomain)``).
-     - :ref:`Chap:ExampleRegions`
+     - :ref:`Chap:ExampleMaterials`
    * - :file:`ManyObjects`
      - 3,000 spheres in a cylinder joined by a ``BVHSmoothUnion`` (the fluid is between them), or a city of
        boxes in a ``BVHUnion`` (``scene = spheres`` or ``city``).

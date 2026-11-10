@@ -50,7 +50,7 @@ The classes are in namespace ``Render``:
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
   box), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
   ``Settings::PrimitiveColors`` (16) primitive ids colors of their own; an entry left unset, and every
-  later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colors its bore steel gray).
+  later id, takes the built-in palette's (:ref:`Chap:ExampleSurfaceLabels` colors its bore steel gray).
   ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``. ``m_viewMode`` picks the
   view (``ViewMode::Shaded``, the default, ``Depth``, ``XRay``, ``CostHit`` or ``CostCrossing``; see
   :ref:`Chap:Rendering`), and ``m_xrayOpacity`` how opaque each surface is in an x-ray (its highlights follow ``m_specular`` and

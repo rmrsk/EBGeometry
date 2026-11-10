@@ -6,7 +6,7 @@ in the order you would write them, and prints results you can read. It does not 
 answers.
 
 **Several examples read a mesh from the `common-3d-test-models` git submodule by default** (`MeshSDF`,
-`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `Materials`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
+`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `SurfaceLabels`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
 `git submodule update --init` in it.
 
 The reading order:
@@ -21,8 +21,8 @@ The reading order:
 8. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 9. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
 10. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
-11. `Materials`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a material table indexed by it.
-12. `Regions`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
+11. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
+12. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
 13. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
 14. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
 15. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
@@ -40,7 +40,7 @@ The reading order:
 27. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that builds a shape (`Shapes`, `BasicCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
-`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `Materials`, `Regions`, `NestedBVH`,
+`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `NestedBVH`,
 `ManyObjects`, `PackedSpheres`, `SphereClouds`, `ParticleContacts`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
 (`make VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
 without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes
