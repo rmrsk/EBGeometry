@@ -206,26 +206,6 @@ kindName(const Kind a_kind) noexcept
 }
 
 /**
- * @brief The Overlay a partition is made of: the node itself, or the one below its maps and masks.
- * @details Internal helper; not part of the public API.
- * @tparam T Floating-point precision.
- * @param[in] a_node A partition (Node::m_partition).
- * @return The Overlay's node.
- */
-template <class T>
-[[nodiscard]] inline const Node<T>&
-overlayOf(const Node<T>& a_node) noexcept
-{
-  const Node<T>* node = &a_node;
-
-  while (!node->m_overlay) {
-    node = &node->m_children.front().node();
-  }
-
-  return *node;
-}
-
-/**
  * @brief A new node of a given kind with the given children.
  * @details Internal helper; not part of the public API. Checks where a partition (an Overlay) and a material label
  * may be: a partition only in an Overlay, under a map, or as the first operand of an intersection (clipped by the
@@ -250,9 +230,6 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
                          "%s: an Overlay is a partition into regions, not a solid; it can be moved, clipped or drilled "
                          "as the first operand of an Intersection or Difference, or placed in another Overlay",
                          kindName(a_kind));
-      EBGEOMETRY_REQUIRE(!a_overlay || overlayOf(child).m_background.empty(),
-                         "Overlay: only the outermost Overlay names the background (an inner one's outside is a region "
-                         "of the outer)");
     }
     else if (child.m_carriesMaterial) {
       EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine,
@@ -1057,7 +1034,7 @@ SurfaceLabel(const A& a_operand, FaceGroups a_groups)
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Overlay(const std::vector<A>& a_operands, std::string a_background)
+Overlay(const std::vector<A>& a_operands)
 {
   using T = ExprPrecision<A>;
 
@@ -1076,20 +1053,23 @@ Overlay(const std::vector<A>& a_operands, std::string a_background)
 
   node->m_boundingVolume = box;
   node->m_quality        = quality;
-  node->m_background     = std::move(a_background);
 
   return Expr<T>(std::move(node));
 }
 
-template <class A, class B>
+template <class A, class B, class... Rest>
 inline Expr<ExprPrecision<A>>
-Overlay(const A& a_first, const B& a_second, std::string a_background)
+Overlay(const A& a_first, const B& a_second, const Rest&... a_rest)
 {
   using T = ExprPrecision<A>;
 
-  static_assert(std::is_same_v<T, ExprPrecision<B>>, "Overlay: both operands must have the same precision");
+  static_assert(!std::is_convertible_v<B, std::string> && !(std::is_convertible_v<Rest, std::string> || ...),
+                "Overlay: every operand is a region; the outside has no material (make a medium around the object, "
+                "such as air, a region of its own, under the others)");
+  static_assert(std::is_same_v<T, ExprPrecision<B>> && (std::is_same_v<T, ExprPrecision<Rest>> && ...),
+                "Overlay: all operands must have the same precision");
 
-  return Overlay(std::vector<Expr<T>>{toExpr(a_first), toExpr(a_second)}, std::move(a_background));
+  return Overlay(std::vector<Expr<T>>{toExpr(a_first), toExpr(a_second), toExpr(a_rest)...});
 }
 
 template <class A>
@@ -1479,14 +1459,8 @@ inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr) : m_leafSurfaces{0U}
 {
   const ExprDetail::Node<T>& root = a_expr.node();
 
-  // The background is region 0, and its material is numbered first.
-  Region background;
-
-  if (root.m_partition && !ExprDetail::overlayOf(root).m_background.empty()) {
-    background.m_material = this->internMaterial(ExprDetail::overlayOf(root).m_background);
-  }
-
-  m_regions.push_back(background);
+  // The background is region 0, with no material.
+  m_regions.push_back(Region());
   m_regionBoxes.push_back(BoundingVolumes::AABBT<T>());
 
   this->add(root, None, SurfaceLabelId::none());

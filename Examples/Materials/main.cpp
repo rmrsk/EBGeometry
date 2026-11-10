@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Regions of several materials in one object: a cable, a copper core inside a PTFE jacket, in air, cut open by a
-// slab. Overlay() makes the parts regions rather than one solid, so the core keeps its surface inside the jacket;
+// Regions of several materials in one object: a cable, a copper core inside a PTFE jacket, in a box of air.
+// Overlay() stacks the parts as regions rather than one solid, so the core keeps its surface inside the jacket;
 // MaterialLabel() names each region's material. The tape answers which region a point is in and each region's own
 // implicit function; the viewer shows the regions, one color each, and hides them (V). See README.md.
 
@@ -28,9 +28,15 @@ main(int argc, char* argv[])
 {
   // ── Build the object ───────────────────────────────────────────────────────────────────────────────
   //
-  // A cable along z: the jacket, then the core on top of it (later operands win where they overlap), in air.
-  // A union would make one solid of them, and the core's surface would vanish inside the jacket.
-  // Each region has a name (which region it is) and a material (what it is made of).
+  // A cable along z in a box of air: the air, the jacket on top of it, then the core on top of that (later operands
+  // win where they overlap). A union would make one solid of them, and the core's surface would vanish inside the
+  // jacket. Each region has a name (which region it is) and a material (what it is made of). The air is a region like
+  // the others: its box is the outer boundary of what a solver computes on, and the core, longer than the box, passes
+  // through its ends.
+  const auto air = EBGeometry::RegionName(
+    EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-2.25)), Vec3(T(1.5), T(1.5), T(2.25))),
+                              "air"),
+    "air");
   const auto jacket =
     EBGeometry::RegionName(EBGeometry::MaterialLabel(
                              EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)), "PTFE"),
@@ -40,7 +46,7 @@ main(int argc, char* argv[])
                               "copper"),
     "core");
 
-  const Expr object = EBGeometry::Overlay(jacket, core, "air");
+  const Expr object = EBGeometry::Overlay(air, jacket, core);
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
@@ -48,17 +54,18 @@ main(int argc, char* argv[])
 
   // ── The regions and their materials ────────────────────────────────────────────────────────────────
   //
-  // Region 0 is the outside; then each operand of the Overlay, in order. ExprIndex, on the host, holds the
+  // Region 0 is the outside, beyond the box, with no material; then each operand of the Overlay, in order. ExprIndex, on the host, holds the
   // names; the tape answers on the host and on a GPU.
   const EBGeometry::ExprIndex<T> index(object);
 
   std::cout << index.getNumRegions() << " regions:\n";
 
   for (uint32_t k = 0; k < index.getNumRegions(); k++) {
-    const std::string& name = index.getRegion(k).m_name;
+    const std::string&                name     = index.getRegion(k).m_name;
+    const EBGeometry::MaterialLabelId material = index.getMaterialOf(k);
 
     std::cout << "  region " << k << ": " << (name.empty() ? std::string("outside") : name) << ", "
-              << index.getMaterialLabelName(index.getMaterialOf(k)) << '\n';
+              << (material.isNone() ? std::string("no material") : index.getMaterialLabelName(material)) << '\n';
   }
 
   // A name with nothing to name (a region buried under later ones, a label on a covered surface) gets no boundary
@@ -78,7 +85,7 @@ main(int argc, char* argv[])
     const Vec3 p(x, T(0), T(1.5));
 
     std::cout << "  x = " << std::setw(6) << x << ": region " << tape.region(p) << ", jacket's function "
-              << std::setw(6) << tape.signedDistance(p, 1) << ", core's " << std::setw(6) << tape.signedDistance(p, 2)
+              << std::setw(6) << tape.signedDistance(p, 2) << ", core's " << std::setw(6) << tape.signedDistance(p, 3)
               << '\n';
   }
 
@@ -91,9 +98,9 @@ main(int argc, char* argv[])
   EBGeometry::Subdomains cfd;            // flow in the air only
   EBGeometry::Subdomains electrostatics; // the air and the jacket; the core is a conductor
 
-  cfd.addSubdomain({0});
-  electrostatics.addSubdomain({0});
+  cfd.addSubdomain({1});
   electrostatics.addSubdomain({1});
+  electrostatics.addSubdomain({2});
 
   const auto roleName = [](const EBGeometry::SurfaceRole a_role) {
     return a_role == EBGeometry::SurfaceRole::Boundary    ? "boundary"
@@ -105,7 +112,7 @@ main(int argc, char* argv[])
   std::cout << "Surfaces of the jacket, at z = 1.5:\n";
 
   for (const T x : {T(1), T(0.4)}) {
-    const EBGeometry::SurfaceRef<T> s = tape.closestSurface(Vec3(x, T(0), T(1.5)), 1);
+    const EBGeometry::SurfaceRef<T> s = tape.closestSurface(Vec3(x, T(0), T(1.5)), 2);
 
     std::cout << "  x = " << x << ": between regions " << s.m_ownerRegion << " and " << s.m_neighborRegion
               << "; to flow " << roleName(cfd.role(s)) << ", to electrostatics " << roleName(electrostatics.role(s))
@@ -116,21 +123,26 @@ main(int argc, char* argv[])
   //
   // A domain describes what a downstream solver computes on: its regions (the subdomains above) and its surface groups,
   // one per boundary condition: the group's name
-  // is the condition's tag, its number the id a kernel reads (scheme.surfaceGroupOf(surface)). Electrostatics: every
-  // conductor surface is dirichlet, the jacket's outside a jump; flow: every surface of the air is a wall.
+  // is the condition's tag, its number the id a kernel reads (scheme.surfaceGroupOf(surface)); the first selector that
+  // matches a surface decides. Electrostatics: every conductor surface is dirichlet, the box grounded, the jacket's
+  // outside a jump; flow: the box is the far field, every other surface of the air a wall.
   EBGeometry::Domain electrostatic{electrostatics, {}};
 
   const uint32_t dirichlet = electrostatic.m_scheme.addSurfaceGroup();
+  const uint32_t ground    = electrostatic.m_scheme.addSurfaceGroup();
   const uint32_t jump      = electrostatic.m_scheme.addSurfaceGroup();
 
-  electrostatic.m_scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(2));
-  electrostatic.m_scheme.add(jump, EBGeometry::SurfaceSelector::interface(0, 1));
+  electrostatic.m_scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(3));
+  electrostatic.m_scheme.add(ground, EBGeometry::SurfaceSelector::interface(1, 0));
+  electrostatic.m_scheme.add(jump, EBGeometry::SurfaceSelector::interface(1, 2));
 
   EBGeometry::Domain flow{cfd, {}};
 
-  const uint32_t wall = flow.m_scheme.addSurfaceGroup();
+  const uint32_t farField = flow.m_scheme.addSurfaceGroup();
+  const uint32_t wall     = flow.m_scheme.addSurfaceGroup();
 
-  flow.m_scheme.add(wall, EBGeometry::SurfaceSelector::region(0));
+  flow.m_scheme.add(farField, EBGeometry::SurfaceSelector::interface(1, 0));
+  flow.m_scheme.add(wall, EBGeometry::SurfaceSelector::region(1));
 
   // What a cut-cell code samples at a node: every point has a label (a subdomain, or Excluded where the domain does
   // not compute, the core), and each label a function negative exactly in it. An edge between two nodes of different
@@ -159,8 +171,11 @@ main(int argc, char* argv[])
 
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
 
-  // The window opens cut along the cable's axis by the section plane, the cut filled by material, so that the core
-  // shows (X steps the plane on, Shift + I the fill).
+  // The window opens with the air hidden, so that the cable shows (V and the panel show it again), cut along its axis
+  // by the section plane, the cut filled by material, so that the core shows (X steps the plane on, Shift + I the
+  // fill).
+  settings.m_regions.setVisible(1, false);
+
   settings.m_section       = true;
   settings.m_sectionNormal = Vec3(T(1), T(0), T(0));
   settings.m_sectionFill   = T(1);
@@ -172,7 +187,9 @@ main(int argc, char* argv[])
   const uint32_t flowDomain          = names.addDomain("flow", flow);
 
   names.setSurfaceGroup(electrostaticDomain, dirichlet, "dirichlet");
+  names.setSurfaceGroup(electrostaticDomain, ground, "ground");
   names.setSurfaceGroup(electrostaticDomain, jump, "jump");
+  names.setSurfaceGroup(flowDomain, farField, "far field");
   names.setSurfaceGroup(flowDomain, wall, "wall");
   names.setSubdomain(electrostaticDomain, 0, "air");
   names.setSubdomain(electrostaticDomain, 1, "jacket");
@@ -183,6 +200,7 @@ main(int argc, char* argv[])
   names.setColor("PTFE", EBGeometry::Vec3T<double>(0.80, 0.80, 0.75));
   names.setColor("air", EBGeometry::Vec3T<double>(0.55, 0.70, 0.90));
   names.setColor("dirichlet", EBGeometry::Vec3T<double>(0.85, 0.15, 0.10));
+  names.setColor("ground", EBGeometry::Vec3T<double>(0.20, 0.60, 0.25));
   names.setColor("jump", EBGeometry::Vec3T<double>(0.10, 0.35, 0.85));
 
   settings.m_regions.m_coloring = EBGeometry::RegionColoring::Material;
@@ -192,8 +210,8 @@ main(int argc, char* argv[])
   // From the side the plane keeps open.
   auto camera = EBGeometry::Render::Camera<T>::fit(regions.computeBoundingVolume());
 
-  camera.m_yaw   = T(30);
-  camera.m_pitch = T(30);
+  camera.m_yaw   = T(55);
+  camera.m_pitch = T(25);
 
   // With the tape's pool, a GPU build renders on the device (G switches between the GPU and the CPU).
   EBGeometry::Render::view(regions, pool, camera, settings, names, argc, argv);

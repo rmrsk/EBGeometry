@@ -494,7 +494,7 @@ instantiateFunctionTemplates()
     (void)ExprIndex<T>(expr).getFirstSurface(0U);
     (void)ExprIndex<T>(expr).getLeafOfSurface(0U);
     {
-      const Expr<T>      regions = Overlay(MaterialLabel(expr, "a"), expr, "background");
+      const Expr<T>      regions = Overlay(MaterialLabel(expr, "a"), expr, expr);
       const ExprIndex<T> index(regions);
 
       (void)index.getNumRegions();

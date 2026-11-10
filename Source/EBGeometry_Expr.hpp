@@ -350,11 +350,6 @@ struct Node
   bool m_overlay = false;
 
   /**
-   * @brief For an Overlay: the material of its outside, the background; empty for void.
-   */
-  std::string m_background;
-
-  /**
    * @brief Whether the node is a partition into regions: an Overlay, a map of one, or one clipped as the first
    * operand of an intersection (a mask).
    */
@@ -919,49 +914,50 @@ inline Expr<ExprPrecision<A>>
 SurfaceLabel(const A& a_operand, FaceGroups a_groups);
 
 /**
- * @brief Regions by priority: each operand is a region of its own, later operands on top of earlier ones where they
- * overlap, and the outside is the background.
+ * @brief Regions by priority, a priority union: each operand is a region of its own, later operands on top of earlier
+ * ones where they overlap; the outside, region 0, is the background.
  * @details Region k is the part of operand k that no later operand covers, so the regions tile the object, with no
- * gaps and no overlaps, by construction. Each region can have a material (MaterialLabel() on its operand), and the
- * background one too (a_background). A Tape evaluates an Overlay as the union of its operands, the whole object, so
- * signedDistance() is unchanged by it; ExprIndex lists its regions, groups and materials.
+ * gaps and no overlaps, by construction. Each region can have a material (MaterialLabel() on its operand). The
+ * background is what lies beyond the object and has no material: a medium around an object (the air around a cable)
+ * is a region of its own, an operand under the others, whose outer surface bounds the computational domain. A Tape
+ * evaluates an Overlay as the union of its operands, the whole object, so signedDistance() is unchanged by it;
+ * ExprIndex lists its regions, groups and materials.
  *
  * Where an Overlay may appear: at the top of the expression, under maps (Translate, Rotate, ...), as the first
  * operand of an Intersection or Difference whose other operands are plain solids (masks: they clip or drill every
  * region), and as an operand of another Overlay, where its operands take its place in the outer priority order
  * (it is kept as a group of regions). Anything else (a union with a solid or another Overlay, an offset, a blend, a
  * repetition of an Overlay) aborts with a message, in every build: it would not be clear which region a result
- * belongs to. Only the outermost Overlay names the background.
+ * belongs to.
  * @tparam A Shape or Expr type.
- * @param[in] a_operands   The regions, in priority order (must not be empty).
- * @param[in] a_background The material of the outside; empty for none.
+ * @param[in] a_operands The regions, in priority order (must not be empty).
  * @return The partition.
  */
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Overlay(const std::vector<A>& a_operands, std::string a_background = {});
+Overlay(const std::vector<A>& a_operands);
 
 /**
- * @brief Regions by priority, of two operands: the second on top of the first (see Overlay()).
- * @tparam A Shape or Expr type.
- * @tparam B Shape or Expr type of the same precision.
- * @param[in] a_first      The first region.
- * @param[in] a_second     The second region, on top.
- * @param[in] a_background The material of the outside; empty for none.
+ * @brief Regions by priority, of two or more operands, each on top of the ones before it (see Overlay()).
+ * @tparam A    Shape or Expr type.
+ * @tparam B    Shape or Expr type of the same precision.
+ * @tparam Rest Shape or Expr types of the same precision.
+ * @param[in] a_first  The first region, at the bottom.
+ * @param[in] a_second The second region, on top of the first.
+ * @param[in] a_rest   Further regions, each on top of the ones before it.
  * @return The partition.
  */
-template <class A, class B>
+template <class A, class B, class... Rest>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Overlay(const A& a_first, const B& a_second, std::string a_background = {});
+Overlay(const A& a_first, const B& a_second, const Rest&... a_rest);
 
 /**
  * @brief Name the material of a region: an operand of an Overlay, a whole Overlay nested in another (a default for
  * its regions without one of their own), or a whole object.
  * @details Materials are not surface labels (SurfaceLabel()): a material belongs to a volume, a surface label to
- * surfaces. ExprIndex numbers the material names, in the order they first appear, depth first, the background's
- * first, as MaterialLabelId. A material label on part of a solid (an operand of a Union, an Intersection, ...)
+ * surfaces. ExprIndex numbers the material names, in the order they first appear, depth first, as MaterialLabelId. A material label on part of a solid (an operand of a Union, an Intersection, ...)
  * aborts with a message, in every build: a solid is one material; make the parts regions of an Overlay. Labeling an
  * object that already has a material replaces it.
  * @tparam A Shape or Expr type.

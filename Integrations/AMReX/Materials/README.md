@@ -2,9 +2,9 @@ Integrations/AMReX/Materials
 ----------------------------
 
 One subdomain of a domain cut by AMReX, and its boundary conditions at the cut cells. A cable, a core in a
-jacket in air (`Overlay(jacket, core, "air")`) is compiled into a `Tape`; a `Domain` describes
-what a downstream code computes on: two subdomains, the air and the jacket, and two surface groups, every surface
-of the core (0) and the interface of the air and the jacket (1). It mirrors the
+jacket in a box of air (`Overlay(air, jacket, core)`), is compiled into a `Tape`; a `Domain` describes
+what a downstream code computes on: two subdomains, the air and the jacket, and three surface groups, every surface
+of the core (0), the air's box (1) and the interface of the air and the jacket (2). It mirrors the
 [`Materials`](../../../Examples/Materials/README.md) example.
 
 AMReX's EB2 grid generation cuts one implicit function, so one subdomain is handed over: its function

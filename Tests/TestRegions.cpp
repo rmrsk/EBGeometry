@@ -23,7 +23,7 @@ using namespace EBGeometry;
 
 namespace {
 
-// A cable: a copper core inside a PTFE jacket, in air.
+// A cable: a copper core inside a PTFE jacket; the outside, region 0, has no material.
 template <class T>
 Expr<T>
 cable()
@@ -31,7 +31,7 @@ cable()
   const auto core   = MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(0.5)), "copper");
   const auto jacket = MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), "PTFE");
 
-  return Overlay(jacket, core, "air");
+  return Overlay(jacket, core);
 }
 
 // A region's material name, or "-" for none.
@@ -126,7 +126,8 @@ struct RegionQuery
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Overlay: the background is region 0, then the operands in priority order, with their materials",
+TEMPLATE_TEST_CASE("Overlay: the background is region 0, with no material, then the operands in priority order, with "
+                   "their materials",
                    "[Overlay]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -144,15 +145,14 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, then the operands in pr
   CHECK(index.getRegion(0).m_node == None);
   CHECK(index.getRegion(1).m_node == 1U);
   CHECK(index.getRegion(2).m_node == 2U);
-  CHECK(materialName(index, 0) == "air");
+  CHECK(materialName(index, 0) == "-");
   CHECK(materialName(index, 1) == "PTFE");
   CHECK(materialName(index, 2) == "copper");
 
-  // The background's material is numbered first, then the others as they appear.
-  REQUIRE(index.getNumMaterialLabels() == 3U);
-  CHECK(index.findMaterialLabel("air").value() == 0U);
-  CHECK(index.findMaterialLabel("PTFE").value() == 1U);
-  CHECK(index.findMaterialLabel("copper").value() == 2U);
+  // The materials are numbered as they appear.
+  REQUIRE(index.getNumMaterialLabels() == 2U);
+  CHECK(index.findMaterialLabel("PTFE").value() == 0U);
+  CHECK(index.findMaterialLabel("copper").value() == 1U);
   CHECK(index.findMaterialLabel("steel").isNone());
 
   REQUIRE(index.getNumRegionGroups() == 1U);
@@ -168,13 +168,28 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, then the operands in pr
   // Materials and surface labels are numbered apart.
   CHECK(index.getNumSurfaceLabels() == 0U);
 
-  // Without a background the outside has no material; an expression with no Overlay is one region.
-  const ExprIndex<T> noBackground(
-    Overlay(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones())));
+  // Operands without a material have none; three or more operands, each on top of the ones before it, are the
+  // list's regions. An expression with no Overlay is one region.
+  const SphereSDF<T> big(Vec3T<T>::zeros(), T(2));
+  const SphereSDF<T> middle(Vec3T<T>::zeros(), T(1));
+  const SphereSDF<T> small(Vec3T<T>::zeros(), T(0.5));
+  const Vec3T<T>     inMiddle(T(0.8), T(0), T(0));
 
-  CHECK(noBackground.getNumRegions() == 3U);
-  CHECK(materialName(noBackground, 0) == "-");
-  CHECK(materialName(noBackground, 1) == "-");
+  const ExprIndex<T> unlabeled(Overlay(big, middle, small));
+
+  CHECK(unlabeled.getNumRegions() == 4U);
+  CHECK(materialName(unlabeled, 0) == "-");
+  CHECK(materialName(unlabeled, 1) == "-");
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> three(pool, Overlay(big, middle, small));
+  const Tape<T> listed(pool, Overlay(std::vector<SphereSDF<T>>{big, middle, small}));
+
+  CHECK(three.region(inMiddle) == 2U);
+  CHECK(three.region(Vec3T<T>::zeros()) == 3U);
+  CHECK(listed.region(inMiddle) == three.region(inMiddle));
+  CHECK(listed.region(Vec3T<T>::zeros()) == three.region(Vec3T<T>::zeros()));
 
   const ExprIndex<T> plain(MaterialLabel(
     Union(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones())), "steel"));
@@ -206,14 +221,13 @@ TEMPLATE_TEST_CASE("Overlay: nested Overlays flatten into one priority order, ke
 
   const Expr<T> scene = Overlay(std::vector<Expr<T>>{MaterialLabel(matrix, "resin"),
                                                      Translate(particle, Vec3(T(-2), T(0), T(0))),
-                                                     Translate(second, Vec3(T(2), T(0), T(0)))},
-                                "air");
+                                                     Translate(second, Vec3(T(2), T(0), T(0)))});
 
   const ExprIndex<T> index(scene);
 
   // Regions: background, matrix, shell 1, grain 1, shell 2, grain 2.
   REQUIRE(index.getNumRegions() == 6U);
-  CHECK(materialName(index, 0) == "air");
+  CHECK(materialName(index, 0) == "-");
   CHECK(materialName(index, 1) == "resin");
   CHECK(materialName(index, 2) == "steel");
   CHECK(materialName(index, 3) == "steel");
@@ -304,8 +318,6 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
   REQUIRE(abortsWith([] { (void)Intersection(cable<T>(), MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(2)), "steel")); },
                      material));
 
-  REQUIRE(abortsWith([] { (void)Overlay(SphereSDF<T>(Vec3::zeros(), T(2)), cable<T>()); },
-                     "Overlay: only the outermost Overlay names the background"));
   REQUIRE(
     abortsWith([] { (void)Overlay(std::vector<SphereSDF<T>>{}); }, "Overlay: the list of regions must not be empty"));
   REQUIRE(abortsWith([] { (void)MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(1)), ""); },
@@ -337,8 +349,7 @@ TEMPLATE_TEST_CASE("Tape: region() and signedDistance(p, region) partition space
   const BoxSDF<T>    slab(Vec3(T(-0.1), T(-4), T(-4)), Vec3(T(0.1), T(4), T(4)));
 
   const Expr<T> scene = Difference(
-    Intersection(Overlay(std::vector<Expr<T>>{matrix, Overlay(shell, grain), Overlay(shell2, grain2)}, "air"), domain),
-    slab);
+    Intersection(Overlay(std::vector<Expr<T>>{matrix, Overlay(shell, grain), Overlay(shell2, grain2)}), domain), slab);
 
   const auto mask = [&](const Vec3& p) { return Math::max(domain.signedDistance(p), -slab.signedDistance(p)); };
   const auto raw  = [&](const uint32_t k, const Vec3& p) {
@@ -491,11 +502,11 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   CHECK(all.withSeenThrough(1, true).firstHit(along, T(0), T(5), options).m_primitive == 2U);
   CHECK(!coreThrough.withNoneSeenThrough().isSeenThrough(2));
 
-  // Colored by material: the materials' numbers (air 0, PTFE 1, copper 2).
+  // Colored by material: the materials' numbers (PTFE 0, copper 1).
   const RegionView<Tape> byMaterial = all.withColoring(RegionColoring::Material);
 
-  CHECK(byMaterial.firstHit(intoCore, T(0), T(5), options).m_primitive == 2U);
-  CHECK(byMaterial.firstHit(intoJacket, T(0), T(5), options).m_primitive == 1U);
+  CHECK(byMaterial.firstHit(intoCore, T(0), T(5), options).m_primitive == 1U);
+  CHECK(byMaterial.firstHit(intoJacket, T(0), T(5), options).m_primitive == 0U);
 
   // Colored by interface: the pair of regions on the surface's two sides; showing only the jacket | core interface,
   // the jacket's outer surface (jacket | air) is passed through, and so is the core's cut face (core | air).
@@ -592,7 +603,7 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
     byMaterial.m_coloring = RegionColoring::Material;
 
     CHECK(all.withSettings(byMaterial).sectionKey(inCore) == labels.findMaterialLabel("copper").value());
-    CHECK(all.withSettings(byMaterial).sectionKey(inAir) == labels.findMaterialLabel("air").value());
+    CHECK(all.withSettings(byMaterial).sectionKey(inAir) == MaterialLabelId::none().value());
   }
 
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);
@@ -781,7 +792,7 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
   const Tape<T>      tape(pool, cable<T>());
   const ExprIndex<T> index(cable<T>());
 
-  const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the air
+  const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the outside
   const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
 
   // CFD in the air: the outer sphere is its boundary, the inner one nothing to it.
@@ -1194,22 +1205,22 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   using Vec3 = Vec3T<T>;
   using Tape = Tape<T>;
 
-  // The cable: air 0, the jacket 1 (PTFE), the core 2 (copper), its surface labeled "conductor".
+  // The cable: the outside 0, the jacket 1 (PTFE), the core 2 (copper), its surface labeled "conductor".
   const auto core   = MaterialLabel(SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "conductor"), "copper");
   const auto jacket = MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(1)), "PTFE");
 
-  const Expr<T> cable = Overlay(jacket, core, "air");
+  const Expr<T> cable = Overlay(jacket, core);
 
   Pool pool(hostMemoryResource());
 
   const Tape         tape(pool, cable);
   const ExprIndex<T> index(cable);
 
-  const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the air
+  const SurfaceRef<T> outer = tape.closestSurface(Vec3(T(1), T(0), T(0)), 1U);   // the jacket and the outside
   const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
 
   CHECK(outer.m_ownerMaterial == index.findMaterialLabel("PTFE"));
-  CHECK(outer.m_neighborMaterial == index.findMaterialLabel("air"));
+  CHECK(outer.m_neighborMaterial.isNone());
 
   // Electrostatics: every surface of the conductor, inside the jacket included (dirichlet); the jacket's outside
   // (a jump).
@@ -1224,7 +1235,7 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   CHECK(electrostatics.surfaceGroupOf(inner) == dirichlet);
   CHECK(electrostatics.surfaceGroupOf(outer) == jump);
 
-  // CFD in the air: every surface facing the air (no-slip); the inner one is no surface to it.
+  // CFD outside: every surface facing the outside (no-slip); the inner one is no surface to it.
   Scheme cfd;
 
   const uint32_t noSlip = cfd.addSurfaceGroup();
@@ -1243,7 +1254,9 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   CHECK(SurfaceSelector::surface(inner.m_surface).matches(inner));
 
   // By materials, either way round, or one on either side.
-  CHECK(SurfaceSelector::materials(index.findMaterialLabel("air"), index.findMaterialLabel("PTFE")).matches(outer));
+  CHECK(SurfaceSelector::materials(index.findMaterialLabel("copper"), index.findMaterialLabel("PTFE")).matches(inner));
+  CHECK(SurfaceSelector::materials(index.findMaterialLabel("PTFE"), index.findMaterialLabel("copper")).matches(inner));
+  CHECK(!SurfaceSelector::materials(index.findMaterialLabel("PTFE"), index.findMaterialLabel("copper")).matches(outer));
   CHECK(SurfaceSelector::materials(index.findMaterialLabel("copper")).matches(inner));
   CHECK(!SurfaceSelector::materials(index.findMaterialLabel("copper")).matches(outer));
 
@@ -1490,7 +1503,7 @@ TEMPLATE_TEST_CASE("RegionName: names a region apart from its material, unique, 
     Overlay(RegionName(wire(T(-1)), "left"), RegionName(Translate(wire(T(0)), Vec3T<T>(T(1), T(0), T(0))), "right")),
     "wires");
   const Expr<T> cable =
-    Overlay(MaterialLabel(BoxSDF<T>(Vec3T<T>(T(-2), T(-1), T(-1)), Vec3T<T>(T(2), T(1), T(1))), "PTFE"), pair, "air");
+    Overlay(MaterialLabel(BoxSDF<T>(Vec3T<T>(T(-2), T(-1), T(-1)), Vec3T<T>(T(2), T(1), T(1))), "PTFE"), pair);
 
   const ExprIndex<T> index(cable);
 
@@ -1506,7 +1519,7 @@ TEMPLATE_TEST_CASE("RegionName: names a region apart from its material, unique, 
 
   const RegionNames names{index};
 
-  CHECK(names.region(0) == "0 background (air)");
+  CHECK(names.region(0) == "0 background");
   CHECK(names.region(1) == "region 1 (PTFE)");
   CHECK(names.region(2) == "2 left (copper)");
   CHECK(names.region(3) == "3 right (copper)");
@@ -1825,12 +1838,12 @@ TEMPLATE_TEST_CASE("ExprIndex: checkLabels reports regions with no volume and ma
   const auto big   = RegionName(MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(1)), "water"), "big");
 
   // A small region under a big one has no volume, and its material is on no region; on top of it, it has both.
-  const std::vector<std::string> buried = check(Overlay(small, big, "air"));
+  const std::vector<std::string> buried = check(Overlay(small, big));
 
   REQUIRE(buried.size() == 2U);
   CHECK(buried[0] == "region 1 \"small\" has no volume: it lies under later regions of the Overlay at node 0");
   CHECK(buried[1] == "material \"steel\" is on no region with volume");
-  CHECK(check(Overlay(big, small, "air")).empty());
+  CHECK(check(Overlay(big, small)).empty());
 
   // A region outside the mask has no volume: the box cut from the Overlay misses it.
   const auto apart = RegionName(Translate(SphereSDF<T>(Vec3::zeros(), T(0.3)), Vec3(T(3), T(0), T(0))), "apart");

@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // One subdomain of a domain handed to AMReX's EB2 grid generation, and its boundary conditions at the cut cells: a
-// cable (a core in a jacket, in air) cut by a slab, its regions declared with Overlay(), and a domain of two
-// subdomains, the air and the jacket, with two surface groups. AMReX cuts one implicit function, so one subdomain is
+// cable (a core in a jacket, in a box of air), its regions declared with Overlay(), and a domain of two subdomains,
+// the air and the jacket, with three surface groups. AMReX cuts one implicit function, so one subdomain is
 // cut (subdomain = 0 or 1); each cut cell is labeled with the surface group of the surface there (the boundary
 // condition's id), its role for the domain (a boundary or an interface) and the region on the other side. The same
 // code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See README.md and the Materials example under
@@ -108,7 +108,11 @@ main(int argc, char* argv[])
     pp.query("max_grid_size", max_grid_size);
     pp.query("subdomain", subdomain);
 
-    // The regions: the jacket (1), then the core (2) on top of it, in air (0).
+    // The regions: the air (1), the jacket (2) on top of it, then the core (3); beyond the air's box, the outside (0).
+    const Expr air = EBGeometry::RegionName(
+      EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-2.25)), Vec3(T(1.5), T(1.5), T(2.25))),
+                                "air"),
+      "air");
     const Expr jacket = EBGeometry::RegionName(
       EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)),
                                 "PTFE"),
@@ -117,21 +121,23 @@ main(int argc, char* argv[])
       EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)),
                                 "copper"),
       "core");
-    const Expr object = EBGeometry::Overlay(jacket, core, "air");
+    const Expr object = EBGeometry::Overlay(air, jacket, core);
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
     const Tape tape(pool, object);
 
     // The domain: two subdomains, the air (0) and the jacket (1), coupled through the jacket's outside; the core is
-    // in neither. Its surface groups: every surface of the core (0), and the interface of the air and the jacket (1).
+    // in neither. Its surface groups: every surface of the core (0), the air's box (1), and the interface of the air
+    // and the jacket (2).
     EBGeometry::Domain domain;
 
-    (void)domain.m_subdomains.addSubdomain({0});
     (void)domain.m_subdomains.addSubdomain({1});
+    (void)domain.m_subdomains.addSubdomain({2});
 
-    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(2));
-    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(0, 1));
+    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(3));
+    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 0));
+    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 2));
 
     // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the tape is rebased onto the
     // mirror. The pools must outlive the EB generation.

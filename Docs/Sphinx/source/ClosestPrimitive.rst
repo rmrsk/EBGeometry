@@ -281,22 +281,25 @@ Regions and materials
 ---------------------
 
 A union is one solid: a core inside a jacket has no surface of its own. When the core is another material,
-the object is a set of **regions** instead, made with ``Overlay(operands, background)``: each operand is a
-region, later ones on top of earlier ones where they overlap, and the outside is the background. The regions
-tile the object, with no gaps and no overlaps. ``RegionName(object, "name")`` names a region, which region it
+the object is a set of **regions** instead, made with ``Overlay(a, b, ...)``, a priority union: each operand is a
+region, later ones on top of earlier ones where they overlap. The regions tile the object, with no gaps and no
+overlaps. The outside, beyond every operand, is the background, region 0, and has no material: a medium around the
+object (the air around a cable) is a region like the others, an operand under them, whose outer surface bounds what a
+solver computes on. ``RegionName(object, "name")`` names a region, which region it
 is, and ``MaterialLabel(object, "name")`` its material, what it is made of, apart from the surface labels above;
 two regions of the same material have names of their own:
 
 .. code-block:: c++
 
-   const auto core   = RegionName(MaterialLabel(SphereSDF<T>(center, T(0.5)), "copper"), "core");
+   const auto air    = RegionName(MaterialLabel(BoxSDF<T>(low, high), "air"), "air");
    const auto jacket = RegionName(MaterialLabel(SphereSDF<T>(center, T(1.0)), "PTFE"), "jacket");
+   const auto core   = RegionName(MaterialLabel(SphereSDF<T>(center, T(0.5)), "copper"), "core");
 
-   const Expr<T> cable = Overlay(jacket, core, "air");   // region 0 air, 1 the jacket, 2 the core
+   const Expr<T> cable = Overlay(air, jacket, core);     // region 0 the outside, 1 the air, 2 the jacket, 3 the core
 
    const ExprIndex<T> index(cable);
-   index.findRegion("core");                             // 2
-   index.getMaterialLabelName(index.getMaterialOf(2));   // "copper"
+   index.findRegion("core");                             // 3
+   index.getMaterialLabelName(index.getMaterialOf(3));   // "copper"
 
 An Overlay may be moved (``Translate``, ``Rotate``, ...), clipped or drilled as the first operand of an
 ``Intersection`` or a ``Difference`` (the other operands are plain solids that remove space from every
@@ -314,9 +317,9 @@ region 1, in the background):
 
    const Tape<T> tape(pool, cable);
 
-   tape.getNumRegions();          // 3: the air, the jacket, the core
+   tape.getNumRegions();          // 4: the outside, the air, the jacket, the core
    tape.region(p);                // the region p is in
-   tape.signedDistance(p, 1);     // the jacket's implicit function
+   tape.signedDistance(p, 2);     // the jacket's implicit function
 
 ``region(p)`` is the last operand whose solid holds the point, or the background; every point is in exactly
 one region. ``signedDistance(p, k)`` is negative exactly inside region k, and its zero contour is the
@@ -349,8 +352,8 @@ distance bound, exact near a smooth piece of its surface:
 .. code-block:: c++
 
    Subdomains electrostatics;                   // the air and the jacket; the core is a conductor
-   electrostatics.addSubdomain({0});
    electrostatics.addSubdomain({1});
+   electrostatics.addSubdomain({2});
 
    const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
    electrostatics.role(s);                      // the outer sphere: Interface; the inner one: Boundary
@@ -372,7 +375,7 @@ a device, and the surface carries the materials of its two sides too.
    const uint32_t dirichlet = electrostatics.m_scheme.addSurfaceGroup(); // every conductor surface
    const uint32_t jump      = electrostatics.m_scheme.addSurfaceGroup(); // the jacket's outside
    electrostatics.m_scheme.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
-   electrostatics.m_scheme.add(jump, SurfaceSelector::interface(1, 0));
+   electrostatics.m_scheme.add(jump, SurfaceSelector::interface(2, 1));
 
    // At a cut cell, in a kernel: the subdomain's surface, its role and its boundary condition.
    const SurfaceRef<T> s = tape.closestSurface(p, electrostatics.m_subdomains, subdomain);
