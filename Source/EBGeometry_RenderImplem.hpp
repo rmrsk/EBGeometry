@@ -63,7 +63,7 @@ unit(const Vec3T<T>& a_v) noexcept
  * @tparam S Shape type.
  */
 /**
- * @brief Whether a shape has a field of its own for the section plane's contours (contourValue()): the primary
+ * @brief Whether a shape has a field of its own for the section plane (contourValue(), negative inside): the primary
  * template is false.
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
@@ -177,8 +177,9 @@ struct Sectioned
   }
 
   /**
-   * @brief The field the section plane's contours are drawn from: the shape's contourValue() when it has one (a
-   * region view's, zero on its interfaces too), else its value; out of line on a device, as shapeDistance().
+   * @brief The field the section plane's contours, lines are drawn from, negative inside: the shape's
+   * contourValue() when it has one (a region view's, zero on its interfaces too), else its value; out of line on a
+   * device, as shapeDistance().
    * @param[in] a_point Point.
    * @return The field.
    */
@@ -1383,8 +1384,8 @@ private:
       const T s = m_settings.m_isoSpacing;
       const T r = field - s * std::floor(field / s + T(0.5));
 
-      if (std::abs(r) < T(0.5) * width) {
-        color = T(0.4) * color + T(0.6) * m_settings.m_isoColor;
+      if (std::abs(r) < T(0.6) * width) {
+        color = T(0.15) * color + T(0.85) * m_settings.m_isoColor;
       }
     }
 

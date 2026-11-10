@@ -511,8 +511,9 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
     CHECK(all.signedDistance(p) == tape.signedDistance(p, visible, 0U));
   }
 
-  // With field regions, the value is their subdomain's function, the background's included (what a code computing
-  // in the air cuts), and the contours are its zero set alone.
+  // With section regions, the section's field is their subdomain's function, the background's included (what a code
+  // computing in the air cuts), signed, zero on its boundary alone; the value stays the visible regions' (what is
+  // solid for the render).
   Subdomains air;
 
   (void)air.addSubdomain({0});
@@ -524,8 +525,8 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   const RegionView<Tape> airView = all.withSettings(outside);
 
   for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
-    CHECK(airView.signedDistance(p) == tape.signedDistance(p, air, 0U));
-    CHECK(airView.contourValue(p) == std::abs(tape.signedDistance(p, air, 0U)));
+    CHECK(airView.signedDistance(p) == tape.signedDistance(p, visible, 0U));
+    CHECK(airView.contourValue(p) == tape.signedDistance(p, air, 0U));
   }
 
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);

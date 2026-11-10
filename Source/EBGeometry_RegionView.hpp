@@ -64,9 +64,9 @@ public:
   {}
 
   /**
-   * @brief The value: the function of the section's regions (RegionSettings::m_sectionRegions) or, without them, of the
-   * visible regions, as a subdomain's (see Tape::signedDistance(p, subdomains, subdomain)): half the difference of the
-   * smallest function of a region in the set and of one not in it; the largest value when the set is empty.
+   * @brief The value: the function of the visible regions, as a subdomain's (see Tape::signedDistance(p, subdomains,
+   * subdomain)): half the difference of the smallest function of a visible region and of one not visible; the largest
+   * value when none is visible.
    * @param[in] a_point Point.
    * @return The value.
    */
@@ -75,32 +75,16 @@ public:
   inline T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-    T in  = Math::Limits<T>::max();
-    T out = Math::Limits<T>::max();
-
-    const uint64_t section = m_settings.m_sectionRegions;
-
-    for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
-      const T d = m_tape.signedDistance(a_point, k);
-
-      const bool member = (section != 0U) ? (k < 64U && ((section >> k) & 1U) != 0U) : this->isVisible(k);
-
-      if (member) {
-        in = Math::min(in, d);
-      }
-      else {
-        out = Math::min(out, d);
-      }
-    }
-
-    return (in < Math::Limits<T>::max()) ? T(0.5) * (in - out) : Math::Limits<T>::max();
+    return this->functionOf(a_point, false);
   }
 
   /**
-   * @brief The field a section plane's contours are drawn from: the distance to the nearest surface of a visible
-   * region (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces
-   * between two of them included, which the value (the visible regions' outer surface) does not have. With section
-   * regions set (RegionSettings::m_sectionRegions), the value's own zero set: the subdomain's boundary alone.
+   * @brief The field a section plane shows (its contours, lines of equal distance and fill by sign): with section
+   * regions set (RegionSettings::m_sectionRegions), their function as a subdomain's, what a cut-cell code cuts for it,
+   * zero on the subdomain's boundary alone; without them, the distance to the nearest surface of a visible region
+   * (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces between two
+   * of them included, which the value (the visible regions' outer surface) does not have, signed as the value.
+   * Negative inside.
    * @param[in] a_point Point.
    * @return The field.
    */
@@ -110,7 +94,7 @@ public:
   contourValue(const Vec3T<T>& a_point) const noexcept
   {
     if (m_settings.m_sectionRegions != 0U) {
-      return std::abs(this->signedDistance(a_point));
+      return this->functionOf(a_point, true);
     }
 
     T field = Math::Limits<T>::max();
@@ -121,7 +105,7 @@ public:
       }
     }
 
-    return field;
+    return (this->signedDistance(a_point) < T(0)) ? -field : field;
   }
 
   /**
@@ -513,6 +497,39 @@ public:
   }
 
 private:
+  /**
+   * @brief The function of a set of regions, as a subdomain's: the section's regions (RegionSettings::m_sectionRegions)
+   * or the visible ones.
+   * @param[in] a_point   Point.
+   * @param[in] a_section Whether the set is the section's regions.
+   * @return Half the difference of the smallest function of a region in the set and of one not in it; the largest
+   * value when the set is empty.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  functionOf(const Vec3T<T>& a_point, const bool a_section) const noexcept
+  {
+    T in  = Math::Limits<T>::max();
+    T out = Math::Limits<T>::max();
+
+    const uint64_t section = m_settings.m_sectionRegions;
+
+    for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
+      const T d = m_tape.signedDistance(a_point, k);
+
+      const bool member = a_section ? (k < 64U && ((section >> k) & 1U) != 0U) : this->isVisible(k);
+
+      if (member) {
+        in = Math::min(in, d);
+      }
+      else {
+        out = Math::min(out, d);
+      }
+    }
+
+    return (in < Math::Limits<T>::max()) ? T(0.5) * (in - out) : Math::Limits<T>::max();
+  }
+
   /**
    * @brief The tape.
    */

@@ -200,11 +200,12 @@ keys(const bool a_device, const bool a_regions = false)
                             {"K", "Color by the next kind (the panel's Color by sets one)"},
                             {"L", "Show only surfaces like the picked one, or everything again"},
                             {"V", "Show one region at a time, in turn, then all"},
+                            {"E", "Section shows: the visible regions' function, then each subdomain's"},
                             {"Shift + V", "Hide the picked region"},
                             {"Ctrl + V", "Show every region"},
                             {nullptr, "Surface groups (as the panel's buttons)"},
-                            {"Ctrl + click", "Pick several pieces: add one, or take it out again"},
-                            {"Enter", "Add the picked pieces to the current surface group"},
+                            {"Ctrl + click", "Pick several: add one, or take it out again"},
+                            {"Enter", "Add what is picked to the current surface group"},
                             {"Shift + Enter", "Add the whole picked surfaces"},
                             {"Ctrl + Enter", "Add the interfaces between the picked pieces' regions"},
                             {"Backspace", "Remove the picked pieces from the current surface group"},
@@ -446,37 +447,37 @@ struct Background
  */
 enum class PanelAction : uint8_t
 {
-  None,               ///< Nothing.
-  AddPiece,           ///< Add the picked piece to the current surface group.
-  AddSurface,         ///< Add the picked piece's whole surface.
-  AddInterface,       ///< Add the interface between the picked piece's two regions.
-  AddRegion,          ///< Add every surface of the picked piece's region (the one inside).
-  AddPart,            ///< Add the picked part only (a box's face, a mesh's face) of the picked piece.
-  AddRest,            ///< Add the remaining surfaces (those no other entry holds) to the current surface group.
-  RemovePiece,        ///< Remove what holds the picked piece from the current surface group.
-  Unpick,             ///< Take a piece out of the pieces picked together.
-  UnpickAll,          ///< Pick none of the pieces picked together.
-  ToggleRegion,       ///< Show or hide a region.
-  CurrentGroup,       ///< Make a surface group the one added to.
-  DeleteGroup,        ///< Delete a surface group.
-  RemoveSelector,     ///< Remove a selector.
-  NewGroup,           ///< Start a surface group.
-  NextUnassigned,     ///< Pick the next piece in no surface group.
-  ListPieces,         ///< Show or hide the list of pieces.
-  PickPiece,          ///< Pick a piece of the list.
-  ColorBy,            ///< Color by a kind of key, the normal, or one color (see colorChoices).
-  RenameGroup,        ///< Type a surface group's name.
-  Details,            ///< Show or hide details (numbers, coordinates, statistics).
-  HideGroup,          ///< Hide a surface group's surfaces, or show them again.
-  CopyGroup,          ///< Copy a surface group: a new one with the same selectors.
-  SelectDomain,       ///< Make a registered domain the active one.
+  None,           ///< Nothing.
+  AddPicked,      ///< Add what is picked (a part of a surface, or a region's surfaces) to the current surface group.
+  AddPiece,       ///< Add the picked piece, all its parts.
+  AddSurface,     ///< Add the picked piece's whole surface.
+  AddInterface,   ///< Add the interface between the picked piece's two regions.
+  AddRegion,      ///< Add every surface of the picked piece's region (the one inside).
+  AddRest,        ///< Add the remaining surfaces (those no other entry holds) to the current surface group.
+  RemovePiece,    ///< Remove what holds the picked piece from the current surface group.
+  Unpick,         ///< Take one out of what is picked.
+  UnpickAll,      ///< Pick nothing.
+  PickMode,       ///< Pick the part of a surface clicked, or the region there.
+  ToggleRegion,   ///< Show or hide a region.
+  CurrentGroup,   ///< Make a surface group the one added to.
+  DeleteGroup,    ///< Delete a surface group.
+  RemoveSelector, ///< Remove a selector.
+  NewGroup,       ///< Start a surface group.
+  NextUnassigned, ///< Pick the next piece in no surface group.
+  ListPieces,     ///< Show or hide the list of pieces.
+  PickPiece,      ///< Pick a piece of the list.
+  ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
+  RenameGroup,    ///< Type a surface group's name.
+  Details,        ///< Show or hide details (numbers, coordinates, statistics).
+  HideGroup,      ///< Hide a surface group's surfaces, or show them again.
+  CopyGroup,      ///< Copy a surface group: a new one with the same selectors.
+  SelectDomain,   ///< Make a registered domain the active one and highlight it, or stop highlighting it.
   HighlightSubdomain, ///< Highlight a subdomain's surfaces, or stop.
   HideSubdomain,      ///< Hide a subdomain's regions, or show them again.
   OnlySubdomain,      ///< Show only a subdomain's regions.
   HideDomain,         ///< Hide the active domain's regions.
   OnlyDomain,         ///< Show only the active domain's regions.
   ShowAllRegions,     ///< Show every region again.
-  SectionSubdomain,   ///< Show a subdomain's function on the section plane, or stop.
   HighlightRegion     ///< Highlight a region's surfaces (those with it on either side), or stop.
 };
 
@@ -938,12 +939,44 @@ run(const S&           a_shape,
   bool    picked = false;
   HitT<T> pick;
 
-  // The pieces picked together (Ctrl and a click adds one, or takes it out again), empty when only the one picked is;
-  // what the panel's buttons add or remove then.
-  std::vector<SurfaceRef<T>> selection;
+  // What a click picks in a view of regions: the part of a surface clicked (a cylinder's cap, a box's face), or the
+  // region seen there, every surface of it.
+  enum class PickMode : uint8_t
+  {
+    Surface,
+    Region
+  };
 
-  // The highlight the render shows: a highlighted surface group's or subdomain's surfaces; else the pieces picked
-  // together; else the one picked. The selection is drawn only while nothing else is highlighted.
+  PickMode pickMode = PickMode::Surface;
+
+  // What is picked: each the piece clicked and what the pick mode picks of it. A click picks one, Ctrl and a click
+  // adds one or takes it out again; they are highlighted together, and the panel's buttons add or remove them.
+  struct Picked
+  {
+    SurfaceRef<T>   m_piece;
+    SurfaceSelector m_selector;
+  };
+
+  std::vector<Picked> selection;
+
+  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background).
+  const auto selectorOf = [&](const SurfaceRef<T>& a_piece) {
+    if (pickMode == PickMode::Region) {
+      return SurfaceSelector::region((a_piece.m_ownerRegion != 0U) ? a_piece.m_ownerRegion : a_piece.m_neighborRegion);
+    }
+
+    return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
+  };
+
+  const auto sameSelector = [](const SurfaceSelector& a_first, const SurfaceSelector& a_second) {
+    return a_first.m_surface == a_second.m_surface && a_first.m_part == a_second.m_part &&
+           a_first.m_regionA == a_second.m_regionA && a_first.m_regionB == a_second.m_regionB &&
+           a_first.m_label == a_second.m_label && a_first.m_materialA == a_second.m_materialA &&
+           a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest;
+  };
+
+  // The highlight the render shows: a highlighted surface group's or subdomain's surfaces; else what is picked. The
+  // selection is drawn only while nothing else is highlighted.
   const auto showHighlight = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       RegionSettings& regions = settings.m_regions;
@@ -953,9 +986,9 @@ run(const S&           a_shape,
       regions.m_numSelected = 0U;
 
       if (!other) {
-        for (const SurfaceRef<T>& piece : selection) {
+        for (const Picked& entry : selection) {
           if (regions.m_numSelected < RegionSettings::MaxSelected) {
-            regions.m_selected[regions.m_numSelected++] = SurfaceSelector::piece(piece);
+            regions.m_selected[regions.m_numSelected++] = entry.m_selector;
           }
         }
       }
@@ -1015,9 +1048,6 @@ run(const S&           a_shape,
     }
     case PanelAction::AddInterface: {
       return SurfaceSelector::interface(a_piece.m_ownerRegion, a_piece.m_neighborRegion);
-    }
-    case PanelAction::AddPart: {
-      return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
     }
     case PanelAction::AddRest: {
       return SurfaceSelector::rest();
@@ -1135,48 +1165,50 @@ run(const S&           a_shape,
 
   const auto highlightGroup = [&](const uint32_t a_group) { highlight(a_group, 0U); };
 
-  // The pieces the panel's buttons act on: those picked together, or the one picked (none when nothing is).
-  const auto pickedPieces = [&]() {
-    std::vector<SurfaceRef<T>> pieces = selection;
+  // What the panel's buttons act on: what is picked, or the piece stepped to with Shift and the wheel (none when
+  // nothing is).
+  const auto pickedNow = [&]() {
+    std::vector<Picked> entries = selection;
 
     if constexpr (hasRegionVisibility<S>) {
-      if (pieces.empty() && picked) {
+      if (entries.empty() && picked) {
         const SurfaceRef<T> piece = shape.pieceAt(pick.m_point, pick.m_normal);
 
         if (piece.m_surface != SurfaceRef<T>::None) {
-          pieces.push_back(piece);
+          entries.push_back(Picked{piece, selectorOf(piece)});
         }
       }
     }
 
-    return pieces;
+    return entries;
   };
 
-  // Add the picked pieces (or their whole surfaces, or the interfaces of their two regions) to the current surface
-  // group, or remove what holds them there; false when nothing is picked.
+  // Add what is picked (or the whole pieces, their surfaces, their regions' surfaces, the interfaces of their two
+  // regions) to the current surface group, or remove what holds the pieces there; false when nothing is picked.
   const auto editPicked = [&](const PanelAction a_action) {
     if constexpr (hasRegionVisibility<S>) {
       Scheme& scheme = settings.m_regions.m_scheme;
 
-      const std::vector<SurfaceRef<T>> pieces = pickedPieces();
+      const std::vector<Picked> entries = pickedNow();
 
-      if (pieces.empty()) {
+      if (entries.empty()) {
         return false;
       }
 
-      for (const SurfaceRef<T>& piece : pieces) {
+      for (const Picked& entry : entries) {
         if (a_action == PanelAction::RemovePiece) {
           // Every selector of the current surface group that holds the piece goes.
           for (uint32_t i = scheme.getNumSelectors(); i > 0U; i--) {
             const SurfaceSelector selector = scheme.getSelector(i - 1U);
 
-            if (scheme.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(piece)) {
+            if (scheme.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(entry.m_piece)) {
               scheme.remove(currentGroup, selector);
             }
           }
         }
         else {
-          const SurfaceSelector selector = selectorFor(a_action, piece);
+          const SurfaceSelector selector =
+            (a_action == PanelAction::AddPicked) ? entry.m_selector : selectorFor(a_action, entry.m_piece);
 
           if (scheme.getNumSurfaceGroups() == 0U) {
             currentGroup = scheme.addSurfaceGroup();
@@ -1208,32 +1240,33 @@ run(const S&           a_shape,
     }
   };
 
-  // Take the piece at a pick into the pieces picked together, or out of them if it is there (the one picked before
-  // joins them first); false when there is no piece there.
-  const auto togglePicked = [&](const HitT<T>& a_hit) {
+  // Pick what the pick mode picks of the piece at a hit; with a_together, add it to what is picked, or take it out if
+  // it is there. False when there is no piece there.
+  const auto pickAt = [&](const HitT<T>& a_hit, const bool a_together) {
     if constexpr (hasRegionVisibility<S>) {
-      const SurfaceRef<T> piece = shape.pieceAt(a_hit.m_point, a_hit.m_normal);
+      const SurfaceRef<T> piece = a_hit.hit() ? shape.pieceAt(a_hit.m_point, a_hit.m_normal) : SurfaceRef<T>();
 
-      if (!a_hit.hit() || piece.m_surface == SurfaceRef<T>::None) {
+      if (piece.m_surface == SurfaceRef<T>::None) {
         return false;
       }
 
-      if (selection.empty()) {
-        selection = pickedPieces();
-      }
+      // The piece stepped to before joins first.
+      selection = a_together ? pickedNow() : std::vector<Picked>();
 
-      const auto same = std::find_if(selection.begin(), selection.end(), [&](const SurfaceRef<T>& a_piece) {
-        return SurfaceSelector::piece(a_piece).matches(piece);
+      const Picked entry{piece, selectorOf(piece)};
+
+      const auto same = std::find_if(selection.begin(), selection.end(), [&](const Picked& a_entry) {
+        return sameSelector(a_entry.m_selector, entry.m_selector);
       });
 
       if (same != selection.end()) {
         selection.erase(same);
       }
       else if (selection.size() < RegionSettings::MaxSelected) {
-        selection.push_back(piece);
+        selection.push_back(entry);
       }
       else {
-        std::printf("EBGeometry viewer: at most %u pieces are picked together\n",
+        std::printf("EBGeometry viewer: at most %u surfaces are picked together\n",
                     unsigned(RegionSettings::MaxSelected));
         std::fflush(stdout);
       }
@@ -1247,9 +1280,31 @@ run(const S&           a_shape,
     }
     else {
       (void)a_hit;
+      (void)a_together;
 
       return false;
     }
+  };
+
+  // Pick by another mode: what is picked is picked again from the same pieces (once each).
+  const auto setPickMode = [&](const PickMode a_mode) {
+    pickMode = a_mode;
+
+    std::vector<Picked> repicked;
+
+    for (const Picked& entry : selection) {
+      const Picked again{entry.m_piece, selectorOf(entry.m_piece)};
+
+      if (std::none_of(repicked.begin(), repicked.end(), [&](const Picked& a_entry) {
+            return sameSelector(a_entry.m_selector, again.m_selector);
+          })) {
+        repicked.push_back(again);
+      }
+    }
+
+    selection = repicked;
+
+    showHighlight();
   };
 
   // Delete a surface group, keeping the current one where it was.
@@ -1334,7 +1389,7 @@ run(const S&           a_shape,
   uint32_t     texHeight = 0;
 
   // The overlay: what the window shows and how, and the keys, drawn over the image's top left corner.
-  bool overlayOn = true;
+  bool overlayOn = false;
 
   // Whether the overlay and the panel show details: numbers, coordinates, statistics (D).
   bool details = false;
@@ -1627,7 +1682,15 @@ run(const S&           a_shape,
 
       if (cursorOn) {
         cursorPoint = p;
-        cursorValue = RenderDetail::shownAs(shape, settings).signedDistance(p);
+        // A view of regions gives the section's field there: a subdomain's function, when the section shows one.
+        if constexpr (hasRegionVisibility<S>) {
+          const auto shown = RenderDetail::shownAs(shape, settings);
+
+          cursorValue = (settings.m_regions.m_sectionRegions != 0U) ? shown.contourValue(p) : shown.signedDistance(p);
+        }
+        else {
+          cursorValue = RenderDetail::shownAs(shape, settings).signedDistance(p);
+        }
       }
     }
   };
@@ -1756,7 +1819,7 @@ run(const S&           a_shape,
         }
 
         const bool hasSurface = a_selector.m_surface != Any;
-        const bool hasPart    = a_selector.m_part != Any && details;
+        const bool hasPart    = a_selector.m_part != Any;
         const bool hasRegions = a_selector.m_regionA != Any;
         const bool hasLabel   = a_selector.m_label != Any;
         const bool hasMater   = a_selector.m_materialA != Any;
@@ -1851,8 +1914,7 @@ run(const S&           a_shape,
       }
 
       // In the status, the picked piece in words.
-      states[3].m_now.front() = !selection.empty() ? "Picked: " + std::to_string(selection.size()) +
-                                                       ((selection.size() == 1U) ? " piece" : " pieces")
+      states[3].m_now.front() = (selection.size() > 1U) ? "Picked: " + std::to_string(selection.size()) + " together"
                                 : picked ? "Picked: " + pieceWords(shape.pieceAt(pick.m_point, pick.m_normal))
                                          : std::string("Nothing picked");
 
@@ -1888,76 +1950,76 @@ run(const S&           a_shape,
       button(details ? "Hide details" : "Show details", PanelAction::Details, 0U);
 
       line("");
-      // The domains, the active one marked, and the regions it computes in.
+      // The domains, one a line; under the active one, its subdomains and the regions each computes in. A button
+      // reads what it will do; one that is on is starred.
       if (names.getNumDomains() > 0U) {
-        const Domain& domain = names.getDomain(names.getActiveDomain());
+        const Domain&  domain = names.getDomain(names.getActiveDomain());
+        const uint64_t lit    = regions.m_highlightRegions;
 
-        line("Domain");
-        line("  ");
-
-        for (uint32_t i = 0; i < names.getNumDomains(); i++) {
-          button(std::string((i == names.getActiveDomain()) ? "* " : "") + names.domainName(i),
-                 PanelAction::SelectDomain,
-                 i);
-        }
-
-        // Its subdomains, each with its regions.
-        for (uint32_t d = 0; d < domain.m_subdomains.getNumSubdomains(); d++) {
-          std::string in;
-
-          for (uint32_t k = 0; k < shape.getNumRegions(); k++) {
-            if (domain.m_subdomains.subdomainOf(k) == d) {
-              in += (in.empty() ? "" : ", ") + region(k);
-            }
-          }
-
-          // Its drawn regions (the background is never drawn: nothing of it to hide), and all of them, the
-          // background's included, whose surfaces a highlight lights.
-          const uint64_t mask = subdomainRegions(d);
-          const uint64_t all  = subdomainAllRegions(d);
-
-          bool hiddenAll = mask != 0U;
+        // Whether every drawn region of a set is hidden (false for none).
+        const auto allHidden = [&](const uint64_t a_mask) {
+          bool hidden = a_mask != 0U;
 
           for (uint32_t k = 1; k < 64U; k++) {
-            if (((mask >> k) & 1U) != 0U) {
-              hiddenAll = hiddenAll && !regions.isVisible(k, shape.getNumRegions());
+            if (((a_mask >> k) & 1U) != 0U) {
+              hidden = hidden && !regions.isVisible(k, shape.getNumRegions());
             }
           }
 
-          line("  ");
+          return hidden;
+        };
 
-          panelLines.back() += names.subdomain(d, details) + ": " + in +
-                               ((all != 0U && regions.m_highlightRegions == all) ? " (highlighted)" : "") +
-                               (hiddenAll ? " (hidden)" : "");
+        line("Domains (click one to see it highlighted, and its subdomains)");
 
-          panelActions.back().push_back(PanelSpan{2, panelLines.back().size(), PanelAction::HighlightSubdomain, d});
-
-          // The background alone is never drawn, but its surfaces can be highlighted, and its function is what a code
-          // computing outside the object cuts.
-          if (mask == 0U) {
-            panelLines.back() += ", outside everything";
-
-            button((regions.m_sectionRegions != 0U && regions.m_sectionRegions == subdomainAllRegions(d))
-                     ? "Section: on"
-                     : "Section",
-                   PanelAction::SectionSubdomain,
-                   d);
+        for (uint32_t i = 0; i < names.getNumDomains(); i++) {
+          if (i != names.getActiveDomain()) {
+            line("    ");
+            button(names.domainName(i), PanelAction::SelectDomain, i);
 
             continue;
           }
 
-          button(hiddenAll ? "Show" : "Hide", PanelAction::HideSubdomain, d);
-          button("Only", PanelAction::OnlySubdomain, d);
-          button((regions.m_sectionRegions != 0U && regions.m_sectionRegions == subdomainAllRegions(d)) ? "Section: on"
-                                                                                                        : "Section",
-                 PanelAction::SectionSubdomain,
-                 d);
+          // The active domain, marked, and starred while highlighted.
+          const uint64_t drawn = subdomainRegions(Subdomains::None);
+
+          line("  > ");
+          button(
+            std::string((drawn != 0U && lit == drawn) ? "* " : "") + names.domainName(i), PanelAction::SelectDomain, i);
+          button(allHidden(drawn) ? "Show" : "Hide", PanelAction::HideDomain, 0U);
+          button("Only", PanelAction::OnlyDomain, 0U);
+
+          // Its subdomains, each with its regions.
+          for (uint32_t d = 0; d < domain.m_subdomains.getNumSubdomains(); d++) {
+            std::string in;
+
+            for (uint32_t k = 0; k < shape.getNumRegions(); k++) {
+              if (domain.m_subdomains.subdomainOf(k) == d) {
+                in += (in.empty() ? "" : ", ") + ((k == 0U) ? region(k) + " (outside everything)" : region(k));
+              }
+            }
+
+            // Its drawn regions (the background is never drawn: nothing of it to hide or show alone), and all of
+            // them, the background's included, whose surfaces a highlight lights.
+            const uint64_t mask = subdomainRegions(d);
+            const uint64_t all  = subdomainAllRegions(d);
+
+            // Its name highlights it (starred while it is), then its regions.
+            line("      ");
+            button(std::string((all != 0U && lit == all) ? "* " : "") + "Subdomain " + names.subdomain(d, details),
+                   PanelAction::HighlightSubdomain,
+                   d);
+
+            if (mask != 0U) {
+              button(allHidden(mask) ? "Show" : "Hide", PanelAction::HideSubdomain, d);
+              button("Only", PanelAction::OnlySubdomain, d);
+            }
+
+            line("          " + in);
+          }
         }
 
         line("  ");
-        button("Hide domain", PanelAction::HideDomain, 0U);
-        button("Only this domain", PanelAction::OnlyDomain, 0U);
-        button("Show all", PanelAction::ShowAllRegions, 0U);
+        button("Show all regions", PanelAction::ShowAllRegions, 0U);
         line("");
       }
 
@@ -1977,67 +2039,90 @@ run(const S&           a_shape,
       }
 
       line("");
-      // The picked piece, or the pieces picked together, and the ways to add them to the current surface group.
-      const std::vector<SurfaceRef<T>> chosen = pickedPieces();
-      const bool                       one    = selection.empty();
+      // What a click picks, what is picked, and the ways to add it to the current surface group.
+      const std::vector<Picked> chosen  = pickedNow();
+      const bool                byPart  = pickMode == PickMode::Surface;
+      const bool                several = chosen.size() > 1U;
 
-      line(one ? "Picked surface" : "Picked surfaces (" + std::to_string(chosen.size()) + ")");
+      line("Pick");
+      line("  ");
+      button(std::string(byPart ? "* " : "") + "Surface (the part clicked)", PanelAction::PickMode, 0U);
+      button(std::string(byPart ? "" : "* ") + "Region", PanelAction::PickMode, 1U);
+      line("  Ctrl + click picks several");
 
       if (chosen.empty()) {
-        line("  Nothing picked: click a surface, Ctrl + click for several");
+        line("  Nothing picked: click a surface");
       }
       else {
+        line(several ? "  Picked (" + std::to_string(chosen.size()) + ")" : std::string("  Picked"));
+
         for (std::size_t i = 0; i < chosen.size(); i++) {
-          const uint32_t in = scheme.surfaceGroupOf(chosen[i]);
+          const SurfaceRef<T>& piece = chosen[i].m_piece;
 
-          line("  " + pieceWords(chosen[i]) +
-               ((in == Scheme::None) ? std::string(", in no surface group") : ", in " + group(in)));
+          if (byPart) {
+            const uint32_t in = scheme.surfaceGroupOf(piece);
 
-          if (!one) {
+            line("    " + surface(piece.m_surface) + ", part " + std::to_string(piece.m_part) + ", between " +
+                 region(piece.m_ownerRegion) + " and " + region(piece.m_neighborRegion) +
+                 ((in == Scheme::None) ? std::string(", in no surface group") : ", in " + group(in)));
+          }
+          else {
+            line("    " + region(chosen[i].m_selector.m_regionA) + ", all its surfaces");
+          }
+
+          if (several) {
             button("x", PanelAction::Unpick, uint32_t(i));
           }
         }
 
-        if (one && details) {
-          line("  At " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2));
+        if (!several && details) {
+          line("    At " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2));
         }
 
-        if (!one) {
-          line("  ");
-          button("Pick none", PanelAction::UnpickAll, 0U);
+        if (!selection.empty()) {
+          line("    ");
+          button("Pick nothing", PanelAction::UnpickAll, 0U);
         }
 
         // The ways to add them, each saying what it adds and how much of the object that is.
         line("  Add to " +
              ((scheme.getNumSurfaceGroups() > 0U) ? group(currentGroup) : std::string("a new surface group")));
 
-        const SurfaceRef<T>& piece = chosen.front();
+        const SurfaceRef<T>& first = chosen.front().m_piece;
 
-        const std::pair<PanelAction, std::string> ways[] = {
-          {PanelAction::AddPiece, one ? "This piece" : "These pieces"},
-          {PanelAction::AddSurface, one ? "All of " + surface(piece.m_surface) : std::string("All of their surfaces")},
-          {PanelAction::AddRegion,
-           one ? "All surfaces of " + region(piece.m_ownerRegion) : std::string("All surfaces of their regions")},
-          {PanelAction::AddInterface,
-           one ? "Everything between " + region(piece.m_ownerRegion) + " and " + region(piece.m_neighborRegion)
-               : std::string("Everything between their regions")}};
+        std::vector<std::pair<PanelAction, std::string>> ways;
+
+        if (byPart) {
+          ways.emplace_back(PanelAction::AddPicked, several ? "These parts" : "This part");
+          ways.emplace_back(PanelAction::AddPiece,
+                            several ? "Their whole pieces, all parts" : "The whole piece, all parts");
+          ways.emplace_back(PanelAction::AddSurface,
+                            several ? std::string("All of their surfaces") : "All of " + surface(first.m_surface));
+          ways.emplace_back(PanelAction::AddRegion,
+                            several ? std::string("All surfaces of their regions")
+                                    : "All surfaces of " + region(first.m_ownerRegion));
+        }
+        else {
+          ways.emplace_back(PanelAction::AddPicked,
+                            several ? std::string("All surfaces of these regions") : std::string("All its surfaces"));
+        }
+
+        ways.emplace_back(PanelAction::AddInterface,
+                          several ? std::string("Everything between their two regions")
+                                  : "Everything between " + region(first.m_ownerRegion) + " and " +
+                                      region(first.m_neighborRegion));
 
         for (const auto& [action, words] : ways) {
           std::vector<SurfaceSelector> selectors;
 
-          for (const SurfaceRef<T>& p : chosen) {
-            selectors.push_back(selectorFor(action, p));
+          for (const Picked& entry : chosen) {
+            selectors.push_back((action == PanelAction::AddPicked) ? entry.m_selector
+                                                                   : selectorFor(action, entry.m_piece));
           }
 
           line("    ");
           button(words, action, 0U);
           panelLines.back() += "  " + piecesOfAll(selectors);
-        }
-
-        // A part (a box's face, a mesh's face) alone, with details.
-        if (one && details) {
-          line("    ");
-          button("Part " + std::to_string(piece.m_part) + " of this piece only", PanelAction::AddPart, 0U);
         }
 
         if (scheme.getNumSurfaceGroups() > 0U) {
@@ -2550,11 +2635,11 @@ run(const S&           a_shape,
                 Scheme&         scheme  = regions.m_scheme;
 
                 switch (clicked.m_action) {
+                case PanelAction::AddPicked:
                 case PanelAction::AddPiece:
                 case PanelAction::AddSurface:
                 case PanelAction::AddInterface:
                 case PanelAction::AddRegion:
-                case PanelAction::AddPart:
                 case PanelAction::RemovePiece: {
                   (void)editPicked(clicked.m_action);
 
@@ -2575,6 +2660,11 @@ run(const S&           a_shape,
                   picked = false;
 
                   clearSelection();
+
+                  break;
+                }
+                case PanelAction::PickMode: {
+                  setPickMode((clicked.m_value == 1U) ? PickMode::Region : PickMode::Surface);
 
                   break;
                 }
@@ -2649,14 +2739,22 @@ run(const S&           a_shape,
 
                     pieceIndex = index;
 
-                    pick.m_point    = piece.m_point;
-                    pick.m_normal   = piece.m_normal;
-                    picked          = true;
+                    HitT<T> at;
+
+                    at.m_t          = T(0);
+                    at.m_point      = piece.m_point;
+                    at.m_normal     = piece.m_normal;
                     camera.m_target = piece.m_point;
 
-                    selection.clear();
+                    if (!pickAt(at, false)) {
+                      pick.m_point  = piece.m_point;
+                      pick.m_normal = piece.m_normal;
+                      picked        = true;
 
-                    rekeyPick();
+                      selection.clear();
+
+                      rekeyPick();
+                    }
                   }
 
                   break;
@@ -2720,10 +2818,16 @@ run(const S&           a_shape,
                     regions.m_highlightGroup = RegionSettings::None;
                     pieceIndex               = std::size_t(-1);
 
-                    highlightGroup(RegionSettings::None);
                     applyColors();
                     rekeyPick();
+
+                    regions.m_highlightRegions = 0U;
                   }
+
+                  // The domain clicked is highlighted, its drawn regions' surfaces (a second click stops it).
+                  const uint64_t mask = subdomainRegions(Subdomains::None);
+
+                  highlight(RegionSettings::None, (regions.m_highlightRegions == mask) ? uint64_t(0) : mask);
 
                   break;
                 }
@@ -2775,20 +2879,6 @@ run(const S&           a_shape,
                   }
 
                   rekeyPick();
-
-                  break;
-                }
-                case PanelAction::SectionSubdomain: {
-                  // The section plane shows the subdomain's function, what a cut-cell code cuts (turned on across x
-                  // if it was off); again, the visible regions' again.
-                  const uint64_t field = subdomainAllRegions(clicked.m_value);
-
-                  regions.m_sectionRegions = (regions.m_sectionRegions == field) ? uint64_t(0) : field;
-
-                  if (regions.m_sectionRegions != 0U && sectionMode == 0) {
-                    sectionMode   = 2;
-                    sectionOffset = T(0);
-                  }
 
                   break;
                 }
@@ -2877,12 +2967,10 @@ run(const S&           a_shape,
               break;
             }
 
-            // A click while stepping through surfaces keeps the one stepped to (with Ctrl, joins it to the pieces
-            // picked together), and stops stepping.
+            // A click while stepping through surfaces picks the one stepped to (with Ctrl, adds it to what is
+            // picked), and stops stepping.
             if (!depthHits.empty()) {
-              if (together) {
-                (void)togglePicked(pick);
-              }
+              (void)pickAt(pick, together);
 
               depthHits.clear();
               depthHidden.clear();
@@ -2894,8 +2982,14 @@ run(const S&           a_shape,
               break;
             }
 
-            // Ctrl and a click on a surface takes its piece into the pieces picked together, or out of them.
-            if (together && togglePicked(hit)) {
+            // In a view of regions, a click on a surface picks what the pick mode picks there: the part clicked, or
+            // the region; with Ctrl, adds it to what is picked, or takes it out. A double-click also centers the
+            // camera on the point.
+            if (pickAt(hit, together)) {
+              if (event.button.clicks >= 2) {
+                camera.m_target = hit.m_point;
+              }
+
               dragging = false;
               panning  = false;
               changed  = true;
@@ -3412,7 +3506,7 @@ run(const S&           a_shape,
           const PanelAction action = (event.key.keysym.sym == SDLK_BACKSPACE)     ? PanelAction::RemovePiece
                                      : ((event.key.keysym.mod & KMOD_CTRL) != 0)  ? PanelAction::AddInterface
                                      : ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? PanelAction::AddSurface
-                                                                                  : PanelAction::AddPiece;
+                                                                                  : PanelAction::AddPicked;
 
           if (!editPicked(action)) {
             changed = pending;
@@ -3463,6 +3557,37 @@ run(const S&           a_shape,
 
             applyColors();
             rekeyPick();
+          }
+          else {
+            changed = pending;
+          }
+
+          break;
+        }
+        case SDLK_e: {
+          // The section plane shows the next subdomain's function of the active domain, what a cut-cell code cuts
+          // for it (the plane turned on across x if it was off), and after the last the visible regions' again.
+          if constexpr (hasRegionVisibility<S>) {
+            RegionSettings& regions = settings.m_regions;
+
+            const uint32_t count = (names.getNumDomains() > 0U)
+                                     ? names.getDomain(names.getActiveDomain()).m_subdomains.getNumSubdomains()
+                                     : 0U;
+
+            uint32_t next = 0U;
+
+            for (uint32_t d = 0; d < count; d++) {
+              if (regions.m_sectionRegions != 0U && subdomainAllRegions(d) == regions.m_sectionRegions) {
+                next = d + 1U;
+              }
+            }
+
+            regions.m_sectionRegions = (next < count) ? subdomainAllRegions(next) : uint64_t(0);
+
+            if (regions.m_sectionRegions != 0U && sectionMode == 0) {
+              sectionMode   = 2;
+              sectionOffset = T(0);
+            }
           }
           else {
             changed = pending;

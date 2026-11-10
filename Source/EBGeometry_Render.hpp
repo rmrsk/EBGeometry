@@ -462,7 +462,7 @@ struct Settings
   /**
    * @brief The color of those lines.
    */
-  Vec3T<T> m_isoColor = Vec3T<T>(T(0.30), T(0.32), T(0.36));
+  Vec3T<T> m_isoColor = Vec3T<T>(T(0.10), T(0.11), T(0.13));
 
   /**
    * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted

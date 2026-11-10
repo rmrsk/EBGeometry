@@ -181,9 +181,10 @@ opened with them.
        of the box's diagonal, every 1/50.
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
-       and a line between them). On the background, either clears. For a view of regions, Ctrl + click picks
-       several pieces: it adds the piece under the cursor to those picked, or takes it out again (while
-       stepping through the surfaces under the cursor, the one stepped to).
+       and a line between them). On the background, either clears. For a view of regions, a click picks what
+       the panel's pick mode picks (the part of the surface clicked, or the region), and Ctrl + click picks
+       several: it adds what is under the cursor to what is picked, or takes it out again (while stepping
+       through the surfaces under the cursor, the one stepped to).
    * - Shift + wheel
      - Step through the surfaces under the cursor, front to back, seeing through those in front.
    * - T; Shift + T
@@ -198,16 +199,21 @@ opened with them.
    * - V; Shift + V; Ctrl + V
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
+   * - E
+     - For a view of regions with domains: the section plane shows each subdomain's function of the active domain
+       in turn, what a cut-cell code cuts for it (its contour is the subdomain's boundary alone, and the value under
+       the cursor is that function's; ``RegionSettings::m_sectionRegions`` in a program), then the visible regions'
+       again.
    * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
-     - For a view of regions, shortcuts for the panel's buttons (below): add the picked pieces to the current
-       surface group; add their whole surfaces; add the interfaces between their two regions; remove them from
-       the current surface group; make the next surface group current, or start one past the last; delete the
+     - For a view of regions, shortcuts for the panel's buttons (below): add what is picked to the current
+       surface group; add the picked pieces' whole surfaces; add the interfaces between their two regions;
+       remove them from the current surface group; make the next surface group current, or start one past the last; delete the
        current surface group. C also prints the scheme as C++.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.
    * - H; D; Esc, Q
-     - Show or hide the menu (the status lines and the axes stay); show or hide details (numbers of regions,
+     - Show or hide the menu (hidden when the window opens; the status lines and the axes stay); show or hide details (numbers of regions,
        surfaces and parts, coordinates, the frame's ray statistics); close the window.
 
 The overlay shows the frame and what is picked, then the row of menus (F1 to F6) and the menu shown: what its keys
@@ -216,22 +222,22 @@ set now, then the keys, in groups.
 A view of regions also gets a panel at the top left, used with the mouse (the menus then move to the top right; a
 click on the panel away from its buttons picks the surface behind it). It names things in words ("Surface 1,
 between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. With domains
-registered (``RegionNames::addDomain()``), a row of their names comes first, then the active one's subdomains: a
-click on one highlights its boundary, every surface with one of its regions on either side, the background's
-subdomain included (``RegionSettings::m_highlightRegions`` in a program), its ``[Hide]`` and
-``[Only]`` hide its regions or show only them, its ``[Section]`` shows its function on the section plane, what a
-cut-cell code cuts for it, the background's subdomain included (``RegionSettings::m_sectionRegions``), and ``[Hide domain]``, ``[Only this domain]`` and ``[Show all]`` do
-the same for the whole domain. The active domain's surface groups are shown and edited, its regions marked, and the
+registered (``RegionNames::addDomain()``), they are listed first, one a line: a click on one makes it the active
+domain and highlights it, the surfaces of its regions (a second click stops it), and lists its subdomains under it.
+A click on a subdomain highlights its boundary, every surface with one of its regions on either side, the
+background's subdomain included (``RegionSettings::m_highlightRegions`` in a program); ``[Hide]`` and ``[Only]``
+hide a subdomain's or the domain's regions or show only them, and ``[Show all regions]`` shows every region again. The active domain's surface groups are shown and edited, its regions marked, and the
 pieces counted those it touches. A "Color by" row sets what the surfaces
 are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),
 and a swatch beside each region or surface group shows its color; colors given to names
 (``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
-the palette's. Below, it shows the picked piece (its surface,
-part, the regions on its two sides, and its surface group), or the pieces picked together with Ctrl + click (each
-with an ``[x]`` taking it out, and ``[Pick none]``; they are highlighted together, ``RegionSettings::m_selected`` in a
-program), with the ways to add them to the current surface group, each saying how many of the object's pieces it
-takes in: these pieces only, all of their surfaces, all surfaces of their regions, or everything between their two
-regions; and a button to remove them; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
+the palette's. Below, a "Pick" row sets what a click picks: the part of a surface clicked
+(a cylinder's cap, a box's face), or the region there, every surface of it. What is picked is listed (a part with its
+surface, the regions on its two sides and its surface group; several, picked with Ctrl + click, each with an ``[x]``
+taking it out) and highlighted (``RegionSettings::m_selected`` in a program), with ``[Pick nothing]`` and the ways to
+add it to the current surface group, each saying how many of the object's pieces it takes in: what is picked, the
+whole pieces with all their parts, all of their surfaces, all surfaces of their regions, or everything between their
+two regions; and a button to remove them; the regions, each shown or hidden by its box and highlighted by a click on its name (every surface with it on
 either side lights; the background is listed and highlighted so, never drawn); and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
