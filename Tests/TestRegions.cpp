@@ -364,6 +364,61 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
     "ExprIndex: region 3 of 3"));
 }
 
+TEMPLATE_TEST_CASE("Tape: a subdomain's surface near a step is its boundary, never a contact between its own regions",
+                   "[Overlay][Tape][Subdomains]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A nozzle-like domain: the jacket and the core together, one subdomain. The core pokes out of the jacket's end, a
+  // step where the contact between the two is the nearest surface of one of them at points near the end face.
+  const Expr<T> jacket = CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1));
+  const Expr<T> core   = CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, Overlay(jacket, core));
+
+  Subdomains solid;
+
+  (void)solid.addSubdomain({1U, 2U});
+
+  int nearBoundary = 0;
+
+  for (int i = 0; i <= 40; i++) {
+    for (int j = 0; j <= 40; j++) {
+      const Vec3 p(T(0.05) * T(i), T(0), T(1.6) + T(0.025) * T(j));
+
+      // At the points a cut-cell code asks, near the subdomain's boundary: a boundary, from the subdomain's side.
+      if (std::abs(tape.signedDistance(p, solid, 0U)) > T(0.08)) {
+        continue;
+      }
+
+      const SurfaceRef<T> s = tape.closestSurface(p, solid, 0U);
+
+      nearBoundary++;
+
+      CHECK(solid.role(s) == SurfaceRole::Boundary);
+      CHECK(solid.subdomainOf(s.m_ownerRegion) == 0U);
+      CHECK(s.m_neighborRegion == 0U);
+    }
+  }
+
+  CHECK(nearBoundary > 100);
+
+  // Just inside the jacket's end face, beside the core: the jacket's own region's nearest surface is the contact with
+  // the core; the subdomain's is the jacket's end cap (part 2 of a cylinder: the cap at its second end).
+  const Vec3          step(T(0.42), T(0), T(1.95));
+  const SurfaceRef<T> cap = tape.closestSurface(step, solid, 0U);
+
+  REQUIRE(tape.closestSurface(step, 1U).m_neighborRegion == 2U);
+  CHECK(cap.m_surface == 0U);
+  CHECK(cap.m_part == 2U);
+  CHECK(cap.m_ownerRegion == 1U);
+  CHECK(cap.m_neighborRegion == 0U);
+}
+
 TEMPLATE_TEST_CASE("Tape: an object of one region changes region where a ray crosses it, its sides by the way it goes",
                    "[Overlay][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)

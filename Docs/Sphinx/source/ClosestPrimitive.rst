@@ -364,6 +364,10 @@ distance bound, exact near a smooth piece of its surface:
    const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
    electrostatics.role(s);                      // the outer sphere: Interface; the inner one: Boundary
 
+A subdomain's surface at a point is never a contact between two of its own regions: where its nearest region's nearest
+surface is one (near a step, where a region of it pokes out of another), the surface reported is the subdomain's
+boundary there.
+
 The surface groups are a `Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight ("dirichlet", "jump",
 "no-slip"), each a boundary condition's tag (its name) and id (its number), and a list of
 `SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface point is. A

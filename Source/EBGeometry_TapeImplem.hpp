@@ -3641,18 +3641,53 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
                                            const Subdomains& a_subdomains,
                                            const uint32_t    a_subdomain) const noexcept
 {
-  T        value  = Math::Limits<T>::max();
-  uint32_t region = Subdomains::None;
+  T        value   = Math::Limits<T>::max();
+  T        outside = Math::Limits<T>::max();
+  uint32_t region  = Subdomains::None;
+  uint32_t other   = Subdomains::None;
 
-  // The subdomain's region whose function is smallest; on a tie, the lowest-numbered, as asked region by region.
+  // The subdomain's region whose function is smallest, and the smallest of the regions outside it; on a tie, the
+  // lowest-numbered, as asked region by region.
   this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
-    if (a_subdomains.subdomainOf(a_region) == a_subdomain && a_value <= value) {
-      value  = a_value;
-      region = a_region;
+    if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+      if (a_value <= value) {
+        value  = a_value;
+        region = a_region;
+      }
+    }
+    else if (a_value <= outside) {
+      outside = a_value;
+      other   = a_region;
     }
   });
 
-  return (region != Subdomains::None) ? this->closestSurface(a_point, region) : SurfaceRef<T>();
+  if (region == Subdomains::None) {
+    return SurfaceRef<T>();
+  }
+
+  const SurfaceRef<T> inner = this->closestSurface(a_point, region);
+
+  // A contact between two of the subdomain's own regions is not its surface, though the region's nearest one (near
+  // where a region of it pokes out of another: the step where a core leaves its jacket): the nearest region outside
+  // the subdomain names the surface instead, where it borders the subdomain, seen from the subdomain's side.
+  if (a_subdomains.subdomainOf(inner.m_neighborRegion) == a_subdomain && other != Subdomains::None) {
+    SurfaceRef<T> across = this->closestSurface(a_point, other);
+
+    if (across.m_neighborRegion != Subdomains::None &&
+        a_subdomains.subdomainOf(across.m_neighborRegion) == a_subdomain) {
+      const uint32_t        owner    = across.m_ownerRegion;
+      const MaterialLabelId material = across.m_ownerMaterial;
+
+      across.m_ownerRegion      = across.m_neighborRegion;
+      across.m_ownerMaterial    = across.m_neighborMaterial;
+      across.m_neighborRegion   = owner;
+      across.m_neighborMaterial = material;
+
+      return across;
+    }
+  }
+
+  return inner;
 }
 
 template <class T, class... UserPrimitives>

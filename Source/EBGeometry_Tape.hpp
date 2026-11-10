@@ -1299,7 +1299,9 @@ public:
   /**
    * @brief The surface of a subdomain that decides its function at a point: that of its region
    * whose function is smallest there (see closestSurface(p, region)), with the regions on its two sides; the
-   * surface's role for the solver is a_subdomains.role(surface). Callable on a device.
+   * surface's role for the solver is a_subdomains.role(surface). A contact between two of the subdomain's own regions
+   * is not its surface: where that region's nearest surface is one, the nearest region outside the subdomain names the
+   * surface instead, seen from the subdomain's side, if it borders the subdomain there. Callable on a device.
    * @param[in] a_point  Point, on or near the subdomain's surface.
    * @param[in] a_subdomains The subdomains.
    * @param[in] a_subdomain  Subdomain.
