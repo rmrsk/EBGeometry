@@ -160,7 +160,9 @@ struct ShapeInfo<
  * Every shape's value goes by the one name `signedDistance`, whatever its distance quality, and the
  * two together say what the value means. The sign is the contract every shape keeps: negative inside,
  * positive outside, zero on the surface. The magnitude is what the distance quality says: the distance
- * to the surface (Exact), at most that distance (Bound), or nothing (NotADistance).
+ * to the surface (Exact), at most that distance (Bound), or nothing (NotADistance). The box holds the solid: the value
+ * is not negative outside it (a BVH union skips a member whose box a query misses, and a renderer's cut does too); a
+ * shape with no bound returns an unbounded box.
  * @tparam S Candidate type.
  */
 template <class S>

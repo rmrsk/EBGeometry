@@ -79,6 +79,18 @@ public:
   }
 
   /**
+   * @brief The distance quality of the view's functions: the tape's (Tape::getDistanceQuality()), since they are made
+   * of its regions' values.
+   * @return The quality.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline DistanceQuality
+  getDistanceQuality() const noexcept
+  {
+    return m_tape.getDistanceQuality();
+  }
+
+  /**
    * @brief The field a section plane shows (its contours and lines of equal distance), its value (see
    * contourSample()).
    * @param[in] a_point Point.
@@ -119,15 +131,25 @@ public:
       return ContourSample<T>{value, value > T(0)};
     }
 
+    // The visible regions' functions, nearest to zero, signed as the visible regions' function is (signedDistance():
+    // the smallest of theirs against the smallest of the others'), in the one pass over the tape.
     T field = Math::Limits<T>::max();
+    T in    = Math::Limits<T>::max();
+    T out   = Math::Limits<T>::max();
 
     m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
-      if (a_region > 0U && this->isVisible(a_region)) {
+      if (this->isVisible(a_region)) {
         field = Math::min(field, std::abs(a_value));
+        in    = Math::min(in, a_value);
+      }
+      else {
+        out = Math::min(out, a_value);
       }
     });
 
-    return ContourSample<T>{(this->signedDistance(a_point) < T(0)) ? -field : field};
+    const bool inside = in < Math::Limits<T>::max() && in < out;
+
+    return ContourSample<T>{inside ? -field : field};
   }
 
   /**

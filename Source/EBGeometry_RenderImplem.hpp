@@ -63,6 +63,48 @@ unit(const Vec3T<T>& a_v) noexcept
  * @tparam S Shape type.
  */
 /**
+ * @brief Whether a shape reports its distance quality at run time (getDistanceQuality(): a Tape, a view of its
+ * regions): the primary template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ */
+template <class S, class = void>
+struct HasDistanceQuality : std::false_type
+{
+};
+
+/**
+ * @brief A shape with getDistanceQuality().
+ * @tparam S Shape type.
+ */
+template <class S>
+struct HasDistanceQuality<S, std::void_t<decltype(std::declval<const S&>().getDistanceQuality())>> : std::true_type
+{
+};
+
+/**
+ * @brief The distance quality of a shape: its own at run time if it reports one, else its type's.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @param[in] a_shape Shape.
+ * @return The quality.
+ */
+template <class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline DistanceQuality
+qualityOf(const S& a_shape) noexcept
+{
+  if constexpr (HasDistanceQuality<S>::value) {
+    return a_shape.getDistanceQuality();
+  }
+  else {
+    (void)a_shape;
+
+    return DistanceQualityOf<S>::value;
+  }
+}
+
+/**
  * @brief Whether a shape names what a point is in, for the section plane's fill (sectionKey()): the primary template is
  * false.
  * @details Internal helper; not part of the public API.
@@ -207,6 +249,37 @@ struct Sectioned
    * of the shape lying in the plane has value zero on it, so asking on the plane itself drew no cut face there.
    */
   T m_behind = T(0);
+
+  /**
+   * @brief The shape's box, which holds its solid (see isShape): a point outside it is outside the solid. Unbounded
+   * unless the renderer sets it.
+   */
+  Vec3T<T> m_low = Vec3T<T>(-Math::Limits<T>::infinity(), -Math::Limits<T>::infinity(), -Math::Limits<T>::infinity());
+
+  /**
+   * @brief See m_low.
+   */
+  Vec3T<T> m_high = Vec3T<T>(Math::Limits<T>::infinity(), Math::Limits<T>::infinity(), Math::Limits<T>::infinity());
+
+  /**
+   * @brief Whether a point is inside the shape, uncut: outside its box it is not, without asking the shape. The cut
+   * asks this where a ray's kept interval begins or ends on the plane, for every such ray, near the shape or not; on an
+   * assembly of meshes the shape's value there cost ten times the ray's own crossing.
+   * @param[in] a_point Point.
+   * @return True if the shape's value there is negative.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  insideAt(const Vec3T<T>& a_point) const noexcept
+  {
+    for (int k = 0; k < 3; k++) {
+      if (a_point[k] < m_low[k] || a_point[k] > m_high[k]) {
+        return false;
+      }
+    }
+
+    return this->shapeDistance(a_point) < T(0);
+  }
 
   /**
    * @brief A point moved behind the plane, into the kept side, where the cut face asks what is there.
@@ -554,6 +627,13 @@ public:
 
     m_object.m_behind = T(2) * m_eps;
     m_far             = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
+
+    if (bounded) {
+      m_object.m_low  = lo;
+      m_object.m_high = hi;
+    }
+
+    m_distanceLike = RenderDetail::qualityOf(a_shape) != DistanceQuality::NotADistance;
 
     m_rays         = a_settings.m_rays;
     m_rays.m_scale = m_scale;
@@ -1214,6 +1294,12 @@ private:
   bool m_onPlane;
 
   /**
+   * @brief Whether the shape's value is a distance or a distance bound (not DistanceQuality::NotADistance): its section
+   * field then changes by at most 1 per unit length, which lets the plane skip the lines' slope where no line can be.
+   */
+  bool m_distanceLike = false;
+
+  /**
    * @brief The cut shape's first crossing along a ray (firstHit()).
    * @details Every ray the shader casts goes through here, out of line on a device: inlined at each of
    * its callers, the shape's whole trace was copied once per ray kind and the kernels grew too large to
@@ -1607,15 +1693,31 @@ private:
 
     // Each direction takes the steeper of a step forward and one back: the field can have a kink at zero (it is zero on
     // an interface between two regions), and one step across it saw the field come back up to about where it was.
-    const T f  = sample.m_value;
-    const T du = Math::max(std::abs(m_object.contourDistance(q + width * u).m_value - f),
-                           std::abs(m_object.contourDistance(q - width * u).m_value - f)) /
-                 width;
-    const T dv = Math::max(std::abs(m_object.contourDistance(q + width * v).m_value - f),
-                           std::abs(m_object.contourDistance(q - width * v).m_value - f)) /
-                 width;
+    const T    f     = sample.m_value;
+    const bool lines = m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary);
+    const T    rest  = lines ? f - m_settings.m_isoSpacing * std::floor(f / m_settings.m_isoSpacing + T(0.5)) : T(0);
 
-    const T slope = Math::max(std::sqrt(du * du + dv * dv), T(0.05));
+    // The four steps cost four of the field's evaluations per pixel of the plane. A distance or a bound changes by at
+    // most 1 per unit length, so its slope is at most sqrt(2), and a pixel whose value, and whose distance to the
+    // nearest line of equal distance, are both more than sqrt(2) line widths can have no line: there the slope is not
+    // asked, and taken so small that no line is drawn. (The contour is safe for any bound: on its line |f| is at most
+    // the distance to the surface.) Measured on an assembly of 67 meshes cut by the plane: a third of the frame's time.
+    const T    rootTwo = std::sqrt(T(2));
+    const bool near =
+      !m_distanceLike || std::abs(f) < rootTwo * half || (lines && std::abs(rest) < rootTwo * T(0.75) * width);
+
+    T slope = Math::Limits<T>::min();
+
+    if (near) {
+      const T du = Math::max(std::abs(m_object.contourDistance(q + width * u).m_value - f),
+                             std::abs(m_object.contourDistance(q - width * u).m_value - f)) /
+                   width;
+      const T dv = Math::max(std::abs(m_object.contourDistance(q + width * v).m_value - f),
+                             std::abs(m_object.contourDistance(q - width * v).m_value - f)) /
+                   width;
+
+      slope = Math::max(std::sqrt(du * du + dv * dv), T(0.05));
+    }
 
     const T field = sample.m_value / slope;
 
@@ -1636,9 +1738,8 @@ private:
 
     // Lines of equal distance, every m_isoSpacing, thinner than the contour.
 
-    if (m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary)) {
-      const T s = m_settings.m_isoSpacing;
-      const T r = (sample.m_value - s * std::floor(sample.m_value / s + T(0.5))) / slope;
+    if (lines) {
+      const T r = rest / slope;
 
       if (std::abs(r) < T(0.75) * width) {
         color = sample.m_secondary ? m_settings.m_isoSecondaryColor : m_settings.m_isoColor;
@@ -1902,13 +2003,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return hit;
     };
 
-    if (a > a_tMin && a_cut.shapeDistance(a_cut.behind(a_ray.at(a))) < T(0)) {
+    if (a > a_tMin && a_cut.insideAt(a_cut.behind(a_ray.at(a)))) {
       return onPlane(a, true);
     }
 
     const HitT<T> hit = a_cut.shapeHit(a_ray, a, b, a_options);
 
-    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_cut.behind(a_ray.at(b))) < T(0)) {
+    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.insideAt(a_cut.behind(a_ray.at(b)))) {
       return onPlane(b, false);
     }
 
@@ -1972,13 +2073,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return crossing;
     };
 
-    if (a > a_tMin && a_cut.shapeDistance(a_cut.behind(a_ray.at(a))) < T(0)) {
+    if (a > a_tMin && a_cut.insideAt(a_cut.behind(a_ray.at(a)))) {
       return onPlane(a, true);
     }
 
     const CrossingT<T> crossing = a_cut.shapeCrossing(a_ray, a, b, a_options);
 
-    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_cut.behind(a_ray.at(b))) < T(0)) {
+    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.insideAt(a_cut.behind(a_ray.at(b)))) {
       return onPlane(b, false);
     }
 

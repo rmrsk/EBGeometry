@@ -578,6 +578,31 @@ TEMPLATE_TEST_CASE("Render: a ray-traced mesh cut by the section plane draws as 
   CHECK(std::abs(a.b - b.b) <= 6);
 }
 
+TEMPLATE_TEST_CASE("Render: the cut asks whether a point is inside the shape only within the shape's box",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  Render::RenderDetail::Sectioned<T, SphereSDF<T>> cut{sphere, true, Vec3::zeros(), Vec3(T(0), T(0), T(1))};
+
+  // Unbounded, as built: the shape decides everywhere.
+  CHECK(cut.insideAt(Vec3(T(0.5), T(0), T(0))));
+  CHECK(!cut.insideAt(Vec3(T(1.5), T(0), T(0))));
+
+  // With the shape's box: the same answers inside it, and outside it no point is inside, whatever the shape says. A
+  // box smaller than the solid (which breaks the shapes' contract) shows that the shape is not asked there.
+  cut.m_low  = -T(0.4) * Vec3::ones();
+  cut.m_high = T(0.4) * Vec3::ones();
+
+  CHECK(cut.insideAt(Vec3(T(0.3), T(0), T(0))));
+  CHECK(!cut.insideAt(Vec3(T(0.5), T(0), T(0))));
+  CHECK(!cut.insideAt(Vec3(T(0), T(-0.6), T(0))));
+}
+
 TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
