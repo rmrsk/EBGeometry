@@ -77,6 +77,77 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host render", "[Render
   CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 100);
 }
 
+TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the host's: cut, filled, translucent",
+                   "[Render][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  // The cable in a box of air, cut along its axis, the plane filled by material with lines of equal distance, the
+  // jacket translucent and the core's surfaces in a translucent surface group: the region view's paths on a device.
+  const Tape tape(
+    pool,
+    Overlay(MaterialLabel(BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))), "air"),
+            MaterialLabel(CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)), "PTFE"),
+            MaterialLabel(CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)), "copper")));
+
+  pool.freeze();
+
+  const Pool             devicePool = Pool::mirror(pool, deviceTestResource());
+  const RegionView<Tape> host(tape);
+  const RegionView<Tape> device = host.rebasedView(devicePool);
+
+  Render::Settings<T> settings;
+
+  settings.m_width         = 48;
+  settings.m_height        = 32;
+  settings.m_supersampling = 1;
+  settings.m_colorBy       = Render::ColorBy::Primitive;
+  settings.m_section       = true;
+  settings.m_sectionNormal = Vec3(T(1), T(0), T(0));
+  settings.m_isoSpacing    = T(0.2);
+
+  settings.m_regions.m_coloring = RegionColoring::Material;
+  settings.m_regions.setVisible(1, false);
+  settings.m_regions.setRegionSeenThrough(2, true);
+  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addSurfaceGroup(), SurfaceSelector::region(3));
+  settings.m_regions.setSurfaceGroupSeenThrough(0, true);
+
+  const Render::Renderer<T> renderer(settings);
+  const auto                camera = Render::Camera<T>::fit(host.computeBoundingVolume());
+
+  Render::Image onHost;
+  Render::Image onDevice;
+
+  (void)renderer.render(host, camera, onHost);
+  (void)renderer.renderOnDevice(device, camera, onDevice);
+
+  REQUIRE(onHost.m_pixels.size() == onDevice.m_pixels.size());
+
+  size_t different = 0;
+
+  for (size_t i = 0; i < onHost.m_pixels.size(); i++) {
+    const Channels a = channels(onHost.m_pixels[i]);
+    const Channels b = channels(onDevice.m_pixels[i]);
+
+    if (std::abs(a.r - b.r) > 3 || std::abs(a.g - b.g) > 3 || std::abs(a.b - b.b) > 3) {
+      different++;
+    }
+  }
+
+  CHECK(different <= onHost.m_pixels.size() / 50);
+}
+
 TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, say so, and count "
                    "each row once",
                    "[Render]",

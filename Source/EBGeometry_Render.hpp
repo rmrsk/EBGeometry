@@ -363,8 +363,10 @@ struct Settings
   inline bool
   isHighlighted(const uint32_t a_primitive) const noexcept
   {
-    return (a_primitive - m_highlightPrimitive < m_highlightCount && m_highlightPrimitive != NoPrimitive) ||
-           m_highlightPrimitive == AllPrimitives;
+    // A surface with no key is never the highlighted one, whatever the range.
+    return a_primitive != NoPrimitive &&
+           ((a_primitive - m_highlightPrimitive < m_highlightCount && m_highlightPrimitive != NoPrimitive) ||
+            m_highlightPrimitive == AllPrimitives);
   }
 
   /**

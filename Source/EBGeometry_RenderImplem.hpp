@@ -395,20 +395,28 @@ struct Sectioned
   seenThroughHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
     if constexpr (HasSeenThrough<S, T>::value) {
-      T t = a_tMin;
+      // Only the kept side's part of the ray: a surface the plane removes, opaque or not, is not in front of anything.
+      T tMin = a_tMin;
+      T tMax = a_tMax;
 
-      // A surface on the removed side is cut away: look on past it, a few times at most.
-      for (int i = 0; i < 8; i++) {
-        const HitT<T> hit = m_shape.firstSeenThrough(a_ray, t, a_tMax, a_options);
+      if (m_on) {
+        const T start = this->plane(a_ray.m_origin);
+        const T rate  = dot(a_ray.m_direction, m_normal);
 
-        if (!hit.hit() || !m_on || this->plane(hit.m_point) <= T(0)) {
-          return hit;
+        if (rate == T(0)) {
+          if (start > T(0)) {
+            return HitT<T>();
+          }
         }
-
-        t = hit.m_t;
+        else if (rate > T(0)) {
+          tMax = Math::min(tMax, -start / rate);
+        }
+        else {
+          tMin = Math::max(tMin, -start / rate);
+        }
       }
 
-      return HitT<T>();
+      return (tMin < tMax) ? m_shape.firstSeenThrough(a_ray, tMin, tMax, a_options) : HitT<T>();
     }
     else {
       (void)a_ray;
@@ -1022,7 +1030,7 @@ private:
 
           shades[layers] = this->shadeSurface(veil, direction, true);
           at[layers]     = veil.m_t;
-          from           = veil.m_t + T(4) * m_eps;
+          from           = this->past(veil);
 
           layers++;
         }
@@ -1030,6 +1038,9 @@ private:
         if (layers > 0) {
           const T opacity = m_settings.m_seenThroughOpacity;
 
+          // The gaps between layers: the plane is drawn in the one it lies in. drawOnPlane() takes a plane a little
+          // behind the far end too (a face in the plane); a gap ending at a layer ends that much short of it, so that a
+          // plane by a layer is drawn once, under it.
           T behind = tFront;
 
           for (int i = layers - 1; i >= 0; i--) {
@@ -1038,7 +1049,7 @@ private:
             }
 
             color  = opacity * shades[i] + (T(1) - opacity) * color;
-            behind = at[i];
+            behind = at[i] - T(4) * m_eps;
           }
 
           return m_onPlane ? this->drawOnPlane(a_ray, a_near, behind, color) : color;
@@ -1666,11 +1677,12 @@ private:
     const T width = m_footprint + m_footprintPerLength * t;
     const T half  = T(0.5) * m_settings.m_contourWidth * width;
 
-    // What is there is asked a little behind the plane, into the kept side, by more than a contour line's half
-    // width: a face of the shape lying in the plane has value and field zero on it, so asked on the plane it was all
-    // contour (and outside the solid, under the sheet). A surface crossing the plane keeps its contour, moved by
-    // less than a line's width.
-    const Vec3T<T> q = p - (T(1.5) * half + m_object.m_behind) * m_object.m_normal;
+    // What is there is asked a little behind the plane, into the kept side, by the cut's own nudge (two march
+    // tolerances), so that a face of the shape lying in the plane is inside the solid there. Asked further behind, a
+    // surface meeting the plane at an angle had its contour moved along the plane by the depth over the angle's
+    // tangent: several pixels at shallow angles. The face in the plane draws no contour all the same: its field is
+    // flat along the plane, and a flat field draws no line (below).
+    const Vec3T<T> q = p - m_object.m_behind * m_object.m_normal;
 
     const T value = m_object.shapeDistance(q);
 
@@ -1684,8 +1696,8 @@ private:
     // The field is a distance in space: where a surface meets the plane at a shallow angle it changes along the plane
     // by much less than one per unit of length, and a line drawn where it is small widened into a band. Divided by
     // the slope, it is the distance along the plane, and every line is as wide on screen however the surface meets the
-    // plane. The slope is kept above a floor, so a flat spot of the field (a ridge, the middle between two surfaces)
-    // draws no line rather than a blob.
+    // plane. Where the field is flat along the plane (a ridge, the middle between two surfaces, a face lying in the plane)
+    // no line is drawn, rather than a blob.
     const Vec3T<T>& n = m_object.m_normal;
     const Vec3T<T>  a = cross(n, Vec3T<T>::unit(n.minDir(true)));
     const Vec3T<T>  u = a / a.length();
@@ -1697,11 +1709,12 @@ private:
     const bool lines = m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary);
     const T    rest  = lines ? f - m_settings.m_isoSpacing * std::floor(f / m_settings.m_isoSpacing + T(0.5)) : T(0);
 
-    // The four steps cost four of the field's evaluations per pixel of the plane. A distance or a bound changes by at
-    // most 1 per unit length, so its slope is at most sqrt(2), and a pixel whose value, and whose distance to the
-    // nearest line of equal distance, are both more than sqrt(2) line widths can have no line: there the slope is not
-    // asked, and taken so small that no line is drawn. (The contour is safe for any bound: on its line |f| is at most
-    // the distance to the surface.) Measured on an assembly of 67 meshes cut by the plane: a third of the frame's time.
+    // The four steps cost four of the field's evaluations per pixel of the plane. EBGeometry's distances, and the bounds
+    // it composes from them, change by at most 1 per unit length, so their slope is at most sqrt(2), and a pixel whose
+    // value, and whose distance to the nearest line of equal distance, are both more than sqrt(2) line widths can have
+    // no line: there the slope is not asked, and taken so small that no line is drawn. The contour is safe for any
+    // bound (on its line |f| is at most the distance to the surface); a user shape that counts as a bound but changes
+    // faster may lose lines of equal distance here, and should declare itself NotADistance. Measured on an assembly of 67 meshes cut by the plane: a third of the frame's time.
     const T    rootTwo = std::sqrt(T(2));
     const bool near =
       !m_distanceLike || std::abs(f) < rootTwo * half || (lines && std::abs(rest) < rootTwo * T(0.75) * width);
@@ -1716,7 +1729,10 @@ private:
                              std::abs(m_object.contourDistance(q - width * v).m_value - f)) /
                    width;
 
-      slope = Math::max(std::sqrt(du * du + dv * dv), T(0.05));
+      const T steep = std::sqrt(du * du + dv * dv);
+
+      // Flat along the plane (a ridge, the middle between two surfaces, a face lying in the plane): no line.
+      slope = (steep < T(0.05)) ? Math::Limits<T>::min() : steep;
     }
 
     const T field = sample.m_value / slope;

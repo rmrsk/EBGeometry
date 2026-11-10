@@ -2094,6 +2094,133 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
   CHECK((both.r != outer.r || both.g != outer.g || both.b != outer.b));
 }
 
+TEMPLATE_TEST_CASE("Render: translucent layers are found on the kept side of the cut, and thin ones are all drawn",
+                   "[Overlay][RegionView][Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  Pool pool(hostMemoryResource());
+
+  constexpr uint32_t size = 17;
+
+  const auto middle =
+    [&](const RegionView<Tape>& a_view, const Render::Settings<T>& a_settings, const Render::Camera<T>& a_camera) {
+      Render::Image image;
+
+      (void)Render::Renderer<T>(a_settings).render(a_view, a_camera, image);
+
+      return image.at(size / 2, size / 2);
+    };
+
+  // An opaque box that the cut removes, on the ray's line in front of a translucent sphere: it hides nothing. The pixel
+  // is the same as with the box off the line, and differs from the sphere drawn opaque or left out.
+  {
+    const Tape onLine(pool,
+                      Overlay(BoxSDF<T>(Vec3(T(-3), T(-0.5), T(-0.5)), Vec3(T(-2), T(0.5), T(0.5))),
+                              SphereSDF<T>(Vec3::zeros(), T(1)),
+                              SphereSDF<T>(Vec3::zeros(), T(0.5))));
+    const Tape offLine(pool,
+                       Overlay(BoxSDF<T>(Vec3(T(-3), T(2.5), T(-0.5)), Vec3(T(-2), T(3.5), T(0.5))),
+                               SphereSDF<T>(Vec3::zeros(), T(1)),
+                               SphereSDF<T>(Vec3::zeros(), T(0.5))));
+
+    Render::Settings<T> settings = EBGeometryTestRender::plain<T>(size);
+
+    settings.m_colorBy       = Render::ColorBy::Primitive;
+    settings.m_section       = true;
+    settings.m_sectionPoint  = Vec3(T(-1.5), T(0), T(0));
+    settings.m_sectionNormal = Vec3(T(-1), T(0), T(0));
+    settings.m_sectionFill   = T(0);
+    settings.m_contourWidth  = T(0);
+    settings.m_sheetOpacity  = T(0);
+    settings.m_shadows       = false;
+
+    settings.m_regions.setRegionSeenThrough(2, true);
+
+    Render::Camera<T> camera;
+
+    camera.m_distance = T(6);
+
+    for (const T yaw : {T(0), T(90), T(180), T(270)}) {
+      camera.m_yaw = yaw;
+
+      if (camera.eye()[0] < T(-4)) {
+        break;
+      }
+    }
+
+    REQUIRE(camera.eye()[0] < T(-4));
+
+    const uint32_t cutAway = middle(RegionView<Tape>(onLine), settings, camera);
+
+    CHECK(cutAway == middle(RegionView<Tape>(offLine), settings, camera));
+
+    settings.m_seenThroughOpacity = T(0);
+
+    CHECK(cutAway != middle(RegionView<Tape>(onLine), settings, camera));
+  }
+
+  // Two translucent shells a thousandth apart, over a core: both drawn, as when they are a twentieth apart (the pixel
+  // within a few levels); with one of them skipped, it was some 17 levels off.
+  {
+    Render::Settings<T> settings = EBGeometryTestRender::plain<T>(size);
+
+    settings.m_colorBy   = Render::ColorBy::Primitive;
+    settings.m_shadows   = false;
+    settings.m_occlusion = false;
+
+    settings.m_regions.setRegionSeenThrough(1, true);
+    settings.m_regions.setRegionSeenThrough(2, true);
+
+    const auto shells = [&](const T a_gap) {
+      const Tape tape(pool,
+                      Overlay(SphereSDF<T>(Vec3::zeros(), T(1)),
+                              SphereSDF<T>(Vec3::zeros(), T(1) - a_gap),
+                              SphereSDF<T>(Vec3::zeros(), T(0.5))));
+
+      const RegionView<Tape> view(tape);
+
+      return EBGeometryTestRender::channels(
+        middle(view, settings, Render::Camera<T>::fit(SphereSDF<T>(Vec3::zeros(), T(1)).computeBoundingVolume())));
+    };
+
+    const EBGeometryTestRender::Channels thin = shells(T(0.001));
+    const EBGeometryTestRender::Channels wide = shells(T(0.05));
+
+    CHECK(std::abs(thin.r - wide.r) <= 4);
+    CHECK(std::abs(thin.g - wide.g) <= 4);
+    CHECK(std::abs(thin.b - wide.b) <= 4);
+  }
+}
+
+TEST_CASE("RegionSettings: another coloring clears the keys seen through, not the regions and surface groups",
+          "[RegionView]")
+{
+  RegionSettings regions;
+
+  regions.setSeenThrough(5U, true);
+  regions.setRegionSeenThrough(2U, true);
+  regions.setSurfaceGroupSeenThrough(1U, true);
+  regions.m_only = 3U;
+
+  regions.setColoring(RegionColoring::Material);
+
+  // A key meant another thing under the old coloring; a region or a surface group means the same under any.
+  CHECK(!regions.isSeenThrough(5U));
+  CHECK(regions.m_only == RegionSettings::None);
+  CHECK(regions.isRegionSeenThrough(2U));
+  CHECK(regions.isSurfaceGroupSeenThrough(1U));
+
+  // Making every surface opaque clears all three.
+  regions.clearSeenThrough();
+
+  CHECK(!regions.isRegionSeenThrough(2U));
+  CHECK(!regions.isSurfaceGroupSeenThrough(1U));
+}
+
 TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' region settings say",
                    "[Overlay][RegionView][Render]",
                    EBGEOMETRY_TEST_PRECISIONS)

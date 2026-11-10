@@ -603,6 +603,75 @@ TEMPLATE_TEST_CASE("Render: the cut asks whether a point is inside the shape onl
   CHECK(!cut.insideAt(Vec3(T(0), T(-0.6), T(0))));
 }
 
+TEMPLATE_TEST_CASE("Render: the section's contour lies on the cut edge, however shallow the angle the surface meets "
+                   "the plane at",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr uint32_t size = 301;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_section       = true;
+  settings.m_sectionNormal = Vec3(T(0), T(0), T(1));
+  settings.m_sheetOpacity  = T(0);
+  settings.m_contourColor  = Vec3(T(0), T(1), T(0));
+  settings.m_color         = Vec3(T(0), T(0), T(1));
+  settings.m_cutColor      = Vec3(T(0), T(0), T(1));
+  settings.m_shadows       = false;
+  settings.m_occlusion     = false;
+
+  // Looking down the plane's normal from the removed side.
+  Render::Camera<T> camera;
+
+  camera.m_distance = T(3);
+
+  for (const T yaw : {T(0), T(90), T(180), T(270)}) {
+    camera.m_yaw = yaw;
+
+    if (camera.eye()[2] > T(2)) {
+      break;
+    }
+  }
+
+  REQUIRE(camera.eye()[2] > T(2));
+
+  const T pixel = T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) / T(size);
+
+  // A sphere cut ever closer to its top: the surface meets the plane at 90, 46, 26 and 14 degrees.
+  for (const T depth : {T(0), T(0.7), T(0.9), T(0.97)}) {
+    const SphereSDF<T> sphere(Vec3(T(0), T(0), -depth), T(1));
+
+    Render::Image image;
+
+    (void)Render::Renderer<T>(settings).render(sphere, camera, image);
+
+    // Along the middle row from the center out: the contour (green) covers the cut edge's pixel, and ends within two.
+    const int edge = int(std::lround(std::sqrt(T(1) - depth * depth) / pixel));
+
+    int first = -1;
+    int last  = -1;
+
+    for (int x = 0; x < int(size / 2); x++) {
+      const Channels c = channels(image.at(size / 2 + uint32_t(x), size / 2));
+
+      if (c.g > 150 && c.r < 100 && c.b < 100) {
+        first = (first < 0) ? x : first;
+        last  = x;
+      }
+    }
+
+    INFO("depth " << depth << ": the edge at " << edge << ", contour from " << first << " to " << last);
+    CHECK(first >= 0);
+    CHECK(first <= edge);
+    CHECK(last >= edge);
+    CHECK(last <= edge + 3);
+  }
+}
+
 TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

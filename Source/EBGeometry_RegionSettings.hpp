@@ -424,7 +424,8 @@ struct RegionSettings
 
   /**
    * @brief Color and name surfaces by another key; the keys shown alone and seen through, which meant another
-   * thing, are cleared.
+   * thing, are cleared. The regions and surface groups seen through (m_throughRegions, m_throughGroups) do not depend
+   * on the coloring and are kept.
    * @param[in] a_coloring The coloring.
    */
   EBGEOMETRY_HOST_DEVICE
@@ -434,7 +435,9 @@ struct RegionSettings
     m_coloring = a_coloring;
     m_only     = None;
 
-    this->clearSeenThrough();
+    for (uint32_t i = 0; i < MaxSeenThrough; i++) {
+      m_through[i] = None;
+    }
   }
 };
 
