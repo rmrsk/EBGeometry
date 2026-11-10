@@ -342,6 +342,25 @@ struct Settings
   uint32_t m_highlightPrimitive = NoPrimitive;
 
   /**
+   * @brief How many keys are highlighted, from m_highlightPrimitive on (several selected surfaces, each its own key,
+   * so that each is outlined).
+   */
+  uint32_t m_highlightCount = 1U;
+
+  /**
+   * @brief Whether a primitive is highlighted.
+   * @param[in] a_primitive The primitive (HitT::m_primitive).
+   * @return True if its surface is tinted with m_highlightColor.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isHighlighted(const uint32_t a_primitive) const noexcept
+  {
+    return (a_primitive - m_highlightPrimitive < m_highlightCount && m_highlightPrimitive != NoPrimitive) ||
+           m_highlightPrimitive == AllPrimitives;
+  }
+
+  /**
    * @brief The highlight's color.
    */
   Vec3T<T> m_highlightColor = Vec3T<T>(T(1.0), T(0.72), T(0.10));

@@ -993,9 +993,11 @@ run(const S&           a_shape,
         }
       }
 
-      settings.m_highlightPrimitive = (other || regions.m_numSelected > 0U) ? RegionSettings::Highlighted
-                                      : picked                              ? pick.m_primitive
-                                                                            : Settings<T>::NoPrimitive;
+      settings.m_highlightPrimitive = other                          ? RegionSettings::Highlighted
+                                      : (regions.m_numSelected > 0U) ? RegionSettings::Selected
+                                      : picked                       ? pick.m_primitive
+                                                                     : Settings<T>::NoPrimitive;
+      settings.m_highlightCount     = (!other && regions.m_numSelected > 0U) ? regions.m_numSelected : 1U;
     }
   };
 
@@ -2493,17 +2495,28 @@ run(const S&           a_shape,
 
     // A pick with no key (a surface in no group, colored by group) has nothing to outline: the background has no key
     // either.
-    // The pieces picked together are outlined as one, by the key the render gives them.
-    const uint32_t key     = (settings.m_highlightPrimitive == RegionSettings::Highlighted && !selection.empty())
-                               ? RegionSettings::Highlighted
-                               : pick.m_primitive;
-    const bool     outline = picked && (primitivesAreFaces<S> || key != 0xFFFFFFFFU);
+    // What is picked is outlined by the keys the render gives it: each surface picked, by its own key (so that the
+    // borders between two of them are drawn too), or the one picked.
+    constexpr uint32_t Outside = 0xFFFFFFFFU;
+
+    const bool     several = settings.m_highlightPrimitive == RegionSettings::Selected && !selection.empty();
+    const uint32_t key     = pick.m_primitive;
+    const bool     outline = picked && (primitivesAreFaces<S> || several || key != Outside);
 
     if (outline && a_image.m_primitives.size() == a_image.m_pixels.size()) {
-      const auto inside = [&](const int a_x, const int a_y) {
+      // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one).
+      const auto objectAt = [&](const int a_x, const int a_y) {
         const uint32_t id = a_image.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
 
-        return primitivesAreFaces<S> ? id != 0xFFFFFFFFU : id == key;
+        if (primitivesAreFaces<S>) {
+          return (id != Outside) ? 0U : Outside;
+        }
+
+        if (several) {
+          return (id - RegionSettings::Selected < settings.m_highlightCount) ? id : Outside;
+        }
+
+        return (id == key) ? id : Outside;
       };
 
       const int width  = static_cast<int>(a_image.m_width);
@@ -2512,11 +2525,11 @@ run(const S&           a_shape,
 
       outlined = a_image.m_pixels;
 
+      // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
+      // lower-keyed side of a border between two (a line one reach wide either way).
       for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-          if (inside(x, y)) {
-            continue;
-          }
+          const uint32_t own = objectAt(x, y);
 
           bool near = false;
 
@@ -2525,7 +2538,11 @@ run(const S&           a_shape,
               const int u = x + dx;
               const int v = y + dy;
 
-              near = u >= 0 && v >= 0 && u < width && v < height && inside(u, v);
+              if (u >= 0 && v >= 0 && u < width && v < height) {
+                const uint32_t other = objectAt(u, v);
+
+                near = other != Outside && other != own && (own == Outside || own < other);
+              }
             }
           }
 
@@ -3144,6 +3161,7 @@ run(const S&           a_shape,
               picked = true;
 
               settings.m_highlightPrimitive = primitivesAreFaces<S> ? Settings<T>::AllPrimitives : pick.m_primitive;
+              settings.m_highlightCount     = 1U;
 
               for (std::size_t i = 0; i < depthIndex; i++) {
                 const uint32_t id = depthHits[i].m_primitive;
@@ -3699,6 +3717,7 @@ run(const S&           a_shape,
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
+          settings.m_highlightCount     = a_settings.m_highlightCount;
           picked                        = false;
 
           selection.clear();

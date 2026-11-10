@@ -650,9 +650,7 @@ public:
           const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
           const T shine = T(0.5) * m_settings.m_specular * std::pow(std::abs(dot(n, half)), m_settings.m_shininess);
 
-          const bool highlighted = (hit.m_primitive == m_settings.m_highlightPrimitive &&
-                                    m_settings.m_highlightPrimitive != Settings<T>::NoPrimitive) ||
-                                   m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives;
+          const bool highlighted = m_settings.isHighlighted(hit.m_primitive);
 
           const Vec3T<T> tint = highlighted ? T(2) * m_settings.m_highlightColor : Vec3T<T>::ones();
 
@@ -1310,9 +1308,7 @@ private:
 
     // A surface with no key (a view of regions colored by group shows a surface in no group so) is never the one
     // highlighted.
-    if ((a_hit.m_primitive == m_settings.m_highlightPrimitive &&
-         m_settings.m_highlightPrimitive != Settings<T>::NoPrimitive) ||
-        m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives) {
+    if (m_settings.isHighlighted(a_hit.m_primitive)) {
       albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColor;
     }
 
@@ -2127,6 +2123,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
 
   field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
   field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
+  field("settings", "m_highlightCount", a_settings.m_highlightCount, settings.m_highlightCount);
   field("settings", "m_highlightColor", a_settings.m_highlightColor, settings.m_highlightColor);
   field("settings", "m_insideColor", a_settings.m_insideColor, settings.m_insideColor);
   field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);

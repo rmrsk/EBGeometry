@@ -1483,9 +1483,10 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
 
-  // Selected surfaces (a viewer's pieces picked together): those any selector of the selection matches are keyed
-  // Highlighted. The jacket's outside (jacket | air) is hit through the middle; selecting the core's surface alone
-  // leaves it its key, selecting the jacket's outside too highlights it.
+  // Selected surfaces (a viewer's picked parts): those an entry of the selection matches first are keyed Selected and
+  // that entry, so that each is told apart. The jacket's outside (jacket | air) is hit through the middle; selecting
+  // the core's surface alone leaves it its key, selecting the jacket's outside too keys it by its entry (1); the
+  // core's surface shown alone, by its own (0).
   settings.m_regions.m_highlightRegions = 0U;
   settings.m_regions.m_selected[0]      = SurfaceSelector::interface(1, 2);
   settings.m_regions.m_numSelected      = 1U;
@@ -1495,11 +1496,20 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
   settings.m_regions.m_selected[1] = SurfaceSelector::interface(0, 1);
   settings.m_regions.m_numSelected = 2U;
 
-  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Selected + 1U);
 
   settings.m_regions.showOnly(2);
 
-  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Highlighted);
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Selected);
+
+  // Highlighting the selection's keys, a range of them, tints every selected surface and nothing else.
+  settings.m_highlightPrimitive = RegionSettings::Selected;
+  settings.m_highlightCount     = 2U;
+
+  CHECK(settings.isHighlighted(RegionSettings::Selected));
+  CHECK(settings.isHighlighted(RegionSettings::Selected + 1U));
+  CHECK(!settings.isHighlighted(RegionSettings::Selected + 2U));
+  CHECK(!settings.isHighlighted(2U));
 
   settings.m_regions.m_numSelected = 0U;
 

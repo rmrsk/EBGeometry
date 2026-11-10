@@ -536,7 +536,7 @@ instantiateFunctionTemplates()
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
       (void)Domain{subdomains, scheme}.touches(0U, 1U);
-      (void)RegionSettings{}.isSelected(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)RegionSettings{}.selectionOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       {
         const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
 

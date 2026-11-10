@@ -114,8 +114,15 @@ struct RegionSettings
   static constexpr uint32_t MaxSelected = 16;
 
   /**
-   * @brief The selected surfaces, the first m_numSelected entries (a viewer's picked pieces): every surface one of
-   * them matches is keyed Highlighted, whatever the coloring.
+   * @brief The key of the first selected surface: a surface entry i of the selection matches first (see m_selected)
+   * is keyed Selected + i, whatever the coloring, so that each is told apart (and outlined) and all are highlighted
+   * together (Render::Settings::m_highlightPrimitive = Selected, m_highlightCount = m_numSelected).
+   */
+  static constexpr uint32_t Selected = 0xFFFFFFC0U;
+
+  /**
+   * @brief The selected surfaces, the first m_numSelected entries (a viewer's picked parts or regions): a surface one
+   * of them matches is keyed Selected and its entry, whatever the coloring.
    */
   SurfaceSelector m_selected[MaxSelected] = {};
 
@@ -125,23 +132,23 @@ struct RegionSettings
   uint32_t m_numSelected = 0U;
 
   /**
-   * @brief Whether a surface is selected.
+   * @brief The entry of the selection a surface is selected by.
    * @tparam T Floating-point precision.
    * @param[in] a_surface The surface, with its sides and their materials set.
-   * @return True if a selector of the selection matches it.
+   * @return The first entry of m_selected that matches it, or None.
    */
   template <typename T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline bool
-  isSelected(const SurfaceRef<T>& a_surface) const noexcept
+  inline uint32_t
+  selectionOf(const SurfaceRef<T>& a_surface) const noexcept
   {
     for (uint32_t i = 0; i < m_numSelected && i < MaxSelected; i++) {
       if (m_selected[i].matches(a_surface)) {
-        return true;
+        return i;
       }
     }
 
-    return false;
+    return None;
   }
 
   /**
