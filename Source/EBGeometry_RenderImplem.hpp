@@ -1375,9 +1375,6 @@ private:
     if (m_settings.isHighlighted(a_hit.m_primitive)) {
       albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColor;
     }
-    else if (m_settings.m_fadeOthers > T(0) && m_settings.m_highlightPrimitive != Settings<T>::NoPrimitive) {
-      albedo = (T(1) - m_settings.m_fadeOthers) * albedo + m_settings.m_fadeOthers * m_settings.m_fadeColor;
-    }
 
     if (!a_hit.m_entering && a_tint) {
       albedo = T(0.25) * albedo + T(0.75) * m_settings.m_insideColor;
@@ -2221,8 +2218,6 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
   field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
   field("settings", "m_highlightCount", a_settings.m_highlightCount, settings.m_highlightCount);
-  field("settings", "m_fadeOthers", a_settings.m_fadeOthers, settings.m_fadeOthers);
-  field("settings", "m_fadeColor", a_settings.m_fadeColor, settings.m_fadeColor);
   field("settings", "m_highlightColor", a_settings.m_highlightColor, settings.m_highlightColor);
   field("settings", "m_insideColor", a_settings.m_insideColor, settings.m_insideColor);
   field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);
@@ -2656,9 +2651,6 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_isoSpacing >= T(0),
                      "Render::Renderer: the iso-line spacing must not be negative (%g)",
                      double(m_settings.m_isoSpacing));
-  EBGEOMETRY_REQUIRE(m_settings.m_fadeOthers >= T(0) && m_settings.m_fadeOthers <= T(1),
-                     "Render::Renderer: the fading of the surfaces not highlighted must be from 0 to 1 (%g)",
-                     double(m_settings.m_fadeOthers));
   EBGEOMETRY_REQUIRE(m_settings.m_sectionFill >= T(0) && m_settings.m_sectionFill <= T(1),
                      "Render::Renderer: the section plane's fill must be from 0 to 1 (%g)",
                      double(m_settings.m_sectionFill));

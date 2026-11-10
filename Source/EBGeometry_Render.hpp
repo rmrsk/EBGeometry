@@ -366,17 +366,6 @@ struct Settings
   Vec3T<T> m_highlightColor = Vec3T<T>(T(1.0), T(0.72), T(0.10));
 
   /**
-   * @brief While something is highlighted (m_highlightPrimitive), how far the other surfaces fade towards m_fadeColor,
-   * so that what is highlighted stands out (0: not at all, 1: entirely).
-   */
-  T m_fadeOthers = T(0);
-
-  /**
-   * @brief The color the other surfaces fade towards.
-   */
-  Vec3T<T> m_fadeColor = Vec3T<T>(T(0.88), T(0.89), T(0.91));
-
-  /**
    * @brief The color a surface seen from inside the solid is tinted towards.
    */
   Vec3T<T> m_insideColor = Vec3T<T>(T(0.90), T(0.08), T(0.08));

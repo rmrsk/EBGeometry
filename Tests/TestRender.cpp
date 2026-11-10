@@ -1188,23 +1188,6 @@ TEMPLATE_TEST_CASE("Render: pick() names the primitive under a point of the imag
   CHECK(at(highlighted, T(-1)) == at(plainImage, T(-1)));
   CHECK(at(highlighted, T(1)) != at(plainImage, T(1)));
 
-  // With the others faded entirely, the sphere not highlighted takes the fade color (lighter than before), the
-  // highlighted one is drawn as highlighted.
-  Render::Image faded;
-
-  renderer.settings().m_fadeOthers = T(1);
-  renderer.settings().m_fadeColor  = Vec3(T(1), T(1), T(1));
-
-  (void)renderer.render(pair.tape(), camera, faded);
-
-  const Channels before = channels(at(highlighted, T(-1)));
-  const Channels after  = channels(at(faded, T(-1)));
-
-  CHECK(after.r + after.g + after.b > before.r + before.g + before.b);
-  CHECK(at(faded, T(1)) == at(highlighted, T(1)));
-
-  renderer.settings().m_fadeOthers = T(0);
-
   // The image records each pixel's object: a sphere's leaf where it is seen, none in the background.
   REQUIRE(plainImage.m_primitives.size() == plainImage.m_pixels.size());
 
