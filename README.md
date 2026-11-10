@@ -30,9 +30,8 @@ one header and compile with C++17.
 * **Any geometry.** A triangle mesh read from STL, PLY, OBJ or VTK, an analytic shape, a point
   cloud, or any composition of them is queried the same way. Drill a hole through a mesh with an
   analytic cylinder, blend two shapes smoothly, or union ten thousand parts.
-* **Several materials, ready for a solver.** An object can be made of regions, each with its material,
-  with the surfaces between them kept. A cut-cell code gets each region's or subdomain's implicit function,
-  the two sides of every surface, and the boundary condition tagged on it, on the host and in a GPU kernel.
+* **Several materials.** An object can be made of regions, each with its material, and a solver gets
+  the implicit function of each region, or of each domain it computes in.
 * **Any hardware.** The same query runs on the host (SIMD from SSE to AVX-512) and on NVIDIA and AMD
   GPUs (CUDA and HIP). Build a structure once, mirror its memory to the device, and evaluate it
   there.
@@ -67,31 +66,22 @@ one header and compile with C++17.
 * A scene compiled into a *tape* that runs on a GPU, or a part fused into compiled code.
 * BVH-accelerated unions of thousands of objects.
 
-**Materials and boundary conditions**
+**Materials**
 
-* Regions by priority (`Overlay`): a core inside a jacket inside air, each region with a name and a
-  material, the internal surfaces between them kept.
-* Each region's implicit function, and each subdomain's (a group of regions a solver computes in), with no
-  zero sheet between regions of the same subdomain.
-* Every surface reported with the regions and materials on its two sides, and named by surface labels,
-  the parts of shapes and a mesh's face groups.
-* Domains: a solver's subdomains and its boundary conditions, as groups of surfaces selected by piece,
-  label, region, interface or material. A kernel takes a domain whole; a check finds surfaces left
-  without a condition.
+* Regions with materials in one object, the surfaces between them kept, each with the materials on its
+  two sides.
+* An implicit function per region and per domain (the regions a solver computes in), and boundary
+  conditions tagged on the surfaces.
 
 **Queries**
 
 * Signed distance (negative inside, positive outside), normals, and bounding boxes.
-* The surface that decides the value at a point, with its label and part, and the point in its own
-  frame.
+* The primitive that decides the value at a point, with the point in its own frame.
 * Ray and segment hits (`firstHit()`, `intersects()`): exact for meshes, closed-form shapes and their
   unions, intersections, differences and affine maps (fused, BVH unions and tapes), sphere traced for
   everything else.
-* Where a ray or a particle's step first changes region, and which surface it crosses.
 * Closest points and k nearest neighbors in point clouds.
-* A renderer for any shape, on the host or a GPU, with section planes, slices and translucent regions,
-  and an optional interactive window (SDL2) with a panel for picking surfaces and building boundary
-  conditions.
+* A renderer for any shape, on the host or a GPU, with an optional interactive window (SDL2).
 
 ## In code
 
@@ -159,28 +149,6 @@ main()
 Compiled as plain C++, `GPU::transform()` runs the same functor in a host loop; compiled with nvcc or
 hipcc, it runs it in a kernel. The [examples](https://rmrsk.github.io/EBGeometry/Examples.html) walk
 through each part of this, one topic at a time.
-
-Several materials in one object, as a cut-cell code would ask for them:
-
-```cpp
-// A copper core in a PTFE jacket, in a box of air: later regions lie on top.
-const auto air    = MaterialLabel(BoxSDF<T>(low, high), "air");
-const auto jacket = MaterialLabel(CylinderSDF<T>(a, b, T(1)), "PTFE");
-const auto core   = MaterialLabel(CylinderSDF<T>(c, d, T(0.4)), "copper");
-
-const Tape<T> cable(pool, Overlay(air, jacket, core));   // regions: 0 outside, 1 air, 2 jacket, 3 core
-
-const uint32_t k = cable.region(p);          // which region p is in
-const T        f = cable.signedDistance(p, 2);   // the jacket's own implicit function
-
-// A solver computing in the air and the jacket, the core a conductor: at each node, every label's function.
-Domain electrostatics;
-electrostatics.m_subdomains.addSubdomain({1});
-electrostatics.m_subdomains.addSubdomain({2});
-
-T values[Domain::MaxLabels];
-electrostatics.signedDistances(cable, p, values);      // air, jacket, and the excluded core
-```
 
 ## How it compares
 
