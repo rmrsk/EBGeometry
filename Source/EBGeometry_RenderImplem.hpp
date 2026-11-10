@@ -1286,35 +1286,37 @@ private:
   }
 
   /**
-   * @brief Whether a ray meets a surface that is not seen through (Settings::m_hidden) in an interval.
+   * @brief Where a ray first meets a surface that is not seen through (Settings::m_hidden) in an interval.
    * @details With no surface seen through, one trace, as a plain shape's shadow and occlusion rays always were;
    * stepping past surfaces seen through is blockedPastHidden(), out of line on the host: inlined into the lighting of
    * every shaded pixel, it made host renders of a plain float tape 10% slower.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
-   * @return True if it does.
+   * @return The distance along the ray, or infinity if it meets none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline bool
+  inline T
   blocked(const RayT<T>& a_ray, const T a_tMax) const noexcept
   {
     if (m_settings.hidesAny()) {
       return this->blockedPastHidden(a_ray, a_tMax);
     }
 
-    return this->trace(a_ray, T(0), a_tMax).hit();
+    const HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
+
+    return hit.hit() ? hit.m_t : Math::Limits<T>::infinity();
   }
 
   /**
-   * @brief Whether a ray meets a surface that is not seen through in an interval, some being seen through: a surface
-   * seen through casts no shadow, and the ray goes on past it, as a camera ray does.
+   * @brief Where a ray first meets a surface that is not seen through in an interval, some being seen through: a
+   * surface seen through casts no shadow, and the ray goes on past it, as a camera ray does.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
-   * @return True if it does.
+   * @return The distance along the ray, or infinity if it meets none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_HOST_NOINLINE
-  bool
+  T
   blockedPastHidden(const RayT<T>& a_ray, const T a_tMax) const noexcept
   {
     HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
@@ -1323,7 +1325,7 @@ private:
       hit = this->trace(a_ray, this->past(hit), a_tMax);
     }
 
-    return hit.hit() && !m_settings.hides(hit.m_primitive);
+    return (hit.hit() && !m_settings.hides(hit.m_primitive)) ? hit.m_t : Math::Limits<T>::infinity();
   }
 
   /**
@@ -1340,7 +1342,7 @@ private:
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
 
-    return this->blocked(RayT<T>{origin, m_light}, T(2) * m_scale) ? T(0) : T(1);
+    return (this->blocked(RayT<T>{origin, m_light}, T(2) * m_scale) < Math::Limits<T>::infinity()) ? T(0) : T(1);
   }
 
   /**
@@ -1353,22 +1355,32 @@ private:
   inline T
   occlusion(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
-    // The share of four short rays, tilted around the normal, that hit the shape.
+    // Four short rays, tilted around the normal, each darkening by up to a fifth as its blocker is near: (1 - t/reach)^2,
+    // so that a blocker at the surface (a crease, a corner) darkens fully and one near the end of the reach not at all.
+    // At a flat fifth for any blocker within reach, a part of a large assembly a reach away (0.07 of the scene's
+    // diagonal, a meter on a jet) printed its sharp-edged shape on a thin plate beside it, which read as seeing through.
     const Vec3T<T> t1 =
       unit(cross((std::abs(a_normal[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), a_normal));
     const Vec3T<T> t2     = cross(a_normal, t1);
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
 
-    int hits = 0;
+    const T reach = T(0.07) * m_scale;
+
+    T dark = T(0);
 
     for (int k = 0; k < 4; k++) {
       const T        a = T(0.5) * pi<T> * T(k);
       const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
+      const T        t = this->blocked(RayT<T>{origin, r}, reach);
 
-      hits += this->blocked(RayT<T>{origin, r}, T(0.07) * m_scale) ? 1 : 0;
+      if (t < reach) {
+        const T near = T(1) - t / reach;
+
+        dark += near * near;
+      }
     }
 
-    return T(1) - T(0.2) * T(hits);
+    return T(1) - T(0.2) * dark;
   }
 
   /**
