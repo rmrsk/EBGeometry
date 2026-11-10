@@ -18,11 +18,11 @@ nearest. It answers them fast on CPUs and on GPUs, from the same code, with no d
 one header and compile with C++17.
 
 <p align="center">
-   <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
+   <img src="Docs/Sphinx/source/_static/f18_assembly.gif" width="800" alt="A fighter jet assembled from its parts, then shown in X-ray and as the ray tracer's cost per pixel"/>
    <br/>
-   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
-   union and a difference. Dragon: Stanford 3D Scanning Repository, from
-   <a href="https://github.com/alecjacobson/common-3d-test-models">common-3d-test-models</a>.</sub>
+   <sub>A 61-part, 310,000-triangle assembly in one BVH-accelerated union: the parts come together,
+   then the jet in X-ray and the ray tracer's cost per pixel. Model adapted from the Boeing EA-18G
+   Growler by Leo Zeng, from <a href="https://grabcad.com/library/boeing-ea-18g-growler-1">GrabCAD</a>.</sub>
 </p>
 
 ## Why EBGeometry
@@ -40,6 +40,14 @@ one header and compile with C++17.
   base, on the host and on a GPU, which also checks that the answers did not change. Unit tests check
   against brute force and closed forms, in both precisions, under sanitizers.
 * **No dependencies.** One header, C++17, `float` or `double`. Nothing to build or link.
+
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
+   <br/>
+   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
+   union and a difference. Dragon: Stanford 3D Scanning Repository, from
+   <a href="https://github.com/alecjacobson/common-3d-test-models">common-3d-test-models</a>.</sub>
+</p>
 
 ## What it does
 
