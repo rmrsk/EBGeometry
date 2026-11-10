@@ -2380,6 +2380,12 @@ run(const S&           a_shape,
       line("");
       line("Regions (box: shown, ~ translucent, off; name: highlight)");
 
+      // The regions' states are 64-bit masks (RegionSettings): from region 64 on, a region is always shown, opaque.
+      if (shape.getNumRegions() > 64U) {
+        line("  Regions from 64 on (" + std::to_string(shape.getNumRegions() - 64U) +
+             " here) are always shown and opaque: their boxes do nothing");
+      }
+
       // What else hides or fades surfaces, beside the boxes below: the keys seen through (T, or stepping), the key shown
       // alone (L), the surface groups made translucent or hidden, and the camera inside a region; with a way to undo
       // all but the camera (the regions' own boxes are kept).
