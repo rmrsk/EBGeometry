@@ -364,6 +364,96 @@ TEMPLATE_TEST_CASE("Overlay and MaterialLabel: reject a partition or a material 
     "ExprIndex: region 3 of 3"));
 }
 
+TEMPLATE_TEST_CASE("Tape: a region's surface names the region across it, past a mask's cut and on a shared mask face",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Across a mask's cut: the cable (jacket 1, core 2) drilled by a slab (x > 0, |z| < 0.3). Just inside the core, by
+  // the slab's face, the region across is the background the slab leaves, not the jacket the slab cut too.
+  {
+    const Expr<T> cable = Overlay(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::zeros(), T(0.5)));
+    const Tape<T> tape(pool, Difference(cable, BoxSDF<T>(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)))));
+
+    const Vec3 p(T(0.1), T(0), T(0.3) + T(1e-3));
+
+    REQUIRE(tape.region(p) == 2U);
+    REQUIRE(tape.region(p - T(2e-3) * Vec3(T(0), T(0), T(1))) == 0U);
+
+    const SurfaceRef<T> s = tape.closestSurface(p, 2U);
+
+    CHECK(s.m_ownerRegion == 2U);
+    CHECK(s.m_neighborRegion == 0U);
+
+    // A subdomain of the core alone, the jacket another: the cut face is the core's boundary, not an interface.
+    Subdomains subdomains;
+
+    (void)subdomains.addSubdomain({2U});
+    (void)subdomains.addSubdomain({1U});
+
+    CHECK(subdomains.role(tape.closestSurface(p, subdomains, 0U)) == SurfaceRole::Boundary);
+  }
+
+  // On a shared mask's face: two spheres overlaid and clipped together (x < 0.3), on a big one. Just outside the face,
+  // in the big sphere, the region across is the one on top of the two (3), as a ray through the face finds.
+  {
+    const Expr<T> pair =
+      Overlay(SphereSDF<T>(Vec3(T(-0.5), T(0), T(0)), T(1)), SphereSDF<T>(Vec3(T(0.5), T(0), T(0)), T(1)));
+    const Expr<T> clipped = Intersection(pair, BoxSDF<T>(Vec3(T(-3), T(-3), T(-3)), Vec3(T(0.3), T(3), T(3))));
+    const Tape<T> tape(pool, Overlay(SphereSDF<T>(Vec3::zeros(), T(2)), clipped));
+
+    const Vec3 out(T(0.3) + T(1e-4), T(-0.3), T(0));
+    const Vec3 in(T(0.3) - T(1e-4), T(-0.3), T(0));
+
+    REQUIRE(tape.region(out) == 1U);
+    REQUIRE(tape.region(in) == 3U);
+
+    CHECK(tape.closestSurface(out, 1U).m_neighborRegion == 3U);
+    CHECK(tape.closestSurface(in, 3U).m_neighborRegion == 1U);
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: a clipped Overlay used twice under different maps clips each copy with a mask of its own",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The same clipped pair, and a copy moved by -1 along x: four regions, whose functions must partition space as
+  // region() does. With the two copies' masks taken for one, about 2% of the points had no negative function.
+  const Expr<T> pair    = Overlay(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::zeros(), T(0.5)));
+  const Expr<T> clipped = Intersection(pair, BoxSDF<T>(Vec3(T(-2), T(-2), T(-2)), Vec3(T(0.2), T(2), T(2))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool, Overlay(clipped, Translate(clipped, Vec3(T(-1), T(0), T(0)))));
+
+  REQUIRE(tape.getNumRegions() == 5U);
+
+  int bad = 0;
+
+  for (int i = 0; i < 30; i++) {
+    for (int j = 0; j < 30; j++) {
+      const Vec3     p(T(0.1) * T(i) - T(2.3) + T(0.0071), T(0.08) * T(j) - T(1.2) + T(0.0037), T(0.13));
+      const uint32_t region = tape.region(p);
+
+      bad += (tape.signedDistance(p, region) < T(0)) ? 0 : 1;
+
+      tape.regionDistances(p, [&](const uint32_t a_region, const T a_value) {
+        bad += (a_value == tape.signedDistance(p, a_region)) ? 0 : 1;
+        bad += (a_region != region && a_value < T(0)) ? 1 : 0;
+      });
+    }
+  }
+
+  CHECK(bad == 0);
+}
+
 TEMPLATE_TEST_CASE("Tape: a subdomain's surface near a step is its boundary, never a contact between its own regions",
                    "[Overlay][Tape][Subdomains]",
                    EBGEOMETRY_TEST_PRECISIONS)

@@ -1519,9 +1519,11 @@ struct RegionSolid
   std::vector<std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>> m_starts;
 
   /**
-   * @brief The masks above it (the clipping intersections), outermost first.
+   * @brief The masks above it (the clipping intersections), outermost first, each with its first leaf in the whole
+   * expression: an occurrence, not a node, since a clipped subexpression used twice (under different maps) clips each
+   * copy with a mask of its own.
    */
-  std::vector<const ExprDetail::Node<T>*> m_masks;
+  std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> m_masks;
 };
 
 /**
@@ -1578,7 +1580,7 @@ regionSolids(const Expr<T>&                                                a_exp
 
     for (const auto& step : a_path) {
       if (step.first->m_kind == Kind::Intersection) {
-        solid.m_masks.push_back(step.first);
+        solid.m_masks.push_back(step);
       }
     }
 
@@ -1726,8 +1728,8 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     // The table: the number of operands n, each operand's record's offset, each region's material (the background
     // first; two for an object with no Overlay), then the records: the number of masks above the region, their
     // numbers (outermost first), and its programs, level 0 (every mask) to the last.
-    std::vector<uint32_t>&                  table = staging.m_regionPrograms;
-    std::vector<const ExprDetail::Node<T>*> masks;
+    std::vector<uint32_t>&                                       table = staging.m_regionPrograms;
+    std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> masks;
 
     const ExprIndex<T> regions(a_expr);
 
@@ -1746,7 +1748,7 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
 
       table.push_back(static_cast<uint32_t>(solid.m_masks.size()));
 
-      for (const ExprDetail::Node<T>* mask : solid.m_masks) {
+      for (const auto& mask : solid.m_masks) {
         const auto found = std::find(masks.begin(), masks.end(), mask);
 
         table.push_back(static_cast<uint32_t>(found - masks.begin()));
@@ -3946,10 +3948,11 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
 
   uint32_t met = 0U;
 
+  // On a tie (two later solids sharing a mask's face), the later one, which lies on top.
   for (uint32_t j = a_region + 1U; j <= n; j++) {
     const V value = this->regionSolidTagged(j, this->sharedMasks(a_region, j), a_point);
 
-    if (value.m_value < later.m_value) {
+    if (value.m_value <= later.m_value) {
       later = value;
       met   = j;
     }
@@ -3960,11 +3963,48 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
   SurfaceRef<T> surface = this->surfaceOf(this->leafOf(byLater ? later : own));
 
   // Across an interface with a later region: that region, or one later still on top of it there. Across the
-  // region's own surface or a mask's cut: the last other region that holds the point, or the background.
+  // region's own surface: the last other region that holds the point, or the background.
   uint32_t across = byLater ? met : 0U;
 
+  // Across a mask's cut, though, the regions the mask cuts are gone too: the last region the mask does not cut that
+  // holds the point, or the background. The mask that decides is the outermost whose leaving out lowers the value
+  // (masks combine by a maximum, so leaving out one that does not decide changes nothing, bit for bit).
+  const void*    base   = this->base();
+  const uint32_t record = m_layout.m_regionPrograms.at(base, a_region);
+  const uint32_t masks  = m_layout.m_regionPrograms.at(base, record);
+
+  uint32_t cutBy = Subdomains::None;
+
+  if (!byLater && masks > 0U) {
+    T value = own.m_value;
+
+    for (uint32_t level = 0; level < masks && cutBy == Subdomains::None; level++) {
+      const T without = this->regionSolid(a_region, level + 1U, a_point);
+
+      if (without < value) {
+        cutBy = m_layout.m_regionPrograms.at(base, record + 1U + level);
+      }
+
+      value = without;
+    }
+  }
+
+  // Whether a region is cut by that mask.
+  const auto cut = [&](const uint32_t a_other) {
+    const uint32_t other = m_layout.m_regionPrograms.at(base, a_other);
+    const uint32_t count = m_layout.m_regionPrograms.at(base, other);
+
+    for (uint32_t i = 0; i < count; i++) {
+      if (m_layout.m_regionPrograms.at(base, other + 1U + i) == cutBy) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
-    if (m != a_region && this->regionSolid(m, 0U, a_point) < T(0)) {
+    if (m != a_region && (cutBy == Subdomains::None || !cut(m)) && this->regionSolid(m, 0U, a_point) < T(0)) {
       across = m;
 
       break;
