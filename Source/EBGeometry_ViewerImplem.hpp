@@ -169,7 +169,7 @@ keys(const bool a_device, const bool a_regions = false)
                                  {"N", "Reverse the cut (keep the other side)"},
                                  {"Up, Down", "Move the plane in coarse steps"},
                                  {"Ctrl + wheel", "Move the plane in fine steps"},
-                                 {"I", "Lines of equal distance: off, as set, coarse, fine"}}},
+                                 {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
                                {"Picking and measuring",
                                 "Picking",
                                 {{"Click", "Pick what is under the cursor (the background clears it)"},
@@ -200,7 +200,7 @@ keys(const bool a_device, const bool a_regions = false)
                             {"K", "Color by the next kind (the panel's Color by sets one)"},
                             {"L", "Show only surfaces like the picked one, or everything again"},
                             {"V", "Show one region at a time, in turn, then all"},
-                            {"E", "Section shows: the visible regions' function, then each subdomain's"},
+                            {"E", "Section shows: the domain's functions, each subdomain's, the visible regions'"},
                             {"Shift + V", "Hide the picked region"},
                             {"Ctrl + V", "Show every region"},
                             {nullptr, "Surface groups (as the panel's buttons)"},
@@ -1360,7 +1360,7 @@ run(const S&           a_shape,
   T        cursorValue = T(0);
 
   // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a
-  // spacing), every 1/20 of the box's diagonal (2), every 1/50 (3).
+  // spacing), every 1/20 of the box's diagonal (2), every 1/50 (3), every 1/100 (4).
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
@@ -1688,7 +1688,9 @@ run(const S&           a_shape,
         if constexpr (hasRegionVisibility<S>) {
           const auto shown = RenderDetail::shownAs(shape, settings);
 
-          cursorValue = (settings.m_regions.m_sectionRegions != 0U) ? shown.contourValue(p) : shown.signedDistance(p);
+          cursorValue = (settings.m_regions.m_sectionRegions != 0U || settings.m_regions.m_sectionDomain)
+                          ? shown.contourValue(p)
+                          : shown.signedDistance(p);
         }
         else {
           cursorValue = RenderDetail::shownAs(shape, settings).signedDistance(p);
@@ -1896,8 +1898,12 @@ run(const S&           a_shape,
                                through.empty() ? std::string("Nothing seen through") : "Seen through: " + through},
                               {}});
 
-      // What the section plane shows: a subdomain's function, or the visible regions'.
-      if (regions.m_sectionRegions != 0U) {
+      // What the section plane shows: the whole domain's functions, a subdomain's, or the visible regions'.
+      if (regions.m_sectionDomain && names.getNumDomains() > 0U) {
+        states[2].m_now.push_back("Section shows: every subdomain's function of " +
+                                  names.domainName(names.getActiveDomain()));
+      }
+      else if (regions.m_sectionRegions != 0U) {
         std::string field = "Section shows: the function of a set of regions";
 
         for (uint32_t d = 0;
@@ -2506,16 +2512,19 @@ run(const S&           a_shape,
     // where the keys change, at their silhouettes and at their rims, wherever the rest of the object hides them.
     Image edges;
 
+    Settings<T> shown = stageSettings(1);
+
+    shown.m_width    = a_image.m_width;
+    shown.m_height   = a_image.m_height;
+    shown.m_viewMode = ViewMode::Shaded;
+
+    Settings<T> alone = shown;
+
+    alone.m_recordPrimitives       = true;
+    alone.m_regions.m_onlySelected = true;
+
     if constexpr (hasRegionVisibility<S>) {
       if (outline && several) {
-        Settings<T> alone = stageSettings(1);
-
-        alone.m_width                  = a_image.m_width;
-        alone.m_height                 = a_image.m_height;
-        alone.m_recordPrimitives       = true;
-        alone.m_regions.m_onlySelected = true;
-        alone.m_viewMode               = ViewMode::Shaded;
-
         (void)render(shape, deviceShape, alone, camera, onDevice, edges, nullptr);
       }
     }
@@ -2544,13 +2553,48 @@ run(const S&           a_shape,
 
       outlined = a_image.m_pixels;
 
+      // An edge of the picked surfaces is hidden where the object is hit clearly in front of it. The edge lies between
+      // the outline's pixel and the one beside it that showed it, at the nearer of the picked surfaces there (the
+      // other may be a surface's back, seen past its rim); the ray through that pixel meets the object as shown
+      // before it. Hidden edges are drawn faded.
+      const Renderer<T> object(shown);
+      const Renderer<T> picks(alone);
+
+      const auto hidden = [&](const int a_x, const int a_y, const int a_u, const int a_v) {
+        const HitT<T> here   = picks.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5));
+        const HitT<T> beside = picks.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
+        const bool    nearer = here.hit() && (!beside.hit() || here.m_t < beside.m_t);
+        const HitT<T> edge   = nearer ? here : beside;
+
+        const HitT<T> front = nearer ? object.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5))
+                                     : object.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
+
+        return edge.hit() && front.hit() && front.m_t < edge.m_t - T(0.05) * edge.m_t;
+      };
+
+      // Faded: a third of the way from the pixel to gold.
+      const auto faded = [](const uint32_t a_pixel) {
+        uint32_t mixed = 0xFFU;
+
+        for (const uint32_t shift : {8U, 16U, 24U}) {
+          const uint32_t from = (a_pixel >> shift) & 0xFFU;
+          const uint32_t to   = (0xFFB81AFFU >> shift) & 0xFFU;
+
+          mixed |= ((2U * from + to) / 3U) << shift;
+        }
+
+        return mixed;
+      };
+
       // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
       // lower-keyed side of a border between two (a line one reach wide either way).
       for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
           const uint32_t own = objectAt(x, y);
 
-          bool near = false;
+          bool near  = false;
+          int  nearU = x;
+          int  nearV = y;
 
           for (int dy = -reach; dy <= reach && !near; dy++) {
             for (int dx = -reach; dx <= reach && !near; dx++) {
@@ -2560,13 +2604,17 @@ run(const S&           a_shape,
               if (u >= 0 && v >= 0 && u < width && v < height) {
                 const uint32_t other = objectAt(u, v);
 
-                near = other != Outside && other != own && (own == Outside || own < other);
+                near  = other != Outside && other != own && (own == Outside || own < other);
+                nearU = u;
+                nearV = v;
               }
             }
           }
 
           if (near) {
-            outlined[std::size_t(y) * a_image.m_width + std::size_t(x)] = 0xFFB81AFFU;
+            const std::size_t pixel = std::size_t(y) * a_image.m_width + std::size_t(x);
+
+            outlined[pixel] = (several && hidden(x, y, nearU, nearV)) ? faded(a_image.m_pixels[pixel]) : 0xFFB81AFFU;
           }
         }
       }
@@ -2851,6 +2899,7 @@ run(const S&           a_shape,
                     currentGroup             = 0;
                     regions.m_hiddenGroups   = 0U;
                     regions.m_sectionRegions = 0U;
+                    regions.m_sectionDomain  = false;
                     regions.m_highlightGroup = RegionSettings::None;
                     pieceIndex               = std::size_t(-1);
 
@@ -3322,13 +3371,15 @@ run(const S&           a_shape,
         }
         case SDLK_i: {
           // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
-          // diagonal, every 1/50.
-          isoMode = (isoMode + 1) % 4;
+          // diagonal, every 1/50, every 1/100.
+          isoMode = (isoMode + 1) % 5;
           isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
 
           settings.m_isoSpacing = (isoMode == 0)   ? T(0)
                                   : (isoMode == 1) ? givenIso
-                                                   : scale / ((isoMode == 2) ? T(20) : T(50));
+                                                   : scale / ((isoMode == 2)   ? T(20)
+                                                              : (isoMode == 3) ? T(50)
+                                                                               : T(100));
 
           break;
         }
@@ -3602,26 +3653,37 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_e: {
-          // The section plane shows the next subdomain's function of the active domain, what a cut-cell code cuts
-          // for it (the plane turned on across x if it was off), and after the last the visible regions' again.
+          // The section plane shows, in turn: the whole active domain (each point its own subdomain's function, so
+          // that every subdomain's lines show at once), each subdomain's function alone, what a cut-cell code cuts
+          // for it, and the visible regions' again (the plane turned on across x if it was off).
           if constexpr (hasRegionVisibility<S>) {
             RegionSettings& regions = settings.m_regions;
 
-            const uint32_t count = (names.getNumDomains() > 0U)
-                                     ? names.getDomain(names.getActiveDomain()).m_subdomains.getNumSubdomains()
-                                     : 0U;
+            const bool        any        = names.getNumDomains() > 0U;
+            const Subdomains& subdomains = names.getDomain(any ? names.getActiveDomain() : 0U).m_subdomains;
+            const uint32_t    count      = any ? subdomains.getNumSubdomains() : 0U;
 
-            uint32_t next = 0U;
+            // The step now: 0 the visible regions, 1 the domain, 2 + d subdomain d.
+            uint32_t now = regions.m_sectionDomain ? 1U : 0U;
 
             for (uint32_t d = 0; d < count; d++) {
               if (regions.m_sectionRegions != 0U && subdomainAllRegions(d) == regions.m_sectionRegions) {
-                next = d + 1U;
+                now = 2U + d;
               }
             }
 
-            regions.m_sectionRegions = (next < count) ? subdomainAllRegions(next) : uint64_t(0);
+            const uint32_t next = (count == 0U) ? 0U : (now + 1U) % (count + 2U);
 
-            if (regions.m_sectionRegions != 0U && sectionMode == 0) {
+            regions.m_sectionDomain  = next == 1U;
+            regions.m_sectionRegions = (next >= 2U) ? subdomainAllRegions(next - 2U) : uint64_t(0);
+
+            for (uint32_t k = 0; k < 64U; k++) {
+              const uint32_t d = (count > 0U) ? subdomains.subdomainOf(k) : Subdomains::None;
+
+              regions.m_sectionLabels[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedLabel;
+            }
+
+            if ((regions.m_sectionDomain || regions.m_sectionRegions != 0U) && sectionMode == 0) {
               sectionMode   = 2;
               sectionOffset = T(0);
             }
@@ -3753,6 +3815,7 @@ run(const S&           a_shape,
             settings.m_regions.m_highlightRegions = 0U;
             settings.m_regions.m_numSelected      = 0U;
             settings.m_regions.m_sectionRegions   = 0U;
+            settings.m_regions.m_sectionDomain    = false;
             settings.m_regions.m_hiddenGroups     = a_settings.m_regions.m_hiddenGroups;
 
             for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {

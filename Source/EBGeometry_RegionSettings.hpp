@@ -167,6 +167,24 @@ struct RegionSettings
   uint64_t m_sectionRegions = 0U;
 
   /**
+   * @brief A label in m_sectionLabels: the region is in no subdomain (Domain::Excluded).
+   */
+  static constexpr uint8_t ExcludedLabel = 0xFFU;
+
+  /**
+   * @brief Whether the section plane shows a whole domain: at each point the function of its own label (its region's
+   * subdomain, m_sectionLabels), negative in it and zero on its boundary, so that every subdomain's lines show at once
+   * and its zero line is every boundary and interface; nothing in the excluded regions. Before m_sectionRegions.
+   */
+  bool m_sectionDomain = false;
+
+  /**
+   * @brief With m_sectionDomain, each region's label (regions 0 to 63; later ones are excluded): its subdomain (below
+   * 32), or ExcludedLabel.
+   */
+  uint8_t m_sectionLabels[64] = {};
+
+  /**
    * @brief The hidden surface groups of the scheme, a bit each (bit g for surface group g): their surfaces are not
    * drawn, and cast no shadow.
    */

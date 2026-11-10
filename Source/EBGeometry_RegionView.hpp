@@ -79,7 +79,8 @@ public:
   }
 
   /**
-   * @brief The field a section plane shows (its contours, lines of equal distance and fill by sign): with section
+   * @brief The field a section plane shows (its contours and lines of equal distance): with a whole domain shown
+   * (RegionSettings::m_sectionDomain), the function of each point's own label (see domainValue()); with section
    * regions set (RegionSettings::m_sectionRegions), their function as a subdomain's, what a cut-cell code cuts for it,
    * zero on the subdomain's boundary alone; without them, the distance to the nearest surface of a visible region
    * (the smallest |function| of a visible region), zero on every visible region's surface, the interfaces between two
@@ -93,6 +94,10 @@ public:
   inline T
   contourValue(const Vec3T<T>& a_point) const noexcept
   {
+    if (m_settings.m_sectionDomain) {
+      return this->domainValue(a_point);
+    }
+
     if (m_settings.m_sectionRegions != 0U) {
       return this->functionOf(a_point, true);
     }
@@ -512,6 +517,52 @@ public:
   }
 
 private:
+  /**
+   * @brief The function of a point's own label in a domain (RegionSettings::m_sectionLabels), as
+   * Domain::signedDistances() gives it: half the difference of the smallest function of a region with that label and
+   * of one with another, never positive; the largest value in the excluded regions, which show no lines.
+   * @param[in] a_point Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  domainValue(const Vec3T<T>& a_point) const noexcept
+  {
+    constexpr uint32_t Labels   = 33U;
+    constexpr uint32_t Excluded = Labels - 1U;
+
+    T smallest[Labels];
+
+    for (uint32_t l = 0; l < Labels; l++) {
+      smallest[l] = Math::Limits<T>::max();
+    }
+
+    for (uint32_t k = 0; k < m_tape.getNumRegions(); k++) {
+      const uint8_t  label = (k < 64U) ? m_settings.m_sectionLabels[k] : RegionSettings::ExcludedLabel;
+      const uint32_t l     = (label < Excluded) ? uint32_t(label) : Excluded;
+
+      smallest[l] = Math::min(smallest[l], m_tape.signedDistance(a_point, k));
+    }
+
+    // The point's own label has the smallest of all; the other term is the second smallest.
+    T        first  = Math::Limits<T>::max();
+    T        second = Math::Limits<T>::max();
+    uint32_t own    = Excluded;
+
+    for (uint32_t l = 0; l < Labels; l++) {
+      if (smallest[l] < first) {
+        second = first;
+        first  = smallest[l];
+        own    = l;
+      }
+      else {
+        second = Math::min(second, smallest[l]);
+      }
+    }
+
+    return (own == Excluded) ? Math::Limits<T>::max() : T(0.5) * (first - second);
+  }
+
   /**
    * @brief The function of a set of regions, as a subdomain's: the section's regions (RegionSettings::m_sectionRegions)
    * or the visible ones.

@@ -543,6 +543,38 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
     CHECK(airView.contourValue(p) == tape.signedDistance(p, air, 0U));
   }
 
+  // With the whole domain shown (the air and the jacket; the core excluded), each point's field is its own label's
+  // function, as a domain samples it; none in the core.
+  Domain electrostatics;
+
+  (void)electrostatics.m_subdomains.addSubdomain({0});
+  (void)electrostatics.m_subdomains.addSubdomain({1});
+
+  RegionSettings whole = all.getSettings();
+
+  whole.m_sectionDomain    = true;
+  whole.m_sectionLabels[0] = 0U;
+  whole.m_sectionLabels[1] = 1U;
+  whole.m_sectionLabels[2] = RegionSettings::ExcludedLabel;
+
+  const RegionView<Tape> domainView = all.withSettings(whole);
+
+  for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)),
+                        Vec3(T(0.7), T(0), T(-0.5)),
+                        Vec3(T(2), T(2), T(2)),
+                        Vec3(T(-0.1), T(0), T(0))}) {
+    T values[Domain::MaxLabels];
+
+    electrostatics.signedDistances(tape, p, values);
+
+    const uint32_t label = electrostatics.labelAt(tape, p);
+
+    INFO("point " << p << ", label " << label);
+
+    CHECK((label == Domain::Excluded) == (tape.region(p) == 2U));
+    CHECK(domainView.contourValue(p) == ((label == Domain::Excluded) ? Math::Limits<T>::max() : values[label]));
+  }
+
   CHECK(all.closestLeaf(Vec3(T(-0.01), T(0.1), T(0.2))).m_leaf == 2U);
 
   // The piece a hit picks: the region seen inside, the one across outside (the core's cut face: core | air; the

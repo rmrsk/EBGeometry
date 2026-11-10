@@ -1380,8 +1380,8 @@ private:
       const T s = m_settings.m_isoSpacing;
       const T r = field - s * std::floor(field / s + T(0.5));
 
-      if (std::abs(r) < T(0.6) * width) {
-        color = T(0.15) * color + T(0.85) * m_settings.m_isoColor;
+      if (std::abs(r) < T(0.75) * width) {
+        color = m_settings.m_isoColor;
       }
     }
 
