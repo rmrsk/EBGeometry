@@ -1451,7 +1451,22 @@ private:
       (RenderDetail::HasContourSample<S, T>::value || RenderDetail::HasContourValue<S, T>::value)
         ? m_object.contourDistance(q)
         : ContourSample<T>{value};
-    const T field = sample.m_value;
+    // The field's slope along the plane, from one step of a pixel's width along each of two directions in it.
+    // The field is a distance in space: where a surface meets the plane at a shallow angle it changes along the plane
+    // by much less than one per unit of length, and a line drawn where it is small widened into a band. Divided by
+    // the slope, it is the distance along the plane, and every line is as wide on screen however the surface meets the
+    // plane. The slope is kept above a floor, so a flat spot of the field (a ridge, the middle between two surfaces)
+    // draws no line rather than a blob.
+    const Vec3T<T>& n = m_object.m_normal;
+    const Vec3T<T>  a = cross(n, Vec3T<T>::unit(n.minDir(true)));
+    const Vec3T<T>  u = a / a.length();
+    const Vec3T<T>  v = cross(n, u);
+
+    const T du    = (m_object.contourDistance(q + width * u).m_value - sample.m_value) / width;
+    const T dv    = (m_object.contourDistance(q + width * v).m_value - sample.m_value) / width;
+    const T slope = Math::max(std::sqrt(du * du + dv * dv), T(0.05));
+
+    const T field = sample.m_value / slope;
 
     if (std::abs(field) < half) {
       return m_settings.m_contourColor;
@@ -1472,7 +1487,7 @@ private:
 
     if (m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary)) {
       const T s = m_settings.m_isoSpacing;
-      const T r = field - s * std::floor(field / s + T(0.5));
+      const T r = (sample.m_value - s * std::floor(sample.m_value / s + T(0.5))) / slope;
 
       if (std::abs(r) < T(0.75) * width) {
         color = sample.m_secondary ? m_settings.m_isoSecondaryColor : m_settings.m_isoColor;
