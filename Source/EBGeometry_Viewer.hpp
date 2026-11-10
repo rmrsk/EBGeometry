@@ -147,7 +147,8 @@ view(const S&                           a_shape,
  * @brief Look at a shape in a window, from a given camera with given settings, naming its regions, materials,
  * surfaces and a scheme's groups as a_names does.
  * @details See view(const S&, int, char**). For a view of regions (RegionView), the status lines name the picked
- * piece of surface, and the regions' menu shows a panel of the regions and the scheme's groups, by these names.
+ * piece of surface, and a panel at the top left, shown with every menu, lists the domains, the regions and the scheme's
+ * groups by these names.
  * @tparam S Shape type (see isShape).
  * @param[in] a_shape    Shape, valid on the host.
  * @param[in] a_camera   Initial camera.

@@ -2,7 +2,7 @@ Examples/SurfaceLabels
 ----------------------
 
 Which part of an object a query found. The armadillo has a cylinder bored through its chest
-(`Difference`) and stands in a ring of pebbles (a `SphereCloudBVH`), and each part is named with `Label`. The tape reports a leaf's label with `getSurfaceLabel()`, on the
+(`Difference`) and stands in a ring of pebbles (a `SphereCloudBVH`), and each part is named with `SurfaceLabel()`. The tape reports a leaf's label with `getSurfaceLabel()`, on the
 host and on a GPU; an `ExprIndex` built from the same expression holds the names. The label indexes a table
 of your own (here what each surface is; in an application, boundary conditions, say). For the materials an object
 is made of, see the [`Materials`](../Materials/README.md) example.

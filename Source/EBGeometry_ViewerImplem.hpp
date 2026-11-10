@@ -1525,7 +1525,7 @@ run(const S&           a_shape,
   int                   overlayHeight = 0;
   std::vector<uint32_t> overlayPixels;
 
-  // The axis triad, in the bottom left corner; shown and hidden with the overlay.
+  // The axis triad, in the bottom left corner, always drawn.
   SDL_Texture*          axes     = nullptr;
   int                   axesSize = 0;
   std::vector<uint32_t> axesPixels;
@@ -4200,9 +4200,9 @@ run(const S&           a_shape,
           if constexpr (hasRegionVisibility<S>) {
             RegionSettings& regions = settings.m_regions;
 
-            const bool        any        = names.getNumDomains() > 0U;
-            const Subdomains& subdomains = names.getDomain(any ? names.getActiveDomain() : 0U).m_subdomains;
-            const uint32_t    count      = any ? subdomains.getNumSubdomains() : 0U;
+            // With no domain registered, only the visible regions' field.
+            const bool     any   = names.getNumDomains() > 0U;
+            const uint32_t count = any ? names.getDomain(names.getActiveDomain()).m_subdomains.getNumSubdomains() : 0U;
 
             // The step now: 0 the visible regions, 1 the domain, 2 + d subdomain d.
             uint32_t now = regions.m_sectionDomain ? 1U : 0U;
@@ -4250,7 +4250,8 @@ run(const S&           a_shape,
               }
             }
             else {
-              soloRegion = (soloRegion + 1U < shape.getNumRegions()) ? soloRegion + 1U : 0U;
+              // One region at a time, among those a 64-bit mask can show alone.
+              soloRegion = (soloRegion + 1U < Math::min(shape.getNumRegions(), 64U)) ? soloRegion + 1U : 0U;
 
               if (soloRegion == 0U) {
                 regions.m_hidden = 0U;
@@ -4276,12 +4277,22 @@ run(const S&           a_shape,
               regions.clearSeenThrough();
             }
             else if (picked) {
-              regions.setSeenThrough(pick.m_primitive, !regions.isSeenThrough(pick.m_primitive));
+              const bool through = !regions.isSeenThrough(pick.m_primitive);
 
-              // What is seen through is no longer picked (nor anything picked with it).
-              picked = false;
+              regions.setSeenThrough(pick.m_primitive, through);
 
-              clearSelection();
+              // At most RegionSettings::MaxSeenThrough keys: past them, nothing changes, and the pick stays.
+              if (through && !regions.isSeenThrough(pick.m_primitive)) {
+                std::printf("EBGeometry viewer: at most %u surfaces can be seen through; Shift + T shows them all.\n",
+                            unsigned(RegionSettings::MaxSeenThrough));
+                std::fflush(stdout);
+              }
+              else {
+                // What is seen through is no longer picked (nor anything picked with it).
+                picked = false;
+
+                clearSelection();
+              }
             }
             else {
               changed = pending;
@@ -4396,7 +4407,12 @@ run(const S&           a_shape,
     if (changed) {
       // The slice view follows the plane (X, N), and ends with it (Ctrl + X) or with a perspective camera (O).
       if (slicing && (sectionMode == 0 || !camera.m_orthographic)) {
+        // O asked for a perspective camera: the one before the slice view, in perspective.
+        const bool perspective = sectionMode != 0;
+
         leaveSlice();
+
+        camera.m_orthographic = perspective ? false : camera.m_orthographic;
       }
       else if (slicing) {
         aimAtSlice();

@@ -84,8 +84,8 @@ the surfaces like the picked one. Hidden regions cast no shadow.
 A click picks the piece of surface under the cursor: its surface, part, and the regions on its two sides
 (``RegionView::pieceAt()`` gives it to a program). The panel at the top left shows it, with the ways to add it to
 the current surface group of the scheme, each with how many pieces it takes in (this piece only, all of its surface,
-all surfaces of its region, or everything between its two regions), or to remove it; below, the regions, each shown or hidden by its box and highlighted by a click on its name (the background
-too), and the surface groups with their selectors, a
+all surfaces of its region, or everything between its two regions), or to remove it; below, the regions, each with a box a click cycles through shown, translucent and off, and a name a click
+highlights (the background too), and the surface groups with their selectors, a
 click making one current and highlighting its surfaces, ``[Translucent]``, ``[Hide]`` and ``[Show]`` cycling them through translucent, hidden and shown, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface
 group]`` starting one (its name typed first); last, the
 count of pieces and of those in no surface group, with ``[Next unassigned]`` to go to the next of these, until

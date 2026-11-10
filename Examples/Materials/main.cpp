@@ -79,7 +79,7 @@ main(int argc, char* argv[])
   // included): what a cut-cell code cuts for the jacket alone.
   std::cout << std::fixed << std::setprecision(3) << "Along x, at z = 1.5:\n";
 
-  for (const T x : {T(-1.5), T(-0.8), T(-0.2), T(0.2), T(0.8)}) {
+  for (const T x : {T(-1.2), T(-0.8), T(-0.2), T(0.2), T(0.8)}) {
     const Vec3 p(x, T(0), T(1.5));
 
     std::cout << "  x = " << std::setw(6) << x << ": region " << tape.region(p) << ", jacket's function "

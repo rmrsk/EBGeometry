@@ -189,8 +189,9 @@ opened with them.
    * - Z
      - The slice view: the section plane flat on screen, seen square from the removed side by an orthographic camera,
        without the floor and shadows (a plane across x is turned on first if there is none). The wheel moves the plane
-       through the object, a drag pans, + and - zoom, and X and N turn the view with the plane. Z again, Ctrl + X, O
-       or R leave it, the camera as it was before.
+       through the object, a drag pans, + and - zoom, and X and N turn the view with the plane. Z again or Ctrl + X
+       leave it, with the camera as it was before (the cut Z turned on stays until Ctrl + X); O leaves it with that
+       camera in perspective; R leaves it with the camera the window opened with.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
        of the box's diagonal, every 1/50, every 1/100.
@@ -220,7 +221,8 @@ opened with them.
        and the zero line is every boundary and interface (``RegionSettings::m_sectionDomain``); each subdomain's
        function alone, what a cut-cell code cuts for it (``RegionSettings::m_sectionRegions``); then the visible
        regions' again. The value under the cursor is the function shown. The section starts on the active domain,
-       follows the domain made active in the panel, and a click on a subdomain shows it. Where the domain or
+       follows the domain made active in the panel, and while it shows a subdomain's function, a click on another subdomain
+       shows that one's. Where the domain or
        subdomain shown does not compute (the excluded regions, or outside the subdomain), the plane has no lines and
        is filled gray (``Settings::m_fillSecondaryColor``); Shift + E draws their lines, in another color
        (``Settings::m_isoSecondary``, ``m_isoSecondaryColor``).
