@@ -178,7 +178,10 @@ keys(const bool a_device, const bool a_regions = false)
                                  {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
                                  {"T", "See through the picked surface, or make it opaque again"},
                                  {"Shift + T", "Make every surface opaque again"},
-                                 {"Shift + click", "Measure between two points (the background clears it)"}}},
+                                 {"Shift + click", "Measure between two points (the background clears it)"},
+                                 {"Right click",
+                                  "Probe a point: where it is, its region and functions (the background "
+                                  "clears it)"}}},
                                {"Window",
                                 "Window",
                                 {{"Tab, Shift + Tab", "Next or previous menu"},
@@ -488,7 +491,7 @@ enum class PanelAction : uint8_t
 
 /**
  * @brief A line of the viewer's overlay or panel, leading with a capital letter: the first letter past its
- * indentation and its markers ("> ", "[x] ", "[ ] ") is capitalized.
+ * indentation and its markers ("> ", "[x] ", "[~] ", "[ ] ") is capitalized.
  * @details Internal helper; not part of the public API.
  * @param[in] a_line The line.
  * @return The line.
@@ -502,7 +505,7 @@ sentenceCase(std::string a_line)
     return a_line;
   }
 
-  for (const char* marker : {"> ", "[x] ", "[ ] "}) {
+  for (const char* marker : {"> ", "[x] ", "[~] ", "[ ] "}) {
     if (a_line.compare(i, std::strlen(marker), marker) == 0) {
       i += std::strlen(marker);
     }
@@ -1384,6 +1387,40 @@ run(const S&           a_shape,
   Vec3T<T> measureA = Vec3T<T>::zeros();
   Vec3T<T> measureB = Vec3T<T>::zeros();
 
+  // Whether a region is seen through (T): its key under the coloring now, the region's or its material's, is. Under
+  // another coloring, what is seen through belongs to no one region.
+  const auto regionSeenThrough = [&](const uint32_t a_region) {
+    if constexpr (hasRegionVisibility<S>) {
+      const RegionSettings& regions = settings.m_regions;
+
+      uint32_t key = RegionSettings::None;
+
+      if (regions.m_coloring == RegionColoring::Region) {
+        key = a_region;
+      }
+      else if (regions.m_coloring == RegionColoring::Material) {
+        const MaterialLabelId material = shape.getTape().getMaterialOf(a_region);
+
+        key = material.isNone() ? RegionSettings::None : material.value();
+      }
+
+      return key != RegionSettings::None && regions.isSeenThrough(key);
+    }
+    else {
+      (void)a_region;
+
+      return false;
+    }
+  };
+
+  // The probe: a point a right click marks (where the ray meets a surface, or the section plane in front of it), and
+  // where the right button went down (a drag moves the light instead).
+  bool     probed     = false;
+  Vec3T<T> probePoint = Vec3T<T>::zeros();
+  int      rightX     = 0;
+  int      rightY     = 0;
+  bool     rightMoved = false;
+
   // The point under the cursor on the section plane, and the shape's value there.
   bool     cursorOn    = false;
   Vec3T<T> cursorPoint = Vec3T<T>::zeros();
@@ -1538,6 +1575,31 @@ run(const S&           a_shape,
 
       if (seeB) {
         mark(bx, by);
+      }
+
+      SDL_SetRenderDrawColor(screen, 0, 0, 0, 255);
+    }
+
+    // The probe, over the image: a cross with a dark rim.
+    int px = 0;
+    int py = 0;
+
+    if (probed && project(probePoint, px, py)) {
+      for (int pass = 0; pass < 2; pass++) {
+        const int w = (pass == 0) ? 2 : 1;
+        const int r = (pass == 0) ? 8 : 7;
+
+        if (pass == 0) {
+          SDL_SetRenderDrawColor(screen, 20, 20, 20, 255);
+        }
+        else {
+          SDL_SetRenderDrawColor(screen, 40, 220, 255, 255);
+        }
+
+        for (int d = -w + 1; d < w; d++) {
+          SDL_RenderDrawLine(screen, px - r, py + d, px + r, py + d);
+          SDL_RenderDrawLine(screen, px + d, py - r, px + d, py + r);
+        }
       }
 
       SDL_SetRenderDrawColor(screen, 0, 0, 0, 255);
@@ -1814,7 +1876,10 @@ run(const S&           a_shape,
         hidden.empty() ? std::string("Every surface opaque") : "Seen through: " + object + " " + hidden,
         (measured == 2)   ? "Measured " + fixed(double((measureB - measureA).length()), 4)
         : (measured == 1) ? std::string("Measuring: Shift + click the second point")
-                          : std::string("Nothing measured")},
+                          : std::string("Nothing measured"),
+        probed ? "Probe at " + point(probePoint, 3) + ", distance " +
+                   fixed(double(RenderDetail::shownAs(shape, settings).signedDistance(probePoint)), 4)
+               : std::string("No probe: right click a point")},
        {picked ? "Picked at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
                : std::string("No picked point"),
         depthHits.empty() ? std::string("Not stepping through surfaces")
@@ -2082,6 +2147,47 @@ run(const S&           a_shape,
       const bool                byPart  = pickMode == PickMode::Surface;
       const bool                several = chosen.size() > 1U;
 
+      // The probed point: where it is, the region it is in, the active domain's label and functions there, and the
+      // nearest surface of its region with its surface group.
+      if (probed) {
+        const auto&    tape = shape.getTape();
+        const uint32_t in   = tape.region(probePoint);
+
+        line("Probe (right click; on the background, clears it)");
+        line("  At " + point(probePoint, 4) + ", in " + region(in));
+
+        if (names.getNumDomains() > 0U) {
+          const Domain&  domain = names.getDomain(names.getActiveDomain());
+          const uint32_t label  = domain.labelAt(tape, probePoint);
+          const uint32_t count  = domain.getNumLabels();
+
+          T values[Domain::MaxLabels];
+
+          domain.signedDistances(tape, probePoint, values);
+
+          line("  " + names.domainName(names.getActiveDomain()) + ": " +
+               ((label == Domain::Excluded) ? std::string("excluded")
+                                            : "in subdomain " + names.subdomain(label, details)));
+
+          for (uint32_t l = 0; l < count; l++) {
+            line("    " + ((l + 1U == count) ? std::string("Excluded") : "Subdomain " + names.subdomain(l, details)) +
+                 ": function " + fixed(double(values[l]), 4));
+          }
+        }
+
+        const SurfaceRef<T> nearest = tape.closestSurface(probePoint, in);
+
+        if (nearest.m_surface != SurfaceRef<T>::None) {
+          const uint32_t holds = scheme.surfaceGroupOf(nearest);
+
+          line("  Nearest surface " + pieceWords(nearest));
+          line("    " + ((holds == Scheme::None) ? std::string("In no surface group") : "In " + group(holds)) +
+               ", region's function " + fixed(double(tape.signedDistance(probePoint, in)), 4));
+        }
+
+        line("");
+      }
+
       line("Pick");
       line("  ");
       button(std::string(byPart ? "* " : "") + "Surface (the part clicked)", PanelAction::PickMode, 0U);
@@ -2170,7 +2276,7 @@ run(const S&           a_shape,
       }
 
       line("");
-      line("Regions (box: show or hide; name: highlight)");
+      line("Regions (box: show or hide, ~ seen through; name: highlight)");
 
       // The background, everything outside: never drawn, but named, with its material's color.
       line("      " + region(0) + ", outside everything" +
@@ -2186,8 +2292,13 @@ run(const S&           a_shape,
         const bool inDomain = names.getNumDomains() > 0U && names.getDomain(names.getActiveDomain()).computesIn(k);
 
         // The box shows or hides the region; its name highlights its surfaces.
-        line(std::string(regions.isVisible(k, shape.getNumRegions()) ? "  [x] " : "  [ ] ") + region(k) +
-             (inDomain ? ", in the domain" : "") +
+        const bool shown   = regions.isVisible(k, shape.getNumRegions());
+        const bool through = shown && regionSeenThrough(k);
+
+        line(std::string(!shown    ? "  [ ] "
+                         : through ? "  [~] "
+                                   : "  [x] ") +
+             region(k) + (inDomain ? ", in the domain" : "") + (through ? ", seen through" : "") +
              ((k < 64U && regions.m_highlightRegions == (uint64_t(1) << k)) ? " (highlighted)" : ""));
 
         panelActions.back().push_back(PanelSpan{2, 5, PanelAction::ToggleRegion, k});
@@ -2739,7 +2850,10 @@ run(const S&           a_shape,
           moved    = false;
         }
         else if (event.button.button == SDL_BUTTON_RIGHT) {
-          lighting = true;
+          lighting   = true;
+          rightX     = event.button.x;
+          rightY     = event.button.y;
+          rightMoved = false;
         }
 
         break;
@@ -2825,7 +2939,16 @@ run(const S&           a_shape,
                   break;
                 }
                 case PanelAction::ToggleRegion: {
-                  regions.setVisible(clicked.m_value, !regions.isVisible(clicked.m_value, shape.getNumRegions()));
+                  // A region seen through is made opaque again; otherwise the box shows or hides it.
+                  if (regions.isVisible(clicked.m_value, shape.getNumRegions()) && regionSeenThrough(clicked.m_value)) {
+                    const MaterialLabelId material = shape.getTape().getMaterialOf(clicked.m_value);
+
+                    regions.setSeenThrough(
+                      (regions.m_coloring == RegionColoring::Region) ? clicked.m_value : material.value(), false);
+                  }
+                  else {
+                    regions.setVisible(clicked.m_value, !regions.isVisible(clicked.m_value, shape.getNumRegions()));
+                  }
 
                   rekeyPick();
 
@@ -3210,6 +3333,45 @@ run(const S&           a_shape,
         }
         else if (event.button.button == SDL_BUTTON_RIGHT) {
           lighting = false;
+
+          // A right click (no drag) probes the point under the cursor: the surface there, or the section plane where
+          // it shows in front of it; on the background, it clears the probe.
+          if (!rightMoved) {
+            int windowWidth  = 0;
+            int windowHeight = 0;
+
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+            const Settings<T> frame  = stageSettings(2);
+            const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+            const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+            const HitT<T>     hit    = Renderer<T>(frame).pick(shape, camera, column, row);
+
+            Vec3T<T> forward;
+            Vec3T<T> right;
+            Vec3T<T> up;
+
+            camera.frame(forward, right, up);
+
+            const auto depth = [&](const Vec3T<T>& a_point) { return dot(a_point - camera.eye(), forward); };
+
+            readCursor(event.button.x, event.button.y);
+
+            const bool onPlane = frame.m_section && cursorOn && (!hit.hit() || depth(cursorPoint) < depth(hit.m_point));
+
+            probed     = onPlane || hit.hit();
+            probePoint = onPlane ? cursorPoint : hit.m_point;
+
+            if (probed) {
+              std::printf("EBGeometry viewer: probe at (%g, %g, %g)\n",
+                          double(probePoint[0]),
+                          double(probePoint[1]),
+                          double(probePoint[2]));
+              std::fflush(stdout);
+            }
+
+            changed = true;
+          }
         }
 
         break;
@@ -3218,6 +3380,8 @@ run(const S&           a_shape,
         moved = moved || std::abs(event.motion.x - pressX) > 3 || std::abs(event.motion.y - pressY) > 3;
 
         if (lighting) {
+          rightMoved = rightMoved || std::abs(event.motion.x - rightX) > 3 || std::abs(event.motion.y - rightY) > 3;
+
           turnLight(T(0.4) * T(event.motion.xrel), -T(0.4) * T(event.motion.yrel));
 
           changed = true;
