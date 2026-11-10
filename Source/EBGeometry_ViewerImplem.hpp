@@ -192,8 +192,12 @@ keys(const bool a_device, const bool a_regions = false)
     groups[1].m_keys.push_back({"G", "Render on the GPU or the CPU"});
   }
 
-  // A shape whose regions can be shown and hidden (see RegionView) gets a group of its own, before the window's.
+  // A shape whose regions can be shown and hidden (see RegionView) gets a group of its own, before the window's, and
+  // the section's keys for its domains.
   if (a_regions) {
+    groups[2].m_keys.push_back({"E", "Show the domain's functions, each subdomain's, or the regions'"});
+    groups[2].m_keys.push_back({"Shift + E", "Lines where the domain shown does not compute, or none"});
+
     groups.insert(groups.end() - 1,
                   KeyGroup{"Regions",
                            "Regions",
@@ -201,8 +205,6 @@ keys(const bool a_device, const bool a_regions = false)
                             {"K", "Color by the next kind (the panel's Color by sets one)"},
                             {"L", "Show only surfaces like the picked one, or everything again"},
                             {"V", "Show one region at a time, in turn, then all"},
-                            {"E", "Section shows: the domain's functions, each subdomain's, the visible regions'"},
-                            {"Shift + E", "Lines where the domain shown does not compute, or none"},
                             {"Shift + V", "Hide the picked region"},
                             {"Ctrl + V", "Show every region"},
                             {nullptr, "Surface groups (as the panel's buttons)"},

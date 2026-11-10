@@ -465,7 +465,7 @@ struct Settings
    * @brief Width in pixels of the line drawn on the section plane where it meets the shape's surface (the
    * shape's contour in the plane); 0 draws none.
    */
-  T m_contourWidth = T(2);
+  T m_contourWidth = T(3.5);
 
   /**
    * @brief The contour's color.
