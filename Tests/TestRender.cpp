@@ -424,7 +424,7 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
 
       (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
     },
-    "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be from 0 to 1 (2, 2)"));
+    "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be from 0 to 1 (3.5, 2)"));
 
   REQUIRE(abortsWith(
     [&sphere] {
