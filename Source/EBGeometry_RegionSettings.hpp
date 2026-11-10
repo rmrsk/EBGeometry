@@ -132,6 +132,14 @@ struct RegionSettings
   uint32_t m_numSelected = 0U;
 
   /**
+   * @brief Whether only the selected surfaces are shown, all of them, those other surfaces hid included, each side
+   * keyed apart: Selected + entry where the view enters the region seen, Selected + MaxSelected + entry where it
+   * leaves it (a surface's back, seen through an open end). A viewer renders so to outline each selected surface along
+   * its own edges: where its key changes, at its silhouette and at its rims.
+   */
+  bool m_onlySelected = false;
+
+  /**
    * @brief The entry of the selection a surface is selected by.
    * @tparam T Floating-point precision.
    * @param[in] a_surface The surface, with its sides and their materials set.

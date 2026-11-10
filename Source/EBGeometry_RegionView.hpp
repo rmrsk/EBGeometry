@@ -169,8 +169,11 @@ public:
                                ? m_settings.m_scheme.surfaceGroupOf(change.m_surface)
                                : None;
 
-      // A hidden surface group's surfaces are passed through.
-      const bool hidden = m_settings.isSurfaceGroupHidden(group);
+      // With only the selected surfaces shown, the entry of the selection the surface is in.
+      const uint32_t entry = m_settings.m_onlySelected ? m_settings.selectionOf(change.m_surface) : None;
+
+      // A hidden surface group's surfaces are passed through, and with only the selected surfaces shown, the others.
+      const bool hidden = m_settings.isSurfaceGroupHidden(group) || (m_settings.m_onlySelected && entry == None);
 
       for (const uint32_t seen : sides) {
         if (hidden) {
@@ -181,19 +184,27 @@ public:
           continue;
         }
 
+        const bool entering = (seen == to);
+
+        HitT<T> hit = change.m_hit;
+
+        // The crossing's normal points into the region entered: outward of the region left.
+        hit.m_normal   = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
+        hit.m_entering = entering;
+
+        // Only the selected surfaces shown: keyed by their entry and the side seen (see RegionSettings::m_onlySelected).
+        if (m_settings.m_onlySelected) {
+          hit.m_primitive = RegionSettings::Selected + entry + (entering ? 0U : RegionSettings::MaxSelected);
+
+          return hit;
+        }
+
         const uint32_t key = this->keyOf(change.m_surface, seen);
 
         if (this->isSeenThrough(key) || (m_settings.m_only != None && key != m_settings.m_only)) {
           continue;
         }
 
-        const bool entering = (seen == to);
-
-        HitT<T> hit = change.m_hit;
-
-        // The crossing's normal points into the region entered: outward of the region left.
-        hit.m_normal    = entering ? -change.m_hit.m_normal : change.m_hit.m_normal;
-        hit.m_entering  = entering;
         hit.m_primitive = key;
 
         // The surfaces of the highlighted surface group, whatever the coloring; a selected one, by its entry.

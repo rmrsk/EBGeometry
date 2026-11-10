@@ -2495,25 +2495,44 @@ run(const S&           a_shape,
 
     // A pick with no key (a surface in no group, colored by group) has nothing to outline: the background has no key
     // either.
-    // What is picked is outlined by the keys the render gives it: each surface picked, by its own key (so that the
-    // borders between two of them are drawn too), or the one picked.
+    // What is picked is outlined: each surface picked along its own edges, or the one picked around what shows of it.
     constexpr uint32_t Outside = 0xFFFFFFFFU;
 
     const bool     several = settings.m_highlightPrimitive == RegionSettings::Selected && !selection.empty();
     const uint32_t key     = pick.m_primitive;
     const bool     outline = picked && (primitivesAreFaces<S> || several || key != Outside);
 
-    if (outline && a_image.m_primitives.size() == a_image.m_pixels.size()) {
-      // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one).
+    // The surfaces picked, rendered again alone at the frame's size, each side of each keyed apart: their edges are
+    // where the keys change, at their silhouettes and at their rims, wherever the rest of the object hides them.
+    Image edges;
+
+    if constexpr (hasRegionVisibility<S>) {
+      if (outline && several) {
+        Settings<T> alone = stageSettings(1);
+
+        alone.m_width                  = a_image.m_width;
+        alone.m_height                 = a_image.m_height;
+        alone.m_recordPrimitives       = true;
+        alone.m_regions.m_onlySelected = true;
+        alone.m_viewMode               = ViewMode::Shaded;
+
+        (void)render(shape, deviceShape, alone, camera, onDevice, edges, nullptr);
+      }
+    }
+
+    const Image& keyed = several ? edges : a_image;
+
+    if (outline && keyed.m_primitives.size() == a_image.m_pixels.size()) {
+      // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one; a picked surface's side).
       const auto objectAt = [&](const int a_x, const int a_y) {
-        const uint32_t id = a_image.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
+        const uint32_t id = keyed.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
 
         if (primitivesAreFaces<S>) {
           return (id != Outside) ? 0U : Outside;
         }
 
         if (several) {
-          return (id - RegionSettings::Selected < settings.m_highlightCount) ? id : Outside;
+          return (id - RegionSettings::Selected < 2U * RegionSettings::MaxSelected) ? id : Outside;
         }
 
         return (id == key) ? id : Outside;

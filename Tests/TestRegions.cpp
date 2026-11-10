@@ -1620,6 +1620,24 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Selected);
 
+  // Only the selected surfaces shown: the jacket passed through, the core's surface keyed by its entry and the side
+  // seen, from the core (entering it) or, with the core hidden, from the jacket (its bore).
+  settings.m_regions.m_hidden       = 0U;
+  settings.m_regions.m_onlySelected = true;
+  settings.m_regions.m_numSelected  = 1U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Selected);
+
+  settings.m_regions.setVisible(2, false);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive ==
+        RegionSettings::Selected + RegionSettings::MaxSelected);
+
+  settings.m_regions.m_onlySelected = false;
+  settings.m_regions.m_numSelected  = 2U;
+
+  settings.m_regions.showOnly(2);
+
   // Highlighting the selection's keys, a range of them, tints every selected surface and nothing else.
   settings.m_highlightPrimitive = RegionSettings::Selected;
   settings.m_highlightCount     = 2U;
