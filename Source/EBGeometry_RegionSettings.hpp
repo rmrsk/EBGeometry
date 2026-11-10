@@ -246,6 +246,40 @@ struct RegionSettings
   }
 
   /**
+   * @brief The surface groups of the scheme seen through, a bit each (bit g for surface group g): their surfaces drawn
+   * translucent and passed through, as the keys of m_through are.
+   */
+  uint32_t m_throughGroups = 0U;
+
+  /**
+   * @brief Whether a surface group is seen through (m_throughGroups).
+   * @param[in] a_group The surface group, or None (never seen through).
+   * @return True if it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isSurfaceGroupSeenThrough(const uint32_t a_group) const noexcept
+  {
+    return a_group < 32U && ((m_throughGroups >> a_group) & 1U) != 0U;
+  }
+
+  /**
+   * @brief See through a surface group, or make it opaque again.
+   * @param[in] a_group   The surface group (below Scheme::MaxSurfaceGroups).
+   * @param[in] a_through Whether to see through it.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  setSurfaceGroupSeenThrough(const uint32_t a_group, const bool a_through) noexcept
+  {
+    if (a_group < 32U) {
+      const uint32_t bit = 1U << a_group;
+
+      m_throughGroups = a_through ? (m_throughGroups | bit) : (m_throughGroups & ~bit);
+    }
+  }
+
+  /**
    * @brief The key of the interface between two regions, the same whichever side it is seen from.
    * @param[in] a_first  A region.
    * @param[in] a_second The region on the other side.
@@ -374,7 +408,7 @@ struct RegionSettings
   }
 
   /**
-   * @brief Make every surface opaque: no key and no region seen through.
+   * @brief Make every surface opaque: no key, no region and no surface group seen through.
    */
   EBGEOMETRY_HOST_DEVICE
   inline void
@@ -385,6 +419,7 @@ struct RegionSettings
     }
 
     m_throughRegions = 0U;
+    m_throughGroups  = 0U;
   }
 
   /**

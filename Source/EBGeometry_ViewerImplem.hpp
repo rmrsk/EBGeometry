@@ -476,7 +476,7 @@ enum class PanelAction : uint8_t
   ColorBy,        ///< Color by a kind of key, the normal, or one color (see colorChoices).
   RenameGroup,    ///< Type a surface group's name.
   Details,        ///< Show or hide details (numbers, coordinates, statistics).
-  HideGroup,      ///< Hide a surface group's surfaces, or show them again.
+  HideGroup,      ///< Cycle a surface group's surfaces: shown, translucent, hidden, shown again.
   CopyGroup,      ///< Copy a surface group: a new one with the same selectors.
   SelectDomain,   ///< Make a registered domain the active one and highlight it, or stop highlighting it.
   HighlightSubdomain, ///< Highlight a subdomain's surfaces, or stop.
@@ -1362,6 +1362,10 @@ run(const S&           a_shape,
         const uint32_t below  = (1U << a_group) - 1U;
 
         settings.m_regions.m_hiddenGroups = (hidden & below) | ((hidden >> (a_group + 1U)) << a_group);
+
+        const uint32_t through = settings.m_regions.m_throughGroups;
+
+        settings.m_regions.m_throughGroups = (through & below) | ((through >> (a_group + 1U)) << a_group);
 
         // The highlighted surface group moves down with the others, or goes with the one deleted.
         const uint32_t highlighted = settings.m_regions.m_highlightGroup;
@@ -2373,14 +2377,20 @@ run(const S&           a_shape,
         line(std::string(g == currentGroup ? "  > " : "    "));
 
         panelLines.back() += group(g) + ((regions.m_highlightGroup == g) ? " (highlighted)" : "") +
-                             (regions.isSurfaceGroupHidden(g) ? " (hidden)" : "");
+                             (regions.isSurfaceGroupHidden(g)        ? " (hidden)"
+                              : regions.isSurfaceGroupSeenThrough(g) ? " (translucent)"
+                                                                     : "");
         panelActions.back().push_back(PanelSpan{0, panelLines.back().size(), PanelAction::CurrentGroup, g});
 
         if (settings.m_colorBy == ColorBy::Primitive && regions.m_coloring == RegionColoring::SurfaceGroup) {
           swatch(g);
         }
 
-        button(regions.isSurfaceGroupHidden(g) ? "Show" : "Hide", PanelAction::HideGroup, g);
+        button(regions.isSurfaceGroupHidden(g)        ? "Show"
+               : regions.isSurfaceGroupSeenThrough(g) ? "Hide"
+                                                      : "Translucent",
+               PanelAction::HideGroup,
+               g);
         button("Rename", PanelAction::RenameGroup, g);
 
         if (scheme.getNumSurfaceGroups() < Scheme::MaxSurfaceGroups) {
@@ -3154,6 +3164,7 @@ run(const S&           a_shape,
                     scheme                   = names.getDomain(clicked.m_value).m_scheme;
                     currentGroup             = 0;
                     regions.m_hiddenGroups   = 0U;
+                    regions.m_throughGroups  = 0U;
                     regions.m_highlightGroup = RegionSettings::None;
 
                     // A section showing a domain or a subdomain shows the new domain.
@@ -3240,7 +3251,19 @@ run(const S&           a_shape,
                   break;
                 }
                 case PanelAction::HideGroup: {
-                  regions.setSurfaceGroupHidden(clicked.m_value, !regions.isSurfaceGroupHidden(clicked.m_value));
+                  // Shown, translucent, hidden, shown again.
+                  const uint32_t g = clicked.m_value;
+
+                  if (regions.isSurfaceGroupHidden(g)) {
+                    regions.setSurfaceGroupHidden(g, false);
+                  }
+                  else if (!regions.isSurfaceGroupSeenThrough(g)) {
+                    regions.setSurfaceGroupSeenThrough(g, true);
+                  }
+                  else {
+                    regions.setSurfaceGroupSeenThrough(g, false);
+                    regions.setSurfaceGroupHidden(g, true);
+                  }
 
                   rekeyPick();
 
@@ -4153,6 +4176,8 @@ run(const S&           a_shape,
             settings.m_regions.m_sectionRegions   = 0U;
             settings.m_regions.m_sectionDomain    = false;
             settings.m_regions.m_hiddenGroups     = a_settings.m_regions.m_hiddenGroups;
+            settings.m_regions.m_throughGroups    = a_settings.m_regions.m_throughGroups;
+            settings.m_regions.m_throughRegions   = a_settings.m_regions.m_throughRegions;
 
             for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
               settings.m_regions.m_through[i] = a_settings.m_regions.m_through[i];

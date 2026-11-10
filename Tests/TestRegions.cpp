@@ -1722,8 +1722,22 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
   CHECK_THAT(veil.m_t, withinAbsT<T>((camera.eye()).length() - T(1), looseMargin<T>()));
   CHECK_THAT(seen.m_t, withinAbsT<T>((camera.eye()).length() - T(0.5), looseMargin<T>()));
 
+  // A surface group seen through: the jacket's outside, in group 0. A pick passes through it to the core, and it is
+  // the layer in front.
+  settings.m_regions.clearSeenThrough();
+  settings.m_regions.m_coloring = RegionColoring::Region;
+  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addSurfaceGroup(), SurfaceSelector::interface(1, 0));
+  settings.m_regions.setSurfaceGroupSeenThrough(0, true);
+
+  CHECK(settings.m_regions.isSurfaceGroupSeenThrough(0));
+  CHECK(!settings.m_regions.isSurfaceGroupSeenThrough(1));
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, T(size / 2), T(size / 2)).m_primitive == 2U);
+  CHECK_THAT(view.withSettings(settings.m_regions).firstSeenThrough(into, T(0), T(100), RayOptions<T>()).m_t,
+             withinAbsT<T>((camera.eye()).length() - T(1), looseMargin<T>()));
+
   settings.m_regions.clearSeenThrough();
 
+  CHECK(!settings.m_regions.isSurfaceGroupSeenThrough(0));
   CHECK(!settings.m_regions.isRegionSeenThrough(1));
   CHECK(!view.withSettings(settings.m_regions).firstSeenThrough(into, T(0), T(100), RayOptions<T>()).hit());
 

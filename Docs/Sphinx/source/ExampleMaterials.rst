@@ -86,7 +86,7 @@ A click picks the piece of surface under the cursor: its surface, part, and the 
 the current surface group of the scheme, each with how many pieces it takes in (this piece only, all of its surface,
 all surfaces of its region, or everything between its two regions), or to remove it; below, the regions, each shown or hidden by its box and highlighted by a click on its name (the background
 too), and the surface groups with their selectors, a
-click making one current and highlighting its surfaces, ``[Hide]`` hiding them, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface
+click making one current and highlighting its surfaces, ``[Translucent]``, ``[Hide]`` and ``[Show]`` cycling them through translucent, hidden and shown, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface
 group]`` starting one (its name typed first); last, the
 count of pieces and of those in no surface group, with ``[Next unassigned]`` to go to the next of these, until
 every piece has a surface group. Colored by surface group, those in none are gray; C prints the scheme as C++, to paste into a program. The window names everything by the

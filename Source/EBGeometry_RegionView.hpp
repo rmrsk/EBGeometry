@@ -197,7 +197,7 @@ public:
   inline HitT<T>
   firstSeenThrough(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
-    bool any = m_settings.m_throughRegions != 0U;
+    bool any = m_settings.m_throughRegions != 0U || m_settings.m_throughGroups != 0U;
 
     for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
       any = any || m_settings.m_through[i] != None;
@@ -246,9 +246,10 @@ private:
       const uint32_t sides[2] = {Math::max(from, to), Math::min(from, to)};
 
       // The surface group the surface is in, when the settings hide or highlight one.
-      const uint32_t group = (m_settings.m_hiddenGroups != 0U || m_settings.m_highlightGroup != None)
-                               ? m_settings.m_scheme.surfaceGroupOf(change.m_surface)
-                               : None;
+      const uint32_t group =
+        (m_settings.m_hiddenGroups != 0U || m_settings.m_throughGroups != 0U || m_settings.m_highlightGroup != None)
+          ? m_settings.m_scheme.surfaceGroupOf(change.m_surface)
+          : None;
 
       // With only the selected surfaces shown, the entry of the selection the surface is in.
       const uint32_t entry = m_settings.m_onlySelected ? m_settings.selectionOf(change.m_surface) : None;
@@ -286,7 +287,8 @@ private:
         }
 
         const uint32_t key     = this->keyOf(change.m_surface, seen);
-        const bool     through = this->isSeenThrough(key) || m_settings.isRegionSeenThrough(seen);
+        const bool     through = this->isSeenThrough(key) || m_settings.isRegionSeenThrough(seen) ||
+                             m_settings.isSurfaceGroupSeenThrough(group);
 
         if (m_settings.m_only != None && key != m_settings.m_only) {
           continue;

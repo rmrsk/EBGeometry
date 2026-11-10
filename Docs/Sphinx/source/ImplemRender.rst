@@ -258,8 +258,10 @@ material coloring shows so too) and off ``[ ]``, and highlighted by a click on i
 surface with it on either side lights; the background is listed and highlighted so, never drawn); and the
 surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
-``RegionSettings::m_highlightGroup`` does the same in a program), its ``[Hide]`` hides its surfaces (they are not
-drawn and cast no shadow; ``RegionSettings::setSurfaceGroupHidden()`` in a program), its ``[Rename]`` lets its name be typed (Enter keeps it, Esc cancels), its ``[Copy]`` makes a new surface group with
+``RegionSettings::m_highlightGroup`` does the same in a program), its button cycles its surfaces through
+translucent (``[Translucent]``; ``RegionSettings::setSurfaceGroupSeenThrough()`` in a program, passed through by a
+click), hidden (``[Hide]``: not drawn, casting no shadow; ``RegionSettings::setSurfaceGroupHidden()``) and shown
+again (``[Show]``), its ``[Rename]`` lets its name be typed (Enter keeps it, Esc cancels), its ``[Copy]`` makes a new surface group with
 the same selectors (a surface is in the first surface group that holds it, so a selector whose pieces an earlier one
 holds says so), and its ``[Delete]`` and a
 selector's ``[x]`` remove them; ``[+ New surface group]`` starts one, its name typed first, and ``[Add remaining
