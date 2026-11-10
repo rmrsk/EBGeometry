@@ -3259,6 +3259,12 @@ run(const S&           a_shape,
               highlightGroup(RegionSettings::None);
             }
 
+            // Stepping picks one surface at a time: what was picked before is dropped first, so that the surfaces
+            // are listed by their own keys.
+            if (depthHits.empty()) {
+              clearSelection();
+            }
+
             Settings<T> frame = stageSettings(2);
 
             // The surfaces are listed as the user's settings show them, without those stepped past.
@@ -3794,6 +3800,8 @@ run(const S&           a_shape,
                 regions.setVisible(pick.m_primitive, false);
 
                 picked = false;
+
+                clearSelection();
               }
             }
             else {
@@ -3825,9 +3833,10 @@ run(const S&           a_shape,
             else if (picked) {
               regions.setSeenThrough(pick.m_primitive, !regions.isSeenThrough(pick.m_primitive));
 
+              // What is seen through is no longer picked (nor anything picked with it).
               picked = false;
 
-              settings.m_highlightPrimitive = Settings<T>::NoPrimitive;
+              clearSelection();
             }
             else {
               changed = pending;
