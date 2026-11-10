@@ -466,6 +466,7 @@ enum class PanelAction : uint8_t
   RemovePiece,    ///< Remove what holds the picked piece from the current surface group.
   Unpick,         ///< Take one out of what is picked.
   UnpickAll,      ///< Pick nothing.
+  MakeOpaque,     ///< Undo what else hides or fades surfaces: keys seen through, one shown alone, groups' states.
   PickMode,       ///< Pick the part of a surface clicked, or the region there.
   ToggleRegion,   ///< Show or hide a region.
   CurrentGroup,   ///< Make a surface group the one added to.
@@ -2379,6 +2380,57 @@ run(const S&           a_shape,
       line("");
       line("Regions (box: shown, ~ translucent, off; name: highlight)");
 
+      // What else hides or fades surfaces, beside the boxes below: the keys seen through (T, or stepping), the key shown
+      // alone (L), the surface groups made translucent or hidden, and the camera inside a region; with a way to undo
+      // all but the camera (the regions' own boxes are kept).
+      {
+        std::vector<std::string> others;
+        std::string              through;
+
+        for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+          if (regions.m_through[i] != RegionSettings::None) {
+            through += (through.empty() ? "" : ", ") + keyName(regions.m_through[i]);
+          }
+        }
+
+        if (!through.empty()) {
+          others.push_back("seen through: " + through + " (T)");
+        }
+
+        if (regions.m_only != RegionSettings::None) {
+          others.push_back("showing only " + keyName(regions.m_only) + " (L)");
+        }
+
+        for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+          if (regions.isSurfaceGroupHidden(g)) {
+            others.push_back("surface group " + group(g) + " hidden");
+          }
+          else if (regions.isSurfaceGroupSeenThrough(g)) {
+            others.push_back("surface group " + group(g) + " translucent");
+          }
+        }
+
+        const bool inside = shownStats.m_cameraInside;
+
+        if (inside) {
+          others.push_back("the camera is inside " + region(shape.getTape().region(camera.eye())) + " (zoom out)");
+        }
+
+        if (!others.empty()) {
+          line("  Also hiding or fading surfaces:");
+
+          for (const std::string& other : others) {
+            line("    " + other);
+          }
+
+          if (!through.empty() || regions.m_only != RegionSettings::None || regions.m_hiddenGroups != 0U ||
+              regions.m_throughGroups != 0U) {
+            line("    ");
+            button("Make all opaque", PanelAction::MakeOpaque, 0U);
+          }
+        }
+      }
+
       // The background, everything outside: never drawn, but named, with its material's color.
       line("      " + region(0) + ", outside everything" +
            (regions.isRegionHighlighted(0) && regions.m_highlightRegions == 1U ? " (highlighted)" : ""));
@@ -3029,6 +3081,20 @@ run(const S&           a_shape,
                   }
 
                   picked = picked && !selection.empty();
+
+                  rekeyPick();
+
+                  break;
+                }
+                case PanelAction::MakeOpaque: {
+                  // Every key opaque and shown, every surface group shown; the regions keep their boxes.
+                  for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+                    regions.m_through[i] = RegionSettings::None;
+                  }
+
+                  regions.m_only          = RegionSettings::None;
+                  regions.m_throughGroups = 0U;
+                  regions.m_hiddenGroups  = 0U;
 
                   rekeyPick();
 

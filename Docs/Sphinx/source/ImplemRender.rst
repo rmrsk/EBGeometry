@@ -257,7 +257,9 @@ taking it out), highlighted (``RegionSettings::m_selected`` in a program) and ou
 rims included, where the object does not hide them, with ``[Pick nothing]`` and the ways to
 add it to the current surface group, each saying how many of the object's pieces it takes in: what is picked, the
 whole pieces with all their parts, all of their surfaces, all surfaces of their regions, or everything between their
-two regions; and a button to remove them; the regions, each with a box a click cycles through shown ``[x]``, translucent ``[~]``
+two regions; and a button to remove them; the regions, under a list of what else hides or fades surfaces (keys seen through, a key shown alone, surface
+groups translucent or hidden, the camera inside a region) with ``[Make all opaque]``, which undoes all of it but the
+regions' boxes and the camera; each region with a box a click cycles through shown ``[x]``, translucent ``[~]``
 (``RegionSettings::setRegionSeenThrough()``, whatever the coloring; a region seen through by T under the region or
 material coloring shows so too) and off ``[ ]``, and highlighted by a click on its name (every
 surface with it on either side lights; the background is listed and highlighted so, never drawn); and the
