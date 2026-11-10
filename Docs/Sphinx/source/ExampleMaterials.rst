@@ -3,14 +3,14 @@
 Materials
 =========
 
-Several materials in one object: a cable, a copper core inside a PTFE jacket, in air, cut open by a slab. The
+Several materials in one object: a cable, a copper core inside a PTFE jacket, in air. The
 source is at :file:`Examples/Materials/main.cpp`.
 
 .. figure:: /_static/example_Materials.jpg
    :width: 60%
    :align: center
 
-   The cable colored by region: the jacket violet, the core green, seen through the cut.
+   The cable cut open by the section plane, the cut filled by material: the copper core, the PTFE jacket, the air.
 
 Regions, not one solid
 ----------------------
@@ -18,14 +18,14 @@ Regions, not one solid
 A union makes one solid of its operands, and the core's surface would vanish inside the jacket.
 ``Overlay(jacket, core, "air")`` makes each operand a region instead, later ones on top where they overlap, and
 the outside the background, region 0 (see :ref:`Chap:ClosestPrimitive`). ``MaterialLabel()`` names a region's
-material. A ``Difference`` with the Overlay first cuts every region at once.
+material.
 
 .. code-block:: c++
 
    const auto jacket = MaterialLabel(CylinderSDF<T>(a, b, T(1)), "PTFE");
    const auto core   = MaterialLabel(CylinderSDF<T>(c, d, T(0.4)), "copper");
 
-   const Expr<T> object = Difference(Overlay(jacket, core, "air"), slab);
+   const Expr<T> object = Overlay(jacket, core, "air");
 
 Which region, and each region's function
 ----------------------------------------

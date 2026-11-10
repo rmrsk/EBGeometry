@@ -40,11 +40,7 @@ main(int argc, char* argv[])
                               "copper"),
     "core");
 
-  const Expr cable = EBGeometry::Overlay(jacket, core, "air");
-
-  // Cut open: a slab removed from every region (a mask), so that the core shows.
-  const Expr object =
-    EBGeometry::Difference(cable, EBGeometry::BoxSDF<T>(Vec3(T(0), T(-2), T(-1)), Vec3(T(2), T(2), T(1))));
+  const Expr object = EBGeometry::Overlay(jacket, core, "air");
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
@@ -163,6 +159,12 @@ main(int argc, char* argv[])
 
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
 
+  // The window opens cut along the cable's axis by the section plane, the cut filled by material, so that the core
+  // shows (X steps the plane on, Shift + I the fill).
+  settings.m_section       = true;
+  settings.m_sectionNormal = Vec3(T(1), T(0), T(0));
+  settings.m_sectionFill   = T(1);
+
   // The names the window shows: the regions by their names and materials, the domains and their surface groups.
   EBGeometry::RegionNames names(index);
 
@@ -179,6 +181,7 @@ main(int argc, char* argv[])
   // Colors by name (linear RGB): the materials, and the surface groups when colored by them.
   names.setColor("copper", EBGeometry::Vec3T<double>(0.75, 0.33, 0.12));
   names.setColor("PTFE", EBGeometry::Vec3T<double>(0.80, 0.80, 0.75));
+  names.setColor("air", EBGeometry::Vec3T<double>(0.55, 0.70, 0.90));
   names.setColor("dirichlet", EBGeometry::Vec3T<double>(0.85, 0.15, 0.10));
   names.setColor("jump", EBGeometry::Vec3T<double>(0.10, 0.35, 0.85));
 
@@ -186,10 +189,11 @@ main(int argc, char* argv[])
 
   const EBGeometry::RegionView<Tape> regions(tape);
 
-  // From the side the cut is on, so that the core shows in it.
+  // From the side the plane keeps open.
   auto camera = EBGeometry::Render::Camera<T>::fit(regions.computeBoundingVolume());
 
-  camera.m_yaw = T(70);
+  camera.m_yaw   = T(30);
+  camera.m_pitch = T(30);
 
   // With the tape's pool, a GPU build renders on the device (G switches between the GPU and the CPU).
   EBGeometry::Render::view(regions, pool, camera, settings, names, argc, argv);

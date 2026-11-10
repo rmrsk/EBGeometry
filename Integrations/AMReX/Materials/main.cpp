@@ -108,7 +108,7 @@ main(int argc, char* argv[])
     pp.query("max_grid_size", max_grid_size);
     pp.query("subdomain", subdomain);
 
-    // The regions: the jacket (1), then the core (2) on top of it, in air (0); a slab removed from all of them.
+    // The regions: the jacket (1), then the core (2) on top of it, in air (0).
     const Expr jacket = EBGeometry::RegionName(
       EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)),
                                 "PTFE"),
@@ -117,8 +117,7 @@ main(int argc, char* argv[])
       EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)),
                                 "copper"),
       "core");
-    const Expr object = EBGeometry::Difference(EBGeometry::Overlay(jacket, core, "air"),
-                                               EBGeometry::BoxSDF<T>(Vec3(T(0), T(-2), T(-1)), Vec3(T(2), T(2), T(1))));
+    const Expr object = EBGeometry::Overlay(jacket, core, "air");
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
