@@ -18,10 +18,10 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_DomainSetup.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Ray.hpp"
-#include "EBGeometry_Scheme.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 
 namespace EBGeometry {
@@ -425,12 +425,12 @@ struct PieceCoverage
  * only selectors without one cover it.
  * @param[in] a_piece     The piece.
  * @param[in] a_inventory The object's surfaces.
- * @param[in] a_scheme    The scheme.
+ * @param[in] a_scheme    The domain whose surface groups cover it (its setup).
  * @return The coverage.
  */
 [[nodiscard]] EBGEOMETRY_HOST
 inline PieceCoverage
-coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, const Scheme& a_scheme)
+coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, const DomainSetup& a_scheme)
 {
   bool partConditions  = false;
   bool labelConditions = false;

@@ -93,8 +93,8 @@ main(int argc, char* argv[])
   // each surface is then, at a point, a boundary (one side in its regions), an interface (two subdomains meet) or
   // nothing to it.
   // closestSurface(p, region) names the surface and the regions on its two sides there.
-  EBGeometry::Subdomains cfd;            // flow in the air only
-  EBGeometry::Subdomains electrostatics; // the air and the jacket; the core is a conductor
+  EBGeometry::DomainSetup cfd;            // flow in the air only
+  EBGeometry::DomainSetup electrostatics; // the air and the jacket; the core is a conductor
 
   cfd.addSubdomain({1});
   electrostatics.addSubdomain({1});
@@ -120,27 +120,26 @@ main(int argc, char* argv[])
   // ── The domains ────────────────────────────────────────────────────────────────────────────────────
   //
   // A domain describes what a downstream solver computes on: its regions (the subdomains above) and its surface groups,
-  // one per boundary condition: the group's name
-  // is the condition's tag, its number the id a kernel reads (scheme.surfaceGroupOf(surface)); the first selector that
-  // matches a surface decides. Electrostatics: every conductor surface is dirichlet, the box grounded, the jacket's
-  // outside a jump; flow: the box is the far field, every other surface of the air a wall.
-  EBGeometry::Domain electrostatic{electrostatics, {}};
+  // one per boundary condition: the group's name is the condition's tag, its number the id a kernel reads
+  // (domain.surfaceGroupOf(surface)); the first selector that matches a surface decides. Electrostatics: every conductor
+  // surface is dirichlet, the box grounded, the jacket's outside a jump; flow: the box is the far field, every other
+  // surface of the air a wall. The setups describe the domains; a Domain is built from one, for the tape.
+  const uint32_t dirichlet = electrostatics.addSurfaceGroup();
+  const uint32_t ground    = electrostatics.addSurfaceGroup();
+  const uint32_t jump      = electrostatics.addSurfaceGroup();
 
-  const uint32_t dirichlet = electrostatic.m_scheme.addSurfaceGroup();
-  const uint32_t ground    = electrostatic.m_scheme.addSurfaceGroup();
-  const uint32_t jump      = electrostatic.m_scheme.addSurfaceGroup();
+  electrostatics.add(dirichlet, EBGeometry::SurfaceSelector::region(3));
+  electrostatics.add(ground, EBGeometry::SurfaceSelector::interface(1, 0));
+  electrostatics.add(jump, EBGeometry::SurfaceSelector::interface(1, 2));
 
-  electrostatic.m_scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(3));
-  electrostatic.m_scheme.add(ground, EBGeometry::SurfaceSelector::interface(1, 0));
-  electrostatic.m_scheme.add(jump, EBGeometry::SurfaceSelector::interface(1, 2));
+  const uint32_t farField = cfd.addSurfaceGroup();
+  const uint32_t wall     = cfd.addSurfaceGroup();
 
-  EBGeometry::Domain flow{cfd, {}};
+  cfd.add(farField, EBGeometry::SurfaceSelector::interface(1, 0));
+  cfd.add(wall, EBGeometry::SurfaceSelector::region(1));
 
-  const uint32_t farField = flow.m_scheme.addSurfaceGroup();
-  const uint32_t wall     = flow.m_scheme.addSurfaceGroup();
-
-  flow.m_scheme.add(farField, EBGeometry::SurfaceSelector::interface(1, 0));
-  flow.m_scheme.add(wall, EBGeometry::SurfaceSelector::region(1));
+  // The electrostatic domain, its tables in the tape's pool: what a kernel takes (after rebasedView() onto a device).
+  const EBGeometry::Domain electrostatic(pool, tape, electrostatics);
 
   // What a cut-cell code samples at a node: every point has a label (a subdomain, or Excluded where the domain does
   // not compute, the core), and each label a function negative exactly in it. An edge between two nodes of different
@@ -148,15 +147,14 @@ main(int argc, char* argv[])
   std::cout << "Electrostatics at nodes along x, at z = 1.5 (air, jacket, excluded):\n";
 
   for (const T x : {T(1.2), T(0.8), T(0.2)}) {
-    T values[EBGeometry::Domain::MaxLabels];
+    T values[3];
 
-    electrostatic.signedDistances(tape, Vec3(x, T(0), T(1.5)), values);
+    electrostatic.signedDistances(Vec3(x, T(0), T(1.5)), values);
 
-    const uint32_t label = electrostatic.labelAt(tape, Vec3(x, T(0), T(1.5)));
+    const uint32_t label = electrostatic.labelAt(Vec3(x, T(0), T(1.5)));
 
     std::cout << "  x = " << x << ": "
-              << ((label == EBGeometry::Domain::Excluded) ? std::string("excluded")
-                                                          : "subdomain " + std::to_string(label))
+              << ((label == electrostatic.Excluded) ? std::string("excluded") : "subdomain " + std::to_string(label))
               << "; functions " << values[0] << ", " << values[1] << ", " << values[2] << '\n';
   }
 
@@ -164,7 +162,7 @@ main(int argc, char* argv[])
   //
   // RegionView shows the regions' surfaces, internal ones included. The window's panel switches between the
   // domains, names the surface under a click and adds it to a surface group, and checks that every surface a domain
-  // touches has one; C prints the active domain's surface groups as C++.
+  // touches has one; C prints the active domain's setup as C++.
   EBGeometry::Render::Settings<T> settings;
 
   settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
@@ -179,8 +177,8 @@ main(int argc, char* argv[])
   // The names the window shows: the regions by their names and materials, the domains and their surface groups.
   EBGeometry::RegionNames names(index);
 
-  const uint32_t electrostaticDomain = names.addDomain("electrostatics", electrostatic);
-  const uint32_t flowDomain          = names.addDomain("flow", flow);
+  const uint32_t electrostaticDomain = names.addDomain("electrostatics", electrostatics);
+  const uint32_t flowDomain          = names.addDomain("flow", cfd);
 
   names.setSurfaceGroup(electrostaticDomain, dirichlet, "dirichlet");
   names.setSurfaceGroup(electrostaticDomain, ground, "ground");

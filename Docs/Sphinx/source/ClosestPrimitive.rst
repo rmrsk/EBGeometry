@@ -341,84 +341,95 @@ question for the subdomains (below), not a property of the surface. The sides be
 another's surface faces the air on one half and the other sphere on the other.
 
 EBGeometry does not provide solvers; it describes what a downstream code computes on. A
-`Domain <doxygen/html/structEBGeometry_1_1Domain.html>`__ is that description, in two parts: its **subdomains**, the
-regions the code computes in, and its **surface groups**, the boundary conditions it tags. It is a plain value a
-kernel takes whole.
+`Domain <doxygen/html/classEBGeometry_1_1Domain.html>`__ is that description, in two parts: its **subdomains**, the
+regions the code computes in, and its **surface groups**, the boundary conditions it tags. It is made from a
+`DomainSetup <doxygen/html/classEBGeometry_1_1DomainSetup.html>`__, a plain value on the host that says how (built,
+copied, compared and edited like any value), and built for one tape, ``Domain(pool, tape, setup)``: a handle whose
+tables live in the pool, which holds its tape, so that its queries take no tape and cannot meet one it was not built
+for. There is no limit on subdomains, surface groups or selectors. A kernel takes it after ``rebasedView()``, as the
+tape. Editing the setup afterwards changes no domain already built: build another.
 
-The subdomains (`Subdomains <doxygen/html/classEBGeometry_1_1Subdomains.html>`__) are each a set of regions (usually
-one; ``ExprIndex::getRegionsOfRegionGroup()`` and ``getRegionsOfMaterial()`` select several), coupled through the
-interfaces between them. Each surface then has a role for the domain at a point, from its two sides: a
-**boundary** (one side in the domain), an **interface** (two subdomains meet), **internal** (two regions of the same
-subdomain touch), or none. A subdomain's own function, ``signedDistance(p, subdomains, subdomain)``, is the one to
-cut, and the function of any union of regions or materials (a subdomain of their regions): negative exactly inside
-the subdomain and zero only where one of its regions meets one outside it, never on a contact between two of its
-own. It is half the difference of the smallest function of a region in the subdomain and of one outside it, a
-distance bound, exact near a smooth piece of its surface:
+The subdomains are each a set of regions (usually one; ``ExprIndex::getRegionsOfRegionGroup()`` and
+``getRegionsOfMaterial()`` select several), coupled through the interfaces between them. Each surface then has a role
+for the domain at a point, from its two sides: a **boundary** (one side in the domain), an **interface** (two
+subdomains meet), **internal** (two regions of the same subdomain touch), or none. A subdomain's own function,
+``domain.signedDistance(p, subdomain)``, is the one to cut, and the function of any union of regions or materials (a
+subdomain of their regions): negative exactly inside the subdomain and zero only where one of its regions meets one
+outside it, never on a contact between two of its own. It is half the difference of the smallest function of a region
+in the subdomain and of one outside it, a distance bound, exact near a smooth piece of its surface:
 
 .. code-block:: c++
 
-   Subdomains electrostatics;                   // the air and the jacket; the core is a conductor
-   electrostatics.addSubdomain({1});
-   electrostatics.addSubdomain({2});
+   DomainSetup setup;                             // the air and the jacket; the core is a conductor
+   setup.addSubdomain({1});
+   setup.addSubdomain({2});
+   setup.role(tape.closestSurface(p, 1));         // on the host: the outer sphere an Interface, the inner a Boundary
 
-   const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
-   electrostatics.role(s);                      // the outer sphere: Interface; the inner one: Boundary
+   const Domain electrostatics(pool, tape, setup);
+   const SurfaceRef<T> s = electrostatics.closestSurface(p, 1);   // on a device too
+   electrostatics.role(s);
 
 A subdomain's surface at a point is never a contact between two of its own regions: where its nearest region's nearest
 surface is one (near a step, where a region of it pokes out of another), the surface reported is the subdomain's
 boundary there.
 
-The surface groups are a `Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight ("dirichlet", "jump",
-"no-slip"), each a boundary condition's tag (its name) and id (its number), and a list of
-`SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface point is. A
-piece, ``SurfaceSelector::piece(surface)``, is a shape's surface between the regions on its two sides, the piece
-one clicks (``.withPart(part)`` narrows it to one face of a box or a mesh); broader ones select a whole surface, a
-surface label, an interface (two regions, either way round), a region (either side) or a pair of materials, and
-``SurfaceSelector::rest()`` the remaining surfaces, those no other selector holds, whatever the order they were
-added in. Patches with the same attributes are one piece: the conditions say what a surface is, not where.
-``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported with its sides, on the host and on
-a device, and the surface carries the materials of its two sides too.
+The surface groups ("dirichlet", "jump", "no-slip") are each a boundary condition's tag (its name) and id (its
+number), and a list of `SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what
+a surface point is. A piece, ``SurfaceSelector::piece(surface)``, is a shape's surface between the regions on its two
+sides, the piece one clicks (``.withPart(part)`` narrows it to one face of a box or a mesh); broader ones select a
+whole surface, a surface label, an interface (two regions, either way round), a region (either side) or a pair of
+materials, and ``SurfaceSelector::rest()`` the remaining surfaces, those no other selector holds, whatever the order
+they were added in. Patches with the same attributes are one piece: the conditions say what a surface is, not where.
+``domain.surfaceGroupOf(surface)`` gives the surface group of a surface reported with its sides, on the host and on a
+device (the setup answers it on the host too), and the surface carries the materials of its two sides.
 
 .. code-block:: c++
 
-   Domain electrostatics{subdomains, {}};
-   const uint32_t dirichlet = electrostatics.m_scheme.addSurfaceGroup(); // every conductor surface
-   const uint32_t jump      = electrostatics.m_scheme.addSurfaceGroup(); // the jacket's outside
-   electrostatics.m_scheme.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
-   electrostatics.m_scheme.add(jump, SurfaceSelector::interface(2, 1));
+   const uint32_t dirichlet = setup.addSurfaceGroup();   // every conductor surface
+   const uint32_t jump      = setup.addSurfaceGroup();   // the jacket's outside
+   setup.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
+   setup.add(jump, SurfaceSelector::interface(2, 1));
+
+   const Domain electrostatics(pool, tape, setup);
 
    // At a cut cell, in a kernel: the subdomain's surface, its role and its boundary condition.
-   const SurfaceRef<T> s = tape.closestSurface(p, electrostatics.m_subdomains, subdomain);
-   electrostatics.m_subdomains.role(s);
-   electrostatics.m_scheme.surfaceGroupOf(s);
+   const SurfaceRef<T> s = electrostatics.closestSurface(p, subdomain);
+   electrostatics.role(s);
+   electrostatics.surfaceGroupOf(s);
+
+A domain's tables usually live in the tape's pool, built before it is mirrored: one mirror, one lifetime. They may
+live in a pool of their own, ``Domain(otherPool, tape, setup)``, so that a domain built after the tape's pool was
+mirrored (surface groups edited while a program runs) costs a copy of its small tables only, never of the geometry;
+``rebasedView(tapePool, tablesPool)`` then moves it. A scheme in the render settings (``RegionSettings::m_scheme``,
+``domain.scheme()``) is rebased onto the device's pool for a render there, as the shape is.
 
 A cut-cell code that computes in several subdomains needs a function for each, not one: one function has one
 inside, but a domain divides space into its subdomains and the regions in none of them (where it does not compute, a
-conductor). So a domain gives every point a **label**, its subdomain or ``Domain::Excluded``
-(``labelAt(tape, p)``), and each label a function, negative exactly in it (``signedDistance(tape, p, label)``); off
-the surfaces exactly one is negative. ``signedDistances(tape, p, values)`` gives them all at once, each region's
-function evaluated once: what a code samples at a node. An edge whose two ends have different labels crosses a
-surface. Between two subdomains it is an interface, where both their functions are zero, with opposite signs, so that
-the two sides cut the same surface; between a subdomain and the excluded regions, the subdomain's boundary, where its
-function is zero; its root along the edge is where. An edge from one subdomain to another across a conductor crosses
-twice, once for each. The excluded regions hold no unknowns (their cells are covered for every subdomain), and their
-function is the negative of the function of all the subdomains together.
+conductor). So a domain gives every point a **label**, its subdomain or ``Domain<T>::Excluded`` (``labelAt(p)``), and
+each label a function, negative exactly in it (``signedDistance(p, label)``); off the surfaces exactly one is
+negative. ``signedDistances(p, values)`` gives them all at once, each region's function evaluated once: what a code
+samples at a node, into a buffer of at least ``getNumLabels()`` values. An edge whose two ends have different labels
+crosses a surface. Between two subdomains it is an interface, where both their functions are zero, with opposite
+signs, so that the two sides cut the same surface; between a subdomain and the excluded regions, the subdomain's
+boundary, where its function is zero; its root along the edge is where. An edge from one subdomain to another across a
+conductor crosses twice, once for each. The excluded regions hold no unknowns (their cells are covered for every
+subdomain), and their function is the negative of the function of all the subdomains together.
 
 .. code-block:: c++
 
    // At a node, in a kernel: every label's function, the subdomains' first, then the excluded regions'.
-   T values[Domain::MaxLabels];
-   electrostatics.signedDistances(tape, p, values);   // values[0]: the air's, [1]: the jacket's, [2]: excluded
-   electrostatics.labelAt(tape, p);                   // 0, 1 or Domain::Excluded
+   T values[3];                                    // at least electrostatics.getNumLabels()
+   electrostatics.signedDistances(p, values);      // values[0]: the air's, [1]: the jacket's, [2]: excluded
+   electrostatics.labelAt(p);                      // 0, 1 or Domain<T>::Excluded
 
 The surfaces a domain must tag are those it touches (``touches()``): every surface with a side in one of its
-regions, internal ones between two of its regions included. ``RegionNames::addDomain("electrostatics", domain)``
-registers a domain by name, with its subdomains' and surface groups' names, for a viewer to show and check it.
+regions, internal ones between two of its regions included. ``RegionNames::addDomain("electrostatics", setup)``
+registers a domain's setup by name, with its subdomains' and surface groups' names, for a viewer to show and check it.
 ``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
 ``getSidesOfLeaf(leaf)`` those of one shape's surface. Whether a scheme leaves a surface without a boundary
 condition is checked from these, on the host: ``possiblePieces(inventory)`` lists every piece the object may have
 (each surface between each pair of regions it may separate, from a ``SurfaceInventory`` of the index: nothing is
-left out, and some may not occur), and ``coverageOf(piece, inventory, scheme)`` says whether the scheme's surface
+left out, and some may not occur), and ``coverageOf(piece, inventory, setup)`` says whether the setup's surface
 groups hold all of it, part of it (some faces of a box or a mesh) or none. ``findSurfacePieces(tape)`` finds which
 pieces the object actually has, with a point on each, by crossing it with rays on a grid; a piece too small for the
 grid is missed there, but not by the check.

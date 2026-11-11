@@ -107,7 +107,9 @@ struct RegionSettings
   uint64_t m_throughRegions = 0U;
 
   /**
-   * @brief A solver's groups of surfaces (RegionColoring::SurfaceGroup colors by them).
+   * @brief A solver's groups of surfaces (RegionColoring::SurfaceGroup colors by them): a view of selectors in a pool
+   * (a domain's, Domain::scheme(), or one built on its own), which must outlive the settings and, for a render on a
+   * device, be rebased onto that pool's mirror. Empty by default.
    */
   Scheme m_scheme;
 
@@ -231,7 +233,7 @@ struct RegionSettings
 
   /**
    * @brief Hide a surface group, or show it again.
-   * @param[in] a_group  The surface group (below Scheme::MaxSurfaceGroups).
+   * @param[in] a_group  The surface group (groups from 32 on are never hidden).
    * @param[in] a_hidden Whether to hide it.
    */
   EBGEOMETRY_HOST_DEVICE
@@ -265,7 +267,7 @@ struct RegionSettings
 
   /**
    * @brief See through a surface group, or make it opaque again.
-   * @param[in] a_group   The surface group (below Scheme::MaxSurfaceGroups).
+   * @param[in] a_group   The surface group (groups from 32 on are never seen through).
    * @param[in] a_through Whether to see through it.
    */
   EBGEOMETRY_HOST_DEVICE

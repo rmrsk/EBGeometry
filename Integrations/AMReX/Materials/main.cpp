@@ -26,32 +26,30 @@ using namespace amrex;
 #error "This integration supports CPU, CUDA and HIP builds of AMReX; EBGeometry has no SYCL memory resource yet."
 #endif
 
-using T    = Real;
-using Vec3 = EBGeometry::Vec3T<T>;
-using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
-using Expr = EBGeometry::Expr<T>;
-using Tape = EBGeometry::Tape<T>;
+using T      = Real;
+using Vec3   = EBGeometry::Vec3T<T>;
+using AABB   = EBGeometry::BoundingVolumes::AABBT<T>;
+using Expr   = EBGeometry::Expr<T>;
+using Tape   = EBGeometry::Tape<T>;
+using Domain = EBGeometry::Domain<T>;
 
 // AMReX's implicit function: a subdomain's function, negative in the subdomain and zero on its boundary only (never
 // on a contact between two of its own regions). The subdomain is where the code computes, which AMReX reads as fluid
-// where the value is negative, so the sign is EBGeometry's own. It holds the tape twice, as a view of the host pool
-// and of its device mirror (the same object in a CPU build), each compilation pass using its own, and the domain, a
-// plain value. Deriving from GPUable lets EB2 and ParallelFor evaluate it in device kernels.
+// where the value is negative, so the sign is EBGeometry's own. It holds the domain (which holds its tape) twice, as a
+// view of the host pool and of its device mirror (the same object in a CPU build), each compilation pass using its
+// own. Deriving from GPUable lets EB2 and ParallelFor evaluate it in device kernels.
 class SubdomainIF : public GPUable
 {
 public:
-  SubdomainIF(const Tape&               a_host,
-              const Tape&               a_device,
-              const EBGeometry::Domain& a_domain,
-              const uint32_t            a_subdomain) noexcept
-    : m_host(a_host), m_device(a_device), m_domain(a_domain), m_subdomain(a_subdomain)
+  SubdomainIF(const Domain& a_host, const Domain& a_device, const uint32_t a_subdomain) noexcept
+    : m_host(a_host), m_device(a_device), m_subdomain(a_subdomain)
   {}
 
   AMREX_GPU_HOST_DEVICE
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return tape().signedDistance(Vec3(x, y, z), m_domain.m_subdomains, m_subdomain);
+    return domain().signedDistance(Vec3(x, y, z), m_subdomain);
   }
 
   Real
@@ -66,20 +64,20 @@ public:
   void
   label(const Vec3& a_point, Real& a_condition, Real& a_role, Real& a_across) const noexcept
   {
-    const EBGeometry::SurfaceRef<T> surface = tape().closestSurface(a_point, m_domain.m_subdomains, m_subdomain);
+    const EBGeometry::SurfaceRef<T> surface = domain().closestSurface(a_point, m_subdomain);
 
-    const uint32_t group = m_domain.m_scheme.surfaceGroupOf(surface);
-    const uint32_t mine  = m_domain.m_subdomains.subdomainOf(surface.m_ownerRegion);
+    const uint32_t group = domain().surfaceGroupOf(surface);
+    const uint32_t mine  = domain().subdomains().subdomainOf(surface.m_ownerRegion);
 
     a_condition = (group == EBGeometry::Scheme::None) ? Real(-1) : Real(group);
-    a_role      = Real(static_cast<int>(m_domain.m_subdomains.role(surface)));
+    a_role      = Real(static_cast<int>(domain().role(surface)));
     a_across    = Real((mine == m_subdomain) ? surface.m_neighborRegion : surface.m_ownerRegion);
   }
 
 private:
   AMREX_GPU_HOST_DEVICE
-  const Tape&
-  tape() const noexcept
+  const Domain&
+  domain() const noexcept
   {
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
     return m_device;
@@ -88,10 +86,9 @@ private:
 #endif
   }
 
-  Tape               m_host;
-  Tape               m_device;
-  EBGeometry::Domain m_domain;
-  uint32_t           m_subdomain;
+  Domain   m_host;
+  Domain   m_device;
+  uint32_t m_subdomain;
 };
 
 int
@@ -129,25 +126,27 @@ main(int argc, char* argv[])
 
     // The domain: two subdomains, the air (0) and the jacket (1), coupled through the jacket's outside; the core is
     // in neither. Its surface groups: every surface of the core (0), the air's box (1), and the interface of the air
-    // and the jacket (2).
-    EBGeometry::Domain domain;
+    // and the jacket (2). Built in the tape's pool, for the tape.
+    EBGeometry::DomainSetup setup;
 
-    (void)domain.m_subdomains.addSubdomain({1});
-    (void)domain.m_subdomains.addSubdomain({2});
+    (void)setup.addSubdomain({1});
+    (void)setup.addSubdomain({2});
 
-    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(3));
-    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 0));
-    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 2));
+    setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(3));
+    setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 0));
+    setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 2));
 
-    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the tape is rebased onto the
-    // mirror. The pools must outlive the EB generation.
+    const Domain domain(pool, tape, setup);
+
+    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the domain (with its tape) is
+    // rebased onto the mirror. The pools must outlive the EB generation.
 #if defined(AMREX_USE_GPU)
     pool.freeze();
 
     const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
-    const SubdomainIF      sdf(tape, tape.rebasedView(devicePool), domain, uint32_t(subdomain));
+    const SubdomainIF      sdf(domain, domain.rebasedView(devicePool), uint32_t(subdomain));
 #else
-    const SubdomainIF sdf(tape, tape, domain, uint32_t(subdomain));
+    const SubdomainIF sdf(domain, domain, uint32_t(subdomain));
 #endif
 
     // Cubic cells, n_cell along the object's longest side and 10% to spare; each side's count is rounded up to a

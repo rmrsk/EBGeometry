@@ -76,8 +76,8 @@ struct RegionAnswer
 template <class T, class TapeType>
 struct RegionQuery
 {
-  TapeType m_tape;
-  Domain   m_domain;
+  TapeType  m_tape;
+  Domain<T> m_domain;
 
   EBGEOMETRY_HOST_DEVICE
   RegionAnswer<T>
@@ -102,21 +102,21 @@ struct RegionQuery
     answer.m_minus   = surface.m_ownerRegion;
     answer.m_plus    = surface.m_neighborRegion;
     answer.m_surface = surface.m_surface;
-    answer.m_group   = m_domain.m_scheme.surfaceGroupOf(surface);
+    answer.m_group   = m_domain.surfaceGroupOf(surface);
 
     for (uint32_t d = 0; d < 2; d++) {
-      const SurfaceRef<T> s = m_tape.closestSurface(a_point, m_domain.m_subdomains, d);
+      const SurfaceRef<T> s = m_domain.closestSurface(a_point, d);
 
-      answer.m_subdomainValues[d] = m_tape.signedDistance(a_point, m_domain.m_subdomains, d);
-      answer.m_roles[d]           = m_domain.m_subdomains.role(s);
-      answer.m_conditions[d]      = m_domain.m_scheme.surfaceGroupOf(s);
+      answer.m_subdomainValues[d] = m_domain.signedDistance(a_point, d);
+      answer.m_roles[d]           = m_domain.role(s);
+      answer.m_conditions[d]      = m_domain.surfaceGroupOf(s);
     }
 
-    T values[Domain::MaxLabels];
+    T values[3];
 
-    m_domain.signedDistances(m_tape, a_point, values);
+    m_domain.signedDistances(a_point, values);
 
-    answer.m_label = m_domain.labelAt(m_tape, a_point);
+    answer.m_label = m_domain.labelAt(a_point);
 
     for (uint32_t l = 0; l < 3; l++) {
       answer.m_labelValues[l] = values[l];
@@ -390,12 +390,14 @@ TEMPLATE_TEST_CASE("Tape: a region's surface names the region across it, past a 
     CHECK(s.m_neighborRegion == 0U);
 
     // A subdomain of the core alone, the jacket another: the cut face is the core's boundary, not an interface.
-    Subdomains subdomains;
+    DomainSetup subdomains;
 
     (void)subdomains.addSubdomain({2U});
     (void)subdomains.addSubdomain({1U});
 
-    CHECK(subdomains.role(tape.closestSurface(p, subdomains, 0U)) == SurfaceRole::Boundary);
+    const Subdomains subdomainsBuilt = subdomains.buildSubdomains(pool, tape.getNumRegions());
+
+    CHECK(subdomains.role(tape.closestSurface(p, subdomainsBuilt, 0U)) == SurfaceRole::Boundary);
   }
 
   // On a shared mask's face: two spheres overlaid and clipped together (x < 0.3), on a big one. Just outside the face,
@@ -485,9 +487,11 @@ TEMPLATE_TEST_CASE("Tape: a subdomain's surface near a step is its boundary, nev
 
   const Tape<T> tape(pool, Overlay(jacket, core));
 
-  Subdomains solid;
+  DomainSetup solid;
 
   (void)solid.addSubdomain({1U, 2U});
+
+  const Subdomains solidBuilt = solid.buildSubdomains(pool, tape.getNumRegions());
 
   int nearBoundary = 0;
 
@@ -496,11 +500,11 @@ TEMPLATE_TEST_CASE("Tape: a subdomain's surface near a step is its boundary, nev
       const Vec3 p(T(0.05) * T(i), T(0), T(1.6) + T(0.025) * T(j));
 
       // At the points a cut-cell code asks, near the subdomain's boundary: a boundary, from the subdomain's side.
-      if (std::abs(tape.signedDistance(p, solid, 0U)) > T(0.08)) {
+      if (std::abs(tape.signedDistance(p, solidBuilt, 0U)) > T(0.08)) {
         continue;
       }
 
-      const SurfaceRef<T> s = tape.closestSurface(p, solid, 0U);
+      const SurfaceRef<T> s = tape.closestSurface(p, solidBuilt, 0U);
 
       nearBoundary++;
 
@@ -515,7 +519,7 @@ TEMPLATE_TEST_CASE("Tape: a subdomain's surface near a step is its boundary, nev
   // Just inside the jacket's end face, beside the core: the jacket's own region's nearest surface is the contact with
   // the core; the subdomain's is the jacket's end cap (part 2 of a cylinder: the cap at its second end).
   const Vec3          step(T(0.42), T(0), T(1.95));
-  const SurfaceRef<T> cap = tape.closestSurface(step, solid, 0U);
+  const SurfaceRef<T> cap = tape.closestSurface(step, solidBuilt, 0U);
 
   REQUIRE(tape.closestSurface(step, 1U).m_neighborRegion == 2U);
   CHECK(cap.m_surface == 0U);
@@ -833,20 +837,24 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   CHECK(onlyInside.withOnlyKey(RegionView<Tape>::None).firstHit(intoCore, T(0), T(5), options).hit());
 
   // The value: the visible regions' subdomain function; a cut face's point names its region.
-  Subdomains visible;
+  DomainSetup visible;
 
   (void)visible.addSubdomain({1, 2});
 
+  const Subdomains visibleBuilt = visible.buildSubdomains(pool, tape.getNumRegions());
+
   for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
-    CHECK(all.signedDistance(p) == tape.signedDistance(p, visible, 0U));
+    CHECK(all.signedDistance(p) == tape.signedDistance(p, visibleBuilt, 0U));
   }
 
   // With section regions, the section's field is their subdomain's function, the background's included (what a code
   // computing in the air cuts), signed, zero on its boundary alone; the value stays the visible regions' (what is
   // solid for the render).
-  Subdomains air;
+  DomainSetup air;
 
   (void)air.addSubdomain({0});
+
+  const Subdomains airBuilt = air.buildSubdomains(pool, tape.getNumRegions());
 
   RegionSettings outside = all.getSettings();
 
@@ -855,17 +863,19 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
   const RegionView<Tape> airView = all.withSettings(outside);
 
   for (const Vec3& p : {Vec3(T(-0.3), T(0.1), T(0.5)), Vec3(T(0.7), T(0), T(-0.5)), Vec3(T(2), T(2), T(2))}) {
-    CHECK(airView.signedDistance(p) == tape.signedDistance(p, visible, 0U));
-    CHECK(airView.contourValue(p) == tape.signedDistance(p, air, 0U));
-    CHECK(airView.contourSample(p).m_secondary == (tape.signedDistance(p, air, 0U) > T(0)));
+    CHECK(airView.signedDistance(p) == tape.signedDistance(p, visibleBuilt, 0U));
+    CHECK(airView.contourValue(p) == tape.signedDistance(p, airBuilt, 0U));
+    CHECK(airView.contourSample(p).m_secondary == (tape.signedDistance(p, airBuilt, 0U) > T(0)));
   }
 
   // With the whole domain shown (the air and the jacket; the core excluded), each point's field is its own label's
   // function, as a domain samples it; none in the core.
-  Domain electrostatics;
+  DomainSetup electrostaticsSetup;
 
-  (void)electrostatics.m_subdomains.addSubdomain({0});
-  (void)electrostatics.m_subdomains.addSubdomain({1});
+  (void)electrostaticsSetup.addSubdomain({0});
+  (void)electrostaticsSetup.addSubdomain({1});
+
+  const Domain electrostatics(pool, tape, electrostaticsSetup);
 
   RegionSettings whole = all.getSettings();
 
@@ -880,17 +890,17 @@ TEMPLATE_TEST_CASE("RegionView: the regions' surfaces along a ray, internal ones
                         Vec3(T(0.7), T(0), T(-0.5)),
                         Vec3(T(2), T(2), T(2)),
                         Vec3(T(-0.1), T(0), T(0))}) {
-    T values[Domain::MaxLabels];
+    T values[3];
 
-    electrostatics.signedDistances(tape, p, values);
+    electrostatics.signedDistances(p, values);
 
-    const uint32_t label = electrostatics.labelAt(tape, p);
+    const uint32_t label = electrostatics.labelAt(p);
 
     INFO("point " << p << ", label " << label);
 
-    CHECK((label == Domain::Excluded) == (tape.region(p) == 2U));
-    CHECK(domainView.contourValue(p) == values[(label == Domain::Excluded) ? 2U : label]);
-    CHECK(domainView.contourSample(p).m_secondary == (label == Domain::Excluded));
+    CHECK((label == Domain<T>::Excluded) == (tape.region(p) == 2U));
+    CHECK(domainView.contourValue(p) == values[(label == Domain<T>::Excluded) ? 2U : label]);
+    CHECK(domainView.contourSample(p).m_secondary == (label == Domain<T>::Excluded));
   }
 
   // What a point is in, for a section plane's fill: its region's material, whatever the surfaces are colored by; none
@@ -1101,17 +1111,19 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
   const SurfaceRef<T> inner = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), 1U); // the jacket and the core
 
   // CFD in the air: the outer sphere is its boundary, the inner one nothing to it.
-  Subdomains cfd;
+  DomainSetup cfd;
 
   CHECK(cfd.addSubdomain({0}) == 0U);
   CHECK(cfd.role(outer) == SurfaceRole::Boundary);
   CHECK(cfd.role(inner) == SurfaceRole::None);
 
   // Electrostatics in the air and the jacket, the core a conductor: an interface and a boundary.
-  Subdomains electrostatics;
+  DomainSetup electrostatics;
 
   CHECK(electrostatics.addSubdomain({0}) == 0U);
   CHECK(electrostatics.addSubdomain(index.getRegionsOfMaterial(index.findMaterialLabel("PTFE"))) == 1U);
+
+  const Subdomains electrostaticsBuilt = electrostatics.buildSubdomains(pool, tape.getNumRegions());
   CHECK(electrostatics.getNumSubdomains() == 2U);
   CHECK(electrostatics.subdomainOf(1) == 1U);
   CHECK(electrostatics.subdomainOf(2) == Subdomains::None);
@@ -1119,7 +1131,7 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
   CHECK(electrostatics.role(inner) == SurfaceRole::Boundary);
 
   // Heat in all three: two interfaces. The jacket and the core as one subdomain: their contact is internal.
-  Subdomains heat;
+  DomainSetup heat;
 
   (void)heat.addSubdomain({0});
   (void)heat.addSubdomain({1});
@@ -1128,11 +1140,12 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
   CHECK(heat.role(outer) == SurfaceRole::Interface);
   CHECK(heat.role(inner) == SurfaceRole::Interface);
 
-  Subdomains solid;
+  DomainSetup solid;
 
   (void)solid.addSubdomain(index.getRegionsOfRegionGroup(0));
 
-  CHECK(solid.getNumRanges() == 1U);
+  const Subdomains solidBuilt = solid.buildSubdomains(pool, tape.getNumRegions());
+
   CHECK(solid.role(inner) == SurfaceRole::Internal);
   CHECK(solid.role(outer) == SurfaceRole::Boundary);
 
@@ -1142,8 +1155,8 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
 
     INFO("point " << p);
 
-    CHECK((tape.signedDistance(p, solid, 0U) < T(0)) == (tape.signedDistance(p) < T(0)));
-    CHECK((tape.signedDistance(p, electrostatics, 1U) < T(0)) == (tape.region(p) == 1U));
+    CHECK((tape.signedDistance(p, solidBuilt, 0U) < T(0)) == (tape.signedDistance(p) < T(0)));
+    CHECK((tape.signedDistance(p, electrostaticsBuilt, 1U) < T(0)) == (tape.region(p) == 1U));
   }
 
   // The jacket and the core as one subdomain: on their contact the function is not zero (no sheet inside the subdomain);
@@ -1151,28 +1164,29 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
   for (const T x : {T(0.5), T(0.45), T(0.55)}) {
     INFO("x " << x);
 
-    CHECK(tape.signedDistance(Vec3(x, T(0), T(0)), solid, 0U) < -T(0.2));
+    CHECK(tape.signedDistance(Vec3(x, T(0), T(0)), solidBuilt, 0U) < -T(0.2));
   }
 
-  CHECK_THAT(tape.signedDistance(Vec3(T(0.95), T(0), T(0)), solid, 0U), withinAbsT<T>(-T(0.05), tightMargin<T>()));
-  CHECK_THAT(tape.signedDistance(Vec3(T(1.05), T(0), T(0)), solid, 0U), withinAbsT<T>(T(0.05), tightMargin<T>()));
+  CHECK_THAT(tape.signedDistance(Vec3(T(0.95), T(0), T(0)), solidBuilt, 0U), withinAbsT<T>(-T(0.05), tightMargin<T>()));
+  CHECK_THAT(tape.signedDistance(Vec3(T(1.05), T(0), T(0)), solidBuilt, 0U), withinAbsT<T>(T(0.05), tightMargin<T>()));
 
   // The subdomain's surface: from its region whose function is smallest.
-  const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostatics, 1U);
+  const SurfaceRef<T> jacket = tape.closestSurface(Vec3(T(0.5), T(0), T(0)), electrostaticsBuilt, 1U);
 
   CHECK(jacket.m_ownerRegion == 1U);
   CHECK(jacket.m_neighborRegion == 2U);
   CHECK(electrostatics.role(jacket) == SurfaceRole::Boundary);
 
-  REQUIRE(abortsWith([] { (void)Subdomains().addSubdomain({}); }, "Subdomains: a subdomain needs at least one region"));
+  REQUIRE(
+    abortsWith([] { (void)DomainSetup().addSubdomain({}); }, "DomainSetup: a subdomain needs at least one region"));
   REQUIRE(abortsWith(
     [] {
-      Subdomains subdomains;
+      DomainSetup subdomains;
 
       (void)subdomains.addSubdomain({1, 2});
       (void)subdomains.addSubdomain({2});
     },
-    "Subdomains: region 2 is already in subdomain 0"));
+    "DomainSetup: region 2 is already in subdomain 0"));
 }
 
 TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negative exactly in it",
@@ -1189,24 +1203,28 @@ TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negati
   const Tape<T> tape(pool, Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)))));
 
   // Electrostatics: the air (0) and the jacket (1); the core, a conductor, excluded (label 2 of the values).
-  Domain domain;
+  DomainSetup setup;
 
-  (void)domain.m_subdomains.addSubdomain({0});
-  (void)domain.m_subdomains.addSubdomain({1});
+  (void)setup.addSubdomain({0});
+  (void)setup.addSubdomain({1});
+
+  const Domain domain(pool, tape, setup);
 
   REQUIRE(domain.getNumLabels() == 3U);
 
   // The whole domain as one subdomain: Excluded's function is its function's negative.
-  Subdomains together;
+  DomainSetup together;
 
   (void)together.addSubdomain({0, 1});
 
+  const Subdomains togetherBuilt = together.buildSubdomains(pool, tape.getNumRegions());
+
   const auto valueOf = [&](const Vec3& a_point, const uint32_t a_label) {
-    T values[Domain::MaxLabels];
+    T values[3];
 
-    domain.signedDistances(tape, a_point, values);
+    domain.signedDistances(a_point, values);
 
-    return values[(a_label == Domain::Excluded) ? 2U : a_label];
+    return values[(a_label == Domain<T>::Excluded) ? 2U : a_label];
   };
 
   // Everywhere: the values are signedDistance()'s, label by label; the label is the region's subdomain, and off the
@@ -1219,23 +1237,23 @@ TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negati
 
       INFO("point " << p);
 
-      T values[Domain::MaxLabels];
+      T values[3];
 
-      domain.signedDistances(tape, p, values);
+      domain.signedDistances(p, values);
 
-      const uint32_t label = domain.labelAt(tape, p);
+      const uint32_t label = domain.labelAt(p);
 
-      CHECK(values[0] == domain.signedDistance(tape, p, 0U));
-      CHECK(values[1] == domain.signedDistance(tape, p, 1U));
-      CHECK(values[2] == domain.signedDistance(tape, p, Domain::Excluded));
-      CHECK(values[2] == -tape.signedDistance(p, together, 0U));
-      CHECK(label == domain.m_subdomains.subdomainOf(tape.region(p)));
+      CHECK(values[0] == domain.signedDistance(p, 0U));
+      CHECK(values[1] == domain.signedDistance(p, 1U));
+      CHECK(values[2] == domain.signedDistance(p, Domain<T>::Excluded));
+      CHECK(values[2] == -tape.signedDistance(p, togetherBuilt, 0U));
+      CHECK(label == domain.subdomains().subdomainOf(tape.region(p)));
 
       if (std::abs(values[0]) > T(1e-3) && std::abs(values[1]) > T(1e-3) && std::abs(values[2]) > T(1e-3)) {
         const uint32_t negative = (values[0] < T(0)) ? 0U : (values[1] < T(0)) ? 1U : 2U;
 
         CHECK(int(values[0] < T(0)) + int(values[1] < T(0)) + int(values[2] < T(0)) == 1);
-        CHECK(negative == ((label == Domain::Excluded) ? 2U : label));
+        CHECK(negative == ((label == Domain<T>::Excluded) ? 2U : label));
 
         checked++;
       }
@@ -1254,7 +1272,7 @@ TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negati
 
     CHECK(valueOf(p, 0U) == -valueOf(p, 1U));
     CHECK((valueOf(p, 0U) < T(0)) == (r > T(1)));
-    CHECK(valueOf(p, Domain::Excluded) > T(0.2));
+    CHECK(valueOf(p, Domain<T>::Excluded) > T(0.2));
   }
 
   for (const T r : {T(0.45), T(0.55)}) {
@@ -1262,7 +1280,7 @@ TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negati
 
     INFO("r " << r);
 
-    CHECK(valueOf(p, 1U) == -valueOf(p, Domain::Excluded));
+    CHECK(valueOf(p, 1U) == -valueOf(p, Domain<T>::Excluded));
     CHECK((valueOf(p, 1U) < T(0)) == (r > T(0.5)));
     CHECK(valueOf(p, 0U) > T(0.2));
   }
@@ -1270,9 +1288,9 @@ TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negati
   // Near a triple line (the core, the jacket and the cut's air meeting on the circle of radius 0.4 in the plane
   // z = 0.3): the labels still divide space, the core's side excluded, the jacket's side the jacket's, the cut the
   // air's.
-  CHECK(domain.labelAt(tape, Vec3(T(0.36), T(0.01), T(0.32))) == Domain::Excluded);
-  CHECK(domain.labelAt(tape, Vec3(T(0.44), T(0.01), T(0.32))) == 1U);
-  CHECK(domain.labelAt(tape, Vec3(T(0.4), T(0.01), T(0.28))) == 0U);
+  CHECK(domain.labelAt(Vec3(T(0.36), T(0.01), T(0.32))) == Domain<T>::Excluded);
+  CHECK(domain.labelAt(Vec3(T(0.44), T(0.01), T(0.32))) == 1U);
+  CHECK(domain.labelAt(Vec3(T(0.4), T(0.01), T(0.28))) == 0U);
 }
 
 TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regions, and firstSurface() a subdomain",
@@ -1354,17 +1372,21 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
   {
     const RayT<T> ray{Vec3(T(-2), T(0), T(0.4)), Vec3(T(1), T(0), T(0))};
 
-    Subdomains jacketOnly;
-    Subdomains coreOnly;
-    Subdomains both;
+    DomainSetup jacketOnly;
+    DomainSetup coreOnly;
+    DomainSetup both;
 
     (void)jacketOnly.addSubdomain({1});
     (void)coreOnly.addSubdomain({2});
     (void)both.addSubdomain({1, 2});
 
-    const SurfaceHitT<T> jacket = tape.firstSurface(ray, T(0), T(5), jacketOnly, 0U);
-    const SurfaceHitT<T> core   = tape.firstSurface(ray, T(0), T(5), coreOnly, 0U);
-    const SurfaceHitT<T> solid  = tape.firstSurface(ray, T(0), T(5), both, 0U);
+    const Subdomains jacketOnlyBuilt = jacketOnly.buildSubdomains(pool, tape.getNumRegions());
+    const Subdomains coreOnlyBuilt   = coreOnly.buildSubdomains(pool, tape.getNumRegions());
+    const Subdomains bothBuilt       = both.buildSubdomains(pool, tape.getNumRegions());
+
+    const SurfaceHitT<T> jacket = tape.firstSurface(ray, T(0), T(5), jacketOnlyBuilt, 0U);
+    const SurfaceHitT<T> core   = tape.firstSurface(ray, T(0), T(5), coreOnlyBuilt, 0U);
+    const SurfaceHitT<T> solid  = tape.firstSurface(ray, T(0), T(5), bothBuilt, 0U);
 
     CHECK_THAT(jacket.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.84)), looseMargin<T>()));
     CHECK_THAT(core.m_hit.m_t, withinAbsT<T>(T(2) - std::sqrt(T(0.09)), looseMargin<T>()));
@@ -1372,7 +1394,7 @@ TEMPLATE_TEST_CASE("Tape: firstRegionChange() tracks a particle through the regi
     CHECK(solid.m_surface.m_neighborRegion == 1U);
 
     // Leaving the solid: the contact between the jacket and the core is passed through.
-    const SurfaceHitT<T> leave = tape.firstSurface(ray, solid.m_hit.m_t, T(5), both, 0U);
+    const SurfaceHitT<T> leave = tape.firstSurface(ray, solid.m_hit.m_t, T(5), bothBuilt, 0U);
 
     CHECK_THAT(leave.m_hit.m_t, withinAbsT<T>(T(2) + std::sqrt(T(0.84)), looseMargin<T>()));
     CHECK(leave.m_surface.m_neighborRegion == 0U);
@@ -1398,6 +1420,21 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
   // The cable cut by a slab (x > 0, |z| < 0.3).
   const Tape tape(pool, Difference(cable<T>(), BoxSDF<T>(Vec3(T(0), T(-2), T(-0.3)), Vec3(T(2), T(2), T(0.3)))));
 
+  // The electrostatic domain: the air and the jacket, two subdomains; every conductor surface dirichlet, the
+  // jacket's outside a jump. Built in the tape's pool before it is mirrored.
+  DomainSetup setup;
+
+  (void)setup.addSubdomain({0});
+  (void)setup.addSubdomain({1});
+
+  const uint32_t dirichlet = setup.addSurfaceGroup();
+  const uint32_t jump      = setup.addSurfaceGroup();
+
+  setup.add(dirichlet, SurfaceSelector::region(2));
+  setup.add(jump, SurfaceSelector::interface(0, 1));
+
+  const Domain domain(pool, tape, setup);
+
   pool.freeze();
 
   const Pool device = Pool::mirror(pool, deviceTestResource());
@@ -1410,21 +1447,8 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
     }
   }
 
-  // The electrostatic domain: the air and the jacket, two subdomains; every conductor surface dirichlet, the
-  // jacket's outside a jump.
-  Domain domain;
-
-  (void)domain.m_subdomains.addSubdomain({0});
-  (void)domain.m_subdomains.addSubdomain({1});
-
-  const uint32_t dirichlet = domain.m_scheme.addSurfaceGroup();
-  const uint32_t jump      = domain.m_scheme.addSurfaceGroup();
-
-  domain.m_scheme.add(dirichlet, SurfaceSelector::region(2));
-  domain.m_scheme.add(jump, SurfaceSelector::interface(0, 1));
-
-  const auto onDevice =
-    evaluateOnDevice<RegionAnswer<T>>(RegionQuery<T, Tape>{tape.rebasedView(device), domain}, points);
+  const auto onDevice = evaluateOnDevice<RegionAnswer<T>>(
+    RegionQuery<T, Tape>{tape.rebasedView(device), domain.rebasedView(device)}, points);
   const auto onHost = evaluateOnHost<RegionAnswer<T>>(RegionQuery<T, Tape>{tape, domain}, points);
 
   size_t differ = 0;
@@ -1533,7 +1557,7 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
 
   // Electrostatics: every surface of the conductor, inside the jacket included (dirichlet); the jacket's outside
   // (a jump).
-  Scheme electrostatics;
+  DomainSetup electrostatics;
 
   const uint32_t dirichlet = electrostatics.addSurfaceGroup();
   const uint32_t jump      = electrostatics.addSurfaceGroup();
@@ -1545,7 +1569,7 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   CHECK(electrostatics.surfaceGroupOf(outer) == jump);
 
   // CFD outside: every surface facing the outside (no-slip); the inner one is no surface to it.
-  Scheme cfd;
+  DomainSetup cfd;
 
   const uint32_t noSlip = cfd.addSurfaceGroup();
 
@@ -1575,22 +1599,40 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   CHECK(cfd.getNumSelectors() == 0U);
   CHECK(cfd.surfaceGroupOf(outer) == Scheme::None);
 
-  REQUIRE(abortsWith(
-    [] {
-      Scheme scheme;
+  // Built in a pool, the surface groups answer as the setup does, on the host or a device.
+  cfd.add(noSlip, SurfaceSelector::region(0));
 
-      for (uint32_t g = 0; g <= Scheme::MaxSurfaceGroups; g++) {
-        (void)scheme.addSurfaceGroup();
-      }
-    },
-    "Scheme: a scheme holds at most 8 surface groups"));
-  REQUIRE(abortsWith([] { Scheme().add(0, SurfaceSelector()); }, "Scheme: surface group 0 of 0"));
+  const Scheme builtElectrostatics = electrostatics.buildScheme(pool);
+  const Scheme builtCfd            = cfd.buildScheme(pool);
+
+  for (const SurfaceRef<T>& s : {inner, outer}) {
+    CHECK(builtElectrostatics.surfaceGroupOf(s) == electrostatics.surfaceGroupOf(s));
+    CHECK(builtCfd.surfaceGroupOf(s) == cfd.surfaceGroupOf(s));
+  }
+
+  CHECK(Scheme().surfaceGroupOf(inner) == Scheme::None);
+
+  // No limit on surface groups or selectors.
+  DomainSetup many;
+
+  for (uint32_t g = 0; g < 100U; g++) {
+    many.add(many.addSurfaceGroup(), SurfaceSelector::interface(g + 3U, g + 4U));
+  }
+
+  many.add(many.addSurfaceGroup(), SurfaceSelector::interface(1, 0));
+
+  const Scheme builtMany = many.buildScheme(pool);
+
+  CHECK(builtMany.getNumSurfaceGroups() == 101U);
+  CHECK(builtMany.surfaceGroupOf(outer) == 100U);
+
+  REQUIRE(abortsWith([] { DomainSetup().add(0, SurfaceSelector()); }, "DomainSetup: surface group 0 of 0"));
 }
 
 TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers the surface groups after it",
           "[Scheme]")
 {
-  Scheme scheme;
+  DomainSetup scheme;
 
   const uint32_t first  = scheme.addSurfaceGroup();
   const uint32_t second = scheme.addSurfaceGroup();
@@ -1619,7 +1661,7 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
   CHECK(names.surfaceGroup(1) == "1 jump");
 
   // The remaining surfaces are tried last, even when added first.
-  Scheme ordered;
+  DomainSetup ordered;
 
   const uint32_t other = ordered.addSurfaceGroup();
   const uint32_t core  = ordered.addSurfaceGroup();
@@ -1644,14 +1686,14 @@ TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers 
 TEST_CASE("Domain: its regions, the surfaces it touches, and its surface groups named per domain", "[Domain]")
 {
   // Electrostatics in the air (0) and the jacket (1); flow in the air only.
-  Domain electrostatics;
+  DomainSetup electrostatics;
 
-  (void)electrostatics.m_subdomains.addSubdomain({0});
-  (void)electrostatics.m_subdomains.addSubdomain({1});
+  (void)electrostatics.addSubdomain({0});
+  (void)electrostatics.addSubdomain({1});
 
-  Domain flow;
+  DomainSetup flow;
 
-  (void)flow.m_subdomains.addSubdomain({0});
+  (void)flow.addSubdomain({0});
 
   CHECK(electrostatics.computesIn(1));
   CHECK(!electrostatics.computesIn(2));
@@ -1764,7 +1806,7 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
     });
   };
 
-  Scheme scheme;
+  DomainSetup scheme;
 
   const uint32_t core = scheme.addSurfaceGroup();
   const uint32_t face = scheme.addSurfaceGroup();
@@ -1786,7 +1828,7 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
   CHECK(coverageOf(find(0, 1, 0), inventory, scheme).m_coverage == Coverage::None);
 
   // The remaining surfaces cover the rest, whatever the order they were added in; the core's stay the core's.
-  Scheme rest = scheme;
+  DomainSetup rest = scheme;
 
   rest.add(face, SurfaceSelector::rest());
 
@@ -2058,7 +2100,11 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
   // the layer in front.
   settings.m_regions.clearSeenThrough();
   settings.m_regions.m_coloring = RegionColoring::Region;
-  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addSurfaceGroup(), SurfaceSelector::interface(1, 0));
+  DomainSetup groups;
+
+  groups.add(groups.addSurfaceGroup(), SurfaceSelector::interface(1, 0));
+
+  settings.m_regions.m_scheme = groups.buildScheme(pool);
   settings.m_regions.setSurfaceGroupSeenThrough(0, true);
 
   CHECK(settings.m_regions.isSurfaceGroupSeenThrough(0));
@@ -2271,7 +2317,11 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   // Colored by group: the core's surface in the first group, the jacket's outside in none.
   settings.m_regions.clearSeenThrough();
-  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addSurfaceGroup(), SurfaceSelector::region(2));
+  DomainSetup groups;
+
+  groups.add(groups.addSurfaceGroup(), SurfaceSelector::region(2));
+
+  settings.m_regions.m_scheme   = groups.buildScheme(pool);
   settings.m_regions.m_coloring = RegionColoring::SurfaceGroup;
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == Scheme::None);

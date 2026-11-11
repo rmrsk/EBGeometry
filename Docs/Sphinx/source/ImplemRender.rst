@@ -266,7 +266,7 @@ regions' boxes and the camera; each region with a box a click cycles through sho
 (``RegionSettings::setRegionSeenThrough()``, whatever the coloring; a region seen through by T under the region or
 material coloring shows so too) and off ``[ ]``, and highlighted by a click on its name (every
 surface with it on either side lights; the background is listed and highlighted so, never drawn); and the
-surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
+surface groups of the active domain's setup (shown through ``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
 ``RegionSettings::m_highlightGroup`` does the same in a program), its button cycles its surfaces through
 translucent (``[Translucent]``; ``RegionSettings::setSurfaceGroupSeenThrough()`` in a program, passed through by a

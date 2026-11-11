@@ -47,7 +47,7 @@ That function is what a cut-cell code cuts for one region; the whole object is s
 What a solver cuts
 ------------------
 
-A solver says which regions it computes in (``Subdomains``), and each surface is then, at a point, a boundary of it
+A solver says which regions it computes in (its subdomains, in a ``DomainSetup``), and each surface is then, at a point, a boundary of it
 (one side solved, its condition given by its surface label), an interface (two subdomains meet), or nothing to it.
 ``closestSurface(p, region)`` names the surface and the regions on its two sides there. For the cable, the outer
 surface is a boundary to a flow solver in the air and an interface to an electrostatic solver in the air and the
@@ -55,7 +55,7 @@ jacket, while the core's surface is that solver's conductor boundary.
 
 .. code-block:: c++
 
-   Subdomains electrostatics;            // the air and the jacket; the core is a conductor
+   DomainSetup electrostatics;           // the air and the jacket; the core is a conductor
    electrostatics.addSubdomain({1});
    electrostatics.addSubdomain({2});
 
@@ -70,10 +70,11 @@ two regions included: along a camera ray, its crossings are the changes of regio
 found exactly (``firstRegionChange()``). What it shows is part of the render settings, ``Settings::m_regions``
 (`RegionSettings <doxygen/html/structEBGeometry_1_1RegionSettings.html>`__): the regions shown, what a surface is
 colored by (region, material, surface label, surface, part, interface, or the group of a solver's scheme), the
-surfaces shown alone or seen through, and the scheme itself. The example registers two domains, descriptions of
-what two downstream solvers compute on (``Domain``): electrostatics in the air and the jacket, every conductor
+surfaces shown alone or seen through, and the scheme itself. The example registers two domains' setups,
+descriptions of what two downstream solvers compute on: electrostatics in the air and the jacket, every conductor
 surface dirichlet, the box grounded and the jacket's outside a jump; and flow in the air, the box its far field and
-every other surface of it a wall.
+every other surface of it a wall. It builds the electrostatic ``Domain`` for the tape (``Domain(pool, tape,
+setup)``) and samples every label's function at a few nodes, as a cut-cell code does.
 
 The window opens with the air hidden, so that the cable shows, and cut along its axis by the section plane, filled by
 material (``RegionSettings::setVisible()`` and the section settings, in the program); V and the panel show the air
@@ -89,7 +90,7 @@ highlights (the background too), and the surface groups with their selectors, a
 click making one current and highlighting its surfaces, ``[Translucent]``, ``[Hide]`` and ``[Show]`` cycling them through translucent, hidden and shown, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface
 group]`` starting one (its name typed first); last, the
 count of pieces and of those in no surface group, with ``[Next unassigned]`` to go to the next of these, until
-every piece has a surface group. Colored by surface group, those in none are gray; C prints the scheme as C++, to paste into a program. The window names everything by the
+every piece has a surface group. Colored by surface group, those in none are gray; C prints the active domain's setup as C++, to paste into a program. The window names everything by the
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
 index (regions by their names and materials, "3 core (copper)", surfaces by their labels), with the surface groups
 named by the program; the example also gives the materials and the surface groups colors (``setColor()``), and

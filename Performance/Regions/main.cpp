@@ -62,8 +62,8 @@ struct RegionHit
 template <class T, Operation Op>
 struct Query
 {
-  EBGeometry::Tape<T> m_tape;
-  EBGeometry::Domain  m_domain;
+  EBGeometry::Tape<T>   m_tape;
+  EBGeometry::Domain<T> m_domain;
 
   EBGEOMETRY_HOST_DEVICE
   RegionHit<T>
@@ -89,9 +89,9 @@ struct Query
       return RegionHit<T>{0U, sum};
     }
     else {
-      T values[EBGeometry::Domain::MaxLabels];
+      T values[3];
 
-      m_domain.signedDistances(m_tape, a_point, values);
+      m_domain.signedDistances(a_point, values);
 
       return RegionHit<T>{0U, values[0] + values[1] + values[2]};
     }
@@ -154,12 +154,12 @@ scene(const std::size_t a_particles)
 }
 
 // The domain: the matrix, and the shells, two subdomains; the grains in none.
-inline EBGeometry::Domain
+inline EBGeometry::DomainSetup
 domainOf(const std::size_t a_particles)
 {
-  EBGeometry::Domain domain;
+  EBGeometry::DomainSetup domain;
 
-  (void)domain.m_subdomains.addSubdomain({1U});
+  (void)domain.addSubdomain({1U});
 
   std::vector<uint32_t> shells;
 
@@ -167,7 +167,7 @@ domainOf(const std::size_t a_particles)
     shells.push_back(static_cast<uint32_t>(2 + i));
   }
 
-  (void)domain.m_subdomains.addSubdomain(shells);
+  (void)domain.addSubdomain(shells);
 
   return domain;
 }
@@ -303,12 +303,17 @@ addOperation(Perf::Suite& a_suite)
     const auto                points = Perf::pointsInBox<T>(
       matrix<T>().computeBoundingVolume(), c.size(HostQueries, SmokeQueries), Perf::Seed::TapeQueries);
 
+    // The tape's bytes, before the domain's tables join it.
+    const std::size_t tapeBytes = pool.usedBytes();
+
+    const EBGeometry::Domain<T> domain(pool, tape, domainOf(particles));
+
     std::vector<RegionHit<T>> hits;
 
-    Perf::measureHostQuery(c, Query<T, Op>{tape, domainOf(particles)}, points, hits);
+    Perf::measureHostQuery(c, Query<T, Op>{tape, domain}, points, hits);
 
     c.checksum(checksumOf(hits));
-    c.poolBytes(pool.usedBytes());
+    c.poolBytes(tapeBytes);
     c.param("particles", particles);
 
     if constexpr (Op == Operation::RegionByRegion) {
@@ -319,17 +324,19 @@ addOperation(Perf::Suite& a_suite)
   a_suite.add(Perf::caseName({"Regions", "particles", name, prec, "hostdevice"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const std::size_t         particles = c.size(Particles, SmokeParticles);
-    const EBGeometry::Tape<T> tape(pool, scene<T>(particles));
-    const EBGeometry::Domain  domain = domainOf(particles);
-    const auto                points = Perf::pointsInBox<T>(
+    const std::size_t           particles = c.size(Particles, SmokeParticles);
+    const EBGeometry::Tape<T>   tape(pool, scene<T>(particles));
+    const EBGeometry::Domain<T> domain(pool, tape, domainOf(particles));
+    const auto                  points = Perf::pointsInBox<T>(
       matrix<T>().computeBoundingVolume(), c.size(PairQueries, SmokeQueries), Perf::Seed::TapeQueries);
 
     const auto hits = Perf::measureHostAndDevice<RegionHit<T>>(
       c,
       pool,
       points,
-      [&](const EBGeometry::Pool& a_pool) { return Query<T, Op>{tape.rebasedView(a_pool), domain}; },
+      [&](const EBGeometry::Pool& a_pool) {
+        return Query<T, Op>{tape.rebasedView(a_pool), domain.rebasedView(a_pool)};
+      },
       agreeValue<T>);
 
     c.checksum(checksumOf(hits));
