@@ -1629,6 +1629,69 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   REQUIRE(abortsWith([] { DomainSetup().add(0, SurfaceSelector()); }, "DomainSetup: surface group 0 of 0"));
 }
 
+TEMPLATE_TEST_CASE("Domain: an empty domain, one whose tables live apart from its tape, and the setups refused",
+                   "[Overlay][Tape][Domain]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // The cable: the outside (0), the jacket (1), the core (2).
+  Pool pool(hostMemoryResource());
+  Pool apart(hostMemoryResource());
+
+  const Tape<T> tape(pool, cable<T>());
+  const Vec3    inJacket(T(0.75), T(0), T(0));
+
+  // No subdomain and no surface group: one label, Excluded, everywhere, its function negative everywhere; no surface
+  // in a group.
+  const Domain empty(pool, tape, DomainSetup());
+
+  CHECK(empty.getNumLabels() == 1U);
+  CHECK(empty.labelAt(inJacket) == Domain<T>::Excluded);
+  CHECK(empty.surfaceGroupOf(tape.closestSurface(inJacket, 1U)) == Scheme::None);
+
+  // A subdomain must hold regions the tape has.
+  REQUIRE(abortsWith(
+    [&] {
+      DomainSetup beyond;
+
+      (void)beyond.addSubdomain({5});
+      (void)Domain(apart, tape, beyond);
+    },
+    "DomainSetup: a subdomain holds region 5, the tape has 3 regions"));
+
+  // The tables in a pool of their own: the tape stays where it is, and each moves onto its own pool's mirror.
+  DomainSetup outside;
+
+  (void)outside.addSubdomain({0});
+  outside.add(outside.addSurfaceGroup(), SurfaceSelector::region(1));
+
+  const Domain kept(apart, tape, outside);
+
+  pool.freeze();
+  apart.freeze();
+
+  // A frozen pool takes no domain.
+  REQUIRE(abortsWith([&] { (void)Domain(pool, tape, outside); }, "Pool::reserve: cannot reserve from a frozen pool"));
+
+  const Domain emptyView = empty.rebasedView(pool);
+  const Domain keptView  = kept.rebasedView(pool, apart);
+
+  T value[1];
+
+  emptyView.signedDistances(inJacket, value);
+
+  CHECK(emptyView.labelAt(inJacket) == Domain<T>::Excluded);
+  CHECK(value[0] < T(0));
+
+  const Vec3 far(T(3), T(0), T(0));
+
+  CHECK(keptView.labelAt(far) == 0U);
+  CHECK(keptView.labelAt(inJacket) == Domain<T>::Excluded);
+  CHECK(keptView.surfaceGroupOf(keptView.closestSurface(far, 0U)) == 0U);
+}
+
 TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers the surface groups after it",
           "[Scheme]")
 {
