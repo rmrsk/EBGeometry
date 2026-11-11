@@ -401,7 +401,7 @@ A domain's tables usually live in the tape's pool, built before it is mirrored: 
 live in a pool of their own, ``Domain(otherPool, tape, setup)``, so that a domain built after the tape's pool was
 mirrored (surface groups edited while a program runs) costs a copy of its small tables only, never of the geometry;
 ``rebasedView(tapePool, tablesPool)`` then moves it. Surface groups in the render settings (``RegionSettings::m_surfaceGroups``,
-``domain.surfaceGroups()``) is rebased onto the device's pool for a render there, as the shape is.
+``domain.surfaceGroups()``) are rebased onto the device's pool for a render there, as the shape is.
 
 A cut-cell code that computes in several subdomains needs a function for each, not one: one function has one
 inside, but a domain divides space into its subdomains and the regions in none of them (where it does not compute, a

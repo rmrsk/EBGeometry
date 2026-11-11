@@ -41,15 +41,21 @@ public:
   /**
    * @brief Add a subdomain.
    * @details A region can be in one subdomain only; aborts with a message otherwise, or for an empty list, in every
-   * build. Whether the regions are the tape's is checked when a Domain is built.
+   * build. A region listed twice counts once. Whether the regions are the tape's is checked when a Domain is built; the
+   * setup keeps a row per region up to the largest it is given, so the numbers should be the tape's (Tape::region(),
+   * ExprIndex), not arbitrary ones.
    * @param[in] a_regions Its regions, in any order.
    * @return The subdomain's number (its label in the domain), from 0 in the order added.
    */
   EBGEOMETRY_HOST
   uint32_t
-  addSubdomain(const std::vector<uint32_t>& a_regions)
+  addSubdomain(std::vector<uint32_t> a_regions)
   {
     EBGEOMETRY_REQUIRE(!a_regions.empty(), "DomainSetup: a subdomain needs at least one region");
+
+    std::sort(a_regions.begin(), a_regions.end());
+
+    a_regions.erase(std::unique(a_regions.begin(), a_regions.end()), a_regions.end());
 
     for (const uint32_t r : a_regions) {
       EBGEOMETRY_REQUIRE(r != Subdomains::None, "DomainSetup: no region number %u", unsigned(r));

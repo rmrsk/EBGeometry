@@ -705,8 +705,8 @@ run(const S&           a_shape,
 
   // The surface groups as edited (the active domain's, or those of the settings given), and as last shown: surface groups
   // built from them in a small pool of its own, and mirrored for a device, after each change (publishGroups()). Those
-  // pools live as long as the viewer, so that a render in the background never outlives the surface groups it reads; each
-  // holds a few selectors.
+  // pools live as long as the viewer, so that a render in the background never outlives the surface groups it reads: each
+  // change keeps a pool of a few selectors, and its mirror on a device, until the viewer closes.
   DomainSetup                        edited = ViewerDetail::setupOf(a_settings.m_regions.m_surfaceGroups);
   DomainSetup                        published;
   bool                               publishedOnce = false;

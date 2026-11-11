@@ -1187,6 +1187,52 @@ TEMPLATE_TEST_CASE("Subdomains: a solver's regions give each surface a role, and
       (void)subdomains.addSubdomain({2});
     },
     "DomainSetup: region 2 is already in subdomain 0"));
+
+  // A region listed twice counts once; region numbers are the tape's.
+  {
+    DomainSetup twice;
+
+    CHECK(twice.addSubdomain({3, 3, 1}) == 0U);
+    CHECK(twice.getRegions(0) == std::vector<uint32_t>{1, 3});
+  }
+
+  REQUIRE(abortsWith([] { (void)DomainSetup().addSubdomain({Subdomains::None}); },
+                     "DomainSetup: no region number 4294967295"));
+  REQUIRE(abortsWith([] { DomainSetup().removeSurfaceGroup(0); }, "DomainSetup: surface group 0 of 0"));
+
+  // Tables built directly: a subdomain or a surface group out of range, and selectors without a group each.
+  REQUIRE(abortsWith(
+    [] {
+      Pool tables(hostMemoryResource());
+
+      (void)Subdomains(tables, {2U}, 1U);
+    },
+    "Subdomains: region 0 is in subdomain 2 of 1"));
+  REQUIRE(abortsWith(
+    [] {
+      Pool tables(hostMemoryResource());
+
+      (void)SurfaceGroups(tables, {SurfaceSelector()}, {3U}, 1U);
+    },
+    "SurfaceGroups: selector 0 is in surface group 3 of 1"));
+  REQUIRE(abortsWith(
+    [] {
+      Pool tables(hostMemoryResource());
+
+      (void)SurfaceGroups(tables, {SurfaceSelector()}, {}, 1U);
+    },
+    "SurfaceGroups: 1 selectors and 0 surface groups of them"));
+
+  // A buffer too small for every label's function.
+  REQUIRE(abortsWith(
+    [&] {
+      const Domain domain(pool, tape, electrostatics);
+
+      T values[1];
+
+      domain.signedDistances(Vec3(T(0), T(0), T(0)), values, 1U);
+    },
+    "Domain::signedDistances: room for 1 values, the domain has 3 labels"));
 }
 
 TEMPLATE_TEST_CASE("Domain: its labels divide space, each with a function negative exactly in it",
