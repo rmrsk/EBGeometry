@@ -539,8 +539,8 @@ jobs:
     name: GPU CUDA compile
     runs-on: ubuntu-24.04
     # Every tape kernel compiles each built-in shape at every level of the evaluator; with the full set of
-    # analytic shapes this takes over 30 minutes.
-    timeout-minutes: 60
+    # analytic shapes, the region tests and the region probe, the build takes over an hour.
+    timeout-minutes: 90
     if: ${{ !github.event.pull_request.draft }}
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
