@@ -3,116 +3,94 @@
 Materials
 =========
 
-Which part of an object a query found, by label, and a table of your own indexed by it: the armadillo
-with a cylinder bored through its chest, standing in a ring of pebbles. The source is at
-:file:`Examples/Materials/main.cpp`.
+Several materials in one object: a cable, a copper core inside a PTFE jacket, in a box of air. The
+source is at :file:`Examples/Materials/main.cpp`.
 
 .. figure:: /_static/example_Materials.jpg
    :width: 60%
    :align: center
 
-   The armadillo colored by leaf, from a table of its own: the skin sand, the bore's wall (the cylinder's) steel
-   gray, the pebbles slate.
+   The cable cut open by the section plane, the cut filled by material: the copper core, the PTFE jacket, the air
+   (blue), and beyond the air's box the outside (gray).
 
-.. important::
+Regions, not one solid
+----------------------
 
-   The default mesh comes from the ``common-3d-test-models`` git submodule. Clone with
-   ``--recurse-submodules``, or run ``git submodule update --init`` in the repository (see
-   :ref:`Sec:Cloning`); otherwise pass a mesh of your own as the first argument.
-
-Labels
-------
-
-``Label(object, "name")`` names a part; every leaf below it gets the label (see
-:ref:`Chap:ClosestPrimitive`). Two queries name the leaf a part of the answer comes from, and the tape's
-``getLabel()`` gives its label:
-
-* ``closestLeaf(p)``, the leaf the value at ``p`` comes from;
-* ``tape.firstSurface(ray, tMin, tMax)``, the surface the ray crossed, with the point and the normal, its label
-  and its part: the mesh's face, or the bore's side (see :ref:`Sec:Parts` and :ref:`Chap:ImplemRays`).
-
-The label is a number the tape reports on the host and on a GPU alike. An ``ExprIndex`` built from the same
-expression numbers the labels the same way and holds their names, so a table of your own (material names
-here; in an application, materials or boundary conditions) is filled by name and indexed by the label:
+A union makes one solid of its operands, and the core's surface would vanish inside the jacket.
+``Overlay(air, jacket, core)`` stacks them as regions instead, each on top of the ones before it where they overlap
+(see :ref:`Chap:ClosestPrimitive`). ``MaterialLabel()`` names a region's material. The air is a region like the
+others, a box around the whole cable, under it: its outer faces bound what a solver computes on. Beyond the box is
+the outside, region 0, with no material.
 
 .. code-block:: c++
 
-   const Expr<T> object = Union(Difference(Label(armadillo, "skin"), Label(bore, "bore")), Label(gravel, "gravel"));
+   const auto air    = MaterialLabel(BoxSDF<T>(low, high), "air");
+   const auto jacket = MaterialLabel(CylinderSDF<T>(a, b, T(1)), "PTFE");
+   const auto core   = MaterialLabel(CylinderSDF<T>(c, d, T(0.4)), "copper");
 
-   const Tape<T, SphereCloudBVH<T>> tape(pool, object);   // a cloud is listed: it is not built into the tape
-   const ExprIndex<T>               index(object);
+   const Expr<T> object = Overlay(air, jacket, core);
 
-   std::vector<std::string> materials(tape.getNumLabels());
+Which region, and each region's function
+----------------------------------------
 
-   for (const auto& [name, material] : {std::pair<const char*, const char*>{"skin", "skin (the armadillo)"},
-                                        {"bore", "machined (the cylinder's bore)"}}) {
-     const uint32_t label = index.findLabel(name);   // LeafRef<T>::None for a name the expression lacks
-
-     if (label < materials.size()) {
-       materials[label] = material;
-     }
-   }
-
-   const SurfaceHitT<T> hit = tape.firstSurface(ray, T(0), T(6));
-
-   if (hit.m_hit.hit()) {
-     std::cout << materials[hit.m_surface.m_label] << ", part " << hit.m_surface.m_part << '\n';
-   }
-
-An unlabeled leaf has no label (``LeafRef::None``), so check the number before indexing. A mesh is one
-leaf; its faces are told apart by ``getClosestFace()`` on the mesh itself (see
-:ref:`Chap:ExampleMeshSDF`).
-
-Which pebble
-------------
-
-The forty pebbles are one ``SphereCloudBVH``, one leaf of the tape, so ``closestLeaf()`` names the gravel.
-``closestSurface(p)`` goes on into the cloud and names the pebble that decides (see :ref:`Sec:Surfaces`). The
-surfaces are numbered across the scene, each leaf a range of them from ``getFirstSurface(leaf)``, a cloud's
-in cloud order, so data of your own per pebble needs no label:
+A tape says which region a point is in, and gives each region's implicit
+function: negative inside the region, zero on its whole surface, the interface with the other regions included.
+That function is what a cut-cell code cuts for one region; the whole object is still ``signedDistance(p)``.
 
 .. code-block:: c++
 
-   const SurfaceRef<T> s = tape.closestSurface(p);
+   const Tape<T> tape(pool, object);
 
-   const uint32_t pebble = s.m_surface - tape.getFirstSurface(s.m_leaf);   // the pebble's cloud index
-   materials[s.m_label];                                                    // and the gravel's label
+   tape.region(p);              // 0 the outside, 1 the air, 2 the jacket, 3 the core
+   tape.signedDistance(p, 2);   // the jacket's function
 
-The program prints the value and material at three points, the pebble found just above three pebbles, and
-what three rays hit: the chest from in front, nothing straight through the bore, and the bore's wall
-sideways from inside it.
+What a solver cuts
+------------------
 
-Looking at it
--------------
-
-``Settings::m_colorBy = ColorBy::Primitive`` colors each surface by the leaf, ``HitT::m_primitive``. A tape
-numbers its leaves in expression order, depth first: the armadillo is leaf 0, the cylinder leaf 1 and the
-gravel leaf 2.
-``Settings::m_primitiveColors`` gives each leaf a color of its own (a leaf left out gets the renderer's
-palette), and the camera looks from low in front, where the bore shows:
+A solver says which regions it computes in (``Subdomains``), and each surface is then, at a point, a boundary of it
+(one side solved, its condition given by its surface label), an interface (two subdomains meet), or nothing to it.
+``closestSurface(p, region)`` names the surface and the regions on its two sides there. For the cable, the outer
+surface is a boundary to a flow solver in the air and an interface to an electrostatic solver in the air and the
+jacket, while the core's surface is that solver's conductor boundary.
 
 .. code-block:: c++
 
-   Render::Settings<T> settings;
-   settings.m_colorBy            = Render::ColorBy::Primitive;
-   settings.m_primitiveColors[0] = Vec3(0.78, 0.62, 0.42); // the skin, sand
-   settings.m_primitiveColors[1] = Vec3(0.55, 0.57, 0.60); // the bore, steel gray
-   settings.m_primitiveColors[2] = Vec3(0.35, 0.40, 0.45); // the gravel, slate
+   Subdomains electrostatics;            // the air and the jacket; the core is a conductor
+   electrostatics.addSubdomain({1});
+   electrostatics.addSubdomain({2});
 
-   Render::view(tape, pool, camera, settings, argc, argv);
+   const SurfaceRef<T> s = tape.closestSurface(p, 2);   // a surface of the jacket, with its two sides at p
+   electrostatics.role(s);                               // Interface on the outside, Boundary on the core
 
-The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
-:ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why
-and returns. Drag to orbit and scroll to zoom; the window lists its other keys (see
-:ref:`Sec:ViewerKeys`).
+Looking at the regions
+----------------------
 
-Building and running
---------------------
+``RegionView`` shows a tape's regions as a shape whose surfaces are the regions' own, the internal ones between
+two regions included: along a camera ray, its crossings are the changes of region that touch a visible region,
+found exactly (``firstRegionChange()``). What it shows is part of the render settings, ``Settings::m_regions``
+(`RegionSettings <doxygen/html/structEBGeometry_1_1RegionSettings.html>`__): the regions shown, what a surface is
+colored by (region, material, surface label, surface, part, interface, or the group of a solver's scheme), the
+surfaces shown alone or seen through, and the scheme itself. The example registers two domains, descriptions of
+what two downstream solvers compute on (``Domain``): electrostatics in the air and the jacket, every conductor
+surface dirichlet, the box grounded and the jacket's outside a jump; and flow in the air, the box its far field and
+every other surface of it a wall.
 
-See :ref:`Chap:Building` for how to compile it with CMake, GNU Make, or a direct compiler invocation.
-Built for a GPU (see :ref:`Sec:ExamplesGPU`), the window renders on the device.
+The window opens with the air hidden, so that the cable shows, and cut along its axis by the section plane, filled by
+material (``RegionSettings::setVisible()`` and the section settings, in the program); V and the panel show the air
+again. In the viewer, the panel's "Color by" row sets the coloring (K cycles it); V shows one region at a time, Shift + V hides the picked one, and Ctrl + V
+shows them all; T sees through the picked surface (the core's surface inside the jacket shows), and L shows only
+the surfaces like the picked one. Hidden regions cast no shadow.
 
-.. code-block:: bash
-
-   cd Examples/Materials
-   ./Materials.ex
+A click picks the piece of surface under the cursor: its surface, part, and the regions on its two sides
+(``RegionView::pieceAt()`` gives it to a program). The panel at the top left shows it, with the ways to add it to
+the current surface group of the scheme, each with how many pieces it takes in (this piece only, all of its surface,
+all surfaces of its region, or everything between its two regions), or to remove it; below, the regions, each with a box a click cycles through shown, translucent and off, and a name a click
+highlights (the background too), and the surface groups with their selectors, a
+click making one current and highlighting its surfaces, ``[Translucent]``, ``[Hide]`` and ``[Show]`` cycling them through translucent, hidden and shown, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface
+group]`` starting one (its name typed first); last, the
+count of pieces and of those in no surface group, with ``[Next unassigned]`` to go to the next of these, until
+every piece has a surface group. Colored by surface group, those in none are gray; C prints the scheme as C++, to paste into a program. The window names everything by the
+`RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__ passed to ``view()``: built from the expression's
+index (regions by their names and materials, "3 core (copper)", surfaces by their labels), with the surface groups
+named by the program; the example also gives the materials and the surface groups colors (``setColor()``), and
+opens colored by material.

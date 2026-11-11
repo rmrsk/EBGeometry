@@ -137,6 +137,7 @@ Examples
    ExampleMeshSDF.rst
    ExampleMeshCSG.rst
    ExampleShell.rst
+   ExampleSurfaceLabels.rst
    ExampleMaterials.rst
    ExampleNestedBVH.rst
    ExampleManyObjects.rst

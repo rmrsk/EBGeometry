@@ -46,6 +46,7 @@
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_Subdomains.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
 
@@ -882,9 +883,9 @@ public:
     uint32_t m_rayPrograms = 0;
 
     /**
-     * @brief Each leaf's label (see getLabel()); empty when the expression has no Label.
+     * @brief Each leaf's label (see getSurfaceLabel()); empty when the expression has no Label.
      */
-    PODVector<uint32_t> m_labels;
+    PODVector<uint32_t> m_surfaceLabels;
 
     /**
      * @brief Each leaf's first surface, and the number of surfaces last (see getFirstSurface()); empty when no
@@ -893,10 +894,19 @@ public:
     PODVector<uint32_t> m_surfaces;
 
     /**
-     * @brief The part labels (see Label(shape, FaceGroups)): first, per leaf, where its parts' labels begin in
+     * @brief The part labels (see SurfaceLabel(shape, FaceGroups)): first, per leaf, where its parts' labels begin in
      * this array (None for a leaf whose parts are not named); then those labels. Empty when no leaf's parts are.
      */
-    PODVector<uint32_t> m_partLabels;
+    PODVector<uint32_t> m_partSurfaceLabels;
+
+    /**
+     * @brief The regions: the number n of the Overlays' operands (0 without an Overlay), then
+     * each operand's record's offset, then each region's material (the background first; two for an object with no
+     * Overlay), then the records: the number m of masks above the region, their numbers (outermost first), and its
+     * m + 1 programs, the solid with every mask and then with the outermost 1, 2, ..., m left out. Empty without the
+     * feature.
+     */
+    PODVector<uint32_t> m_regionPrograms;
 
     /**
      * @brief How many distinct labels the expression has.
@@ -1142,7 +1152,8 @@ public:
 
   /**
    * @brief The most objects in one union evaluated as written (one not built with Accelerate::BVH), nested
-   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with.
+   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with. An Overlay, which is evaluated
+   * as written and takes no BVH, is not counted.
    * @return The count (0 if the tape has no such union).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1150,33 +1161,219 @@ public:
   getLargestPlainUnion() const noexcept;
 
   /**
-   * @brief A leaf's label: that of the nearest node above it, or of the leaf itself, that Label() named.
+   * @brief A leaf's label, as SurfaceLabel() resolves it (ExprIndex::getSurfaceLabel()): the nearest label above the
+   * leaf, the leaf's own included, but a label above a chain of maps relabels the object below them.
    * @details Labels are numbered from 0 in the order their names first appear in the expression, depth first,
    * as ExprIndex numbers them, which also holds the names. A device reads the label from the tape's pool, so
    * per-label data (a boundary condition, a restitution coefficient) is an array indexed by it.
    * @param[in] a_leaf Leaf number: LeafRef::m_leaf from closestLeaf(), or HitT::m_primitive of a hit.
-   * @return The label, or LeafRef<T>::None if the leaf has none (or is not a leaf of the tape).
+   * @return The label, or SurfaceLabelId::none() if the leaf has none (or is not a leaf of the tape).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline uint32_t
-  getLabel(uint32_t a_leaf) const noexcept;
+  inline SurfaceLabelId
+  getSurfaceLabel(uint32_t a_leaf) const noexcept;
 
   /**
-   * @brief The label of the leaf a reference names (see getLabel(uint32_t)).
+   * @brief The label of the leaf a reference names (see getSurfaceLabel(uint32_t)).
    * @param[in] a_ref Reference from closestLeaf().
-   * @return The label, or LeafRef<T>::None.
+   * @return The label, or SurfaceLabelId::none().
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline uint32_t
-  getLabel(const LeafRef<T>& a_ref) const noexcept;
+  inline SurfaceLabelId
+  getSurfaceLabel(const LeafRef<T>& a_ref) const noexcept;
 
   /**
-   * @brief How many distinct labels the expression has (ExprIndex::getNumLabels()).
+   * @brief How many distinct labels the expression has (ExprIndex::getNumSurfaceLabels()).
    * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
-  getNumLabels() const noexcept;
+  getNumSurfaceLabels() const noexcept;
+
+  /**
+   * @brief A leaf's own value at a point in its frame (as LeafRef::m_localPoint gives one): its shape's
+   * signedDistance(), on the host, for diagnostics (ExprIndex::checkLabels()). The tape's pool must be readable on the
+   * host.
+   * @param[in]  a_leaf  The leaf, numbered as ExprIndex numbers them.
+   * @param[in]  a_point The point, in the leaf's frame.
+   * @param[out] a_value Its value.
+   * @return Whether the tape holds the leaf (a leaf inside a collection is not one of the tape's).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  leafValue(uint32_t a_leaf, const Vec3T<T>& a_point, T& a_value) const;
+
+  /**
+   * @brief How many regions the object has: the background (region 0) and one per operand of
+   * its Overlays, numbered as ExprIndex numbers them; 2 for an object with no Overlay (the outside and the object).
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumRegions() const noexcept;
+
+  /**
+   * @brief A region's material, as ExprIndex numbers the material labels. Callable on a device.
+   * @param[in] a_region Region.
+   * @return The material, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline MaterialLabelId
+  getMaterialOf(uint32_t a_region) const noexcept;
+
+  /**
+   * @brief The region a point is in: the last operand of the Overlays whose solid holds it
+   * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region.
+   * Callable on a device.
+   * @param[in] a_point Point.
+   * @return The region.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline uint32_t
+  region(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief A region's implicit function: negative exactly inside the region, its zero
+   * contour the region's surface, interfaces with other regions included. For region k it is max(S_k, -min of the
+   * later S_j), S_j being operand j's solid; for the background, minus signedDistance(). A distance bound, exact
+   * near a smooth piece of surface of exact operands; what a cut-cell code cuts for one region. Callable on a
+   * device.
+   * @param[in] a_point  Point.
+   * @param[in] a_region Region (below getNumRegions()).
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  signedDistance(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
+
+  /**
+   * @brief Every region's function at a point (signedDistance(point, region), the same values), in one pass: calls
+   * a_visit(region, value) for each region, from the last one down to the background (0). Each operand's solid is
+   * evaluated once, twice when the regions share masks, where asking signedDistance() region by region evaluates the
+   * later solids again for each; regions with different masks are asked one by one. Callable on a device.
+   * @details Region k's function is max(S_k, -min of the later solids without the masks the two share). With the
+   * same masks on every region (none, usually), every later solid drops all of them, so a running minimum of the
+   * unmasked solids, taken from the top down, serves every region: n solids, or 2n with masks, instead of n^2 / 2.
+   * @tparam Visit A callable taking (uint32_t region, T value).
+   * @param[in] a_point Point.
+   * @param[in] a_visit What to do with each region's value.
+   */
+  template <class Visit>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  regionDistances(const Vec3T<T>& a_point, Visit&& a_visit) const noexcept;
+
+  /**
+   * @brief The surface of a region that decides its function at a point: the region's own
+   * boundary, an interface with a later region, or a mask's cut; drilled, with its part and surface label, as
+   * closestSurface() reports a surface, and with the regions on its two sides at that point: m_ownerRegion the
+   * region asked about (inside), m_neighborRegion the region across. The sides belong to the point, not to the surface:
+   * one surface can face different regions in different places. For the background, the whole object's surface.
+   * Callable on a device.
+   * @param[in] a_point  Point, on or near the region's surface.
+   * @param[in] a_region Region (below getNumRegions()).
+   * @return The surface.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point, uint32_t a_region) const noexcept;
+
+  /**
+   * @brief A subdomain's implicit function: half the difference of the smallest function of a
+   * region in the subdomain and the smallest of one not in it (the background included), negative exactly inside the
+   * subdomain and zero only on its surface: where one of its regions meets a region not in it, never on the contact
+   * between two of its own. A distance bound, exact near a smooth piece of surface; what a cut-cell solver cuts for
+   * the subdomain, and the function of a union of materials (a subdomain of their regions). Callable on a device.
+   * @param[in] a_point  Point.
+   * @param[in] a_subdomains The subdomains (built from this tape's regions).
+   * @param[in] a_subdomain  Subdomain (below a_subdomains.getNumSubdomains()).
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  signedDistance(const Vec3T<T>& a_point, const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
+
+  /**
+   * @brief The surface of a subdomain that decides its function at a point: that of its region
+   * whose function is smallest there (see closestSurface(p, region)), with the regions on its two sides; the
+   * surface's role for the solver is a_subdomains.role(surface). A contact between two of the subdomain's own regions
+   * is not its surface: where that region's nearest surface is one, the nearest region outside the subdomain names the
+   * surface instead, seen from the subdomain's side, if it borders the subdomain there. Callable on a device.
+   * @param[in] a_point  Point, on or near the subdomain's surface.
+   * @param[in] a_subdomains The subdomains.
+   * @param[in] a_subdomain  Subdomain.
+   * @return The surface.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline SurfaceRef<T>
+  closestSurface(const Vec3T<T>& a_point, const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
+
+  /**
+   * @brief The first point along a ray where the region changes: for a particle crossing
+   * layers, from inside any region, the background included. The crossing is the nearer of leaving the current
+   * region's solid and entering a later one, each traced exactly where the operands have ray forms (and marched
+   * where they do not). m_hit is the crossing, its normal pointing from the region left into the region entered;
+   * m_surface the surface crossed (leaf, part, surface label), its m_ownerRegion the region left and m_neighborRegion
+   * the region entered. The ray starts counting a hundredth of the march's tolerance at the object's scale past
+   * a_tMin (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks
+   * again from the last crossing's t, and layers thinner than that are passed over. Callable on a device.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline SurfaceHitT<T>
+  firstRegionChange(const RayT<T>&       a_ray,
+                    T                    a_tMin,
+                    T                    a_tMax,
+                    const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first change of region along a particle's step from one point to another (see
+   * firstRegionChange(ray)), t measured from a_from.
+   * @param[in] a_from    Start of the step.
+   * @param[in] a_to      End of the step.
+   * @param[in] a_tMin    Distance from a_from where the step starts counting.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline SurfaceHitT<T>
+  firstRegionChange(const Vec3T<T>&      a_from,
+                    const Vec3T<T>&      a_to,
+                    T                    a_tMin    = T(0),
+                    const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
+
+  /**
+   * @brief The first point along a ray where it crosses a subdomain's boundary, entering or
+   * leaving the subdomain: changes between two of its regions are passed through. For rendering, the subdomain is the set of
+   * visible regions: hidden ones are seen through. Reported as firstRegionChange() reports a crossing. Callable on a
+   * device.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_subdomains  The subdomains.
+   * @param[in] a_subdomain   Subdomain.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline SurfaceHitT<T>
+  firstSurface(const RayT<T>&       a_ray,
+               T                    a_tMin,
+               T                    a_tMax,
+               const Subdomains&    a_subdomains,
+               uint32_t             a_subdomain,
+               const RayOptions<T>& a_options = RayOptions<T>()) const noexcept;
 
   /**
    * @brief The surface that decides the value at a point: the deciding leaf (closestLeaf()), drilled into when
@@ -1353,6 +1550,43 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline HitT<T>
   traceRay(const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
+
+  /**
+   * @brief The first crossing along a ray of one program's value (the whole object's is program 0; a region's solid
+   * has its own), from its ray program.
+   * @param[in] a_program The program.
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  traceProgram(
+    uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
+
+  /**
+   * @brief The body of traceRay() (the whole object, program 0, inlined into it) and of traceProgram() (any program,
+   * out of line).
+   * @details The whole object's trace compiles as it did before region programs existed: the program is the constant
+   * 0, and the naming of a marched crossing for another program is compiled out (if constexpr). Reached from
+   * traceRay() through an out-of-line traceProgram(), or with that naming merely reachable, a plain float tape's
+   * firstHit() kernel went from 40 to 255 registers and ran 12% slower on a device (sm_86).
+   * @tparam Whole Whether the program is the whole object's.
+   * @param[in] a_program The program (0 when Whole).
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  template <bool Whole>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  traceBody(
+    uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
 
   /**
    * @brief Where a ray is inside the object over an interval, from the ray program.
@@ -1717,6 +1951,80 @@ private:
    * @param[in] a_location The pool location, for pool-resident primitives and BVHs.
    * @return The value.
    */
+  /**
+   * @brief The whole object's value, through the evaluator's out-of-line entry: signedDistance()
+   * inlines the evaluator's body for a tape that calls no sub-program, which the region code would copy at each site.
+   * @param[in] a_point Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  wholeValue(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many operands the Overlays have: the regions but the background; 0 without
+   * an Overlay.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  numRegionOperands() const noexcept;
+
+  /**
+   * @brief The leaf a tagged value comes from.
+   * @param[in] a_value The value.
+   * @return The leaf, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline LeafRef<T>
+  leafOf(const CSGOps::Tagged<T>& a_value) const noexcept;
+
+  /**
+   * @brief A leaf's surface: drilled into a collection, with its part and its label (see closestSurface()).
+   * @param[in] a_ref The leaf.
+   * @return The surface, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline SurfaceRef<T>
+  surfaceOf(const LeafRef<T>& a_ref) const noexcept;
+
+  /**
+   * @brief A region's solid with the leaf its value comes from (see regionSolid()).
+   * @param[in] a_region Region.
+   * @param[in] a_level  How many of its outermost masks to leave out.
+   * @param[in] a_point  Point.
+   * @return The tagged value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline CSGOps::Tagged<T>
+  regionSolidTagged(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief A region's solid: its operand under the maps above it and its masks but the
+   * outermost a_level.
+   * @param[in] a_region Region (1 to the number of regions less one).
+   * @param[in] a_level  How many of its outermost masks to leave out.
+   * @param[in] a_point  Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  regionSolid(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many masks two regions share: those above both, which region k's function
+   * applies once rather than to each later region too (see TapeDetail::RegionSolid).
+   * @param[in] a_first  A region.
+   * @param[in] a_second Another region.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  sharedMasks(uint32_t a_first, uint32_t a_second) const noexcept;
+
   template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE

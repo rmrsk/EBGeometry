@@ -277,7 +277,8 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills into a container leaf, numbering
   const auto lid   = SphereSDF<T>(Vec3(T(4), T(4), T(12)), T(2));
 
   // Leaves: the box 0, the cloud 1 (its spheres cut out of the box), the lid 2.
-  const Expr<T> expr = Union(Difference(Label(box, "wall"), Label(cloud, "particles")), Label(lid, "lid"));
+  const Expr<T> expr =
+    Union(Difference(SurfaceLabel(box, "wall"), SurfaceLabel(cloud, "particles")), SurfaceLabel(lid, "lid"));
 
   const Tape<T, SphereCloudBVH<T>> tape(pool, expr);
   const ExprIndex<T>               index(expr);
@@ -308,7 +309,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills into a container leaf, numbering
     const SurfaceRef<T> surface = tape.closestSurface(p);
 
     REQUIRE(surface.m_leaf == leaf.m_leaf);
-    CHECK(surface.m_label == tape.getLabel(leaf));
+    CHECK(surface.m_surfaceLabel == tape.getSurfaceLabel(leaf));
     CHECK(index.getLeafOfSurface(surface.m_surface) == leaf.m_leaf);
 
     if (leaf.m_leaf == 1U) {

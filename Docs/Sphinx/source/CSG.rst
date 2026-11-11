@@ -130,4 +130,4 @@ operand's, a blur the center of its samples'. This is what tagging a boundary or
 geometrically nearest primitive, which may be one the composition cut away. A compiled object is one
 shape with one surface, however it is built: in a tape it is one leaf, so a scene of compiled parts
 names the part that decides the value. :ref:`Chap:ClosestPrimitive` explains it, and
-:ref:`Chap:ExampleMaterials` uses it to look up a material.
+:ref:`Chap:ExampleSurfaceLabels` uses it to look up what a surface is.

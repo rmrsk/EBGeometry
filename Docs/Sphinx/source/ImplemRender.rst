@@ -45,12 +45,14 @@ The classes are in namespace ``Render``:
   it turns with the camera and lights the side in view, or in the scene with ``m_lightFromCamera`` false;
   its intensity, the ambient level, and the highlights' strength and shininess), the section plane
   (``m_section``, a point and a normal; the side the normal points to is removed; ``m_isoSpacing`` draws lines of equal distance on it; the cut face is
-  colored as a surface facing along the plane's normal would be, and partly transparent, ``m_cutOpacity``, so that the shape's
+  colored as a surface facing along the plane's normal would be, opaque unless ``m_cutOpacity`` is below 1, when the shape's
   next surface behind it shows through; its contour, a line
   ``m_contourWidth`` pixels wide, and a sheet of opacity ``m_sheetOpacity`` outside the shape within its
-  box), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
+  box; for a view of regions the plane is filled instead by the material of each point's region, in the material's
+  color (``m_sectionFill``, ``m_materialColors``), gray where the region has none or a domain shown on the plane does
+  not compute), and the march (``RayOptions``). ``m_primitiveColors`` gives the first
   ``Settings::PrimitiveColors`` (16) primitive ids colors of their own; an entry left unset, and every
-  later id, takes the built-in palette's (:ref:`Chap:ExampleMaterials` colors its bore steel gray).
+  later id, takes the built-in palette's (:ref:`Chap:ExampleSurfaceLabels` colors its bore steel gray).
   ``m_highlightPrimitive`` tints one primitive's surface in ``m_highlightColor``. ``m_viewMode`` picks the
   view (``ViewMode::Shaded``, the default, ``Depth``, ``XRay``, ``CostHit`` or ``CostCrossing``; see
   :ref:`Chap:Rendering`), and ``m_xrayOpacity`` how opaque each surface is in an x-ray (its highlights follow ``m_specular`` and
@@ -137,9 +139,12 @@ the background clears it. With a section plane on, the overlay shows the point u
 plane and the shape's value there; Shift and a click on two surfaces measures the distance between them.
 
 M cycles the views, Shift + M backwards. T makes the picked surface see-through (or opaque again), so that what is behind or
-inside it can be picked and looked at; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
-each is picked in turn, and those in front of it are seen through while stepping (for a mesh SDF, whose
-primitives are its faces, only the faces under the cursor); a click keeps the one stepped to. R puts the camera, the light and the picked and see-through surfaces back as the window
+inside it can be picked and looked at; for a view of regions it is drawn translucent (``Settings::m_seenThroughOpacity``,
+up to four along each ray), and a pick passes through it; what is picked or highlighted stays solid; Shift + T makes every surface opaque. Shift and the wheel step through the surfaces under the cursor, front to back:
+each is picked in turn, and those in front of it are seen through while stepping (drawn translucent for a view of
+regions; for a mesh SDF, whose
+primitives are its faces, only the faces under the cursor); a click, or moving the camera, keeps the one stepped to
+picked and those in front of it seen through (Shift + T makes them opaque again). R puts the camera, the light and the picked and see-through surfaces back as the window
 opened with them.
 
 .. _Sec:ViewerKeys:
@@ -157,12 +162,16 @@ opened with them.
        camera, the light and the picked surfaces.
    * - +, -; double-click
      - A narrower or wider field of view; center the camera on the point under the cursor.
-   * - Right drag
-     - Move the light.
+   * - Right drag; right click
+     - Move the light; probe the point under the cursor (on a surface, or on the section plane in front of it):
+       the overlay gives its position and the shape's value there, and for a view of regions the panel adds the
+       region it is in, the active domain's label and functions there, and the nearest surface with its surface
+       group. A right click on the background clears it.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights, ``m_specular`` (broader or tighter, ``m_shininess``).
    * - M; Shift + M
-     - Cycle the view: shaded, depth, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
+     - Cycle the view: shaded, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards. (The depth
+       view, ``ViewMode::Depth``, is set by a program, not by M.)
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
    * - S, A, F, B
@@ -171,17 +180,27 @@ opened with them.
      - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
    * - G
      - Render on the GPU or the CPU (with a device view).
-   * - X; Ctrl + X; N
+   * - X; Ctrl + X; Shift + X; N
      - Cut with a section plane across x, then y, then z, through the box's center (a plane the settings
-       turn on comes first); remove the cut; reverse it (remove the other side).
+       turn on comes first); remove the cut; see through the cut face to the surfaces behind it, or make it
+       opaque again; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
+   * - Z
+     - The slice view: the section plane flat on screen, seen square from the removed side by an orthographic camera,
+       without the floor and shadows (a plane across x is turned on first if there is none). The wheel moves the plane
+       through the object, a drag pans, + and - zoom, and X and N turn the view with the plane. Z again or Ctrl + X
+       leave it, with the camera as it was before (the cut Z turned on stays until Ctrl + X); O leaves it with that
+       camera in perspective; R leaves it with the camera the window opened with.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them (if they do), every 1/20
-       of the box's diagonal, every 1/50.
-   * - Click; Shift + click
+       of the box's diagonal, every 1/50, every 1/100.
+   * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to (the second shows the distance
-       and a line between them). On the background, either clears.
+       and a line between them). On the background, either clears. For a view of regions, a click picks what
+       the panel's pick mode picks (the part of the surface clicked, or the region), and Ctrl + click picks
+       several: it adds what is under the cursor to what is picked, or takes it out again (while stepping
+       through the surfaces under the cursor, the one stepped to).
    * - Shift + wheel
      - Step through the surfaces under the cursor, front to back, seeing through those in front.
    * - T; Shift + T
@@ -189,8 +208,78 @@ opened with them.
    * - C; W
      - Print the camera and settings as C++ (``toCode()``), to paste a view found by hand into a program;
        save the full frame as a PPM image (``writeImage()``) in the working directory.
-   * - H; Esc, Q
-     - Show or hide the overlay and the axes; close the window.
+   * - K; L
+     - For a view of regions (``RegionView``): color by the next kind of key (material, region, surface group,
+       surface label, surface, part, interface: the panel's "Color by" row sets one directly); show only the
+       surfaces of the picked surface's key, or everything again.
+   * - V; Shift + V; Ctrl + V
+     - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
+       region.
+   * - E; Shift + E
+     - For a view of regions with domains, what the section plane shows, in turn: the whole active domain, each
+       point its own label's function (``Domain::signedDistances()``), so that every subdomain's lines show at once
+       and the zero line is every boundary and interface (``RegionSettings::m_sectionDomain``); each subdomain's
+       function alone, what a cut-cell code cuts for it (``RegionSettings::m_sectionRegions``); then the visible
+       regions' again. The value under the cursor is the function shown. The section starts on the active domain,
+       follows the domain made active in the panel, and while it shows a subdomain's function, a click on another subdomain
+       shows that one's. Where the domain or
+       subdomain shown does not compute (the excluded regions, or outside the subdomain), the plane has no lines and
+       is filled gray (``Settings::m_fillSecondaryColor``); Shift + E draws their lines, in another color
+       (``Settings::m_isoSecondary``, ``m_isoSecondaryColor``).
+   * - Enter; Shift + Enter; Ctrl + Enter; Backspace; J; Delete
+     - For a view of regions, shortcuts for the panel's buttons (below): add what is picked to the current
+       surface group; add the picked pieces' whole surfaces; add the interfaces between their two regions;
+       remove them from the current surface group; make the next surface group current, or start one past the last; delete the
+       current surface group. C also prints the scheme as C++.
+   * - Tab, Shift + Tab; F1 to F6
+     - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
+       window. Every key works whichever menu is shown.
+   * - H; D; Esc, Q
+     - Show or hide the menu (hidden when the window opens; the status lines and the axes stay); show or hide details (numbers of regions,
+       surfaces and parts, coordinates, the frame's ray statistics); close the window.
+
+The overlay shows the frame and what is picked, then the row of menus (F1 to F6) and the menu shown: what its keys
+set now, then the keys, in groups.
+
+A view of regions also gets a panel at the top left, used with the mouse (the menus then move to the top right; a
+click on the panel away from its buttons picks the surface behind it). It names things in words ("Surface 1,
+between core (copper) and jacket (PTFE)"); its ``[Show details]`` button, like D, adds their numbers. With domains
+registered (``RegionNames::addDomain()``), they are listed first, one a line: a click on one makes it the active
+domain and highlights it, the surfaces of its regions, tinted and outlined (a second click stops it), and lists its
+subdomains under it. A click on a subdomain highlights its boundary, tinted and outlined, every surface with one of its regions on either side, the
+background's subdomain included (``RegionSettings::m_highlightRegions`` in a program); ``[Hide]`` and ``[Only]``
+hide a subdomain's or the domain's regions or show only them, and ``[Show all regions]`` shows every region again. The active domain's surface groups are shown and edited, its regions marked, and the
+pieces counted those it touches. A "Color by" row sets what the surfaces
+are colored by (material, region, surface group, surface label, surface, part, interface, the normal, or one color),
+and a swatch beside each region or surface group shows its color; colors given to names
+(``RegionNames::setColor("copper", color)``, for a material, a region, a surface label or a surface group) replace
+the palette's. Below, a "Pick" row sets what a click picks: the part of a surface clicked
+(a cylinder's cap, a box's face), or the region there, every surface of it. What is picked is listed (a part with its
+surface, the regions on its two sides and its surface group; several, picked with Ctrl + click, each with an ``[x]``
+taking it out), highlighted (``RegionSettings::m_selected`` in a program) and outlined along its own edges, its
+rims included, where the object does not hide them, with ``[Pick nothing]`` and the ways to
+add it to the current surface group, each saying how many of the object's pieces it takes in: what is picked, the
+whole pieces with all their parts, all of their surfaces, all surfaces of their regions, or everything between their
+two regions; and a button to remove them; the regions, under a list of what else hides or fades surfaces (keys seen through, a key shown alone, surface
+groups translucent or hidden, the camera inside a region) with ``[Make all opaque]``, which undoes all of it but the
+regions' boxes and the camera; each region with a box a click cycles through shown ``[x]``, translucent ``[~]``
+(``RegionSettings::setRegionSeenThrough()``, whatever the coloring; a region seen through by T under the region or
+material coloring shows so too) and off ``[ ]``, and highlighted by a click on its name (every
+surface with it on either side lights; the background is listed and highlighted so, never drawn); and the
+surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
+it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
+``RegionSettings::m_highlightGroup`` does the same in a program), its button cycles its surfaces through
+translucent (``[Translucent]``; ``RegionSettings::setSurfaceGroupSeenThrough()`` in a program, passed through by a
+click), hidden (``[Hide]``: not drawn, casting no shadow; ``RegionSettings::setSurfaceGroupHidden()``) and shown
+again (``[Show]``), its ``[Rename]`` lets its name be typed (Enter keeps it, Esc cancels), its ``[Copy]`` makes a new surface group with
+the same selectors (a surface is in the first surface group that holds it, so a selector whose pieces an earlier one
+holds says so), and its ``[Delete]`` and a
+selector's ``[x]`` remove them; ``[+ New surface group]`` starts one, its name typed first, and ``[Add remaining
+surfaces]`` puts every surface no other entry holds in the current one. Last, it counts the object's pieces, those
+found and those possible but not found, and those not, or only partly, in a surface group (``possiblePieces()``,
+``coverageOf()``, ``findSurfacePieces()``): ``[Next unassigned]`` picks the next of these found and turns the camera
+to it, and ``[List]`` lists every piece, a click picking a found one. Colored by surface
+group, a surface in none is gray.
 
 The window needs SDL2 and is compiled only on request (see :ref:`Sec:ConfigViewer`). Without it, and
 whenever no window should open -- the program was given ``--no-view``, there is no display, or SDL

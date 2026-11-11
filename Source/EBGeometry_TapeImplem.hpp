@@ -141,7 +141,7 @@ struct Staging
   /**
    * @brief Each leaf's label; empty when the expression has none.
    */
-  std::vector<uint32_t> m_labels;
+  std::vector<uint32_t> m_surfaceLabels;
 
   /**
    * @brief How many distinct labels the expression has.
@@ -154,9 +154,15 @@ struct Staging
   std::vector<uint32_t> m_surfaces;
 
   /**
-   * @brief The part labels, laid out as Tape::Layout::m_partLabels; empty when no leaf's parts are named.
+   * @brief The part labels, laid out as Tape::Layout::m_partSurfaceLabels; empty when no leaf's parts are named.
    */
-  std::vector<uint32_t> m_partLabels;
+  std::vector<uint32_t> m_partSurfaceLabels;
+
+  /**
+   * @brief The regions' table, laid out as Tape::Layout::m_regionPrograms; empty without the
+   * feature or an Overlay.
+   */
+  std::vector<uint32_t> m_regionPrograms;
 };
 
 /**
@@ -293,6 +299,33 @@ public:
   numPrimitives() const noexcept
   {
     return m_nextLeaf;
+  }
+
+  /**
+   * @brief Compile a region's program: a subexpression emitted again, with the leaves of
+   * the given subtrees numbered from the given leaves, as in the whole expression.
+   * @param[in] a_node   The region's solid (its operand under the maps and masks above it).
+   * @param[in] a_starts The first leaf of each subtree emitted again (the operand and the masks).
+   * @return The program's index.
+   */
+  uint32_t
+  compileRegion(const ExprDetail::Node<T>&                                          a_node,
+                const std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>& a_starts)
+  {
+    const uint32_t next = m_nextLeaf;
+
+    m_leafStarts = a_starts;
+
+    // Traced like the whole object, for the regions' ray queries.
+    const RayEmit ray{false, 0U};
+
+    const uint32_t program = this->compileProgram(a_node, &ray);
+
+    m_leafStarts.clear();
+
+    m_nextLeaf = next;
+
+    return program;
   }
 
   /**
@@ -487,6 +520,11 @@ private:
    * @brief The number the next primitive leaf gets (see Tape::closestLeaf()).
    */
   uint32_t m_nextLeaf = 0;
+
+  /**
+   * @brief While a region's program is compiled, the subtrees whose leaves are numbered from a given leaf.
+   */
+  std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> m_leafStarts;
 
   /**
    * @brief The most objects in one union evaluated as written (see plainUnionSize()).
@@ -1046,6 +1084,18 @@ private:
   {
     using ExprDetail::Kind;
 
+    // In a region's program, a subtree emitted again keeps its leaves' numbers. The subtrees are emitted in the
+    // order they were listed, so each start is used once, in order, even for a subexpression listed twice.
+    for (auto start = m_leafStarts.begin(); start != m_leafStarts.end(); ++start) {
+      if (start->first == &a_node) {
+        m_nextLeaf = start->second;
+
+        m_leafStarts.erase(start);
+
+        break;
+      }
+    }
+
     if (a_ray != nullptr && (!traced(a_node) || a_ray->m_level + this->raySlots(a_node) > m_rayStackSize)) {
       const auto begin = static_cast<uint32_t>(m_staging.m_programs[a_state.m_program].size());
 
@@ -1267,7 +1317,8 @@ private:
         this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
       }
       else {
-        if (a_node.m_kind == Kind::Union) {
+        // An Overlay takes no BVH, so it is not counted: the warning's advice would not apply.
+        if (a_node.m_kind == Kind::Union && !a_node.m_overlay) {
           m_largestPlainUnion = Math::max(m_largestPlainUnion, this->plainUnionSize(a_node));
         }
 
@@ -1420,6 +1471,196 @@ storeEndByte(const Store& a_store) noexcept
   }
 }
 
+/**
+ * @brief How many leaves an expression has, each occurrence counted (as the compiler numbers them).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node Expression.
+ * @return The count.
+ */
+template <class T>
+[[nodiscard]] inline uint32_t
+countLeaves(const ExprDetail::Node<T>& a_node) noexcept
+{
+  if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+    return 1U;
+  }
+
+  uint32_t count = 0;
+
+  for (const Expr<T>& child : a_node.m_children) {
+    count += countLeaves(child.node());
+  }
+
+  return count;
+}
+
+/**
+ * @brief A region's solids: its operand under the maps and masks above it, once with every
+ * mask (level 0) and once more for each outer mask left out (level l without the l outermost), with the first leaf
+ * of the operand and of each mask in the whole expression.
+ * @details Internal helper; not part of the public API. A mask above two regions removes the same space from both,
+ * so region k's function applies it once, after subtracting the later region j: max(S_k, M, -S_j), never max(S_k,
+ * M, -max(S_j, M)), which is zero on the mask's face inside S_j though nothing is there (a sheet the region's surface
+ * does not have). For each later region the function therefore uses its solid without the masks the two share.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RegionSolid
+{
+  /**
+   * @brief The solid at each level, level 0 with every mask.
+   */
+  std::vector<Expr<T>> m_levels;
+
+  /**
+   * @brief The first leaf of each subtree each level holds from the whole expression.
+   */
+  std::vector<std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>> m_starts;
+
+  /**
+   * @brief The masks above it (the clipping intersections), outermost first, each with its first leaf in the whole
+   * expression: an occurrence, not a node, since a clipped subexpression used twice (under different maps) clips each
+   * copy with a mask of its own.
+   */
+  std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> m_masks;
+};
+
+/**
+ * @brief An operand without its material labels: a region's solid is clipped by masks like any solid, and a
+ * material there would be refused.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_operand Operand.
+ * @return The operand, or a copy without material labels along its maps.
+ */
+template <class T>
+[[nodiscard]] inline Expr<T>
+withoutMaterial(const Expr<T>& a_operand)
+{
+  if (!a_operand.node().m_namesRegion) {
+    return a_operand;
+  }
+
+  auto node = std::make_shared<ExprDetail::Node<T>>(a_operand.node());
+
+  node->m_materialLabel.clear();
+  node->m_namesRegion = false;
+
+  if (node->m_kind == ExprDetail::Kind::Affine) {
+    node->m_children.front() = withoutMaterial(node->m_children.front());
+  }
+
+  return Expr<T>(std::move(node));
+}
+
+/**
+ * @brief The solids of the regions of a partition, in region order.
+ * @details Internal helper; not part of the public API. Walks the partition depth first, as ExprIndex numbers the
+ * regions: an Overlay's operands in order; a map or a clipping intersection wraps the solids below it in itself.
+ * @tparam T Floating-point precision.
+ * @param[in]     a_expr      A partition, or an operand of one.
+ * @param[in]     a_firstLeaf Its first leaf in the whole expression.
+ * @param[in]     a_path      The maps and clipping intersections above it, outermost first, with their first leaves.
+ * @param[in,out] a_solids    The solids found so far.
+ */
+template <class T>
+inline void
+regionSolids(const Expr<T>&                                                a_expr,
+             const uint32_t                                                a_firstLeaf,
+             std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>>& a_path,
+             std::vector<RegionSolid<T>>&                                  a_solids)
+{
+  using ExprDetail::Kind;
+
+  const ExprDetail::Node<T>& node = a_expr.node();
+
+  if (!node.m_partition) {
+    RegionSolid<T> solid;
+
+    for (const auto& step : a_path) {
+      if (step.first->m_kind == Kind::Intersection) {
+        solid.m_masks.push_back(step);
+      }
+    }
+
+    const Expr<T> operand = withoutMaterial(a_expr);
+
+    // Level l leaves out the l outermost masks.
+    for (size_t level = 0; level <= solid.m_masks.size(); level++) {
+      Expr<T> expr = operand;
+
+      std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> starts{{&operand.node(), a_firstLeaf}};
+
+      // The masks left out are the outermost: counting from the innermost, the first (masks - level) are kept.
+      size_t kept = solid.m_masks.size() - level;
+
+      // Wrap in the maps and masks above, innermost first.
+      for (auto step = a_path.rbegin(); step != a_path.rend(); ++step) {
+        const ExprDetail::Node<T>& above = *step->first;
+
+        if (above.m_kind == Kind::Affine) {
+          auto wrapped = ExprDetail::makeNode<T>(Kind::Affine, {expr});
+
+          wrapped->m_map            = above.m_map;
+          wrapped->m_inverse        = above.m_inverse;
+          wrapped->m_valueScale     = above.m_valueScale;
+          wrapped->m_boundingVolume = above.m_inverse.transform(expr.computeBoundingVolume());
+          wrapped->m_quality        = expr.getDistanceQuality();
+
+          expr = Expr<T>(std::move(wrapped));
+        }
+        else if (kept > 0) {
+          kept--;
+
+          std::vector<Expr<T>> operands{expr};
+
+          uint32_t leaf = step->second + countLeaves(above.m_children.front().node());
+
+          for (size_t i = 1; i < above.m_children.size(); i++) {
+            operands.push_back(above.m_children[i]);
+
+            starts.emplace_back(&above.m_children[i].node(), leaf);
+
+            leaf += countLeaves(above.m_children[i].node());
+          }
+
+          auto wrapped = ExprDetail::makeNode<T>(Kind::Intersection, std::move(operands));
+
+          wrapped->m_boundingVolume = above.m_boundingVolume;
+          wrapped->m_quality        = above.m_quality;
+
+          expr = Expr<T>(std::move(wrapped));
+        }
+      }
+
+      solid.m_levels.push_back(expr);
+      solid.m_starts.push_back(std::move(starts));
+    }
+
+    a_solids.push_back(std::move(solid));
+
+    return;
+  }
+
+  if (node.m_overlay) {
+    uint32_t leaf = a_firstLeaf;
+
+    for (const Expr<T>& child : node.m_children) {
+      regionSolids(child, leaf, a_path, a_solids);
+
+      leaf += countLeaves(child.node());
+    }
+  }
+  else {
+    a_path.emplace_back(&node, a_firstLeaf);
+
+    regionSolids(node.m_children.front(), a_firstLeaf, a_path, a_solids);
+
+    a_path.pop_back();
+  }
+}
+
 } // namespace TapeDetail
 
 template <class T, class... UserPrimitives>
@@ -1450,10 +1691,83 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_numPrimitives     = compiler.numPrimitives();
   staging.m_largestPlainUnion = compiler.largestPlainUnion();
 
+  // Each region's program: its operand, under the maps and masks above it, with the leaves numbered as in the
+  // whole expression.
+  //
+  // Without an Overlay the object is one region in the background, its material the label on it (or on a map above
+  // it), if any: the table is written directly, without numbering the whole expression (a large union's index would
+  // cost as much as the tape), and only when there is a material: an empty table is one region with none (the
+  // queries read it so), and a plain tape's pool keeps its size.
+  if (!a_expr.node().m_partition) {
+    std::vector<uint32_t>& table = staging.m_regionPrograms;
+
+    uint32_t material = MaterialLabelId::none().value();
+
+    for (const ExprDetail::Node<T>* node = &a_expr.node();; node = &node->m_children.front().node()) {
+      if (!node->m_materialLabel.empty()) {
+        material = 0U;
+
+        break;
+      }
+
+      if (node->m_kind != ExprDetail::Kind::Affine || node->m_children.empty()) {
+        break;
+      }
+    }
+
+    if (material != MaterialLabelId::none().value()) {
+      table = {0U, MaterialLabelId::none().value(), material};
+    }
+  }
+  else {
+    std::vector<TapeDetail::RegionSolid<T>>                      solids;
+    std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> path;
+
+    TapeDetail::regionSolids(a_expr, 0U, path, solids);
+
+    // The table: the number of operands n, each operand's record's offset, each region's material (the background
+    // first; two for an object with no Overlay), then the records: the number of masks above the region, their
+    // numbers (outermost first), and its programs, level 0 (every mask) to the last.
+    std::vector<uint32_t>&                                       table = staging.m_regionPrograms;
+    std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> masks;
+
+    const ExprIndex<T> regions(a_expr);
+
+    table.assign(1U + solids.size(), 0U);
+
+    table[0] = static_cast<uint32_t>(solids.size());
+
+    for (uint32_t k = 0; k < regions.getNumRegions(); k++) {
+      table.push_back(regions.getMaterialOf(k).value());
+    }
+
+    for (size_t k = 0; k < solids.size(); k++) {
+      const TapeDetail::RegionSolid<T>& solid = solids[k];
+
+      table[1U + k] = static_cast<uint32_t>(table.size());
+
+      table.push_back(static_cast<uint32_t>(solid.m_masks.size()));
+
+      for (const auto& mask : solid.m_masks) {
+        const auto found = std::find(masks.begin(), masks.end(), mask);
+
+        table.push_back(static_cast<uint32_t>(found - masks.begin()));
+
+        if (found == masks.end()) {
+          masks.push_back(mask);
+        }
+      }
+
+      for (size_t level = 0; level < solid.m_levels.size(); level++) {
+        table.push_back(compiler.compileRegion(solid.m_levels[level].node(), solid.m_starts[level]));
+      }
+    }
+  }
+
   // The labels and the surfaces, numbered as ExprIndex numbers them; a tape without labels stores none, one
   // without a container leaf no surfaces, and one with neither does not build the index (which allocates per
   // node).
-  const bool labeled    = ExprDetail::hasLabel(a_expr.node());
+  const bool labeled    = ExprDetail::hasSurfaceLabel(a_expr.node());
   const bool containers = ExprDetail::hasContainer(a_expr.node());
 
   if (labeled || containers) {
@@ -1462,11 +1776,11 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     EBGEOMETRY_EXPECT(index.getNumLeaves() == staging.m_numPrimitives);
 
     if (labeled) {
-      staging.m_numLabels = index.getNumLabels();
-      staging.m_labels.resize(index.getNumLeaves());
+      staging.m_numLabels = index.getNumSurfaceLabels();
+      staging.m_surfaceLabels.resize(index.getNumLeaves());
 
       for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-        staging.m_labels[leaf] = index.getLabel(leaf);
+        staging.m_surfaceLabels[leaf] = index.getSurfaceLabel(leaf).value();
       }
     }
 
@@ -1482,21 +1796,23 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     bool partsNamed = false;
 
     for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-      partsNamed = partsNamed || !index.getPartLabels(leaf).empty();
+      partsNamed = partsNamed || !index.getPartSurfaceLabels(leaf).empty();
     }
 
     if (partsNamed) {
-      std::vector<uint32_t>& table = staging.m_partLabels;
+      std::vector<uint32_t>& table = staging.m_partSurfaceLabels;
 
       table.assign(index.getNumLeaves(), SurfaceRef<T>::None);
 
       for (uint32_t leaf = 0; leaf < index.getNumLeaves(); leaf++) {
-        const std::vector<uint32_t>& parts = index.getPartLabels(leaf);
+        const std::vector<SurfaceLabelId>& parts = index.getPartSurfaceLabels(leaf);
 
         if (!parts.empty()) {
           table[leaf] = static_cast<uint32_t>(table.size());
 
-          table.insert(table.end(), parts.begin(), parts.end());
+          for (const SurfaceLabelId part : parts) {
+            table.push_back(part.value());
+          }
         }
       }
     }
@@ -1530,9 +1846,10 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_programs.reserveFrom(a_pool, static_cast<uint32_t>(programs.size()));
   layout.m_params.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_unions.size()));
-  layout.m_labels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_labels.size()));
+  layout.m_surfaceLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaceLabels.size()));
   layout.m_surfaces.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_surfaces.size()));
-  layout.m_partLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_partLabels.size()));
+  layout.m_partSurfaceLabels.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_partSurfaceLabels.size()));
+  layout.m_regionPrograms.reserveFrom(a_pool, static_cast<uint32_t>(a_staging.m_regionPrograms.size()));
 
   TapeDetail::reserveStore<0>(a_pool, layout.m_primitives, a_staging.m_primitives);
 
@@ -1544,9 +1861,13 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
   layout.m_programs.assign(base, programs.data(), static_cast<uint32_t>(programs.size()));
   layout.m_params.assign(base, a_staging.m_params.data(), static_cast<uint32_t>(a_staging.m_params.size()));
   layout.m_unions.assign(base, a_staging.m_unions.data(), static_cast<uint32_t>(a_staging.m_unions.size()));
-  layout.m_labels.assign(base, a_staging.m_labels.data(), static_cast<uint32_t>(a_staging.m_labels.size()));
+  layout.m_surfaceLabels.assign(
+    base, a_staging.m_surfaceLabels.data(), static_cast<uint32_t>(a_staging.m_surfaceLabels.size()));
   layout.m_surfaces.assign(base, a_staging.m_surfaces.data(), static_cast<uint32_t>(a_staging.m_surfaces.size()));
-  layout.m_partLabels.assign(base, a_staging.m_partLabels.data(), static_cast<uint32_t>(a_staging.m_partLabels.size()));
+  layout.m_partSurfaceLabels.assign(
+    base, a_staging.m_partSurfaceLabels.data(), static_cast<uint32_t>(a_staging.m_partSurfaceLabels.size()));
+  layout.m_regionPrograms.assign(
+    base, a_staging.m_regionPrograms.data(), static_cast<uint32_t>(a_staging.m_regionPrograms.size()));
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
@@ -2255,12 +2576,42 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
                                      const T              a_tMax,
                                      const RayOptions<T>& a_options) const noexcept
 {
+  return this->template traceBody<true>(0U, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline HitT<T>
+Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
+                                         const RayT<T>&       a_ray,
+                                         const T              a_tMin,
+                                         const T              a_tMax,
+                                         const RayOptions<T>& a_options) const noexcept
+{
+  return this->template traceBody<false>(a_program, a_ray, a_tMin, a_tMax, a_options);
+}
+
+template <class T, class... UserPrimitives>
+template <bool Whole>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::traceBody(const uint32_t       a_program,
+                                      const RayT<T>&       a_ray,
+                                      const T              a_tMin,
+                                      const T              a_tMax,
+                                      const RayOptions<T>& a_options) const noexcept
+{
+  // The whole object's program is 0. Not const: a constant (for the whole object) would need no capture in the lambdas
+  // below, which clang rejects as an unused capture; the compiler folds it all the same.
+  uint32_t program = Whole ? 0U : a_program;
+
   const void*        base     = this->base();
   const PoolLocation location = this->location();
 
-  const auto trace = [this, &a_ray, &a_options, base, &location](
+  const auto trace = [this, program, &a_ray, &a_options, base, &location](
                        const T a_t0, const T a_t1, const bool a_all, RaySpansT<T>& a_spans) noexcept {
-    this->template rayEvaluate<MaxCallDepth>(0U, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
+    this->template rayEvaluate<MaxCallDepth>(program, a_ray, a_t0, a_t1, a_options, a_all, base, location, a_spans);
   };
 
   HitT<T> hit;
@@ -2269,17 +2620,17 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     // A crossing on a level set is marked, and resolved once the trace is done (see resolveLevelHit()).
     uint32_t levelClause = 0U;
 
-    const auto resolve = [this, &a_ray, &a_options, base, &location, &levelClause](const T        a_t,
-                                                                                   const uint32_t a_leaf) noexcept {
-      const HitT<T> leafHit =
-        this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+    const auto resolve =
+      [this, program, &a_ray, &a_options, base, &location, &levelClause](const T a_t, const uint32_t a_leaf) noexcept {
+        const HitT<T> leafHit =
+          this->template rayLeafHit<MaxCallDepth>(program, a_ray, a_t, a_leaf, a_options, base, location);
 
-      if (leafHit.m_primitive == LevelLeaf) {
-        levelClause = a_leaf;
-      }
+        if (leafHit.m_primitive == LevelLeaf) {
+          levelClause = a_leaf;
+        }
 
-      return leafHit;
-    };
+        return leafHit;
+      };
 
     hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
 
@@ -2296,16 +2647,24 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
     }
   }
   else {
-    const auto resolve = [this, &a_ray, &a_options, base, &location](const T a_t, const uint32_t a_leaf) noexcept {
-      return this->template rayLeafHit<MaxCallDepth>(0U, a_ray, a_t, a_leaf, a_options, base, location);
+    const auto resolve = [this, program, &a_ray, &a_options, base, &location](const T        a_t,
+                                                                              const uint32_t a_leaf) noexcept {
+      return this->template rayLeafHit<MaxCallDepth>(program, a_ray, a_t, a_leaf, a_options, base, location);
     };
 
     hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
   }
 
-  // A crossing found by marching a subtree is named by the leaf deciding the value there.
+  // A crossing found by marching a subtree is named by the leaf deciding the program's value there.
   if (hit.hit() && hit.m_primitive == MarchedLeaf) {
-    hit.m_primitive = this->closestLeaf(hit.m_point).m_leaf;
+    if constexpr (Whole) {
+      hit.m_primitive = this->closestLeaf(hit.m_point).m_leaf;
+    }
+    else {
+      hit.m_primitive =
+        this->leafOf(this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, hit.m_point, base, location))
+          .m_leaf;
+    }
   }
 
   return hit;
@@ -3042,26 +3401,630 @@ Tape<T, UserPrimitives...>::getLargestPlainUnion() const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
-inline uint32_t
-Tape<T, UserPrimitives...>::getLabel(const uint32_t a_leaf) const noexcept
+inline SurfaceLabelId
+Tape<T, UserPrimitives...>::getSurfaceLabel(const uint32_t a_leaf) const noexcept
 {
-  return (a_leaf < m_layout.m_labels.size()) ? m_layout.m_labels.at(this->base(), a_leaf) : LeafRef<T>::None;
+  return (a_leaf < m_layout.m_surfaceLabels.size()) ? SurfaceLabelId(m_layout.m_surfaceLabels.at(this->base(), a_leaf))
+                                                    : SurfaceLabelId::none();
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceLabelId
+Tape<T, UserPrimitives...>::getSurfaceLabel(const LeafRef<T>& a_ref) const noexcept
+{
+  return this->getSurfaceLabel(a_ref.m_leaf);
 }
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 inline uint32_t
-Tape<T, UserPrimitives...>::getLabel(const LeafRef<T>& a_ref) const noexcept
-{
-  return this->getLabel(a_ref.m_leaf);
-}
-
-template <class T, class... UserPrimitives>
-EBGEOMETRY_HOST_DEVICE
-inline uint32_t
-Tape<T, UserPrimitives...>::getNumLabels() const noexcept
+Tape<T, UserPrimitives...>::getNumSurfaceLabels() const noexcept
 {
   return m_layout.m_numLabels;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::wholeValue(const Vec3T<T>& a_point) const noexcept
+{
+  return this->template evaluate<MaxCallDepth, T>(0U, a_point, this->base(), this->location());
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::numRegionOperands() const noexcept
+{
+  return (m_layout.m_regionPrograms.size() > 0U) ? m_layout.m_regionPrograms.at(this->base(), 0U) : 0U;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline MaterialLabelId
+Tape<T, UserPrimitives...>::getMaterialOf(const uint32_t a_region) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  if (m_layout.m_regionPrograms.size() == 0U || a_region >= ((n > 0U) ? n + 1U : 2U)) {
+    return MaterialLabelId::none();
+  }
+
+  return MaterialLabelId(m_layout.m_regionPrograms.at(this->base(), 1U + n + a_region));
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::getNumRegions() const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  return (n > 0U) ? n + 1U : 2U;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::regionSolid(const uint32_t  a_region,
+                                        const uint32_t  a_level,
+                                        const Vec3T<T>& a_point) const noexcept
+{
+  const void* base = this->base();
+
+  // The region's record: its number of masks, their numbers, then its programs by level.
+  const uint32_t record  = m_layout.m_regionPrograms.at(base, a_region);
+  const uint32_t masks   = m_layout.m_regionPrograms.at(base, record);
+  const uint32_t program = m_layout.m_regionPrograms.at(base, record + 1U + masks + a_level);
+
+  EBGEOMETRY_EXPECT(a_level <= masks);
+
+  return this->template evaluate<MaxCallDepth, T>(program, a_point, base, this->location());
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::sharedMasks(const uint32_t a_first, const uint32_t a_second) const noexcept
+{
+  const void* base = this->base();
+
+  const uint32_t first  = m_layout.m_regionPrograms.at(base, a_first);
+  const uint32_t second = m_layout.m_regionPrograms.at(base, a_second);
+  const uint32_t n = Math::min(m_layout.m_regionPrograms.at(base, first), m_layout.m_regionPrograms.at(base, second));
+
+  // The masks are listed outermost first, so those above both regions are a common prefix.
+  uint32_t shared = 0;
+
+  while (shared < n && m_layout.m_regionPrograms.at(base, first + 1U + shared) ==
+                         m_layout.m_regionPrograms.at(base, second + 1U + shared)) {
+    shared++;
+  }
+
+  return shared;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline uint32_t
+Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
+{
+  // An object with no Overlay is one region.
+  if (this->numRegionOperands() == 0U) {
+    return (this->wholeValue(a_point) < T(0)) ? 1U : 0U;
+  }
+
+  const uint32_t n = this->numRegionOperands();
+
+  // The last region whose solid, with all its masks, holds the point: later regions are on top.
+  for (uint32_t k = n; k > 0U; k--) {
+    if (this->regionSolid(k, 0U, a_point) < T(0)) {
+      return k;
+    }
+  }
+
+  return 0U;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  EBGEOMETRY_EXPECT(a_region <= Math::max(n, 1U));
+
+  // The background is the outside of the whole object; an object with no Overlay is region 1.
+  if (a_region == 0U) {
+    return -this->wholeValue(a_point);
+  }
+
+  if (n == 0U) {
+    return this->wholeValue(a_point);
+  }
+
+  // Region k is its solid with its masks, minus each later solid without the masks the two share (see
+  // TapeDetail::RegionSolid): max(S_k, -min_{j>k} S_j).
+  T later = Math::Limits<T>::max();
+
+  for (uint32_t j = a_region + 1U; j <= n; j++) {
+    later = Math::min(later, this->regionSolid(j, this->sharedMasks(a_region, j), a_point));
+  }
+
+  return Math::max(this->regionSolid(a_region, 0U, a_point), -later);
+}
+
+template <class T, class... UserPrimitives>
+template <class Visit>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_visit) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  // An object with no Overlay is region 1, the background its outside.
+  if (n == 0U) {
+    const T whole = this->wholeValue(a_point);
+
+    a_visit(1U, whole);
+    a_visit(0U, -whole);
+
+    return;
+  }
+
+  // Whether every region has the same masks: then every later solid drops all of them.
+  const void*    base    = this->base();
+  const uint32_t masks   = m_layout.m_regionPrograms.at(base, m_layout.m_regionPrograms.at(base, 1U));
+  bool           uniform = true;
+
+  for (uint32_t k = 2; k <= n && uniform; k++) {
+    uniform = m_layout.m_regionPrograms.at(base, m_layout.m_regionPrograms.at(base, k)) == masks &&
+              this->sharedMasks(1U, k) == masks;
+  }
+
+  if (uniform) {
+    T later = Math::Limits<T>::max();
+
+    for (uint32_t k = n; k > 0U; k--) {
+      const T masked   = this->regionSolid(k, 0U, a_point);
+      const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
+
+      a_visit(k, Math::max(masked, -later));
+
+      later = Math::min(later, unmasked);
+    }
+  }
+  else {
+    for (uint32_t k = n; k > 0U; k--) {
+      a_visit(k, this->signedDistance(a_point, k));
+    }
+  }
+
+  a_visit(0U, -this->wholeValue(a_point));
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>&   a_point,
+                                           const Subdomains& a_subdomains,
+                                           const uint32_t    a_subdomain) const noexcept
+{
+  // Half the difference of the smallest function of a region in the subdomain and of one not in it: negative exactly in
+  // the subdomain, zero only where a region in it meets one not in it. The smallest member's function alone would be
+  // zero on the contact between two of its regions too (both functions are zero there), a sheet the subdomain's surface
+  // does not have; the other term is strictly positive there. Each term is at most the distance to the subdomain's
+  // boundary, so their average is a distance bound, exact where two regions' functions are.
+  T in  = Math::Limits<T>::max();
+  T out = Math::Limits<T>::max();
+
+  this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+    if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+      in = Math::min(in, a_value);
+    }
+    else {
+      out = Math::min(out, a_value);
+    }
+  });
+
+  return T(0.5) * (in - out);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
+                                           const Subdomains& a_subdomains,
+                                           const uint32_t    a_subdomain) const noexcept
+{
+  T        value   = Math::Limits<T>::max();
+  T        outside = Math::Limits<T>::max();
+  uint32_t region  = Subdomains::None;
+  uint32_t other   = Subdomains::None;
+
+  // The subdomain's region whose function is smallest, and the smallest of the regions outside it; on a tie, the
+  // lowest-numbered, as asked region by region.
+  this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+    if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+      if (a_value <= value) {
+        value  = a_value;
+        region = a_region;
+      }
+    }
+    else if (a_value <= outside) {
+      outside = a_value;
+      other   = a_region;
+    }
+  });
+
+  if (region == Subdomains::None) {
+    return SurfaceRef<T>();
+  }
+
+  const SurfaceRef<T> inner = this->closestSurface(a_point, region);
+
+  // A contact between two of the subdomain's own regions is not its surface, though the region's nearest one (near
+  // where a region of it pokes out of another: the step where a core leaves its jacket): the nearest region outside
+  // the subdomain names the surface instead, where it borders the subdomain, seen from the subdomain's side.
+  if (a_subdomains.subdomainOf(inner.m_neighborRegion) == a_subdomain && other != Subdomains::None) {
+    SurfaceRef<T> across = this->closestSurface(a_point, other);
+
+    if (across.m_neighborRegion != Subdomains::None &&
+        a_subdomains.subdomainOf(across.m_neighborRegion) == a_subdomain) {
+      const uint32_t        owner    = across.m_ownerRegion;
+      const MaterialLabelId material = across.m_ownerMaterial;
+
+      across.m_ownerRegion      = across.m_neighborRegion;
+      across.m_ownerMaterial    = across.m_neighborMaterial;
+      across.m_neighborRegion   = owner;
+      across.m_neighborMaterial = material;
+
+      return across;
+    }
+  }
+
+  return inner;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline SurfaceHitT<T>
+Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
+                                              const T              a_tMin,
+                                              const T              a_tMax,
+                                              const RayOptions<T>& a_options) const noexcept
+{
+  const void* base = this->base();
+
+  const uint32_t n = this->numRegionOperands();
+
+  // A nudge past a crossing, to name the region beyond it and to start the next query: a hundredth of the march's
+  // tolerance at the object's scale. A whole tolerance named the region past a thin layer instead (where an outer
+  // region's end face meets an inner one passing through it, the inner one: a seam with the end face's normal) and stepped over crossings that close.
+  const BoundingVolumes::AABBT<T> box = m_layout.m_boundingVolume;
+
+  const T diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+  const T scale    = (a_options.m_scale > T(0))                               ? a_options.m_scale
+                     : (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal
+                                                                              : T(1);
+  const T nudge    = T(0.01) * a_options.m_tolerance * scale;
+
+  SurfaceHitT<T> result;
+
+  // An object with no Overlay is one region: every crossing of it changes the region, and whether the ray enters says
+  // which way, so no distance is asked to name the two sides. Asking them was two searches of the whole object per
+  // crossing (at the start and past the hit) on top of the one naming the surface; on an assembly of meshes, a view
+  // of its one region (RegionView) rendered several times slower than the tape itself.
+  if (n == 0U) {
+    const HitT<T> hit = this->traceProgram(0U, a_ray, a_tMin + nudge, a_tMax, a_options);
+
+    result.m_hit = hit;
+
+    if (!hit.hit()) {
+      return result;
+    }
+
+    const CSGOps::Tagged<T> value =
+      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, hit.m_point, base, this->location());
+
+    result.m_surface = this->surfaceOf(this->leafOf(value));
+
+    if (hit.m_entering) {
+      result.m_hit.m_normal = -hit.m_normal;
+    }
+
+    result.m_surface.m_ownerRegion      = hit.m_entering ? 0U : 1U;
+    result.m_surface.m_neighborRegion   = hit.m_entering ? 1U : 0U;
+    result.m_surface.m_ownerMaterial    = this->getMaterialOf(result.m_surface.m_ownerRegion);
+    result.m_surface.m_neighborMaterial = this->getMaterialOf(result.m_surface.m_neighborRegion);
+
+    return result;
+  }
+
+  const auto regionAt = [this](const Vec3T<T>& a_point) { return this->region(a_point); };
+
+  // A crossing whose two sides are the same region (found again from the surface the query starts on, or a crossing
+  // of one solid inside a later one) changes nothing: the search goes on past it.
+  T start = a_tMin + nudge;
+
+  for (uint32_t tries = 0; tries < 16U && start < a_tMax; tries++) {
+    const uint32_t from = regionAt(a_ray.m_origin + start * a_ray.m_direction);
+
+    // The program whose crossing comes first: leaving the current region's solid (with all its masks), or entering a
+    // later one's.
+    HitT<T>  first;
+    uint32_t program = 0U;
+
+    first.m_t = a_tMax;
+
+    for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
+      const uint32_t record = m_layout.m_regionPrograms.at(base, k);
+      const uint32_t solid =
+        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+
+      const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
+
+      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
+        first   = hit;
+        program = solid;
+      }
+    }
+
+    if (!first.hit()) {
+      result.m_hit = first;
+
+      return result;
+    }
+
+    const uint32_t to = regionAt(first.m_point + nudge * a_ray.m_direction);
+
+    if (to != from) {
+      // The surface crossed: the leaf deciding the traced program's value there, drilled.
+      const CSGOps::Tagged<T> value =
+        this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, first.m_point, base, this->location());
+
+      result.m_hit     = first;
+      result.m_surface = this->surfaceOf(this->leafOf(value));
+
+      // The normal from the region left into the region entered: the traced solid's outward normal where the ray
+      // leaves it, against it where the ray enters.
+      if (first.m_entering) {
+        result.m_hit.m_normal = -first.m_normal;
+      }
+
+      result.m_surface.m_ownerRegion      = from;
+      result.m_surface.m_neighborRegion   = to;
+      result.m_surface.m_ownerMaterial    = this->getMaterialOf(result.m_surface.m_ownerRegion);
+      result.m_surface.m_neighborMaterial = this->getMaterialOf(result.m_surface.m_neighborRegion);
+
+      return result;
+    }
+
+    start = first.m_t + nudge;
+  }
+
+  return result;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline SurfaceHitT<T>
+Tape<T, UserPrimitives...>::firstRegionChange(const Vec3T<T>&      a_from,
+                                              const Vec3T<T>&      a_to,
+                                              const T              a_tMin,
+                                              const RayOptions<T>& a_options) const noexcept
+{
+  const Vec3T<T> segment = a_to - a_from;
+  const T        length  = segment.length();
+
+  if (!(length > T(0))) {
+    return SurfaceHitT<T>();
+  }
+
+  return this->firstRegionChange(RayT<T>{a_from, segment / length}, a_tMin, length, a_options);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline SurfaceHitT<T>
+Tape<T, UserPrimitives...>::firstSurface(const RayT<T>&       a_ray,
+                                         const T              a_tMin,
+                                         const T              a_tMax,
+                                         const Subdomains&    a_subdomains,
+                                         const uint32_t       a_subdomain,
+                                         const RayOptions<T>& a_options) const noexcept
+{
+  // Region by region along the ray, until it enters or leaves the subdomain: one region in it, the other not. Each
+  // query starts past the crossing before it (see firstRegionChange()).
+  T t = a_tMin;
+
+  for (uint32_t steps = 0; steps < a_options.m_maxSteps; steps++) {
+    const SurfaceHitT<T> change = this->firstRegionChange(a_ray, t, a_tMax, a_options);
+
+    if (!change.m_hit.hit()) {
+      return change;
+    }
+
+    const bool wasIn = a_subdomains.subdomainOf(change.m_surface.m_ownerRegion) == a_subdomain;
+    const bool isIn  = a_subdomains.subdomainOf(change.m_surface.m_neighborRegion) == a_subdomain;
+
+    if (wasIn != isIn) {
+      return change;
+    }
+
+    t = change.m_hit.m_t;
+  }
+
+  return SurfaceHitT<T>();
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline CSGOps::Tagged<T>
+Tape<T, UserPrimitives...>::regionSolidTagged(const uint32_t  a_region,
+                                              const uint32_t  a_level,
+                                              const Vec3T<T>& a_point) const noexcept
+{
+  const void* base = this->base();
+
+  const uint32_t record  = m_layout.m_regionPrograms.at(base, a_region);
+  const uint32_t masks   = m_layout.m_regionPrograms.at(base, record);
+  const uint32_t program = m_layout.m_regionPrograms.at(base, record + 1U + masks + a_level);
+
+  EBGEOMETRY_EXPECT(a_level <= masks);
+
+  return this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, a_point, base, this->location());
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32_t a_region) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  EBGEOMETRY_EXPECT(a_region <= Math::max(n, 1U));
+
+  // An object with no Overlay is one region: its surface is the object's, between it and the background.
+  if (n == 0U) {
+    SurfaceRef<T> surface = this->surfaceOf(this->leafOf(
+      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, a_point, this->base(), this->location())));
+
+    surface.m_ownerRegion      = a_region;
+    surface.m_neighborRegion   = 1U - Math::min(a_region, 1U);
+    surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+    surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
+
+    return surface;
+  }
+
+  // The background's surface is the whole object's; across it, the region whose solid comes nearest the point
+  // (the later one on a tie).
+  if (a_region == 0U) {
+    SurfaceRef<T> surface = this->surfaceOf(this->leafOf(
+      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, a_point, this->base(), this->location())));
+
+    T        nearest = Math::Limits<T>::max();
+    uint32_t across  = 0U;
+
+    for (uint32_t m = n; m > 0U; m--) {
+      const T value = this->regionSolid(m, 0U, a_point);
+
+      if (value < nearest) {
+        nearest = value;
+        across  = m;
+      }
+    }
+
+    surface.m_ownerRegion      = 0U;
+    surface.m_neighborRegion   = across;
+    surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+    surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
+
+    return surface;
+  }
+
+  // The region's function, max(S_k, -min_{j>k} S_j), with the leaf each term comes from: the region's own operand
+  // or its masks decide, or the later region it meets there.
+  using V = CSGOps::Tagged<T>;
+
+  const V own = this->regionSolidTagged(a_region, 0U, a_point);
+
+  V later;
+
+  later.m_value = Math::Limits<T>::max();
+  later.m_tag   = CSGOps::NoTag;
+  later.m_point = a_point;
+
+  uint32_t met = 0U;
+
+  // On a tie (two later solids sharing a mask's face, which decides both), the later one, which lies on top, where its
+  // own operand reaches the point: elsewhere on the face the earlier one shows there.
+  for (uint32_t j = a_region + 1U; j <= n; j++) {
+    const V value = this->regionSolidTagged(j, this->sharedMasks(a_region, j), a_point);
+
+    const bool tie = (value.m_value == later.m_value) && met != 0U;
+    const bool top =
+      tie &&
+      this->regionSolid(
+        j, m_layout.m_regionPrograms.at(this->base(), m_layout.m_regionPrograms.at(this->base(), j)), a_point) < T(0);
+
+    if (value.m_value < later.m_value || top) {
+      later = value;
+      met   = j;
+    }
+  }
+
+  const bool byLater = (met != 0U) && (-later.m_value > own.m_value);
+
+  SurfaceRef<T> surface = this->surfaceOf(this->leafOf(byLater ? later : own));
+
+  // Across an interface with a later region: that region, or one later still on top of it there. Across the
+  // region's own surface: the last other region that holds the point, or the background.
+  uint32_t across = byLater ? met : 0U;
+
+  // Across a mask's cut, though, the regions the mask cuts are gone too: the last region the mask does not cut that
+  // holds the point, or the background. The mask that decides is the outermost whose leaving out lowers the value
+  // (masks combine by a maximum, so leaving out one that does not decide changes nothing, bit for bit).
+  const void*    base   = this->base();
+  const uint32_t record = m_layout.m_regionPrograms.at(base, a_region);
+  const uint32_t masks  = m_layout.m_regionPrograms.at(base, record);
+
+  uint32_t cutBy = Subdomains::None;
+
+  if (!byLater && masks > 0U) {
+    T value = own.m_value;
+
+    for (uint32_t level = 0; level < masks && cutBy == Subdomains::None; level++) {
+      const T without = this->regionSolid(a_region, level + 1U, a_point);
+
+      if (without < value) {
+        cutBy = m_layout.m_regionPrograms.at(base, record + 1U + level);
+      }
+
+      value = without;
+    }
+  }
+
+  // Whether a region is cut by that mask.
+  const auto cut = [&](const uint32_t a_other) {
+    const uint32_t other = m_layout.m_regionPrograms.at(base, a_other);
+    const uint32_t count = m_layout.m_regionPrograms.at(base, other);
+
+    for (uint32_t i = 0; i < count; i++) {
+      if (m_layout.m_regionPrograms.at(base, other + 1U + i) == cutBy) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
+    if (m != a_region && (cutBy == Subdomains::None || !cut(m)) && this->regionSolid(m, 0U, a_point) < T(0)) {
+      across = m;
+
+      break;
+    }
+  }
+
+  surface.m_ownerRegion      = a_region;
+  surface.m_neighborRegion   = across;
+  surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+  surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
+
+  return surface;
 }
 
 template <class T, class... UserPrimitives>
@@ -3069,7 +4032,56 @@ EBGEOMETRY_HOST_DEVICE
 inline SurfaceRef<T>
 Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexcept
 {
-  const LeafRef<T> ref = this->closestLeaf(a_point);
+  return this->surfaceOf(this->closestLeaf(a_point));
+}
+
+template <class T, class... UserPrimitives>
+inline bool
+Tape<T, UserPrimitives...>::leafValue(const uint32_t a_leaf, const Vec3T<T>& a_point, T& a_value) const
+{
+  // The leaf's primitive clause names its type and its index in the type's array (the region programs emit the
+  // same leaves again; the first is as good as any).
+  const void* const base = this->base();
+
+  for (uint32_t i = 0; i < m_layout.m_clauses.size(); i++) {
+    const TapeDetail::Clause& c = m_layout.m_clauses.at(base, i);
+
+    if (c.m_op == TapeDetail::Op::Primitive && c.m_b == a_leaf) {
+      a_value = this->evaluatePrimitive(c.m_type, c.m_a, a_point, base, this->location());
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline LeafRef<T>
+Tape<T, UserPrimitives...>::leafOf(const CSGOps::Tagged<T>& a_value) const noexcept
+{
+  LeafRef<T> ref;
+
+  if (a_value.m_tag != CSGOps::NoTag) {
+    const TapeDetail::Clause& c = m_layout.m_clauses.at(this->base(), a_value.m_tag);
+
+    ref.m_leaf       = c.m_b;
+    ref.m_type       = c.m_type;
+    ref.m_index      = c.m_a;
+    ref.m_localPoint = a_value.m_point;
+  }
+
+  return ref;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::surfaceOf(const LeafRef<T>& a_ref) const noexcept
+{
+  const LeafRef<T>& ref = a_ref;
 
   SurfaceRef<T> surface;
 
@@ -3077,10 +4089,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexce
     return surface;
   }
 
-  surface.m_leaf       = ref.m_leaf;
-  surface.m_label      = this->getLabel(ref.m_leaf);
-  surface.m_surface    = this->getFirstSurface(ref.m_leaf);
-  surface.m_localPoint = ref.m_localPoint;
+  surface.m_leaf         = ref.m_leaf;
+  surface.m_surfaceLabel = this->getSurfaceLabel(ref.m_leaf);
+  surface.m_surface      = this->getFirstSurface(ref.m_leaf);
+  surface.m_localPoint   = ref.m_localPoint;
 
   // A tape whose types include no container and no shape with parts compiles no drilling at all.
   if constexpr (TapeDetail::AnyDrill<T, Primitives>::value) {
@@ -3089,15 +4101,15 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point) const noexce
 
   // A part whose face group named it has that label, over the leaf's. The table starts with one entry per leaf:
   // where the leaf's labels begin, or None for a leaf whose parts are not labeled. Only a single shape's parts are
-  // (Label() rejects a collection), so the part indexes the leaf's own labels; a label there may itself be None,
+  // (SurfaceLabel() rejects a collection), so the part indexes the leaf's own labels; a label there may itself be None,
   // for a part in no group under an unlabeled leaf.
-  if (m_layout.m_partLabels.size() > 0) {
-    const uint32_t begin = m_layout.m_partLabels.at(this->base(), ref.m_leaf);
+  if (m_layout.m_partSurfaceLabels.size() > 0) {
+    const uint32_t begin = m_layout.m_partSurfaceLabels.at(this->base(), ref.m_leaf);
 
     if (begin != SurfaceRef<T>::None) {
-      EBGEOMETRY_EXPECT(begin + surface.m_part < m_layout.m_partLabels.size());
+      EBGEOMETRY_EXPECT(begin + surface.m_part < m_layout.m_partSurfaceLabels.size());
 
-      surface.m_label = m_layout.m_partLabels.at(this->base(), begin + surface.m_part);
+      surface.m_surfaceLabel = SurfaceLabelId(m_layout.m_partSurfaceLabels.at(this->base(), begin + surface.m_part));
     }
   }
 
@@ -3228,12 +4240,13 @@ Tape<T, UserPrimitives...>::rebasedView(const Pool& a_pool) const noexcept
     [[maybe_unused]] const UnionRoot unbounded = UnionRoot(parts.m_unbounded, location).rebasedView(a_pool);
   }
 
-  const uint64_t endByte =
-    Math::max(Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
-              Math::max(Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
-                        Math::max(Math::max(Math::max(m_layout.m_labels.endByte(), m_layout.m_surfaces.endByte()),
-                                            m_layout.m_partLabels.endByte()),
-                                  TapeDetail::storeEndByte(m_layout.m_primitives))));
+  const uint64_t endByte = Math::max(
+    Math::max(m_layout.m_clauses.endByte(), m_layout.m_programs.endByte()),
+    Math::max(
+      Math::max(m_layout.m_params.endByte(), m_layout.m_unions.endByte()),
+      Math::max(Math::max(Math::max(m_layout.m_surfaceLabels.endByte(), m_layout.m_surfaces.endByte()),
+                          Math::max(m_layout.m_partSurfaceLabels.endByte(), m_layout.m_regionPrograms.endByte())),
+                TapeDetail::storeEndByte(m_layout.m_primitives))));
 
   Tape view = *this;
 
@@ -3260,9 +4273,10 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
     const auto programs = m_layout.m_programs.bind(base);
     const auto params   = m_layout.m_params.bind(base);
     const auto unions   = m_layout.m_unions.bind(base);
-    const auto labels   = m_layout.m_labels.bind(base);
+    const auto labels   = m_layout.m_surfaceLabels.bind(base);
     const auto surfaces = m_layout.m_surfaces.bind(base);
-    const auto parts    = m_layout.m_partLabels.bind(base);
+    const auto parts    = m_layout.m_partSurfaceLabels.bind(base);
+    const auto regions  = m_layout.m_regionPrograms.bind(base);
 
     // The arrays are copied as they are laid out: the marched ranges overlap the sub-programs.
     staging.m_flatClauses.assign(clauses.begin(), clauses.end());
@@ -3272,9 +4286,10 @@ Tape<T, UserPrimitives...>::deepCopy(Pool& a_dstPool) const
 
     staging.m_params.assign(params.begin(), params.end());
     staging.m_unions.assign(unions.begin(), unions.end());
-    staging.m_labels.assign(labels.begin(), labels.end());
+    staging.m_surfaceLabels.assign(labels.begin(), labels.end());
     staging.m_surfaces.assign(surfaces.begin(), surfaces.end());
-    staging.m_partLabels.assign(parts.begin(), parts.end());
+    staging.m_partSurfaceLabels.assign(parts.begin(), parts.end());
+    staging.m_regionPrograms.assign(regions.begin(), regions.end());
   }
 
   TapeDetail::deepCopyStore<0, Primitives>(m_layout.m_primitives, location, a_dstPool, staging.m_primitives);

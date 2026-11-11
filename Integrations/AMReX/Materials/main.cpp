@@ -2,12 +2,13 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Which part of an object each cut cell lies on: the armadillo with a cylinder bored through its chest,
-// compiled into a Tape and handed to AMReX's EB2 grid generation as an implicit function, and each cut cell
-// labeled with the tape's leaf closest to it (the armadillo 0, the bore 1) and, on the armadillo, with the id
-// of its closest mesh face: the indices into tables of per-part and per-face data, such as boundary
-// conditions or materials. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See
-// README.md and the Materials example under Examples/.
+// One subdomain of a domain handed to AMReX's EB2 grid generation, and its boundary conditions at the cut cells: a
+// cable (a core in a jacket, in a box of air), its regions declared with Overlay(), and a domain of two subdomains,
+// the air and the jacket, with three surface groups. AMReX cuts one implicit function, so one subdomain is
+// cut (subdomain = 0 or 1); each cut cell is labeled with the surface group of the surface there (the boundary
+// condition's id), its role for the domain (a boundary or an interface) and the region on the other side. The same
+// code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See README.md and the Materials example under
+// Examples/.
 
 #include <AMReX.H>
 #include <AMReX_EB2.H>
@@ -18,7 +19,6 @@
 #include "../../../EBGeometry.hpp"
 
 #include <cmath>
-#include <string>
 
 using namespace amrex;
 
@@ -31,27 +31,27 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using AABB = EBGeometry::BoundingVolumes::AABBT<T>;
 using Expr = EBGeometry::Expr<T>;
 using Tape = EBGeometry::Tape<T>;
-// The library's default branching factor and triangle width: the same type in every compilation pass, and
-// one of the tape's built-in primitive types.
-using Mesh =
-  EBGeometry::TriMeshSDF<T, EBGeometry::BVH::DefaultBranchingRatio<T>(), EBGeometry::TriangleSoA::DefaultWidth<T>()>;
 
-// AMReX's implicit function, which can also name the part of the object closest to a point. EBGeometry's value
-// is negative inside the object and AMReX reads negative values as fluid, so the sign is flipped: the fluid is
-// around the object. Deriving from GPUable lets EB2 and ParallelFor evaluate it in device kernels. It holds the
-// tape twice, as a view of the host pool and of its device mirror (the same object in a CPU build), and each
-// compilation pass uses its own.
-class MaterialsIF : public GPUable
+// AMReX's implicit function: a subdomain's function, negative in the subdomain and zero on its boundary only (never
+// on a contact between two of its own regions). The subdomain is where the code computes, which AMReX reads as fluid
+// where the value is negative, so the sign is EBGeometry's own. It holds the tape twice, as a view of the host pool
+// and of its device mirror (the same object in a CPU build), each compilation pass using its own, and the domain, a
+// plain value. Deriving from GPUable lets EB2 and ParallelFor evaluate it in device kernels.
+class SubdomainIF : public GPUable
 {
 public:
-  MaterialsIF(const Tape& a_host, const Tape& a_device) noexcept : m_host(a_host), m_device(a_device)
+  SubdomainIF(const Tape&               a_host,
+              const Tape&               a_device,
+              const EBGeometry::Domain& a_domain,
+              const uint32_t            a_subdomain) noexcept
+    : m_host(a_host), m_device(a_device), m_domain(a_domain), m_subdomain(a_subdomain)
   {}
 
   AMREX_GPU_HOST_DEVICE
   Real
   operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
   {
-    return -tape().signedDistance(Vec3(x, y, z));
+    return tape().signedDistance(Vec3(x, y, z), m_domain.m_subdomains, m_subdomain);
   }
 
   Real
@@ -60,23 +60,20 @@ public:
     return this->operator()(AMREX_D_DECL(p[0], p[1], p[2]));
   }
 
-  // The leaf the value at a point comes from, in expression order, and on a mesh leaf the id of the mesh's
-  // closest face (its position in the file, less any zero-area faces the reader removed); -1 where there is
-  // none. Stored in a Real, a face id is exact up to 2^24 faces when AMReX is built in single precision.
+  // The subdomain's surface at a point: its surface group (the boundary condition's id, -1 for none), its role for
+  // the domain (1 a boundary, 2 an interface with another subdomain) and the region on the other side.
   AMREX_GPU_HOST_DEVICE
   void
-  label(const Vec3& a_point, Real& a_leaf, Real& a_face) const noexcept
+  label(const Vec3& a_point, Real& a_condition, Real& a_role, Real& a_across) const noexcept
   {
-    const EBGeometry::LeafRef<T> ref = tape().closestLeaf(a_point);
+    const EBGeometry::SurfaceRef<T> surface = tape().closestSurface(a_point, m_domain.m_subdomains, m_subdomain);
 
-    a_leaf = (ref.m_leaf == EBGeometry::LeafRef<T>::None) ? Real(-1) : Real(ref.m_leaf);
-    a_face = Real(-1);
+    const uint32_t group = m_domain.m_scheme.surfaceGroupOf(surface);
+    const uint32_t mine  = m_domain.m_subdomains.subdomainOf(surface.m_ownerRegion);
 
-    // The reference holds the point in the primitive's own frame, so the mesh is asked there, after the
-    // translation, scaling and rotation the expression applied to it.
-    if (tape().isPrimitive<Mesh>(ref)) {
-      a_face = Real(tape().primitive<Mesh>(ref).getClosestFace(ref.m_localPoint).faceId);
-    }
+    a_condition = (group == EBGeometry::Scheme::None) ? Real(-1) : Real(group);
+    a_role      = Real(static_cast<int>(m_domain.m_subdomains.role(surface)));
+    a_across    = Real((mine == m_subdomain) ? surface.m_neighborRegion : surface.m_ownerRegion);
   }
 
 private:
@@ -91,55 +88,70 @@ private:
 #endif
   }
 
-  Tape m_host;
-  Tape m_device;
+  Tape               m_host;
+  Tape               m_device;
+  EBGeometry::Domain m_domain;
+  uint32_t           m_subdomain;
 };
 
 int
 main(int argc, char* argv[])
 {
   amrex::Initialize(argc, argv);
-  try {
-    int         n_cell        = 128;
-    int         max_grid_size = 32;
-    std::string filename      = "../../../common-3d-test-models/data/armadillo.obj";
+  {
+    int n_cell        = 128;
+    int max_grid_size = 32;
+    int subdomain     = 0;
 
     ParmParse pp;
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
-    pp.query("filename", filename);
+    pp.query("subdomain", subdomain);
+
+    // The regions: the air (1), the jacket (2) on top of it, then the core (3); beyond the air's box, the outside (0).
+    const Expr air =
+      EBGeometry::RegionName(EBGeometry::MaterialLabel(
+                               EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))), "air"),
+                             "air");
+    const Expr jacket = EBGeometry::RegionName(
+      EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)),
+                                "PTFE"),
+      "jacket");
+    const Expr core = EBGeometry::RegionName(
+      EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)),
+                                "copper"),
+      "core");
+    const Expr object = EBGeometry::Overlay(air, jacket, core);
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const Mesh mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(filename, pool);
+    const Tape tape(pool, object);
 
-    // Stand the mesh on y = 0 with height 2, turned to face +z, and bore a cylinder through its body along z.
-    const Vec3 lo = mesh.computeBoundingVolume().getLowCorner();
-    const Vec3 hi = mesh.computeBoundingVolume().getHighCorner();
+    // The domain: two subdomains, the air (0) and the jacket (1), coupled through the jacket's outside; the core is
+    // in neither. Its surface groups: every surface of the core (0), the air's box (1), and the interface of the air
+    // and the jacket (2).
+    EBGeometry::Domain domain;
 
-    const Expr armadillo = EBGeometry::Rotate(
-      EBGeometry::Scale(EBGeometry::Translate(mesh, Vec3(T(-0.5) * (lo[0] + hi[0]), -lo[1], T(-0.5) * (lo[2] + hi[2]))),
-                        T(2) / (hi[1] - lo[1])),
-      T(180),
-      1);
+    (void)domain.m_subdomains.addSubdomain({1});
+    (void)domain.m_subdomains.addSubdomain({2});
 
-    const EBGeometry::CylinderSDF<T> bore(Vec3(T(0), T(1.22), T(-2)), Vec3(T(0), T(1.22), T(2)), T(0.16));
+    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(3));
+    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 0));
+    domain.m_scheme.add(domain.m_scheme.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 2));
 
-    const Tape tape(pool, EBGeometry::Difference(armadillo, bore));
-
-    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the tape is rebased
-    // onto the mirror. The pools must outlive the EB generation.
+    // In a GPU build the pool is frozen and mirrored to device memory in one piece, and the tape is rebased onto the
+    // mirror. The pools must outlive the EB generation.
 #if defined(AMREX_USE_GPU)
     pool.freeze();
 
     const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::deviceMemoryResource());
-    const MaterialsIF      sdf(tape, tape.rebasedView(devicePool));
+    const SubdomainIF      sdf(tape, tape.rebasedView(devicePool), domain, uint32_t(subdomain));
 #else
-    const MaterialsIF sdf(tape, tape);
+    const SubdomainIF sdf(tape, tape, domain, uint32_t(subdomain));
 #endif
 
-    // Cubic cells, n_cell along the object's longest side and 10% to spare; each side's count is rounded up
-    // to a multiple of 8.
+    // Cubic cells, n_cell along the object's longest side and 10% to spare; each side's count is rounded up to a
+    // multiple of 8.
     const AABB box    = tape.computeBoundingVolume();
     const Vec3 center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
     const Vec3 extent = T(1.1) * (box.getHighCorner() - box.getLowCorner());
@@ -158,13 +170,6 @@ main(int argc, char* argv[])
     const Array<int, AMREX_SPACEDIM> periodic{AMREX_D_DECL(0, 0, 0)};
     const Geometry                   geom(Box(IntVect(0), cells - 1), rb, 0, periodic);
 
-    // A mesh's fine features can cut a cell edge more than twice, which EB2 refuses unless it may cover such
-    // cells; allow it unless the inputs say otherwise.
-    ParmParse eb2("eb2");
-    if (!eb2.contains("cover_multiple_cuts")) {
-      eb2.add("cover_multiple_cuts", 1);
-    }
-
     auto gshop = EB2::makeShop(sdf);
     EB2::Build(gshop, geom, 0, 0);
 
@@ -173,9 +178,9 @@ main(int argc, char* argv[])
     const DistributionMapping dm(grids);
 
     const auto factory = makeEBFabFactory(geom, grids, dm, {2, 2, 2}, EBSupport::full);
-    MultiFab   mf(grids, dm, 2, 0, MFInfo(), *factory);
+    MultiFab   mf(grids, dm, 3, 0, MFInfo(), *factory);
 
-    // Label each cut cell with the leaf and the face closest to its center; the other cells keep -1.
+    // Label each cut cell from the surface closest to its center; the other cells keep -1.
     mf.setVal(-1.0);
 
     const auto& flags = factory->getMultiEBCellFlagFab();
@@ -194,19 +199,16 @@ main(int argc, char* argv[])
             const Vec3 p(
               plo[0] + (i + Real(0.5)) * dx[0], plo[1] + (j + Real(0.5)) * dx[1], plo[2] + (k + Real(0.5)) * dx[2]);
 
-            sdf.label(p, labels(i, j, k, 0), labels(i, j, k, 1));
+            sdf.label(p, labels(i, j, k, 0), labels(i, j, k, 1), labels(i, j, k, 2));
           }
         });
       }
     }
 
-    EB_WriteSingleLevelPlotfile("plt", mf, {"leaf", "face_id"}, geom, 0.0, 0);
+    EB_WriteSingleLevelPlotfile("plt", mf, {"condition", "role", "across"}, geom, 0.0, 0);
 
     // The EB index space keeps a copy of the implicit function, which must not outlive the pool.
     EB2::IndexSpace::clear();
-  } catch (const EBGeometry::Parser::ParseError& e) {
-    amrex::Abort(std::string("Cannot read the mesh: ") + e.what() +
-                 "\nThe default mesh is in the common-3d-test-models submodule: git submodule update --init");
   }
   amrex::Finalize();
 }

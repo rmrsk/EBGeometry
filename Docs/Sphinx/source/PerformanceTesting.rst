@@ -44,6 +44,7 @@ What is in Performance/
      ClosestPrimitive/main.cpp  a tape's closestLeaf()
      ClosestSurface/main.cpp  a tape's closestSurface(), drilled into a collection
      SurfaceParts/main.cpp    parts and labels of a tape's surfaces, and firstSurface()
+     Regions/main.cpp         a tape's regions, their functions, and a domain's labels
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -555,6 +556,27 @@ Family                                Build  Measures
 ``mesh-groups/firstHit``                     alone, along 20,000 rays at the mesh's center
 ``<input>/<operation>``               GPU    each of the above at 1,048,576 points (262,144 for
                                              the mesh) on both sides
+====================================  =====  =====================================================
+
+**Regions** (``Performance/Regions``): the regions of a tape (see :ref:`Chap:ClosestPrimitive`), for a matrix
+holding 32 particles, each a shell around a grain, one ``Overlay`` of 65 regions. The ``regionByRegion`` case computes
+what ``regionDistances`` does by asking ``signedDistance(point, region)`` for each region, names it, and a comparison
+notes the ratio of their times (what the one pass saves). An assembly of one region, 512 spheres in a union through a
+BVH with no ``Overlay``, is traced too: ``firstRegionChange()``, what a view of its regions traces per camera ray, and
+``firstHit()`` of the same rays, which names it (what naming the region and the surface costs).
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``particles/region``                  host   the region of each of 20,000 points in the matrix
+``particles/regionDistances``         host   every region's function in one pass, at the same
+                                             points
+``particles/regionByRegion``          host   the same, region by region
+``particles/domainLabels``            host   a domain's label functions (the matrix and the
+                                             shells; the grains excluded)
+``assembly/firstRegionChange``,       host   where 50,000 rays at the assembly first change region,
+``assembly/firstHit``                        with the surface; or where they first cross it
+``<input>/<operation>``               GPU    each of the above at 262,144 points or rays on both sides
 ====================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see

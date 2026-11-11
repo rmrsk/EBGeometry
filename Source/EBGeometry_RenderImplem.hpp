@@ -32,6 +32,7 @@
 #include "EBGeometry_GPUTransform.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
+#include "EBGeometry_RegionView.hpp"
 #include "EBGeometry_Render.hpp"
 
 namespace EBGeometry::Render {
@@ -61,6 +62,165 @@ unit(const Vec3T<T>& a_v) noexcept
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
+/**
+ * @brief Whether a shape reports its distance quality at run time (getDistanceQuality(): a Tape, a view of its
+ * regions): the primary template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ */
+template <class S, class = void>
+struct HasDistanceQuality : std::false_type
+{
+};
+
+/**
+ * @brief A shape with getDistanceQuality().
+ * @tparam S Shape type.
+ */
+template <class S>
+struct HasDistanceQuality<S, std::void_t<decltype(std::declval<const S&>().getDistanceQuality())>> : std::true_type
+{
+};
+
+/**
+ * @brief The distance quality of a shape: its own at run time if it reports one, else its type's.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @param[in] a_shape Shape.
+ * @return The quality.
+ */
+template <class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline DistanceQuality
+qualityOf(const S& a_shape) noexcept
+{
+  if constexpr (HasDistanceQuality<S>::value) {
+    return a_shape.getDistanceQuality();
+  }
+  else {
+    (void)a_shape;
+
+    return DistanceQualityOf<S>::value;
+  }
+}
+
+/**
+ * @brief Whether a shape names what a point is in, for the section plane's fill (sectionKey()): the primary template is
+ * false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasSectionKey : std::false_type
+{
+};
+
+/**
+ * @brief A shape with sectionKey(point).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasSectionKey<S, T, std::void_t<decltype(std::declval<const S&>().sectionKey(std::declval<Vec3T<T>>()))>>
+  : std::true_type
+{
+};
+
+/**
+ * @brief Whether a shape has surfaces seen through that a renderer draws translucent (firstSeenThrough()): the primary
+ * template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasSeenThrough : std::false_type
+{
+};
+
+/**
+ * @brief A shape with firstSeenThrough(ray, tMin, tMax, options).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasSeenThrough<S,
+                      T,
+                      std::void_t<decltype(std::declval<const S&>().firstSeenThrough(
+                        std::declval<RayT<T>>(), T(0), T(0), std::declval<RayOptions<T>>()))>> : std::true_type
+{
+};
+
+/**
+ * @brief Whether a shape has a field of its own for the section plane (contourSample(), negative inside, with lines that
+ * may be secondary): the primary template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasContourSample : std::false_type
+{
+};
+
+/**
+ * @brief A shape with contourSample(point).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasContourSample<S, T, std::void_t<decltype(std::declval<const S&>().contourSample(std::declval<Vec3T<T>>()))>>
+  : std::true_type
+{
+};
+
+/**
+ * @brief Whether a shape has a field of its own for the section plane (contourValue(), negative inside): the primary
+ * template is false.
+ * @details Internal helper; not part of the public API.
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct HasContourValue : std::false_type
+{
+};
+
+/**
+ * @brief A shape with contourValue(point).
+ * @tparam S Shape type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct HasContourValue<S, T, std::void_t<decltype(std::declval<const S&>().contourValue(std::declval<Vec3T<T>>()))>>
+  : std::true_type
+{
+};
+
+/**
+ * @brief The shape as the settings show it: a view of regions with the settings' region settings
+ * (Settings::m_regions), any other shape as it is.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape    The shape.
+ * @param[in] a_settings The settings.
+ * @return The shape to render.
+ */
+template <class T, class S>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline S
+shownAs(const S& a_shape, const Settings<T>& a_settings) noexcept
+{
+  if constexpr (hasRegionVisibility<S>) {
+    return a_shape.withSettings(a_settings.m_regions);
+  }
+  else {
+    return a_shape;
+  }
+}
+
 template <class T, class S>
 struct Sectioned
 {
@@ -83,6 +243,55 @@ struct Sectioned
    * @brief The plane's unit normal.
    */
   Vec3T<T> m_normal;
+
+  /**
+   * @brief How far behind the plane, into the kept side, the cut asks what is there (two march tolerances): a face
+   * of the shape lying in the plane has value zero on it, so asking on the plane itself drew no cut face there.
+   */
+  T m_behind = T(0);
+
+  /**
+   * @brief The shape's box, which holds its solid (see isShape): a point outside it is outside the solid. Unbounded
+   * unless the renderer sets it.
+   */
+  Vec3T<T> m_low = Vec3T<T>(-Math::Limits<T>::infinity(), -Math::Limits<T>::infinity(), -Math::Limits<T>::infinity());
+
+  /**
+   * @brief See m_low.
+   */
+  Vec3T<T> m_high = Vec3T<T>(Math::Limits<T>::infinity(), Math::Limits<T>::infinity(), Math::Limits<T>::infinity());
+
+  /**
+   * @brief Whether a point is inside the shape, uncut: outside its box it is not, without asking the shape. The cut
+   * asks this where a ray's kept interval begins or ends on the plane, for every such ray, near the shape or not; on an
+   * assembly of meshes the shape's value there cost ten times the ray's own crossing.
+   * @param[in] a_point Point.
+   * @return True if the shape's value there is negative.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  insideAt(const Vec3T<T>& a_point) const noexcept
+  {
+    for (int k = 0; k < 3; k++) {
+      if (a_point[k] < m_low[k] || a_point[k] > m_high[k]) {
+        return false;
+      }
+    }
+
+    return this->shapeDistance(a_point) < T(0);
+  }
+
+  /**
+   * @brief A point moved behind the plane, into the kept side, where the cut face asks what is there.
+   * @param[in] a_point Point on the plane.
+   * @return The point behind it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  behind(const Vec3T<T>& a_point) const noexcept
+  {
+    return a_point - m_behind * m_normal;
+  }
 
   /**
    * @brief The distance to the plane, positive on the removed side.
@@ -112,6 +321,50 @@ struct Sectioned
   }
 
   /**
+   * @brief The field the section plane's contours and lines are drawn from, negative inside: the shape's
+   * contourSample() or contourValue() when it has one (a region view's, zero on its interfaces too), else its value;
+   * out of line on a device, as shapeDistance().
+   * @param[in] a_point Point.
+   * @return The field, and whether its lines there are secondary.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline ContourSample<T>
+  contourDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    if constexpr (HasContourSample<S, T>::value) {
+      return m_shape.contourSample(a_point);
+    }
+    else if constexpr (HasContourValue<S, T>::value) {
+      return ContourSample<T>{m_shape.contourValue(a_point)};
+    }
+    else {
+      return ContourSample<T>{m_shape.signedDistance(a_point)};
+    }
+  }
+
+  /**
+   * @brief What a point is in, for the section plane's fill: the shape's sectionKey() (see HasSectionKey); out of line
+   * on a device, as shapeDistance().
+   * @param[in] a_point Point.
+   * @return The key, or Settings::NoPrimitive for a shape without one.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline uint32_t
+  sectionKey(const Vec3T<T>& a_point) const noexcept
+  {
+    if constexpr (HasSectionKey<S, T>::value) {
+      return m_shape.sectionKey(a_point);
+    }
+    else {
+      (void)a_point;
+
+      return 0xFFFFFFFFU;
+    }
+  }
+
+  /**
    * @brief The shape's first crossing along a ray, uncut (firstHit()); out of line on a device.
    * @param[in] a_ray     Ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
@@ -125,6 +378,54 @@ struct Sectioned
   shapeHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
     return EBGeometry::firstHit(m_shape, a_ray, a_tMin, a_tMax, a_options);
+  }
+
+  /**
+   * @brief The first surface seen through along a ray, in front of tMax, on the kept side of the plane (see
+   * HasSeenThrough); a miss for a shape without such surfaces. Out of line on a device.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval: where the ray meets what it sees.
+   * @param[in] a_options How to march the shape.
+   * @return The crossing, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  seenThroughHit(const RayT<T>& a_ray, const T a_tMin, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    if constexpr (HasSeenThrough<S, T>::value) {
+      // Only the kept side's part of the ray: a surface the plane removes, opaque or not, is not in front of anything.
+      T tMin = a_tMin;
+      T tMax = a_tMax;
+
+      if (m_on) {
+        const T start = this->plane(a_ray.m_origin);
+        const T rate  = dot(a_ray.m_direction, m_normal);
+
+        if (rate == T(0)) {
+          if (start > T(0)) {
+            return HitT<T>();
+          }
+        }
+        else if (rate > T(0)) {
+          tMax = Math::min(tMax, -start / rate);
+        }
+        else {
+          tMin = Math::max(tMin, -start / rate);
+        }
+      }
+
+      return (tMin < tMax) ? m_shape.firstSeenThrough(a_ray, tMin, tMax, a_options) : HitT<T>();
+    }
+    else {
+      (void)a_ray;
+      (void)a_tMin;
+      (void)a_tMax;
+      (void)a_options;
+
+      return HitT<T>();
+    }
   }
 
   /**
@@ -278,14 +579,23 @@ timeStamp() noexcept
 
 /**
  * @brief Everything one pixel's rays share: the cut shape, the scene's scale, the floor, the light.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. Aligned to a cache line: built on the stack for each pixel, its
+ * fields read for every ray, it otherwise straddled cache lines or not as each run's stack placed it, and host renders
+ * of a plain float tape ran in two speeds, up to 9% apart, from one run of the same binary to the next (a field added
+ * to Sectioned shifted the layout).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
 template <class T, class S>
-class Shader
+class alignas(64) Shader
 {
 public:
+  /**
+   * @brief How many surfaces seen through are drawn translucent along a camera ray at most, the nearest ones; those
+   * behind them are left out.
+   */
+  static constexpr int SeenThroughLayers = 4;
+
   /**
    * @brief Set up the scene for a shape, a camera's view and settings.
    * @param[in] a_shape    Shape.
@@ -294,7 +604,10 @@ public:
    */
   EBGEOMETRY_HOST_DEVICE
   Shader(const S& a_shape, const CameraView<T>& a_view, const Settings<T>& a_settings) noexcept
-    : m_object{a_shape, a_settings.m_section, a_settings.m_sectionPoint, unit(a_settings.m_sectionNormal)},
+    : m_object{shownAs(a_shape, a_settings),
+               a_settings.m_section,
+               a_settings.m_sectionPoint,
+               unit(a_settings.m_sectionNormal)},
       m_settings(a_settings),
       m_eye(a_view.m_eye),
       m_up(a_view.m_axis),
@@ -319,7 +632,16 @@ public:
 
     m_scale = (a_settings.m_rays.m_scale > T(0)) ? a_settings.m_rays.m_scale : (bounded ? diagonal : a_view.m_distance);
     m_eps   = a_settings.m_rays.m_tolerance * m_scale;
-    m_far   = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
+
+    m_object.m_behind = T(2) * m_eps;
+    m_far             = bounded ? ((m_eye - box.getCentroid()).length() + diagonal) : T(50) * m_scale;
+
+    if (bounded) {
+      m_object.m_low  = lo;
+      m_object.m_high = hi;
+    }
+
+    m_distanceLike = RenderDetail::qualityOf(a_shape) != DistanceQuality::NotADistance;
 
     m_rays         = a_settings.m_rays;
     m_rays.m_scale = m_scale;
@@ -358,9 +680,9 @@ public:
 
     m_boxLow  = lo - margin;
     m_boxHigh = hi + margin;
-    m_onPlane =
-      a_settings.m_section && bounded &&
-      (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0) || a_settings.m_isoSpacing > T(0));
+    m_onPlane = a_settings.m_section && bounded &&
+                (a_settings.m_contourWidth > T(0) || a_settings.m_sheetOpacity > T(0) ||
+                 a_settings.m_isoSpacing > T(0) || a_settings.m_sectionFill > T(0));
   }
 
   /**
@@ -442,7 +764,7 @@ public:
 
       a_hits.push_back(hit);
 
-      t = hit.m_t + T(4) * m_eps;
+      t = this->past(hit);
     }
   }
 
@@ -557,8 +879,7 @@ public:
           const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
           const T shine = T(0.5) * m_settings.m_specular * std::pow(std::abs(dot(n, half)), m_settings.m_shininess);
 
-          const bool highlighted = hit.m_primitive == m_settings.m_highlightPrimitive ||
-                                   m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives;
+          const bool highlighted = m_settings.isHighlighted(hit.m_primitive);
 
           const Vec3T<T> tint = highlighted ? T(2) * m_settings.m_highlightColor : Vec3T<T>::ones();
 
@@ -570,7 +891,7 @@ public:
           through *= T(1) - m_settings.m_xrayOpacity;
         }
 
-        t = hit.m_t + T(4) * m_eps;
+        t = this->past(hit);
       }
 
       return color;
@@ -669,10 +990,12 @@ private:
       }
 
       // A face cut by the section plane is where the plane, not the shape, gives the value: a fill, through
-      // which the shape's next surface along the ray shows.
+      // which the shape's next surface along the ray shows. It lies on the plane: a surface inside the solid (between
+      // two regions of a view of regions) has a value below the plane's near the plane too, and is no cut face.
       const Vec3T<T>& p = a_hit.m_point;
+      const T         d = m_object.m_on ? m_object.plane(p) : T(0);
 
-      if (m_object.m_on && m_object.plane(p) >= m_object.shapeDistance(p)) {
+      if (m_object.m_on && std::abs(d) <= T(4) * m_eps && d >= m_object.shapeDistance(p)) {
         color = this->shadeCutFace(a_ray, a_hit.m_t);
       }
       else {
@@ -686,10 +1009,55 @@ private:
       color = this->background(direction);
     }
 
-    if (m_onPlane) {
-      // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
-      const T tFront = onFloor ? tFloor : (a_hit.hit() ? a_hit.m_t : m_far);
+    // What the ray sees lies at the floor, at the hit, or nowhere nearer than the far end.
+    const T tFront = onFloor ? tFloor : (a_hit.hit() ? a_hit.m_t : m_far);
 
+    // The surfaces seen through in front of it, up to SeenThroughLayers of them, are drawn translucent over it, back
+    // to front, and the section plane in the gap where it lies: under the surfaces in front of it, over those behind.
+    if constexpr (HasSeenThrough<S, T>::value) {
+      if (m_settings.m_seenThroughOpacity > T(0)) {
+        Vec3T<T> shades[SeenThroughLayers];
+        T        at[SeenThroughLayers];
+        int      layers = 0;
+        T        from   = a_near;
+
+        while (layers < SeenThroughLayers) {
+          const HitT<T> veil = m_object.seenThroughHit(a_ray, from, tFront, m_rays);
+
+          if (!veil.hit()) {
+            break;
+          }
+
+          shades[layers] = this->shadeSurface(veil, direction, true);
+          at[layers]     = veil.m_t;
+          from           = this->past(veil);
+
+          layers++;
+        }
+
+        if (layers > 0) {
+          const T opacity = m_settings.m_seenThroughOpacity;
+
+          // The gaps between layers: the plane is drawn in the one it lies in. drawOnPlane() takes a plane a little
+          // behind the far end too (a face in the plane); a gap ending at a layer ends that much short of it, so that a
+          // plane by a layer is drawn once, under it.
+          T behind = tFront;
+
+          for (int i = layers - 1; i >= 0; i--) {
+            if (m_onPlane) {
+              color = this->drawOnPlane(a_ray, at[i], behind, color);
+            }
+
+            color  = opacity * shades[i] + (T(1) - opacity) * color;
+            behind = at[i] - T(4) * m_eps;
+          }
+
+          return m_onPlane ? this->drawOnPlane(a_ray, a_near, behind, color) : color;
+        }
+      }
+    }
+
+    if (m_onPlane) {
       color = this->drawOnPlane(a_ray, a_near, tFront, color);
     }
 
@@ -735,7 +1103,7 @@ private:
 
     for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
       a_through = true;
-      t         = hit.m_t + T(4) * m_eps;
+      t         = this->past(hit);
       hit       = this->trace(a_ray, t, m_far);
     }
 
@@ -784,7 +1152,7 @@ private:
         in = false;
       }
 
-      t = hit.m_t + T(4) * m_eps;
+      t = this->past(hit);
     }
 
     if (in && mine) {
@@ -937,6 +1305,12 @@ private:
   bool m_onPlane;
 
   /**
+   * @brief Whether the shape's value is a distance or a distance bound (not DistanceQuality::NotADistance): its section
+   * field then changes by at most 1 per unit length, which lets the plane skip the lines' slope where no line can be.
+   */
+  bool m_distanceLike = false;
+
+  /**
    * @brief The cut shape's first crossing along a ray (firstHit()).
    * @details Every ray the shader casts goes through here, out of line on a device: inlined at each of
    * its callers, the shape's whole trace was copied once per ray kind and the kernels grew too large to
@@ -994,9 +1368,67 @@ private:
   }
 
   /**
+   * @brief Where a ray goes on from past a crossing, to find the next one.
+   * @details A crossing found exactly (by a ray form) is passed by a tenth of the tolerance; a marched one, placed
+   * within the tolerance, by four. Four for both stepped over a surface that close behind an exact crossing: the
+   * an inner region's wall just inside an outer region's end face, seen through the outer one.
+   * @param[in] a_hit The crossing.
+   * @return The distance along the ray.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  past(const HitT<T>& a_hit) const noexcept
+  {
+    return a_hit.m_t + (a_hit.m_exact ? T(0.1) : T(4)) * m_eps;
+  }
+
+  /**
+   * @brief Where a ray first meets a surface that is not seen through (Settings::m_hidden) in an interval.
+   * @details With no surface seen through, one trace, as a plain shape's shadow and occlusion rays always were;
+   * stepping past surfaces seen through is blockedPastHidden(), out of line on the host: inlined into the lighting of
+   * every shaded pixel, it made host renders of a plain float tape 10% slower.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMax End of the interval.
+   * @return The distance along the ray, or infinity if it meets none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  blocked(const RayT<T>& a_ray, const T a_tMax) const noexcept
+  {
+    if (m_settings.hidesAny()) {
+      return this->blockedPastHidden(a_ray, a_tMax);
+    }
+
+    const HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
+
+    return hit.hit() ? hit.m_t : Math::Limits<T>::infinity();
+  }
+
+  /**
+   * @brief Where a ray first meets a surface that is not seen through in an interval, some being seen through: a
+   * surface seen through casts no shadow, and the ray goes on past it, as a camera ray does.
+   * @param[in] a_ray  Ray, with a unit direction.
+   * @param[in] a_tMax End of the interval.
+   * @return The distance along the ray, or infinity if it meets none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  T
+  blockedPastHidden(const RayT<T>& a_ray, const T a_tMax) const noexcept
+  {
+    HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
+
+    for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
+      hit = this->trace(a_ray, this->past(hit), a_tMax);
+    }
+
+    return (hit.hit() && !m_settings.hides(hit.m_primitive)) ? hit.m_t : Math::Limits<T>::infinity();
+  }
+
+  /**
    * @brief How much light reaches a point from the light's direction: 0 in shadow, 1 in light.
    * @details One ray towards the light (firstHit()); the light moving a little between a pixel's rays
-   * softens the edges.
+   * softens the edges. A surface seen through (Settings::m_hidden) casts no shadow.
    * @param[in] a_point  Point.
    * @param[in] a_normal Unit normal there.
    * @return The fraction of light.
@@ -1006,9 +1438,8 @@ private:
   shadow(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
-    const HitT<T>  hit    = this->trace(RayT<T>{origin, m_light}, T(0), T(2) * m_scale);
 
-    return hit.hit() ? T(0) : T(1);
+    return (this->blocked(RayT<T>{origin, m_light}, T(2) * m_scale) < Math::Limits<T>::infinity()) ? T(0) : T(1);
   }
 
   /**
@@ -1021,22 +1452,32 @@ private:
   inline T
   occlusion(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) const noexcept
   {
-    // The share of four short rays, tilted around the normal, that hit the shape.
+    // Four short rays, tilted around the normal, each darkening by up to a fifth as its blocker is near: (1 - t/reach)^2,
+    // so that a blocker at the surface (a crease, a corner) darkens fully and one near the end of the reach not at all.
+    // At a flat fifth for any blocker within reach, a part of a large assembly a reach away (0.07 of the scene's
+    // diagonal, a meter on a jet) printed its sharp-edged shape on a thin plate beside it, which read as seeing through.
     const Vec3T<T> t1 =
       unit(cross((std::abs(a_normal[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), a_normal));
     const Vec3T<T> t2     = cross(a_normal, t1);
     const Vec3T<T> origin = a_point + T(4) * m_eps * a_normal;
 
-    int blocked = 0;
+    const T reach = T(0.07) * m_scale;
+
+    T dark = T(0);
 
     for (int k = 0; k < 4; k++) {
       const T        a = T(0.5) * pi<T> * T(k);
       const Vec3T<T> r = unit(a_normal + T(0.8) * (std::cos(a) * t1 + std::sin(a) * t2));
+      const T        t = this->blocked(RayT<T>{origin, r}, reach);
 
-      blocked += this->trace(RayT<T>{origin, r}, T(0), T(0.07) * m_scale).hit() ? 1 : 0;
+      if (t < reach) {
+        const T near = T(1) - t / reach;
+
+        dark += near * near;
+      }
     }
 
-    return T(1) - T(0.2) * T(blocked);
+    return T(1) - T(0.2) * dark;
   }
 
   /**
@@ -1142,11 +1583,7 @@ private:
     Vec3T<T> albedo = m_settings.m_color;
 
     if (m_settings.m_colorBy == ColorBy::Primitive) {
-      const uint32_t id = a_hit.m_primitive;
-
-      albedo = (id < Settings<T>::PrimitiveColors && m_settings.m_primitiveColors[id][0] >= T(0))
-                 ? m_settings.m_primitiveColors[id]
-                 : palette<T>(id);
+      albedo = this->keyColor(a_hit.m_primitive);
     }
     else if (m_settings.m_colorBy == ColorBy::Normal) {
       albedo = T(0.5) * (n + Vec3T<T>::ones());
@@ -1157,8 +1594,9 @@ private:
       n = -n;
     }
 
-    if (a_hit.m_primitive == m_settings.m_highlightPrimitive ||
-        m_settings.m_highlightPrimitive == Settings<T>::AllPrimitives) {
+    // A surface with no key (a view of regions colored by group shows a surface in no group so) is never the one
+    // highlighted.
+    if (m_settings.isHighlighted(a_hit.m_primitive)) {
       albedo = T(0.35) * albedo + T(0.65) * m_settings.m_highlightColor;
     }
 
@@ -1167,6 +1605,38 @@ private:
     }
 
     return this->light(p, n, a_direction, albedo, a_tint);
+  }
+
+  /**
+   * @brief The color of a key, colored by primitive: the settings' (m_primitiveColors), else the palette's; no key (a
+   * view of regions: a surface in no surface group, a region without a material) is a neutral gray.
+   * @param[in] a_key The key.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  keyColor(const uint32_t a_key) const noexcept
+  {
+    return (a_key < Settings<T>::PrimitiveColors && m_settings.m_primitiveColors[a_key][0] >= T(0))
+             ? m_settings.m_primitiveColors[a_key]
+           : (a_key == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
+                                                 : palette<T>(a_key);
+  }
+
+  /**
+   * @brief The color of a material, for the section plane's fill: the settings' (m_materialColors), else the
+   * palette's; no material is a neutral gray.
+   * @param[in] a_material The material's number.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  materialColor(const uint32_t a_material) const noexcept
+  {
+    return (a_material < Settings<T>::PrimitiveColors && m_settings.m_materialColors[a_material][0] >= T(0))
+             ? m_settings.m_materialColors[a_material]
+           : (a_material == Settings<T>::NoPrimitive) ? Vec3T<T>(T(0.6), T(0.6), T(0.6))
+                                                      : palette<T>(a_material);
   }
 
   /**
@@ -1204,27 +1674,96 @@ private:
       }
     }
 
-    const T value = m_object.shapeDistance(p);
     const T width = m_footprint + m_footprintPerLength * t;
     const T half  = T(0.5) * m_settings.m_contourWidth * width;
 
-    if (std::abs(value) < half) {
+    // What is there is asked a little behind the plane, into the kept side, by the cut's own nudge (two march
+    // tolerances), so that a face of the shape lying in the plane is inside the solid there. Asked further behind, a
+    // surface meeting the plane at an angle had its contour moved along the plane by the depth over the angle's
+    // tangent: several pixels at shallow angles. The face in the plane draws no contour all the same: its field is
+    // flat along the plane, and a flat field draws no line (below).
+    const Vec3T<T> q = p - m_object.m_behind * m_object.m_normal;
+
+    const T value = m_object.shapeDistance(q);
+
+    // The contours and the lines of equal distance follow the shape's contour field (a region view's is zero on its
+    // interfaces too); which side of the surface the point is on follows its value.
+    const ContourSample<T> sample =
+      (RenderDetail::HasContourSample<S, T>::value || RenderDetail::HasContourValue<S, T>::value)
+        ? m_object.contourDistance(q)
+        : ContourSample<T>{value};
+    // The field's slope along the plane, from steps of a pixel's width along two directions in it.
+    // The field is a distance in space: where a surface meets the plane at a shallow angle it changes along the plane
+    // by much less than one per unit of length, and a line drawn where it is small widened into a band. Divided by
+    // the slope, it is the distance along the plane, and every line is as wide on screen however the surface meets the
+    // plane. Where the field is flat along the plane (a face lying in it) no line is drawn, and elsewhere the slope is kept
+    // above a floor (below).
+    const Vec3T<T>& n = m_object.m_normal;
+    const Vec3T<T>  a = cross(n, Vec3T<T>::unit(n.minDir(true)));
+    const Vec3T<T>  u = a / a.length();
+    const Vec3T<T>  v = cross(n, u);
+
+    // Each direction takes the steeper of a step forward and one back: the field can have a kink at zero (it is zero on
+    // an interface between two regions), and one step across it saw the field come back up to about where it was.
+    const T    f     = sample.m_value;
+    const bool lines = m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary);
+    const T    rest  = lines ? f - m_settings.m_isoSpacing * std::floor(f / m_settings.m_isoSpacing + T(0.5)) : T(0);
+
+    // The four steps cost four of the field's evaluations per pixel of the plane. EBGeometry's distances, and the bounds
+    // it composes from them, change by at most 1 per unit length, so their slope is at most sqrt(2), and a pixel whose
+    // value, and whose distance to the nearest line of equal distance, are both more than sqrt(2) line widths can have
+    // no line: there the slope is not asked, and taken so small that no line is drawn. The contour is safe for any
+    // bound (on its line |f| is at most the distance to the surface); a user shape that counts as a bound but changes
+    // faster may lose lines of equal distance here, and should declare itself NotADistance. Measured on an assembly of 67 meshes cut by the plane: a third of the frame's time.
+    const T    rootTwo = std::sqrt(T(2));
+    const bool near =
+      !m_distanceLike || std::abs(f) < rootTwo * half || (lines && std::abs(rest) < rootTwo * T(0.75) * width);
+
+    T slope = Math::Limits<T>::min();
+
+    if (near) {
+      const T du = Math::max(std::abs(m_object.contourDistance(q + width * u).m_value - f),
+                             std::abs(m_object.contourDistance(q - width * u).m_value - f)) /
+                   width;
+      const T dv = Math::max(std::abs(m_object.contourDistance(q + width * v).m_value - f),
+                             std::abs(m_object.contourDistance(q - width * v).m_value - f)) /
+                   width;
+
+      const T steep = std::sqrt(du * du + dv * dv);
+
+      // Flat along the plane (a face lying in it): no line. Otherwise the slope is kept above a floor, so that a
+      // surface meeting the plane at a few degrees keeps its contour, and a ridge draws a thin one, not a blob.
+      slope = (steep < T(1e-3)) ? Math::Limits<T>::min() : Math::max(steep, T(0.05));
+    }
+
+    const T field = sample.m_value / slope;
+
+    if (std::abs(field) < half) {
       return m_settings.m_contourColor;
     }
 
-    // Lines of equal distance, every m_isoSpacing, thinner than the contour.
+    // The fill by what the point is in, in place of the sheet.
+    const T  fill  = RenderDetail::HasSectionKey<S, T>::value ? m_settings.m_sectionFill : T(0);
     Vec3T<T> color = a_color;
 
-    if (m_settings.m_isoSpacing > T(0)) {
-      const T s = m_settings.m_isoSpacing;
-      const T r = value - s * std::floor(value / s + T(0.5));
+    if (fill > T(0)) {
+      const Vec3T<T> what =
+        sample.m_secondary ? m_settings.m_fillSecondaryColor : this->materialColor(m_object.sectionKey(q));
 
-      if (std::abs(r) < T(0.5) * width) {
-        color = T(0.4) * color + T(0.6) * m_settings.m_isoColor;
+      color = (T(1) - fill) * a_color + fill * what;
+    }
+
+    // Lines of equal distance, every m_isoSpacing, thinner than the contour.
+
+    if (lines) {
+      const T r = rest / slope;
+
+      if (std::abs(r) < T(0.75) * width) {
+        color = sample.m_secondary ? m_settings.m_isoSecondaryColor : m_settings.m_isoColor;
       }
     }
 
-    if (value > T(0) && m_settings.m_sheetOpacity > T(0)) {
+    if (value > T(0) && m_settings.m_sheetOpacity > T(0) && fill == T(0)) {
       // The sheet's edge, a pixel and a half wide, where the plane leaves the box.
       T edge = Math::Limits<T>::infinity();
 
@@ -1473,7 +2012,7 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       hit.m_status    = HitStatus::Hit;
       hit.m_t         = a_t;
       hit.m_point     = a_ray.at(a_t);
-      hit.m_primitive = a_cut.primitiveAt(hit.m_point);
+      hit.m_primitive = a_cut.primitiveAt(a_cut.behind(hit.m_point));
       hit.m_entering  = a_entering;
       hit.m_exact     = true;
       hit.m_normal    = a_cut.m_normal;
@@ -1481,13 +2020,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return hit;
     };
 
-    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
+    if (a > a_tMin && a_cut.insideAt(a_cut.behind(a_ray.at(a)))) {
       return onPlane(a, true);
     }
 
     const HitT<T> hit = a_cut.shapeHit(a_ray, a, b, a_options);
 
-    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
+    if (hit.m_status == HitStatus::Miss && b < a_tMax && a_cut.insideAt(a_cut.behind(a_ray.at(b)))) {
       return onPlane(b, false);
     }
 
@@ -1551,13 +2090,13 @@ struct RayForm<Render::RenderDetail::Sectioned<T, S>>
       return crossing;
     };
 
-    if (a > a_tMin && a_cut.shapeDistance(a_ray.at(a)) < T(0)) {
+    if (a > a_tMin && a_cut.insideAt(a_cut.behind(a_ray.at(a)))) {
       return onPlane(a, true);
     }
 
     const CrossingT<T> crossing = a_cut.shapeCrossing(a_ray, a, b, a_options);
 
-    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.shapeDistance(a_ray.at(b)) < T(0)) {
+    if (crossing.m_status == HitStatus::Miss && b < a_tMax && a_cut.insideAt(a_cut.behind(a_ray.at(b)))) {
       return onPlane(b, false);
     }
 
@@ -1960,12 +2499,20 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
     field("settings", name.c_str(), a_settings.m_primitiveColors[i], settings.m_primitiveColors[i]);
   }
 
+  for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
+    const std::string name = "m_materialColors[" + std::to_string(i) + "]";
+
+    field("settings", name.c_str(), a_settings.m_materialColors[i], settings.m_materialColors[i]);
+  }
+
   field("settings", "m_recordPrimitives", a_settings.m_recordPrimitives, settings.m_recordPrimitives);
   field("settings", "m_highlightPrimitive", a_settings.m_highlightPrimitive, settings.m_highlightPrimitive);
+  field("settings", "m_highlightCount", a_settings.m_highlightCount, settings.m_highlightCount);
   field("settings", "m_highlightColor", a_settings.m_highlightColor, settings.m_highlightColor);
   field("settings", "m_insideColor", a_settings.m_insideColor, settings.m_insideColor);
   field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);
   field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
+  field("settings", "m_seenThroughOpacity", a_settings.m_seenThroughOpacity, settings.m_seenThroughOpacity);
   field("settings", "m_floorColor", a_settings.m_floorColor, settings.m_floorColor);
   field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
@@ -1985,7 +2532,11 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_contourColor", a_settings.m_contourColor, settings.m_contourColor);
   field("settings", "m_isoSpacing", a_settings.m_isoSpacing, settings.m_isoSpacing);
   field("settings", "m_isoColor", a_settings.m_isoColor, settings.m_isoColor);
+  field("settings", "m_isoSecondaryColor", a_settings.m_isoSecondaryColor, settings.m_isoSecondaryColor);
+  field("settings", "m_isoSecondary", a_settings.m_isoSecondary, settings.m_isoSecondary);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
+  field("settings", "m_sectionFill", a_settings.m_sectionFill, settings.m_sectionFill);
+  field("settings", "m_fillSecondaryColor", a_settings.m_fillSecondaryColor, settings.m_fillSecondaryColor);
   field("settings", "m_sheetColor", a_settings.m_sheetColor, settings.m_sheetColor);
   field("settings", "m_sheetEdgeColor", a_settings.m_sheetEdgeColor, settings.m_sheetEdgeColor);
   field("settings", "m_rays.m_tolerance", a_settings.m_rays.m_tolerance, settings.m_rays.m_tolerance);
@@ -2391,9 +2942,15 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_isoSpacing >= T(0),
                      "Render::Renderer: the iso-line spacing must not be negative (%g)",
                      double(m_settings.m_isoSpacing));
+  EBGEOMETRY_REQUIRE(m_settings.m_sectionFill >= T(0) && m_settings.m_sectionFill <= T(1),
+                     "Render::Renderer: the section plane's fill must be from 0 to 1 (%g)",
+                     double(m_settings.m_sectionFill));
   EBGEOMETRY_REQUIRE(m_settings.m_cutOpacity >= T(0) && m_settings.m_cutOpacity <= T(1),
                      "Render::Renderer: the cut face's opacity must be from 0 to 1 (%g)",
                      double(m_settings.m_cutOpacity));
+  EBGEOMETRY_REQUIRE(m_settings.m_seenThroughOpacity >= T(0) && m_settings.m_seenThroughOpacity <= T(1),
+                     "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (%g)",
+                     double(m_settings.m_seenThroughOpacity));
   EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
                        m_settings.m_sheetOpacity <= T(1),
                      "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "

@@ -12,7 +12,8 @@
  *
  * In the window, drag to orbit, drag with Ctrl held to pan, drag with the right button to move the light,
  * scroll to zoom, and click to pick the object under the cursor; keys change the camera, the shading and a
- * section plane. An overlay lists them with what they change (H hides it), they are printed when the window
+ * section plane. An overlay shows one menu of them at a time, with what they change (Tab steps through the
+ * menus, F1 to F6 show one, H hides it), they are printed when the window
  * opens, and the user guide's table of the viewer's keys (Sec:ViewerKeys) describes them. While the camera
  * moves the view is drawn as a quick preview, at a resolution adapted to keep it at a few tens of
  * milliseconds; once the camera rests it is refined on a background thread, canceled as soon as the
@@ -26,6 +27,8 @@
 
 // Our includes
 #include "EBGeometry_Expr.hpp"
+#include "EBGeometry_RegionNames.hpp"
+#include "EBGeometry_RegionView.hpp"
 #include "EBGeometry_Render.hpp"
 
 namespace EBGeometry::Render {
@@ -137,6 +140,53 @@ view(const S&                           a_shape,
      Pool&                              a_pool,
      const Camera<ShapePrecision<S>>&   a_camera,
      const Settings<ShapePrecision<S>>& a_settings,
+     int                                a_argc,
+     char**                             a_argv);
+
+/**
+ * @brief Look at a shape in a window, from a given camera with given settings, naming its regions, materials,
+ * surfaces and a scheme's groups as a_names does.
+ * @details See view(const S&, int, char**). For a view of regions (RegionView), the status lines name the picked
+ * piece of surface, and a panel at the top left, shown with every menu, lists the domains, the regions and the scheme's
+ * groups by these names.
+ * @tparam S Shape type (see isShape).
+ * @param[in] a_shape    Shape, valid on the host.
+ * @param[in] a_camera   Initial camera.
+ * @param[in] a_settings Settings.
+ * @param[in] a_names    The names (RegionNames(index) of the expression's index).
+ * @param[in] a_argc     The program's argument count.
+ * @param[in] a_argv     The program's arguments.
+ */
+template <class S>
+inline void
+view(const S&                           a_shape,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
+     int                                a_argc,
+     char**                             a_argv);
+
+/**
+ * @brief Look at a shape that lives in a pool in a window, rendering on the GPU in a GPU build, from a given camera
+ * with given settings, naming its regions, materials, surfaces and a scheme's groups as a_names does.
+ * @details See view(const S&, Pool&, int, char**) and view(const S&, const Camera&, const Settings&, const
+ * RegionNames&, int, char**).
+ * @tparam S Shape type (see isShape), with rebasedView(const Pool&).
+ * @param[in]     a_shape    The shape, valid on the host.
+ * @param[in,out] a_pool     The pool a_shape lives in.
+ * @param[in]     a_camera   Initial camera.
+ * @param[in]     a_settings Settings.
+ * @param[in]     a_names    The names (RegionNames(index) of the expression's index).
+ * @param[in]     a_argc     The program's argument count.
+ * @param[in]     a_argv     The program's arguments.
+ */
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
      int                                a_argc,
      char**                             a_argv);
 

@@ -426,11 +426,35 @@ Test coverage
    * - ``TestSurfaceParts``
      - Each built-in shape's parts at points beside each face (a box's six, a cylinder's side and caps, a
        polygon prism's sides in turn around the axis, ...), a mesh's part as the face a point is beside for all
-       three mesh distance fields, OBJ groups and every STL solid kept as face groups, ``Label(mesh, groups)``
+       three mesh distance fields, OBJ groups and every STL solid kept as face groups, ``SurfaceLabel(mesh, groups)``
        numbered by ``ExprIndex`` and reported by a tape's ``closestSurface()`` and ``firstSurface()`` (a face
        in no group keeping the leaf's label; also after ``deepCopy()``), the free ``closestSurface()`` and
        ``firstSurface()`` on a box and a union of boxes, the rejected groups and numbers, and the device
        against the host.
+   * - ``TestRegions``
+     - ``Overlay()`` and ``MaterialLabel()``: the regions (the background first, then the operands in priority
+       order), their materials and groups in ``ExprIndex`` against a hand-numbered expression, nested
+       Overlays flattened with default materials, maps and masks keeping the regions (a mask's leaves in
+       none), a tape's value as the whole object, and the rejected placements of a partition or a material.
+       A tape's ``region()`` and ``signedDistance(p, region)`` against the regions' solids by hand on a grid
+       (exactly one region's function negative, the values the formula's; nested Overlays, maps and masks;
+       also after ``deepCopy()``), the leaves numbered as without regions, and an object with no Overlay; no
+       sheet of zeros on a mask's face. ``closestSurface(p, region)``'s surface and its two sides (an interface
+       from both regions, a triple point, a mask's cut with its label); ``Subdomains`` and the roles for three solvers,
+       a subdomain's function and surface, and the rejected subdomains; a ``Domain``'s labels on a grid (the
+       region's subdomain or excluded, exactly one function negative, ``signedDistances()`` equal to each label's
+       ``signedDistance()``, the excluded regions' the negative of all subdomains'), opposite signs across an
+       interface and a boundary with the excluded regions, and the labels at a triple line. ``firstRegionChange()`` along rays and steps at
+       the spheres' exact crossings (the regions left and entered, the leaf, the normal, a cut face's label, from
+       inside a region), and ``firstSurface()`` into and out of a subdomain of visible regions. The pairs of regions
+       each surface may separate (``getSidesOfLeaf()``, ``getInterfaces()``); ``Scheme`` and ``SurfaceSelector``
+       grouping the cable's surfaces for an electrostatic and a flow solver (pieces, labels, interfaces, regions,
+       materials), and the rejected groups; the region queries, and a ``Domain`` taken whole by a kernel (each
+       subdomain's function, surface, role and boundary condition, the label and every label's function), on the
+       device against the host; the pieces an
+       object has and may have, and a scheme's coverage of them; ``RegionView``'s highlights, hidden surface groups and
+       section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
+       under later regions, outside a mask), and leaving unproved what it cannot prove.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

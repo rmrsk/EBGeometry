@@ -14,6 +14,7 @@
 // Std includes
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -153,21 +154,100 @@ worse(const DistanceQuality a_first, const DistanceQuality a_second) noexcept
 }
 
 /**
- * @brief A new node of a given kind with the given children.
+ * @brief The name of an operation, for messages.
  * @details Internal helper; not part of the public API.
+ * @param[in] a_kind Kind.
+ * @return The builder function's name.
+ */
+[[nodiscard]] inline const char*
+kindName(const Kind a_kind) noexcept
+{
+  switch (a_kind) {
+  case Kind::Affine: {
+    return "Transform";
+  }
+  case Kind::Elongate: {
+    return "Elongate";
+  }
+  case Kind::Repeat: {
+    return "FiniteRepetition";
+  }
+  case Kind::Complement: {
+    return "Complement";
+  }
+  case Kind::Offset: {
+    return "Offset";
+  }
+  case Kind::Annular: {
+    return "Annular";
+  }
+  case Kind::Blur: {
+    return "Blur";
+  }
+  case Kind::Mollify: {
+    return "Mollify";
+  }
+  case Kind::Union: {
+    return "Union";
+  }
+  case Kind::Intersection: {
+    return "Intersection";
+  }
+  case Kind::SmoothUnion: {
+    return "SmoothUnion";
+  }
+  case Kind::SmoothIntersection: {
+    return "SmoothIntersection";
+  }
+  default: {
+    return "Expr";
+  }
+  }
+}
+
+/**
+ * @brief A new node of a given kind with the given children.
+ * @details Internal helper; not part of the public API. Checks where a partition (an Overlay) and a material label
+ * may be: a partition only in an Overlay, under a map, or as the first operand of an intersection (clipped by the
+ * others, plain solids); a material label only on an operand of an Overlay or under maps.
  * @tparam T Floating-point precision.
  * @param[in] a_kind     Kind.
  * @param[in] a_children Children.
+ * @param[in] a_overlay  Whether the node is an Overlay (a Union of regions).
  * @return The node.
  */
 template <class T>
 [[nodiscard]] inline std::shared_ptr<Node<T>>
-makeNode(const Kind a_kind, std::vector<Expr<T>> a_children)
+makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overlay = false)
 {
+  for (size_t i = 0; i < a_children.size(); i++) {
+    const Node<T>& child = a_children[i].node();
+
+    if (child.m_partition) {
+      const bool clipped = (a_kind == Kind::Intersection) && (i == 0);
+
+      EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine || clipped,
+                         "%s: an Overlay is a partition into regions, not a solid; it can be moved, clipped or drilled "
+                         "as the first operand of an Intersection or Difference, or placed in another Overlay",
+                         kindName(a_kind));
+    }
+    else if (child.m_namesRegion) {
+      EBGEOMETRY_REQUIRE(a_overlay || a_kind == Kind::Affine,
+                         "%s: MaterialLabel and RegionName name a region (an operand of an Overlay) or a whole "
+                         "object, not a part of a solid; make the parts regions of an Overlay",
+                         kindName(a_kind));
+    }
+  }
+
   auto node = std::make_shared<Node<T>>();
 
-  node->m_kind     = a_kind;
-  node->m_children = std::move(a_children);
+  const bool firstIsPartition = !a_children.empty() && a_children.front().node().m_partition;
+
+  node->m_kind        = a_kind;
+  node->m_overlay     = a_overlay;
+  node->m_partition   = a_overlay || ((a_kind == Kind::Affine || a_kind == Kind::Intersection) && firstIsPartition);
+  node->m_namesRegion = (a_kind == Kind::Affine) && !a_children.empty() && a_children.front().node().m_namesRegion;
+  node->m_children    = std::move(a_children);
 
   return node;
 }
@@ -266,7 +346,8 @@ affine(const Expr<T>& a_operand, const Affine3T<T>& a_map, const Affine3T<T>& a_
 
   // The outer map is applied to the query point first: the child sees inner(outer(p)). A labeled map stays
   // a node of its own, so that its label keeps the leaves it names.
-  const bool fold  = (inner.m_kind == Kind::Affine) && inner.m_label.empty();
+  const bool fold = (inner.m_kind == Kind::Affine) && inner.m_surfaceLabel.empty() && inner.m_materialLabel.empty() &&
+                    inner.m_regionName.empty();
   const auto child = fold ? inner.m_children.front() : a_operand;
 
   auto node = makeNode<T>(Kind::Affine, {child});
@@ -890,61 +971,148 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, std::string a_name)
+SurfaceLabel(const A& a_operand, std::string a_name)
 {
   using T = ExprPrecision<A>;
 
-  EBGEOMETRY_REQUIRE(!a_name.empty(), "Label: the name must not be empty");
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "SurfaceLabel: the name must not be empty");
 
   // A copy of the node, so that other uses of the same subexpression keep their own label.
   auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
 
-  node->m_label = std::move(a_name);
+  node->m_surfaceLabel = std::move(a_name);
 
   return Expr<T>(std::move(node));
 }
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, FaceGroups a_groups)
+SurfaceLabel(const A& a_operand, FaceGroups a_groups)
 {
   using T = ExprPrecision<A>;
 
   const Expr<T> operand = toExpr(a_operand);
 
   EBGEOMETRY_REQUIRE(operand.node().m_kind == ExprDetail::Kind::Primitive,
-                     "Label: face groups label the parts of one shape, not of a composition (label it first)");
+                     "SurfaceLabel: face groups label the parts of one shape, not of a composition (label it first)");
 
   const ExprDetail::Leaf& leaf = operand.node().m_leaf;
 
   // A collection's parts are its members' (closestSurface() reports the member's part), not the leaf's own, so its
   // parts cannot be labeled by one table.
-  EBGEOMETRY_REQUIRE(leaf.m_numSurfaces == nullptr,
-                     "Label: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)");
+  EBGEOMETRY_REQUIRE(
+    leaf.m_numSurfaces == nullptr,
+    "SurfaceLabel: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)");
 
   const uint32_t parts = (leaf.m_numParts != nullptr) ? leaf.m_numParts(leaf.m_object.get()) : 1U;
 
   EBGEOMETRY_REQUIRE(a_groups.m_group.size() == parts,
-                     "Label: the face groups name %zu parts of a shape with %u",
+                     "SurfaceLabel: the face groups name %zu parts of a shape with %u",
                      a_groups.m_group.size(),
                      unsigned(parts));
 
   for (size_t p = 0; p < a_groups.m_group.size(); p++) {
     EBGEOMETRY_REQUIRE(a_groups.m_group[p] == FaceGroups::None || a_groups.m_group[p] < a_groups.m_names.size(),
-                       "Label: part %zu is in group %u of %zu",
+                       "SurfaceLabel: part %zu is in group %u of %zu",
                        p,
                        unsigned(a_groups.m_group[p]),
                        a_groups.m_names.size());
   }
 
   for (const std::string& name : a_groups.m_names) {
-    EBGEOMETRY_REQUIRE(!name.empty(), "Label: the name must not be empty");
+    EBGEOMETRY_REQUIRE(!name.empty(), "SurfaceLabel: the name must not be empty");
   }
 
   // A copy of the node, so that other uses of the same shape keep their own labels.
   auto node = std::make_shared<ExprDetail::Node<T>>(operand.node());
 
   node->m_partGroups = std::make_shared<const FaceGroups>(std::move(a_groups));
+
+  return Expr<T>(std::move(node));
+}
+
+template <class A>
+inline Expr<ExprPrecision<A>>
+Overlay(const std::vector<A>& a_operands)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_operands.empty(), "Overlay: the list of regions must not be empty");
+
+  // A union with a flag: a Tape evaluates it as the union of its operands, the whole object.
+  auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Union, ExprDetail::toExprs(a_operands), true);
+
+  BoundingVolumes::AABBT<T> box;
+  DistanceQuality           quality = DistanceQuality::Bound;
+
+  for (const Expr<T>& child : node->m_children) {
+    box     = box.merged(child.computeBoundingVolume());
+    quality = ExprDetail::worse(quality, child.getDistanceQuality());
+  }
+
+  node->m_boundingVolume = box;
+  node->m_quality        = quality;
+
+  return Expr<T>(std::move(node));
+}
+
+template <class A, class B, class... Rest>
+inline Expr<ExprPrecision<A>>
+Overlay(const A& a_first, const B& a_second, const Rest&... a_rest)
+{
+  using T = ExprPrecision<A>;
+
+  static_assert(!std::is_convertible_v<B, std::string> && !(std::is_convertible_v<Rest, std::string> || ...),
+                "Overlay: every operand is a region; the outside has no material (make a medium around the object, "
+                "such as air, a region of its own, under the others)");
+  static_assert(std::is_same_v<T, ExprPrecision<B>> && (std::is_same_v<T, ExprPrecision<Rest>> && ...),
+                "Overlay: all operands must have the same precision");
+
+  return Overlay(std::vector<Expr<T>>{toExpr(a_first), toExpr(a_second), toExpr(a_rest)...});
+}
+
+inline Expr<double>
+Overlay(std::initializer_list<Expr<double>> a_operands)
+{
+  return Overlay(std::vector<Expr<double>>(a_operands));
+}
+
+inline Expr<float>
+Overlay(std::initializer_list<Expr<float>> a_operands)
+{
+  return Overlay(std::vector<Expr<float>>(a_operands));
+}
+
+template <class A>
+inline Expr<ExprPrecision<A>>
+MaterialLabel(const A& a_operand, std::string a_name)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "MaterialLabel: the name must not be empty");
+
+  // A copy of the node, so that other uses of the same subexpression keep their own material.
+  auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
+
+  node->m_materialLabel = std::move(a_name);
+  node->m_namesRegion   = true;
+
+  return Expr<T>(std::move(node));
+}
+
+template <class A>
+inline Expr<ExprPrecision<A>>
+RegionName(const A& a_operand, std::string a_name)
+{
+  using T = ExprPrecision<A>;
+
+  EBGEOMETRY_REQUIRE(!a_name.empty(), "RegionName: the name must not be empty");
+
+  // A copy of the node, so that other uses of the same subexpression keep their own name.
+  auto node = std::make_shared<ExprDetail::Node<T>>(toExpr(a_operand).node());
+
+  node->m_regionName  = std::move(a_name);
+  node->m_namesRegion = true;
 
   return Expr<T>(std::move(node));
 }
@@ -960,14 +1128,14 @@ namespace ExprDetail {
  */
 template <class T>
 [[nodiscard]] inline bool
-hasLabel(const Node<T>& a_node) noexcept
+hasSurfaceLabel(const Node<T>& a_node) noexcept
 {
-  if (!a_node.m_label.empty() || a_node.m_partGroups != nullptr) {
+  if (!a_node.m_surfaceLabel.empty() || a_node.m_partGroups != nullptr) {
     return true;
   }
 
   for (const Expr<T>& child : a_node.m_children) {
-    if (hasLabel(child.node())) {
+    if (hasSurfaceLabel(child.node())) {
       return true;
     }
   }
@@ -1041,7 +1209,7 @@ operationName(const Node<T>& a_node)
     return "Mollify";
   }
   case Kind::Union: {
-    return "Union" + bvh;
+    return a_node.m_overlay ? std::string("Overlay") : "Union" + bvh;
   }
   case Kind::Intersection: {
     return "Intersection";
@@ -1058,44 +1226,552 @@ operationName(const Node<T>& a_node)
   }
 }
 
+/**
+ * @brief Bounds of a value over a ball: lo <= v(x) <= hi for every x in it.
+ * @details Internal helper; not part of the public API. An unknown side is +-Math::Limits<T>::max().
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct Bounds
+{
+  /**
+   * @brief Lower bound.
+   */
+  T m_lo = -Math::Limits<T>::max();
+
+  /**
+   * @brief Upper bound.
+   */
+  T m_hi = Math::Limits<T>::max();
+};
+
+/**
+ * @brief A shape's value at a point in its frame, for bounds (ExprIndex::checkLabels()): false when it cannot be read.
+ * @details Internal helper; not part of the public API.
+ */
+template <class T>
+using LeafValue = std::function<bool(const Node<T>&, const Vec3T<T>&, T&)>;
+
+/**
+ * @brief Bounds of a node's value over a ball (ExprIndex::checkLabels()).
+ * @details Internal helper; not part of the public API. A shape whose value is a distance or a bound is 1-Lipschitz,
+ * so its value at the center, plus or minus the radius, bounds it; operations combine their operands' bounds. Not
+ * bounded: Repeat, Blur and Mollify, a shape whose value is not a distance, and one whose value cannot be read. A
+ * node with an exact distance whose box the ball misses is not evaluated: its value is at least the distance to the
+ * box. Recursive, on the host only. The shapes' values come from a_leafValue (a tape's leaves, Tape::leafValue()),
+ * so that the expression holds no evaluation of its own.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node      Node.
+ * @param[in] a_center    The ball's center, in the node's frame.
+ * @param[in] a_radius    The ball's radius.
+ * @param[in] a_leafValue A shape's value.
+ * @return The bounds.
+ */
+template <class T>
+[[nodiscard]] inline Bounds<T>
+boundsOver(const Node<T>& a_node, const Vec3T<T>& a_center, const T a_radius, const LeafValue<T>& a_leafValue)
+{
+  Bounds<T> bounds;
+
+  if (a_node.m_quality == DistanceQuality::Exact && !isEmpty(a_node.m_boundingVolume)) {
+    const T gap = a_node.m_boundingVolume.getDistance(a_center) - a_radius;
+
+    if (gap > T(0)) {
+      bounds.m_lo = gap;
+
+      return bounds;
+    }
+  }
+
+  // The operands' bounds.
+  std::vector<Bounds<T>> operands;
+
+  const auto all = [&](const Vec3T<T>& a_c, const T a_r) {
+    for (const Expr<T>& child : a_node.m_children) {
+      operands.push_back(boundsOver(child.node(), a_c, a_r, a_leafValue));
+    }
+  };
+
+  switch (a_node.m_kind) {
+  case Kind::Primitive: {
+    T value = T(0);
+
+    if (a_node.m_quality != DistanceQuality::NotADistance && a_leafValue(a_node, a_center, value)) {
+      bounds.m_lo = value - a_radius;
+      bounds.m_hi = value + a_radius;
+    }
+
+    break;
+  }
+  case Kind::Affine: {
+    // The maps are similarities: the child's frame is scaled by 1 / m_valueScale.
+    all(a_node.m_map(a_center), a_radius / a_node.m_valueScale);
+
+    bounds.m_lo = operands.front().m_lo * a_node.m_valueScale;
+    bounds.m_hi = operands.front().m_hi * a_node.m_valueScale;
+
+    break;
+  }
+  case Kind::Elongate: {
+    // p - clamp(p, -h, h) moves two points no farther apart, so the ball maps into one of the same radius.
+    Vec3T<T> q;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      q[dir] = a_center[dir] - Math::clamp(a_center[dir], -a_node.m_vec0[dir], a_node.m_vec0[dir]);
+    }
+
+    all(q, a_radius);
+
+    bounds = operands.front();
+
+    break;
+  }
+  case Kind::Complement: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = -operands.front().m_hi;
+    bounds.m_hi = -operands.front().m_lo;
+
+    break;
+  }
+  case Kind::Offset: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = operands.front().m_lo - a_node.m_scalar0;
+    bounds.m_hi = operands.front().m_hi - a_node.m_scalar0;
+
+    break;
+  }
+  case Kind::Annular: {
+    all(a_center, a_radius);
+
+    const Bounds<T>& v = operands.front();
+
+    // |v| - delta.
+    const T lo = (v.m_lo >= T(0)) ? v.m_lo : ((v.m_hi <= T(0)) ? -v.m_hi : T(0));
+    const T hi = Math::max(std::abs(v.m_lo), std::abs(v.m_hi));
+
+    bounds.m_lo = lo - a_node.m_scalar0;
+    bounds.m_hi = hi - a_node.m_scalar0;
+
+    break;
+  }
+  case Kind::Union:
+  case Kind::SmoothUnion: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = Math::Limits<T>::max();
+    bounds.m_hi = Math::Limits<T>::max();
+
+    for (const Bounds<T>& v : operands) {
+      bounds.m_lo = Math::min(bounds.m_lo, v.m_lo);
+      bounds.m_hi = Math::min(bounds.m_hi, v.m_hi);
+    }
+
+    // A smooth minimum is at most the minimum, by an amount the bounds do not track.
+    if (a_node.m_kind == Kind::SmoothUnion) {
+      bounds.m_lo = -Math::Limits<T>::max();
+    }
+
+    break;
+  }
+  case Kind::Intersection:
+  case Kind::SmoothIntersection: {
+    all(a_center, a_radius);
+
+    bounds.m_lo = -Math::Limits<T>::max();
+    bounds.m_hi = -Math::Limits<T>::max();
+
+    for (const Bounds<T>& v : operands) {
+      bounds.m_lo = Math::max(bounds.m_lo, v.m_lo);
+      bounds.m_hi = Math::max(bounds.m_hi, v.m_hi);
+    }
+
+    if (a_node.m_kind == Kind::SmoothIntersection) {
+      bounds.m_hi = Math::Limits<T>::max();
+    }
+
+    break;
+  }
+  default: {
+    break;
+  }
+  }
+
+  return bounds;
+}
+
+/**
+ * @brief Whether a box is proved strictly inside other operands of a node (a union, or an Overlay's later operands)
+ * or strictly outside one (an intersection), other than the one it comes from (ExprIndex::checkLabels()).
+ * @details Internal helper; not part of the public API. The ball around the box is tested against each other
+ * operand; a box no operand decides on whole is split in eight, each piece tested again, a_depth times.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node      A union, an Overlay or an intersection.
+ * @param[in] a_skip      The operand the box comes from.
+ * @param[in] a_box       The box, in the node's frame.
+ * @param[in] a_depth     How many more times the box may be split.
+ * @param[in] a_leafValue A shape's value.
+ * @return True if proved.
+ */
+template <class T>
+[[nodiscard]] inline bool
+coveredBySibling(const Node<T>&                   a_node,
+                 const size_t                     a_skip,
+                 const BoundingVolumes::AABBT<T>& a_box,
+                 const int                        a_depth,
+                 const LeafValue<T>&              a_leafValue)
+{
+  const bool     isUnion = a_node.m_kind == Kind::Union;
+  const Vec3T<T> center  = a_box.getCentroid();
+  const T        radius  = T(0.5) * (a_box.getHighCorner() - a_box.getLowCorner()).length();
+
+  // In an Overlay, only a later operand covers: an earlier one lies under it.
+  for (size_t i = a_node.m_overlay ? a_skip + 1 : 0; i < a_node.m_children.size(); i++) {
+    if (i == a_skip) {
+      continue;
+    }
+
+    const Bounds<T> bounds = boundsOver(a_node.m_children[i].node(), center, radius, a_leafValue);
+
+    if (isUnion ? (bounds.m_hi < T(0)) : (bounds.m_lo > T(0))) {
+      return true;
+    }
+  }
+
+  if (a_depth == 0) {
+    return false;
+  }
+
+  // Each eighth of the box may be decided by another operand.
+  for (int octant = 0; octant < 8; octant++) {
+    Vec3T<T> lo;
+    Vec3T<T> hi;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const bool upper = ((octant >> dir) & 1) != 0;
+
+      lo[dir] = upper ? center[dir] : a_box.getLowCorner()[dir];
+      hi[dir] = upper ? a_box.getHighCorner()[dir] : center[dir];
+    }
+
+    if (!coveredBySibling(a_node, a_skip, BoundingVolumes::AABBT<T>(lo, hi), a_depth - 1, a_leafValue)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 } // namespace ExprDetail
 
 template <class T>
 inline ExprIndex<T>::ExprIndex(const Expr<T>& a_expr) : m_leafSurfaces{0U}
 {
-  this->add(a_expr.node(), None, None);
+  const ExprDetail::Node<T>& root = a_expr.node();
+
+  // The background is region 0, with no material.
+  m_regions.push_back(Region());
+  m_regionBoxes.push_back(BoundingVolumes::AABBT<T>());
+
+  this->add(root, None, SurfaceLabelId::none());
+
+  m_leafRegions.assign(m_leafNodes.size(), None);
+
+  this->addRegions(0U, None, MaterialLabelId::none());
+
+  this->addSides();
+
+  m_masks.clear();
+
+  // The expression's nodes are not kept: the index does not hold the expression.
+  m_exprNodes.clear();
+  m_exprNodes.shrink_to_fit();
+}
+
+template <class T>
+inline MaterialLabelId
+ExprIndex<T>::internMaterial(const std::string& a_name)
+{
+  const auto [entry, added] =
+    m_materialLabelIds.emplace(a_name, MaterialLabelId(static_cast<uint32_t>(m_materialLabelNames.size())));
+
+  if (added) {
+    m_materialLabelNames.push_back(a_name);
+  }
+
+  return entry->second;
 }
 
 template <class T>
 inline void
-ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, const uint32_t a_label)
+ExprIndex<T>::addRegions(const uint32_t a_node, const uint32_t a_group, const MaterialLabelId a_material)
+{
+  const ExprDetail::Node<T>& expr = *m_exprNodes[a_node];
+
+  // An operand that is not a partition is a region: its material is the first along its maps, or its group's.
+  if (!expr.m_partition) {
+    Region region;
+
+    region.m_node        = a_node;
+    region.m_regionGroup = a_group;
+    region.m_material    = a_material;
+
+    bool hasMaterial = false;
+
+    for (uint32_t node = a_node;; node = m_operands[node].front()) {
+      if (!hasMaterial && !m_nodes[node].m_materialLabel.isNone()) {
+        region.m_material = m_nodes[node].m_materialLabel;
+        hasMaterial       = true;
+      }
+
+      if (region.m_name.empty()) {
+        region.m_name = m_exprNodes[node]->m_regionName;
+      }
+
+      if (m_exprNodes[node]->m_kind != ExprDetail::Kind::Affine) {
+        break;
+      }
+    }
+
+    EBGEOMETRY_REQUIRE(region.m_name.empty() || this->findRegion(region.m_name) == None,
+                       "ExprIndex: two regions are named \"%s\"; a region's name says which region it is",
+                       region.m_name.c_str());
+
+    const auto number = static_cast<uint32_t>(m_regions.size());
+
+    m_regions.push_back(region);
+    m_regionBoxes.push_back(this->sceneBox(expr.m_boundingVolume));
+
+    for (uint32_t leaf = 0; leaf < m_nodes[a_node].m_numLeaves; leaf++) {
+      m_leafRegions[m_nodes[a_node].m_firstLeaf + leaf] = number;
+    }
+
+    return;
+  }
+
+  const MaterialLabelId material =
+    m_nodes[a_node].m_materialLabel.isNone() ? a_material : m_nodes[a_node].m_materialLabel;
+
+  if (expr.m_overlay) {
+    RegionGroup group;
+
+    group.m_node        = a_node;
+    group.m_parent      = a_group;
+    group.m_firstRegion = static_cast<uint32_t>(m_regions.size());
+    group.m_material    = material;
+    group.m_name        = expr.m_regionName;
+
+    for (const RegionGroup& other : m_regionGroups) {
+      EBGEOMETRY_REQUIRE(group.m_name.empty() || other.m_name != group.m_name,
+                         "ExprIndex: two region groups are named \"%s\"",
+                         group.m_name.c_str());
+    }
+
+    const auto number = static_cast<uint32_t>(m_regionGroups.size());
+
+    m_regionGroups.push_back(group);
+
+    for (const uint32_t operand : m_operands[a_node]) {
+      this->addRegions(operand, number, material);
+    }
+
+    m_regionGroups[number].m_numRegions =
+      static_cast<uint32_t>(m_regions.size()) - m_regionGroups[number].m_firstRegion;
+  }
+  else {
+    // A map of a partition, or one clipped by masks: the partition is its first operand, the masks belong to no
+    // region. Below a map, boxes are in the map's frame; a mask's operands are recorded with the regions they cut.
+    const bool map = expr.m_kind == ExprDetail::Kind::Affine;
+
+    if (map) {
+      m_maps.push_back(&expr);
+    }
+
+    const auto first = static_cast<uint32_t>(m_regions.size());
+
+    this->addRegions(m_operands[a_node].front(), a_group, material);
+
+    if (map) {
+      m_maps.pop_back();
+    }
+    else {
+      for (size_t i = 1; i < m_operands[a_node].size(); i++) {
+        const uint32_t operand = m_operands[a_node][i];
+
+        m_masks.push_back(Mask{operand,
+                               this->sceneBox(m_exprNodes[operand]->m_boundingVolume),
+                               first,
+                               static_cast<uint32_t>(m_regions.size()) - first});
+      }
+    }
+  }
+}
+
+template <class T>
+inline BoundingVolumes::AABBT<T>
+ExprIndex<T>::sceneBox(const BoundingVolumes::AABBT<T>& a_box) const
+{
+  BoundingVolumes::AABBT<T> box = a_box;
+
+  for (auto map = m_maps.rbegin(); map != m_maps.rend(); ++map) {
+    box = (*map)->m_inverse.transform(box);
+  }
+
+  return box;
+}
+
+template <class T>
+inline void
+ExprIndex<T>::addSides()
+{
+  // Whether two boxes share a point (touching counts: two regions may meet on a face).
+  const auto overlap = [](const BoundingVolumes::AABBT<T>& a_first, const BoundingVolumes::AABBT<T>& a_second) {
+    for (size_t dir = 0; dir < 3; dir++) {
+      if (a_first.getLowCorner()[dir] > a_second.getHighCorner()[dir] ||
+          a_second.getLowCorner()[dir] > a_first.getHighCorner()[dir]) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const auto pair = [](const uint32_t a_first, const uint32_t a_second) {
+    return std::make_pair(Math::min(a_first, a_second), Math::max(a_first, a_second));
+  };
+
+  m_leafSides.assign(m_leafNodes.size(), {});
+
+  // A region's own surface separates it from the background and from an earlier region it may meet: a later one
+  // covers it there, and the interface is the later region's surface.
+  for (uint32_t k = 1; k < m_regions.size(); k++) {
+    std::vector<std::pair<uint32_t, uint32_t>> sides{pair(k, 0U)};
+
+    for (uint32_t m = 1; m < k; m++) {
+      if (overlap(m_regionBoxes[k], m_regionBoxes[m])) {
+        sides.push_back(pair(k, m));
+      }
+    }
+
+    const Node& node = m_nodes[m_regions[k].m_node];
+
+    for (uint32_t leaf = node.m_firstLeaf; leaf < node.m_firstLeaf + node.m_numLeaves; leaf++) {
+      m_leafSides[leaf] = sides;
+    }
+  }
+
+  // A mask's surface separates a region it cuts from what the cut leaves there: the background, or a region outside
+  // the masked Overlay that it may meet.
+  for (const Mask& mask : m_masks) {
+    std::vector<std::pair<uint32_t, uint32_t>> sides;
+
+    for (uint32_t r = mask.m_firstRegion; r < mask.m_firstRegion + mask.m_numRegions; r++) {
+      if (!overlap(m_regionBoxes[r], mask.m_box)) {
+        continue;
+      }
+
+      sides.push_back(pair(r, 0U));
+
+      for (uint32_t m = 1; m < m_regions.size(); m++) {
+        const bool cut = m >= mask.m_firstRegion && m < mask.m_firstRegion + mask.m_numRegions;
+
+        if (!cut && overlap(m_regionBoxes[m], mask.m_box)) {
+          sides.push_back(pair(r, m));
+        }
+      }
+    }
+
+    const Node& node = m_nodes[mask.m_node];
+
+    for (uint32_t leaf = node.m_firstLeaf; leaf < node.m_firstLeaf + node.m_numLeaves; leaf++) {
+      m_leafSides[leaf].insert(m_leafSides[leaf].end(), sides.begin(), sides.end());
+    }
+  }
+
+  for (auto& sides : m_leafSides) {
+    std::sort(sides.begin(), sides.end());
+
+    sides.erase(std::unique(sides.begin(), sides.end()), sides.end());
+  }
+}
+
+template <class T>
+inline const std::vector<std::pair<uint32_t, uint32_t>>&
+ExprIndex<T>::getSidesOfLeaf(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafSides.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafSides.size());
+
+  return m_leafSides[a_leaf];
+}
+
+template <class T>
+inline std::vector<std::pair<uint32_t, uint32_t>>
+ExprIndex<T>::getInterfaces() const
+{
+  std::vector<std::pair<uint32_t, uint32_t>> all;
+
+  for (const auto& sides : m_leafSides) {
+    all.insert(all.end(), sides.begin(), sides.end());
+  }
+
+  std::sort(all.begin(), all.end());
+
+  all.erase(std::unique(all.begin(), all.end()), all.end());
+
+  return all;
+}
+
+template <class T>
+inline void
+ExprIndex<T>::add(const ExprDetail::Node<T>& a_node,
+                  const uint32_t             a_parent,
+                  const SurfaceLabelId       a_label,
+                  const bool                 a_object)
 {
   const auto id = static_cast<uint32_t>(m_nodes.size());
 
   // A name's label: the next number for a name not seen before.
   const auto intern = [this](const std::string& a_name) {
-    const auto [entry, added] = m_labels.emplace(a_name, static_cast<uint32_t>(m_names.size()));
+    const auto [entry, added] =
+      m_surfaceLabelIds.emplace(a_name, SurfaceLabelId(static_cast<uint32_t>(m_surfaceLabelNames.size())));
 
     if (added) {
-      m_names.push_back(a_name);
+      m_surfaceLabelNames.push_back(a_name);
     }
 
     return entry->second;
   };
 
-  const uint32_t own = a_node.m_label.empty() ? None : intern(a_node.m_label);
+  // A label on this very object (above it with only maps between) relabels it, as a material does, and the replaced
+  // name gets no number of its own; one on a composition above is a default that a label of its own wins over.
+  const bool           relabeled = a_object && !a_label.isNone();
+  const SurfaceLabelId own =
+    (relabeled || a_node.m_surfaceLabel.empty()) ? SurfaceLabelId::none() : intern(a_node.m_surfaceLabel);
+  const SurfaceLabelId label = own.isNone() ? a_label : own;
 
-  const uint32_t label = (own != None) ? own : a_label;
+  // What the operands inherit names the same object only below a map.
+  const bool object = (a_node.m_kind == ExprDetail::Kind::Affine) && (relabeled || !own.isNone());
 
   Node node;
 
   node.m_parent       = a_parent;
   node.m_firstLeaf    = static_cast<uint32_t>(m_leafNodes.size());
   node.m_firstSurface = m_leafSurfaces.back();
-  node.m_label        = own;
+  node.m_surfaceLabel = own;
   node.m_operation    = ExprDetail::operationName(a_node);
 
+  if (!a_node.m_materialLabel.empty()) {
+    node.m_materialLabel = this->internMaterial(a_node.m_materialLabel);
+  }
+
   m_nodes.push_back(std::move(node));
+  m_exprNodes.push_back(&a_node);
+  m_operands.emplace_back();
+
+  if (a_parent != None) {
+    m_operands[a_parent].push_back(id);
+  }
 
   // Leaves are numbered in the order the tape compiler meets them: depth first, the operands in order.
   if (a_node.m_kind == ExprDetail::Kind::Primitive) {
@@ -1109,21 +1785,26 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
                        static_cast<unsigned long long>(end));
 
     m_leafNodes.push_back(id);
-    m_leafLabels.push_back(label);
+    m_leafSurfaceLabels.push_back(label);
     m_leafSurfaces.push_back(static_cast<uint32_t>(end));
-    m_leafPartLabels.emplace_back();
+    m_leafPartSurfaceLabels.emplace_back();
+
+    // A collection's parts are its members' (not counted here); a shape with parts has its own count, others one.
+    m_leafParts.push_back((leaf.m_numSurfaces != nullptr) ? 0U
+                          : (leaf.m_numParts != nullptr)  ? leaf.m_numParts(leaf.m_object.get())
+                                                          : 1U);
 
     // The parts' labels: a part's group wins over the label the leaf has.
     if (a_node.m_partGroups != nullptr) {
       const FaceGroups& groups = *a_node.m_partGroups;
 
-      std::vector<uint32_t> named;
+      std::vector<SurfaceLabelId> named;
 
       for (const std::string& name : groups.m_names) {
         named.push_back(intern(name));
       }
 
-      std::vector<uint32_t>& parts = m_leafPartLabels.back();
+      std::vector<SurfaceLabelId>& parts = m_leafPartSurfaceLabels.back();
 
       parts.reserve(groups.m_group.size());
 
@@ -1134,7 +1815,7 @@ ExprIndex<T>::add(const ExprDetail::Node<T>& a_node, const uint32_t a_parent, co
   }
 
   for (const Expr<T>& child : a_node.m_children) {
-    this->add(child.node(), id, label);
+    this->add(child.node(), id, label, object);
   }
 
   m_nodes[id].m_numLeaves   = static_cast<uint32_t>(m_leafNodes.size()) - m_nodes[id].m_firstLeaf;
@@ -1187,13 +1868,13 @@ ExprIndex<T>::pathOf(const uint32_t a_leaf) const
 }
 
 template <class T>
-inline uint32_t
-ExprIndex<T>::getPartLabel(const uint32_t a_leaf, const uint32_t a_part) const
+inline SurfaceLabelId
+ExprIndex<T>::getPartSurfaceLabel(const uint32_t a_leaf, const uint32_t a_part) const
 {
-  const std::vector<uint32_t>& parts = this->getPartLabels(a_leaf);
+  const std::vector<SurfaceLabelId>& parts = this->getPartSurfaceLabels(a_leaf);
 
   if (parts.empty()) {
-    return m_leafLabels[a_leaf];
+    return m_leafSurfaceLabels[a_leaf];
   }
 
   EBGEOMETRY_REQUIRE(a_part < parts.size(), "ExprIndex: part %u of %zu", unsigned(a_part), parts.size());
@@ -1202,13 +1883,24 @@ ExprIndex<T>::getPartLabel(const uint32_t a_leaf, const uint32_t a_part) const
 }
 
 template <class T>
-inline const std::vector<uint32_t>&
-ExprIndex<T>::getPartLabels(const uint32_t a_leaf) const
+inline uint32_t
+ExprIndex<T>::getNumPartsOfLeaf(const uint32_t a_leaf) const
 {
-  EBGEOMETRY_REQUIRE(
-    a_leaf < m_leafPartLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafPartLabels.size());
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafParts.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafParts.size());
 
-  return m_leafPartLabels[a_leaf];
+  return m_leafParts[a_leaf];
+}
+
+template <class T>
+inline const std::vector<SurfaceLabelId>&
+ExprIndex<T>::getPartSurfaceLabels(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(a_leaf < m_leafPartSurfaceLabels.size(),
+                     "ExprIndex: leaf %u of %zu",
+                     unsigned(a_leaf),
+                     m_leafPartSurfaceLabels.size());
+
+  return m_leafPartSurfaceLabels[a_leaf];
 }
 
 template <class T>
@@ -1245,37 +1937,377 @@ ExprIndex<T>::getLeafOfSurface(const uint32_t a_surface) const
 }
 
 template <class T>
-inline uint32_t
-ExprIndex<T>::getLabel(const uint32_t a_leaf) const
+inline SurfaceLabelId
+ExprIndex<T>::getSurfaceLabel(const uint32_t a_leaf) const
 {
-  EBGEOMETRY_REQUIRE(a_leaf < m_leafLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafLabels.size());
+  EBGEOMETRY_REQUIRE(
+    a_leaf < m_leafSurfaceLabels.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafSurfaceLabels.size());
 
-  return m_leafLabels[a_leaf];
+  return m_leafSurfaceLabels[a_leaf];
 }
 
 template <class T>
 inline uint32_t
-ExprIndex<T>::getNumLabels() const noexcept
+ExprIndex<T>::getNumSurfaceLabels() const noexcept
 {
-  return static_cast<uint32_t>(m_names.size());
+  return static_cast<uint32_t>(m_surfaceLabelNames.size());
 }
 
 template <class T>
 inline const std::string&
-ExprIndex<T>::getLabelName(const uint32_t a_label) const
+ExprIndex<T>::getSurfaceLabelName(const SurfaceLabelId a_label) const
 {
-  EBGEOMETRY_REQUIRE(a_label < m_names.size(), "ExprIndex: label %u of %zu", unsigned(a_label), m_names.size());
+  EBGEOMETRY_REQUIRE(a_label.value() < m_surfaceLabelNames.size(),
+                     "ExprIndex: surface label %u of %zu",
+                     unsigned(a_label.value()),
+                     m_surfaceLabelNames.size());
 
-  return m_names[a_label];
+  return m_surfaceLabelNames[a_label.value()];
+}
+
+template <class T>
+inline SurfaceLabelId
+ExprIndex<T>::findSurfaceLabel(const std::string_view a_name) const
+{
+  const auto entry = m_surfaceLabelIds.find(std::string(a_name));
+
+  return (entry != m_surfaceLabelIds.end()) ? entry->second : SurfaceLabelId::none();
 }
 
 template <class T>
 inline uint32_t
-ExprIndex<T>::findLabel(const std::string_view a_name) const
+ExprIndex<T>::getNumRegions() const noexcept
 {
-  const auto entry = m_labels.find(std::string(a_name));
+  return static_cast<uint32_t>(m_regions.size());
+}
 
-  return (entry != m_labels.end()) ? entry->second : None;
+template <class T>
+inline const typename ExprIndex<T>::Region&
+ExprIndex<T>::getRegion(const uint32_t a_region) const
+{
+  EBGEOMETRY_REQUIRE(a_region < m_regions.size(), "ExprIndex: region %u of %zu", unsigned(a_region), m_regions.size());
+
+  return m_regions[a_region];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getRegionOfLeaf(const uint32_t a_leaf) const
+{
+  EBGEOMETRY_REQUIRE(
+    a_leaf < m_leafRegions.size(), "ExprIndex: leaf %u of %zu", unsigned(a_leaf), m_leafRegions.size());
+
+  return m_leafRegions[a_leaf];
+}
+
+template <class T>
+inline MaterialLabelId
+ExprIndex<T>::getMaterialOf(const uint32_t a_region) const
+{
+  return this->getRegion(a_region).m_material;
+}
+
+template <class T>
+inline std::vector<uint32_t>
+ExprIndex<T>::getRegionsOfRegionGroup(const uint32_t a_group) const
+{
+  const RegionGroup& group = this->getRegionGroup(a_group);
+
+  std::vector<uint32_t> regions(group.m_numRegions);
+
+  for (uint32_t i = 0; i < group.m_numRegions; i++) {
+    regions[i] = group.m_firstRegion + i;
+  }
+
+  return regions;
+}
+
+template <class T>
+inline std::vector<uint32_t>
+ExprIndex<T>::getRegionsOfMaterial(const MaterialLabelId a_material) const
+{
+  std::vector<uint32_t> regions;
+
+  for (uint32_t k = 0; k < m_regions.size(); k++) {
+    if (!a_material.isNone() && m_regions[k].m_material == a_material) {
+      regions.push_back(k);
+    }
+  }
+
+  return regions;
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumRegionGroups() const noexcept
+{
+  return static_cast<uint32_t>(m_regionGroups.size());
+}
+
+template <class T>
+inline const typename ExprIndex<T>::RegionGroup&
+ExprIndex<T>::getRegionGroup(const uint32_t a_group) const
+{
+  EBGEOMETRY_REQUIRE(
+    a_group < m_regionGroups.size(), "ExprIndex: region group %u of %zu", unsigned(a_group), m_regionGroups.size());
+
+  return m_regionGroups[a_group];
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::getNumMaterialLabels() const noexcept
+{
+  return static_cast<uint32_t>(m_materialLabelNames.size());
+}
+
+template <class T>
+inline const std::string&
+ExprIndex<T>::getMaterialLabelName(const MaterialLabelId a_label) const
+{
+  EBGEOMETRY_REQUIRE(a_label.value() < m_materialLabelNames.size(),
+                     "ExprIndex: material label %u of %zu",
+                     unsigned(a_label.value()),
+                     m_materialLabelNames.size());
+
+  return m_materialLabelNames[a_label.value()];
+}
+
+template <class T>
+inline MaterialLabelId
+ExprIndex<T>::findMaterialLabel(const std::string_view a_name) const
+{
+  const auto entry = m_materialLabelIds.find(std::string(a_name));
+
+  return (entry != m_materialLabelIds.end()) ? entry->second : MaterialLabelId::none();
+}
+
+template <class T>
+inline std::string
+ExprIndex<T>::whyHidden(const uint32_t                                                              a_node,
+                        const std::vector<const ExprDetail::Node<T>*>&                              a_nodes,
+                        const std::function<bool(const ExprDetail::Node<T>&, const Vec3T<T>&, T&)>& a_leafValue) const
+{
+  using Kind = ExprDetail::Kind;
+
+  // An operation on the values (not on the sets) moves the boundary in ways the box does not follow.
+  for (uint32_t node = m_nodes[a_node].m_parent; node != None; node = m_nodes[node].m_parent) {
+    switch (a_nodes[node]->m_kind) {
+    case Kind::Offset:
+    case Kind::Annular:
+    case Kind::Blur:
+    case Kind::Mollify:
+    case Kind::SmoothUnion:
+    case Kind::SmoothIntersection: {
+      return "";
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  BoundingVolumes::AABBT<T> box = a_nodes[a_node]->m_boundingVolume;
+
+  if (ExprDetail::isEmpty(box)) {
+    return "it is empty";
+  }
+
+  // The box, carried up in each node's frame, tested against the other operands of each union, Overlay and
+  // intersection on the way.
+  for (uint32_t child = a_node, node = m_nodes[a_node].m_parent; node != None;
+       child = node, node = m_nodes[node].m_parent) {
+    for (size_t dir = 0; dir < 3; dir++) {
+      if (!(std::abs(box.getLowCorner()[dir]) < Math::Limits<T>::max()) ||
+          !(std::abs(box.getHighCorner()[dir]) < Math::Limits<T>::max())) {
+        return "";
+      }
+    }
+
+    const ExprDetail::Node<T>& expr = *a_nodes[node];
+
+    switch (expr.m_kind) {
+    case Kind::Affine: {
+      box = expr.m_inverse.transform(box);
+
+      break;
+    }
+    case Kind::Elongate: {
+      box = ExprDetail::grown(box, expr.m_vec0);
+
+      break;
+    }
+    case Kind::Repeat: {
+      Vec3T<T> lo = box.getLowCorner();
+      Vec3T<T> hi = box.getHighCorner();
+
+      for (size_t dir = 0; dir < 3; dir++) {
+        lo[dir] -= expr.m_vec0[dir] * expr.m_vec1[dir];
+        hi[dir] += expr.m_vec0[dir] * expr.m_vec2[dir];
+      }
+
+      box = BoundingVolumes::AABBT<T>(lo, hi);
+
+      break;
+    }
+    case Kind::Union:
+    case Kind::Intersection: {
+      const std::vector<uint32_t>& operands = m_operands[node];
+
+      const auto operand = static_cast<size_t>(std::find(operands.begin(), operands.end(), child) - operands.begin());
+
+      if (ExprDetail::coveredBySibling(expr, operand, box, 2, a_leafValue)) {
+        return expr.m_overlay ? "it lies under later regions of the Overlay at node " + std::to_string(node)
+               : (expr.m_kind == Kind::Union)
+                 ? "it lies inside another operand of the union at node " + std::to_string(node)
+                 : "it lies outside another operand of the intersection at node " + std::to_string(node);
+      }
+
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+
+  return "";
+}
+
+template <class T>
+template <class TapeType>
+inline std::vector<std::string>
+ExprIndex<T>::checkLabels(const Expr<T>& a_expr, const TapeType& a_tape) const
+{
+  // The expression's nodes, numbered as the index numbers them: depth first, the operands in order.
+  std::vector<const ExprDetail::Node<T>*> nodes;
+
+  const std::function<void(const ExprDetail::Node<T>&)> number = [&nodes, &number](const ExprDetail::Node<T>& a_node) {
+    nodes.push_back(&a_node);
+
+    for (const Expr<T>& child : a_node.m_children) {
+      number(child.node());
+    }
+  };
+
+  number(a_expr.node());
+
+  EBGEOMETRY_REQUIRE(nodes.size() == m_nodes.size(),
+                     "ExprIndex: checkLabels was given an expression of %zu nodes, the index's has %zu",
+                     nodes.size(),
+                     m_nodes.size());
+
+  // A shape's value through the tape, by its leaf number.
+  std::unordered_map<const ExprDetail::Node<T>*, uint32_t> leaves;
+
+  for (uint32_t leaf = 0; leaf < this->getNumLeaves(); leaf++) {
+    leaves.emplace(nodes[m_leafNodes[leaf]], leaf);
+  }
+
+  const std::function<bool(const ExprDetail::Node<T>&, const Vec3T<T>&, T&)> leafValue =
+    [&leaves, &a_tape](const ExprDetail::Node<T>& a_node, const Vec3T<T>& a_point, T& a_value) {
+      const auto found = leaves.find(&a_node);
+
+      return found != leaves.end() && a_tape.leafValue(found->second, a_point, a_value);
+    };
+
+  std::vector<std::string> warnings;
+
+  // Surface labels: lost when every leaf (or part) carrying one is.
+  for (uint32_t label = 0; label < this->getNumSurfaceLabels(); label++) {
+    const SurfaceLabelId id(label);
+    const std::string    name = "surface label \"" + this->getSurfaceLabelName(id) + "\"";
+
+    std::vector<std::string> reasons;
+
+    size_t carriers = 0;
+
+    for (uint32_t leaf = 0; leaf < this->getNumLeaves(); leaf++) {
+      const std::vector<SurfaceLabelId>& parts = m_leafPartSurfaceLabels[leaf];
+
+      const bool carries =
+        parts.empty() ? (m_leafSurfaceLabels[leaf] == id) : (std::find(parts.begin(), parts.end(), id) != parts.end());
+
+      if (carries) {
+        carriers++;
+
+        const std::string reason = this->whyHidden(m_leafNodes[leaf], nodes, leafValue);
+
+        if (reason.empty()) {
+          break;
+        }
+
+        reasons.push_back("leaf " + std::to_string(leaf) + ": " + reason);
+      }
+    }
+
+    if (carriers == 0) {
+      warnings.push_back(name + " is on no surface: every leaf below it has a label of its own");
+    }
+    else if (reasons.size() == carriers) {
+      std::string warning = name + " cannot reach the boundary: ";
+
+      for (size_t i = 0; i < reasons.size() && i < 3; i++) {
+        warning += (i > 0 ? "; " : "") + reasons[i];
+      }
+
+      if (reasons.size() > 3) {
+        warning += "; and " + std::to_string(reasons.size() - 3) + " more leaves";
+      }
+
+      warnings.push_back(std::move(warning));
+    }
+  }
+
+  // Regions: empty when their operand is covered by later ones or cut away.
+  std::vector<bool> empty(m_regions.size(), false);
+
+  for (uint32_t k = 1; k < m_regions.size(); k++) {
+    if (m_regions[k].m_node == None) {
+      continue;
+    }
+
+    const std::string reason = this->whyHidden(m_regions[k].m_node, nodes, leafValue);
+
+    if (!reason.empty()) {
+      empty[k] = true;
+
+      warnings.push_back("region " + std::to_string(k) +
+                         (m_regions[k].m_name.empty() ? std::string() : " \"" + m_regions[k].m_name + "\"") +
+                         " has no volume: " + reason);
+    }
+  }
+
+  // Materials: lost when every region of one is empty.
+  for (uint32_t material = 0; material < this->getNumMaterialLabels(); material++) {
+    const std::vector<uint32_t> regions = this->getRegionsOfMaterial(MaterialLabelId(material));
+
+    bool lost = !regions.empty();
+
+    for (const uint32_t k : regions) {
+      lost = lost && k < empty.size() && empty[k];
+    }
+
+    if (lost) {
+      warnings.push_back("material \"" + this->getMaterialLabelName(MaterialLabelId(material)) +
+                         "\" is on no region with volume");
+    }
+  }
+
+  return warnings;
+}
+
+template <class T>
+inline uint32_t
+ExprIndex<T>::findRegion(const std::string_view a_name) const
+{
+  for (uint32_t k = 0; k < m_regions.size(); k++) {
+    if (!a_name.empty() && m_regions[k].m_name == a_name) {
+      return k;
+    }
+  }
+
+  return None;
 }
 
 } // namespace EBGeometry

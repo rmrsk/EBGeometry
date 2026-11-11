@@ -2,16 +2,14 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Which part of an object a query found: the armadillo with a cylinder bored through it, standing in a ring of
-// pebbles, each part labeled, and for a point or a ray, which surface the answer comes from: the armadillo's
-// skin, the bore, or one pebble of the gravel. The label indexes a table of your own, such as materials or
-// boundary conditions, and a pebble's number one per pebble; the viewer colors by the leaf. See README.md.
+// Regions of several materials in one object: a cable, a copper core inside a PTFE jacket, in a box of air.
+// Overlay() stacks the parts as regions rather than one solid, so the core keeps its surface inside the jacket;
+// MaterialLabel() names each region's material. The tape answers which region a point is in and each region's own
+// implicit function; the viewer shows the regions, one color each, and hides them (V). See README.md.
 
-#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -20,168 +18,199 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using T     = EBGEOMETRY_PRECISION;
-using Vec3  = EBGeometry::Vec3T<T>;
-using Expr  = EBGeometry::Expr<T>;
-using Cloud = EBGeometry::SphereCloudBVH<T>;
-using Tape  = EBGeometry::Tape<T, Cloud>; // a sphere cloud is not built into the tape, so it is listed
+using T    = EBGEOMETRY_PRECISION;
+using Vec3 = EBGeometry::Vec3T<T>;
+using Expr = EBGeometry::Expr<T>;
+using Tape = EBGeometry::Tape<T>; // a tape answers for its regions too
 
-// The function-try-block reports a mesh file that cannot be read, rather than letting the exception
-// terminate the program.
 int
 main(int argc, char* argv[])
-try {
+{
   // ── Build the object ───────────────────────────────────────────────────────────────────────────────
   //
-  // The default mesh is the armadillo from the common-3d-test-models submodule (clone with
-  // --recurse-submodules, or run git submodule update --init); pass another on the command line. Arguments
-  // starting with -- are options (--no-view keeps the viewer shut).
-  std::string file = "../../common-3d-test-models/data/armadillo.obj";
+  // A cable along z in a box of air: the air, the jacket on top of it, then the core on top of that (later operands
+  // win where they overlap). A union would make one solid of them, and the core's surface would vanish inside the
+  // jacket. Each region has a name (which region it is) and a material (what it is made of). The air is a region like
+  // the others: its box, around the whole cable, is the outer boundary of what a solver computes on.
+  const auto air = EBGeometry::RegionName(
+    EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))), "air"),
+    "air");
+  const auto jacket =
+    EBGeometry::RegionName(EBGeometry::MaterialLabel(
+                             EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)), "PTFE"),
+                           "jacket");
+  const auto core = EBGeometry::RegionName(
+    EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)),
+                              "copper"),
+    "core");
 
-  for (int i = 1; i < argc; i++) {
-    if (std::string(argv[i]).rfind("--", 0) != 0) {
-      file = argv[i];
-
-      break;
-    }
-  }
+  const Expr object = EBGeometry::Overlay(air, jacket, core);
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const auto mesh = EBGeometry::Parser::readIntoTriMeshSDF<T>(file, pool);
-
-  // Stand the mesh on y = 0 with height 2, turned to face +z, and bore a cylinder through its body along z.
-  const Vec3 lo = mesh.computeBoundingVolume().getLowCorner();
-  const Vec3 hi = mesh.computeBoundingVolume().getHighCorner();
-
-  const Expr armadillo = EBGeometry::Rotate(
-    EBGeometry::Scale(EBGeometry::Translate(mesh, Vec3(T(-0.5) * (lo[0] + hi[0]), -lo[1], T(-0.5) * (lo[2] + hi[2]))),
-                      T(2) / (hi[1] - lo[1])),
-    T(180),
-    1);
-
-  const EBGeometry::CylinderSDF<T> bore(Vec3(T(0), T(1.22), T(-2)), Vec3(T(0), T(1.22), T(2)), T(0.16));
-
-  // Forty pebbles in a ring around its feet, on a spiral, as one sphere cloud: one leaf of the tape.
-  std::vector<EBGeometry::SphereCloud::Sphere<T>> pebbles;
-
-  for (int i = 0; i < 40; i++) {
-    const T angle  = T(2.39996) * T(i);
-    const T radius = T(0.75) + T(0.25) * std::sqrt(T(i) / T(40));
-
-    pebbles.push_back(
-      {Vec3(radius * std::cos(angle), T(0.04), radius * std::sin(angle)), T(0.04) + T(0.005) * T(i % 5)});
-  }
-
-  const Cloud gravel = Cloud::build(pool, pebbles, 8);
-
-  // Label each part: every leaf below a Label gets its name. Labels change nothing in the values.
-  const Expr object =
-    EBGeometry::Union(EBGeometry::Difference(EBGeometry::Label(armadillo, "skin"), EBGeometry::Label(bore, "bore")),
-                      EBGeometry::Label(gravel, "gravel"));
-
   const Tape tape(pool, object);
 
-  // ── Which part: the label ──────────────────────────────────────────────────────────────────────────
+  // ── The regions and their materials ────────────────────────────────────────────────────────────────
   //
-  // The tape stores each leaf's label, as a number it can report on the host and on a GPU. ExprIndex, built
-  // from the same expression on the host, numbers the labels the same way and holds their names, so a table
-  // of your own, indexed by the label, can be filled by name. findLabel() returns LeafRef::None for a
-  // name the expression does not have, and a query finds no label for an unlabeled leaf, so check the number
-  // before indexing.
+  // Region 0 is the outside, beyond the box, with no material; then each operand of the Overlay, in order. ExprIndex, on the host, holds the
+  // names; the tape answers on the host and on a GPU.
   const EBGeometry::ExprIndex<T> index(object);
 
-  std::vector<std::string> materials(tape.getNumLabels());
+  std::cout << index.getNumRegions() << " regions:\n";
 
-  const auto describe = [&index, &materials](const char* a_name, const char* a_material) {
-    const uint32_t label = index.findLabel(a_name);
+  for (uint32_t k = 0; k < index.getNumRegions(); k++) {
+    const std::string&                name     = index.getRegion(k).m_name;
+    const EBGeometry::MaterialLabelId material = index.getMaterialOf(k);
 
-    if (label < materials.size()) {
-      materials[label] = a_material;
-    }
-  };
-
-  describe("skin", "skin (the armadillo)");
-  describe("bore", "machined (the cylinder's bore)");
-  describe("gravel", "stone (a pebble)");
-
-  const auto material = [&materials](const uint32_t a_label) {
-    return a_label < materials.size() ? materials[a_label] : std::string("none");
-  };
-
-  // closestLeaf(p) names the leaf the value at p comes from, and getLabel() its label.
-  std::cout << std::fixed << std::setprecision(3) << "Near a point:\n";
-
-  for (const Vec3& p : {Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(0.25), T(1.22), T(-0.2)), Vec3(T(0), T(0.4), T(0))}) {
-    std::cout << "  " << p << "   value " << std::setw(7) << tape.signedDistance(p) << "   "
-              << material(tape.getLabel(tape.closestLeaf(p))) << '\n';
+    std::cout << "  region " << k << ": " << (name.empty() ? std::string("outside") : name) << ", "
+              << (material.isNone() ? std::string("no material") : index.getMaterialLabelName(material)) << '\n';
   }
 
-  // ── Which pebble: the surface ──────────────────────────────────────────────────────────────────────
+  // A name with nothing to name (a region buried under later ones, a label on a covered surface) gets no boundary
+  // condition, silently; checkLabels() reports the ones it can prove lost. Here there are none.
+  for (const std::string& warning : index.checkLabels(object, tape)) {
+    std::cout << "Warning: " << warning << '\n';
+  }
+
+  // ── Which region, and each region's function ───────────────────────────────────────────────────────
   //
-  // The whole cloud is one leaf, so closestLeaf() names the gravel, not a pebble. closestSurface() goes on
-  // into the cloud and names the pebble that decides: surfaces are numbered across the scene, each leaf a
-  // range of them starting at getFirstSurface(leaf), a cloud's in its own order. So data of your own per
-  // pebble is an array indexed by the surface minus the leaf's first, and no pebble needs a label.
-  std::cout << "Which pebble:\n";
+  // Along a line through the cable: region(p) says where the point is, and signedDistance(p, region) is that
+  // region's implicit function, negative inside it, zero on its whole surface (the interface with the core
+  // included): what a cut-cell code cuts for the jacket alone.
+  std::cout << std::fixed << std::setprecision(3) << "Along x, at z = 1.5:\n";
 
-  for (const int k : {3, 17, 31}) {
-    const Vec3 p = pebbles[k].m_center + Vec3(T(0), T(0.1), T(0)); // just above pebble k
+  for (const T x : {T(-1.2), T(-0.8), T(-0.2), T(0.2), T(0.8)}) {
+    const Vec3 p(x, T(0), T(1.5));
 
-    const EBGeometry::SurfaceRef<T> s = tape.closestSurface(p);
-
-    std::cout << "  above pebble " << std::setw(2) << k << ": surface " << std::setw(2) << s.m_surface << " of "
-              << tape.getNumSurfaces() << ", pebble " << std::setw(2) << (s.m_surface - tape.getFirstSurface(s.m_leaf))
-              << ", " << material(s.m_label) << '\n';
+    std::cout << "  x = " << std::setw(6) << x << ": region " << tape.region(p) << ", jacket's function "
+              << std::setw(6) << tape.signedDistance(p, 2) << ", core's " << std::setw(6) << tape.signedDistance(p, 3)
+              << '\n';
   }
 
-  // firstSurface() along a ray reports the crossing, with the point and the normal, and the surface crossed as
-  // closestSurface() names it: its label, and the part of the shape (the face of the mesh, the side of the
-  // bore). Three rays: at the chest from in front, straight through the bore, and sideways from inside the bore.
-  std::cout << "Along a ray:\n";
+  // ── What a solver cuts ─────────────────────────────────────────────────────────────────────────────
+  //
+  // A downstream solver computes in subdomains, each a set of regions, coupled through the interfaces between them;
+  // each surface is then, at a point, a boundary (one side in its regions), an interface (two subdomains meet) or
+  // nothing to it.
+  // closestSurface(p, region) names the surface and the regions on its two sides there.
+  EBGeometry::Subdomains cfd;            // flow in the air only
+  EBGeometry::Subdomains electrostatics; // the air and the jacket; the core is a conductor
 
-  for (const EBGeometry::RayT<T>& ray : {EBGeometry::RayT<T>{Vec3(T(0), T(1.6), T(3)), Vec3(T(0), T(0), T(-1))},
-                                         EBGeometry::RayT<T>{Vec3(T(0), T(1.22), T(3)), Vec3(T(0), T(0), T(-1))},
-                                         EBGeometry::RayT<T>{Vec3(T(0), T(1.22), T(-0.2)), Vec3(T(1), T(0), T(0))}}) {
-    const EBGeometry::SurfaceHitT<T> hit = tape.firstSurface(ray, T(0), T(6));
+  cfd.addSubdomain({1});
+  electrostatics.addSubdomain({1});
+  electrostatics.addSubdomain({2});
 
-    std::cout << "  from " << ray.m_origin << " towards " << ray.m_direction << ": ";
+  const auto roleName = [](const EBGeometry::SurfaceRole a_role) {
+    return a_role == EBGeometry::SurfaceRole::Boundary    ? "boundary"
+           : a_role == EBGeometry::SurfaceRole::Interface ? "interface"
+           : a_role == EBGeometry::SurfaceRole::Internal  ? "internal"
+                                                          : "not cut";
+  };
 
-    if (hit.m_hit.hit()) {
-      std::cout << "hit at " << hit.m_hit.m_point << ", " << material(hit.m_surface.m_label) << ", part "
-                << hit.m_surface.m_part << '\n';
-    }
-    else {
-      std::cout << "no hit\n";
-    }
+  std::cout << "Surfaces of the jacket, at z = 1.5:\n";
+
+  for (const T x : {T(1), T(0.4)}) {
+    const EBGeometry::SurfaceRef<T> s = tape.closestSurface(Vec3(x, T(0), T(1.5)), 2);
+
+    std::cout << "  x = " << x << ": between regions " << s.m_ownerRegion << " and " << s.m_neighborRegion
+              << "; to flow " << roleName(cfd.role(s)) << ", to electrostatics " << roleName(electrostatics.role(s))
+              << '\n';
+  }
+
+  // ── The domains ────────────────────────────────────────────────────────────────────────────────────
+  //
+  // A domain describes what a downstream solver computes on: its regions (the subdomains above) and its surface groups,
+  // one per boundary condition: the group's name
+  // is the condition's tag, its number the id a kernel reads (scheme.surfaceGroupOf(surface)); the first selector that
+  // matches a surface decides. Electrostatics: every conductor surface is dirichlet, the box grounded, the jacket's
+  // outside a jump; flow: the box is the far field, every other surface of the air a wall.
+  EBGeometry::Domain electrostatic{electrostatics, {}};
+
+  const uint32_t dirichlet = electrostatic.m_scheme.addSurfaceGroup();
+  const uint32_t ground    = electrostatic.m_scheme.addSurfaceGroup();
+  const uint32_t jump      = electrostatic.m_scheme.addSurfaceGroup();
+
+  electrostatic.m_scheme.add(dirichlet, EBGeometry::SurfaceSelector::region(3));
+  electrostatic.m_scheme.add(ground, EBGeometry::SurfaceSelector::interface(1, 0));
+  electrostatic.m_scheme.add(jump, EBGeometry::SurfaceSelector::interface(1, 2));
+
+  EBGeometry::Domain flow{cfd, {}};
+
+  const uint32_t farField = flow.m_scheme.addSurfaceGroup();
+  const uint32_t wall     = flow.m_scheme.addSurfaceGroup();
+
+  flow.m_scheme.add(farField, EBGeometry::SurfaceSelector::interface(1, 0));
+  flow.m_scheme.add(wall, EBGeometry::SurfaceSelector::region(1));
+
+  // What a cut-cell code samples at a node: every point has a label (a subdomain, or Excluded where the domain does
+  // not compute, the core), and each label a function negative exactly in it. An edge between two nodes of different
+  // labels crosses a surface, where the functions of both labels change sign.
+  std::cout << "Electrostatics at nodes along x, at z = 1.5 (air, jacket, excluded):\n";
+
+  for (const T x : {T(1.2), T(0.8), T(0.2)}) {
+    T values[EBGeometry::Domain::MaxLabels];
+
+    electrostatic.signedDistances(tape, Vec3(x, T(0), T(1.5)), values);
+
+    const uint32_t label = electrostatic.labelAt(tape, Vec3(x, T(0), T(1.5)));
+
+    std::cout << "  x = " << x << ": "
+              << ((label == EBGeometry::Domain::Excluded) ? std::string("excluded")
+                                                          : "subdomain " + std::to_string(label))
+              << "; functions " << values[0] << ", " << values[1] << ", " << values[2] << '\n';
   }
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // ColorBy::Primitive colors each surface by the leaf it belongs to, from the same HitT::m_primitive (built
-  // with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why and returns). Leaves
-  // are numbered in expression order, the armadillo 0, the cylinder 1 and the gravel 2. The table
-  // m_primitiveColors gives a leaf a color of its own, here the skin sand, the bore steel gray and the gravel
-  // slate;
-  // a leaf not in it gets the built-in palette's. Given the pool, view() renders on the GPU in a GPU build
-  // (G switches to the CPU and back).
+  // RegionView shows the regions' surfaces, internal ones included. The window's panel switches between the
+  // domains, names the surface under a click and adds it to a surface group, and checks that every surface a domain
+  // touches has one; C prints the active domain's surface groups as C++.
   EBGeometry::Render::Settings<T> settings;
-  settings.m_colorBy            = EBGeometry::Render::ColorBy::Primitive;
-  settings.m_primitiveColors[0] = Vec3(T(0.78), T(0.62), T(0.42));
-  settings.m_primitiveColors[1] = Vec3(T(0.55), T(0.57), T(0.60));
-  settings.m_primitiveColors[2] = Vec3(T(0.35), T(0.40), T(0.45));
 
-  // The camera looks from low in front, where the bore shows.
-  auto camera    = EBGeometry::Render::Camera<T>::fit(tape.computeBoundingVolume());
-  camera.m_yaw   = T(20);
-  camera.m_pitch = T(5);
+  settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
 
-  EBGeometry::Render::view(tape, pool, camera, settings, argc, argv);
+  // The window opens with the air hidden, so that the cable shows (V and the panel show it again), cut along its axis
+  // by the section plane, which is filled by material, so that the core shows (X steps the plane on).
+  settings.m_regions.setVisible(1, false);
+
+  settings.m_section       = true;
+  settings.m_sectionNormal = Vec3(T(1), T(0), T(0));
+
+  // The names the window shows: the regions by their names and materials, the domains and their surface groups.
+  EBGeometry::RegionNames names(index);
+
+  const uint32_t electrostaticDomain = names.addDomain("electrostatics", electrostatic);
+  const uint32_t flowDomain          = names.addDomain("flow", flow);
+
+  names.setSurfaceGroup(electrostaticDomain, dirichlet, "dirichlet");
+  names.setSurfaceGroup(electrostaticDomain, ground, "ground");
+  names.setSurfaceGroup(electrostaticDomain, jump, "jump");
+  names.setSurfaceGroup(flowDomain, farField, "far field");
+  names.setSurfaceGroup(flowDomain, wall, "wall");
+  names.setSubdomain(electrostaticDomain, 0, "air");
+  names.setSubdomain(electrostaticDomain, 1, "jacket");
+  names.setSubdomain(flowDomain, 0, "air");
+
+  // Colors by name (linear RGB): the materials, and the surface groups when colored by them.
+  names.setColor("copper", EBGeometry::Vec3T<double>(0.75, 0.33, 0.12));
+  names.setColor("PTFE", EBGeometry::Vec3T<double>(0.80, 0.80, 0.75));
+  names.setColor("air", EBGeometry::Vec3T<double>(0.55, 0.70, 0.90));
+  names.setColor("dirichlet", EBGeometry::Vec3T<double>(0.85, 0.15, 0.10));
+  names.setColor("ground", EBGeometry::Vec3T<double>(0.20, 0.60, 0.25));
+  names.setColor("jump", EBGeometry::Vec3T<double>(0.10, 0.35, 0.85));
+
+  settings.m_regions.m_coloring = EBGeometry::RegionColoring::Material;
+
+  const EBGeometry::RegionView<Tape> regions(tape);
+
+  // From the side the plane keeps open.
+  auto camera = EBGeometry::Render::Camera<T>::fit(regions.computeBoundingVolume());
+
+  camera.m_yaw   = T(55);
+  camera.m_pitch = T(25);
+
+  // With the tape's pool, a GPU build renders on the device (G switches between the GPU and the CPU).
+  EBGeometry::Render::view(regions, pool, camera, settings, names, argc, argv);
 
   return 0;
-} catch (const EBGeometry::Parser::ParseError& e) {
-  std::cerr << "Cannot read the mesh: " << e.what() << '\n'
-            << "The default mesh is in the common-3d-test-models submodule: git submodule update --init\n";
-
-  return 1;
 }

@@ -3,7 +3,7 @@
 
 // Test suite for the parts of a shape and the face groups of a mesh (EBGeometry_SurfaceRef.hpp,
 // EBGeometry_FaceGroups.hpp): each built-in shape's parts at points beside each face, a mesh's part as the face
-// a point is beside, the readers' face groups (OBJ groups, STL solids) kept through clean(), Label(shape,
+// a point is beside, the readers' face groups (OBJ groups, STL solids) kept through clean(), SurfaceLabel(shape,
 // FaceGroups) in ExprIndex and in a tape's closestSurface() and firstSurface(), the free closestSurface() and
 // firstSurface() on any shape, the rejected labels and numbers, and device evaluation.
 
@@ -57,7 +57,7 @@ struct PartLabelQuery
   {
     const SurfaceRef<T> s = m_tape.closestSurface(a_point);
 
-    return 1000U * s.m_label + s.m_part;
+    return 1000U * s.m_surfaceLabel.value() + s.m_part;
   }
 };
 
@@ -239,7 +239,7 @@ TEMPLATE_TEST_CASE("Parser: OBJ groups and STL solids are kept as face groups",
         std::vector<std::string>{"tetrahedron"});
 }
 
-TEMPLATE_TEST_CASE("Label: face groups label a mesh's faces in a tape, over the leaf's label",
+TEMPLATE_TEST_CASE("SurfaceLabel: face groups label a mesh's faces in a tape, over the leaf's label",
                    "[SurfaceRef][FaceGroups][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -253,21 +253,21 @@ TEMPLATE_TEST_CASE("Label: face groups label a mesh's faces in a tape, over the 
   const Mesh cube = Parser::readIntoTriMeshSDF<T>(dataFile("cube_groups.obj"), pool);
 
   // The cube labeled "part" as a whole and its faces by group; a ball far away labeled "ball".
-  const Expr<T> expr =
-    Union(Label(Label(cube, soup.getFaceGroups()), "part"), Label(SphereSDF<T>(V(5, 0.5, 0.5), T(0.5)), "ball"));
+  const Expr<T> expr = Union(SurfaceLabel(SurfaceLabel(cube, soup.getFaceGroups()), "part"),
+                             SurfaceLabel(SphereSDF<T>(V(5, 0.5, 0.5), T(0.5)), "ball"));
 
   const Tape<T>      tape(pool, expr);
   const ExprIndex<T> index(expr);
 
   // "part" first (the node above the leaf), then the groups, then "ball".
-  REQUIRE(tape.getNumLabels() == 5U);
-  CHECK(index.getLabelName(0) == "part");
-  CHECK(index.findLabel("bottom") == 1U);
-  CHECK(index.findLabel("top") == 2U);
-  CHECK(index.findLabel("walls") == 3U);
-  CHECK(index.findLabel("ball") == 4U);
-  CHECK(index.getPartLabel(0, 5) == 0U); // the ungrouped face keeps the leaf's label
-  CHECK(index.getPartLabel(1, 0) == 4U); // a leaf without groups: its label
+  REQUIRE(tape.getNumSurfaceLabels() == 5U);
+  CHECK(index.getSurfaceLabelName(SurfaceLabelId(0)) == "part");
+  CHECK(index.findSurfaceLabel("bottom").value() == 1U);
+  CHECK(index.findSurfaceLabel("top").value() == 2U);
+  CHECK(index.findSurfaceLabel("walls").value() == 3U);
+  CHECK(index.findSurfaceLabel("ball").value() == 4U);
+  CHECK(index.getPartSurfaceLabel(0, 5).value() == 0U); // the ungrouped face keeps the leaf's label
+  CHECK(index.getPartSurfaceLabel(1, 0).value() == 4U); // a leaf without groups: its label
 
   const std::vector<std::pair<V, uint32_t>> probes{{V(0.5, 0.5, -0.2), 1},
                                                    {V(0.5, 0.5, 1.2), 2},
@@ -281,8 +281,8 @@ TEMPLATE_TEST_CASE("Label: face groups label a mesh's faces in a tape, over the 
 
     const SurfaceRef<T> s = tape.closestSurface(point);
 
-    CHECK(s.m_label == label);
-    CHECK(s.m_label == index.getPartLabel(s.m_leaf, s.m_part));
+    CHECK(s.m_surfaceLabel.value() == label);
+    CHECK(s.m_surfaceLabel == index.getPartSurfaceLabel(s.m_leaf, s.m_part));
   }
 
   // Along a ray: the bottom from below, the walls from the side, through firstSurface().
@@ -292,8 +292,8 @@ TEMPLATE_TEST_CASE("Label: face groups label a mesh's faces in a tape, over the 
 
   REQUIRE(fromBelow.m_hit.hit());
   REQUIRE(fromSide.m_hit.hit());
-  CHECK(fromBelow.m_surface.m_label == 1U);
-  CHECK(fromSide.m_surface.m_label == 3U);
+  CHECK(fromBelow.m_surface.m_surfaceLabel.value() == 1U);
+  CHECK(fromSide.m_surface.m_surfaceLabel.value() == 3U);
   CHECK(!missing.m_hit.hit());
   CHECK(missing.m_surface.m_surface == SurfaceRef<T>::None);
 
@@ -301,7 +301,7 @@ TEMPLATE_TEST_CASE("Label: face groups label a mesh's faces in a tape, over the 
   Pool       other(hostMemoryResource());
   const auto copy = tape.deepCopy(other);
 
-  CHECK(copy.closestSurface(V(0.5, 0.5, 1.2)).m_label == 2U);
+  CHECK(copy.closestSurface(V(0.5, 0.5, 1.2)).m_surfaceLabel.value() == 2U);
 }
 
 TEMPLATE_TEST_CASE("closestSurface and firstSurface: any shape reports its part, and a union its member's",
@@ -345,7 +345,7 @@ TEMPLATE_TEST_CASE("closestSurface and firstSurface: any shape reports its part,
 }
 
 TEMPLATE_TEST_CASE(
-  "Label: face groups reject a composition, a wrong count and an unnamed group; ExprIndex a part out of range",
+  "SurfaceLabel: face groups reject a composition, a wrong count and an unnamed group; ExprIndex a part out of range",
   "[FaceGroups]",
   EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -357,8 +357,8 @@ TEMPLATE_TEST_CASE(
   six.m_names = {"a"};
   six.m_group = std::vector<uint32_t>(6, 0U);
 
-  REQUIRE(abortsWith([six] { (void)Label(Translate(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), V(1, 0, 0)), six); },
-                     "Label: face groups label the parts of one shape, not of a composition (label it first)"));
+  REQUIRE(abortsWith([six] { (void)SurfaceLabel(Translate(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), V(1, 0, 0)), six); },
+                     "SurfaceLabel: face groups label the parts of one shape, not of a composition (label it first)"));
   REQUIRE(abortsWith(
     [] {
       Pool                            pool(hostMemoryResource());
@@ -369,23 +369,23 @@ TEMPLATE_TEST_CASE(
       one.m_names = {"a"};
       one.m_group = {0U};
 
-      (void)Label(boxes, one);
+      (void)SurfaceLabel(boxes, one);
     },
-    "Label: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)"));
-  REQUIRE(abortsWith([six] { (void)Label(CylinderSDF<T>(V(0, 0, 0), V(0, 0, 1), T(1)), six); },
-                     "Label: the face groups name 6 parts of a shape with 3"));
+    "SurfaceLabel: face groups label the parts of one shape, not of a collection (a union, a cloud, a tape)"));
+  REQUIRE(abortsWith([six] { (void)SurfaceLabel(CylinderSDF<T>(V(0, 0, 0), V(0, 0, 1), T(1)), six); },
+                     "SurfaceLabel: the face groups name 6 parts of a shape with 3"));
 
   FaceGroups wrong = six;
 
   wrong.m_group[2] = 4U;
 
-  REQUIRE(abortsWith([wrong] { (void)Label(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), wrong); },
-                     "Label: part 2 is in group 4 of 1"));
+  REQUIRE(abortsWith([wrong] { (void)SurfaceLabel(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), wrong); },
+                     "SurfaceLabel: part 2 is in group 4 of 1"));
   REQUIRE(abortsWith(
     [six] {
-      const ExprIndex<T> index(Label(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), six));
+      const ExprIndex<T> index(SurfaceLabel(BoxSDF<T>(V(-1, -1, -1), V(1, 1, 1)), six));
 
-      (void)index.getPartLabel(0, 6);
+      (void)index.getPartSurfaceLabel(0, 6);
     },
     "ExprIndex: part 6 of 6"));
 }
@@ -408,7 +408,8 @@ TEMPLATE_TEST_CASE("Tape: part labels on a device match the host", "[Tape][gpu]"
   const Mesh cube = Parser::readIntoTriMeshSDF<T>(dataFile("cube_groups.obj"), pool);
 
   const Tape<T> tape(
-    pool, Difference(Label(cube, soup.getFaceGroups()), CylinderSDF<T>(V(0.5, 0.5, -1), V(0.5, 0.5, 2), T(0.2))));
+    pool,
+    Difference(SurfaceLabel(cube, soup.getFaceGroups()), CylinderSDF<T>(V(0.5, 0.5, -1), V(0.5, 0.5, 2), T(0.2))));
 
   pool.freeze();
 

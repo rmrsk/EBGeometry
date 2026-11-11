@@ -76,3 +76,11 @@ path = [
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
+
+# The F18 animation on the README. The render is ours; it depicts a model adapted from the Boeing EA-18G Growler
+# by Leo Zeng (https://grabcad.com/library/boeing-ea-18g-growler-1), published on GrabCAD under GrabCAD's terms,
+# which are not those of this repository. The model itself is not redistributed here.
+[[annotations]]
+path = "Docs/Sphinx/source/_static/f18_assembly.gif"
+SPDX-FileCopyrightText = "2026 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"

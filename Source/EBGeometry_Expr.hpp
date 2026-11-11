@@ -19,6 +19,8 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -158,7 +160,9 @@ struct ShapeInfo<
  * Every shape's value goes by the one name `signedDistance`, whatever its distance quality, and the
  * two together say what the value means. The sign is the contract every shape keeps: negative inside,
  * positive outside, zero on the surface. The magnitude is what the distance quality says: the distance
- * to the surface (Exact), at most that distance (Bound), or nothing (NotADistance).
+ * to the surface (Exact), at most that distance (Bound), or nothing (NotADistance). The box holds the solid: the value
+ * is not negative outside it (a BVH union skips a member whose box a query misses, and a renderer's cut does too); a
+ * shape with no bound returns an unbounded box.
  * @tparam S Candidate type.
  */
 template <class S>
@@ -323,14 +327,42 @@ struct Node
   DistanceQuality m_quality = DistanceQuality::Exact;
 
   /**
-   * @brief The name Label() gave the node; empty for none.
+   * @brief The name SurfaceLabel() gave the node; empty for none.
    */
-  std::string m_label;
+  std::string m_surfaceLabel;
 
   /**
-   * @brief For a primitive: the groups Label(shape, FaceGroups) put its parts in; null for none.
+   * @brief For a primitive: the groups SurfaceLabel(shape, FaceGroups) put its parts in; null for none.
    */
   std::shared_ptr<const FaceGroups> m_partGroups;
+
+  /**
+   * @brief The name MaterialLabel() gave the node; empty for none.
+   */
+  std::string m_materialLabel;
+
+  /**
+   * @brief The name RegionName() gave the node; empty for none.
+   */
+  std::string m_regionName;
+
+  /**
+   * @brief Whether this union is an Overlay: its operands are regions, later ones on top (see Overlay()). A Tape
+   * evaluates it as the union of its operands, the whole object.
+   */
+  bool m_overlay = false;
+
+  /**
+   * @brief Whether the node is a partition into regions: an Overlay, a map of one, or one clipped as the first
+   * operand of an intersection (a mask).
+   */
+  bool m_partition = false;
+
+  /**
+   * @brief Whether the node, or a chain of maps below it, has a material label or a region name (MaterialLabel(),
+   * RegionName()): what only a region can have.
+   */
+  bool m_namesRegion = false;
 };
 
 /**
@@ -369,6 +401,30 @@ struct ExprLike<S, std::enable_if_t<isShape<S>>>
    * @brief The precision.
    */
   using type = ShapePrecision<S>;
+};
+
+/**
+ * @brief Whether a type is expression-like with a precision other than T (a shape or an Expr): the primary template,
+ * for other types, is false.
+ * @details Internal helper; not part of the public API. Keeps Expr<T>'s implicit constructor out of overload
+ * resolution for such types, so that a braced list of shapes picks Overlay()'s overload of their precision.
+ * @tparam S Type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T, class = void>
+struct OtherPrecision : std::false_type
+{
+};
+
+/**
+ * @brief An expression-like type: true when its precision is not T.
+ * @tparam S Shape or Expr type.
+ * @tparam T Floating-point precision.
+ */
+template <class S, class T>
+struct OtherPrecision<S, T, std::void_t<typename ExprLike<S>::type>>
+  : std::bool_constant<!std::is_same_v<typename ExprLike<S>::type, T>>
+{
 };
 
 } // namespace ExprDetail
@@ -415,7 +471,8 @@ public:
    */
   template <class S,
             class = std::enable_if_t<!std::is_same_v<std::decay_t<S>, Expr> &&
-                                     !std::is_convertible_v<S, std::shared_ptr<const ExprDetail::Node<T>>>>>
+                                     !std::is_convertible_v<S, std::shared_ptr<const ExprDetail::Node<T>>> &&
+                                     !ExprDetail::OtherPrecision<std::decay_t<S>, T>::value>>
   EBGEOMETRY_HOST
   Expr(const S& a_shape); // NOLINT(google-explicit-constructor): a shape is an expression
 
@@ -683,7 +740,9 @@ SmoothDifference(const A&               a_first,
  * whenever the object's value is one, whether or not the object fits inside its tile. The copy in the
  * tile p folds into, p_i - c_i round(clamp(p_i / c_i, -lo_i, hi_i)), is evaluated first, and only the
  * copies whose box comes closer to p than that value after it; an object well inside its tile has few.
- * A Tape evaluates the copies as a sub-program, which takes one level of its call depth.
+ * A Tape evaluates the copies as a sub-program, which takes one level of its call depth. For now the copies are
+ * one surface: Tape::closestSurface() reports the leaf they copy, whichever copy decides. A copy that needs an
+ * identity of its own is placed as an object of its own, in a union (with Accelerate::BVH for many).
  * @tparam A Shape or Expr type.
  * @param[in] a_operand  Object to repeat; its home copy sits in the tile around the origin.
  * @param[in] a_period   Tile period along each axis (> 0).
@@ -845,13 +904,15 @@ inline Expr<ExprPrecision<A>>
 Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_samples);
 
 /**
- * @brief Name an object: every leaf below it gets the label, unless a label nearer the leaf names it.
+ * @brief Name an object: every leaf below it gets the label, unless a part of it has a label of its own.
  * @details Labels change nothing in how the object is evaluated; they say which surfaces belong together,
  * for boundary conditions, per-surface data and picking. A Tape reports a leaf's label on the host and on a
- * device (Tape::getLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
+ * device (Tape::getSurfaceLabel()); ExprIndex holds the names and the expression's structure on the host. Labels
  * are numbered from 0 in the order their names first appear, depth first, so the same expression gives the
- * same numbers to both; several objects may share a name, and so a label. Labeling an object that already
- * has a label replaces it: the replaced name is gone, and gets no number unless another object has it.
+ * same numbers to both; several objects may share a name, and so a label. On a composition (a union, an
+ * intersection, an Overlay, ...) the label is a default: an operand labeled itself keeps its own. Labeling an object
+ * that already has a label, directly or through maps (a move does not make another object), replaces it, as
+ * MaterialLabel() and RegionName() do: the replaced name is gone, and gets no number unless another object has it.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand Object.
  * @param[in] a_name    Name (not empty).
@@ -860,18 +921,18 @@ Mollify(const A& a_operand, const ExprPrecision<A> a_dist, const size_t a_sample
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, std::string a_name);
+SurfaceLabel(const A& a_operand, std::string a_name);
 
 /**
  * @brief Name a shape's parts by group (see hasParts): each part in a group gets the label of the group's name,
  * which wins over any label above it; a part in no group keeps those.
  * @details For a mesh read from a file, the groups are its face groups (PolygonSoup::getFaceGroups()): an OBJ
  * file's `g` and `o` groups, or an ASCII STL file's named solids, so that a mesh's patches (inlet, outlet, wall)
- * become labels. The names are numbered with every other label's (see Label()), in the order they first appear.
+ * become labels. The names are numbered with every other label's (see SurfaceLabel()), in the order they first appear.
  * The operand must be one shape, not a composition (label it before translating or combining it) nor a collection
  * (a BVH union, a sphere cloud, a tape), with as many parts as the groups have faces; anything else aborts with a
  * message, in every build. A Tape reports the label in
- * SurfaceRef::m_label, from closestSurface() and firstSurface(), on the host and on a device.
+ * SurfaceRef::m_surfaceLabel, from closestSurface() and firstSurface(), on the host and on a device.
  * @tparam A Shape or Expr type.
  * @param[in] a_operand A shape with parts (a mesh SDF, a box, ...).
  * @param[in] a_groups  The group of each part, and the groups' names.
@@ -880,7 +941,101 @@ Label(const A& a_operand, std::string a_name);
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Label(const A& a_operand, FaceGroups a_groups);
+SurfaceLabel(const A& a_operand, FaceGroups a_groups);
+
+/**
+ * @brief Regions by priority, a priority union: each operand is a region of its own, later operands on top of earlier
+ * ones where they overlap; the outside, region 0, is the background.
+ * @details Region k is the part of operand k that no later operand covers, so the regions tile the object, with no
+ * gaps and no overlaps, by construction. Each region can have a material (MaterialLabel() on its operand). The
+ * background is what lies beyond the object and has no material: a medium around an object (the air around a cable)
+ * is a region of its own, an operand under the others, whose outer surface bounds the computational domain. A Tape
+ * evaluates an Overlay as the union of its operands, the whole object, so signedDistance() is unchanged by it;
+ * ExprIndex lists its regions, groups and materials.
+ *
+ * Where an Overlay may appear: at the top of the expression, under maps (Translate, Rotate, ...), as the first
+ * operand of an Intersection or Difference whose other operands are plain solids (masks: they clip or drill every
+ * region), and as an operand of another Overlay, where its operands take its place in the outer priority order
+ * (it is kept as a group of regions). Anything else (a union with a solid or another Overlay, an offset, a blend, a
+ * repetition of an Overlay) aborts with a message, in every build: it would not be clear which region a result
+ * belongs to.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operands The regions, in priority order (must not be empty).
+ * @return The partition.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Overlay(const std::vector<A>& a_operands);
+
+/**
+ * @brief Regions by priority, of two or more operands, each on top of the ones before it (see Overlay()).
+ * @tparam A    Shape or Expr type.
+ * @tparam B    Shape or Expr type of the same precision.
+ * @tparam Rest Shape or Expr types of the same precision.
+ * @param[in] a_first  The first region, at the bottom.
+ * @param[in] a_second The second region, on top of the first.
+ * @param[in] a_rest   Further regions, each on top of the ones before it.
+ * @return The partition.
+ */
+template <class A, class B, class... Rest>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+Overlay(const A& a_first, const B& a_second, const Rest&... a_rest);
+
+/**
+ * @brief Regions by priority, of a braced list of shapes and Exprs of any types, double precision: Overlay({air,
+ * jacket, CylinderSDF<double>(...)}) (see Overlay()).
+ * @param[in] a_operands The regions, in priority order (must not be empty).
+ * @return The partition.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<double>
+Overlay(std::initializer_list<Expr<double>> a_operands);
+
+/**
+ * @brief Regions by priority, of a braced list of shapes and Exprs of any types, single precision (see Overlay()).
+ * @param[in] a_operands The regions, in priority order (must not be empty).
+ * @return The partition.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<float>
+Overlay(std::initializer_list<Expr<float>> a_operands);
+
+/**
+ * @brief Name the material of a region: an operand of an Overlay, a whole Overlay nested in another (a default for
+ * its regions without one of their own), or a whole object.
+ * @details Materials are not surface labels (SurfaceLabel()): a material belongs to a volume, a surface label to
+ * surfaces. ExprIndex numbers the material names, in the order they first appear, depth first, as MaterialLabelId. A material label on part of a solid (an operand of a Union, an Intersection, ...)
+ * aborts with a message, in every build: a solid is one material; make the parts regions of an Overlay. Labeling an
+ * object that already has a material replaces it.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operand Object.
+ * @param[in] a_name    Name (not empty).
+ * @return The labeled object.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+MaterialLabel(const A& a_operand, std::string a_name);
+
+/**
+ * @brief Name a region: an operand of an Overlay ("fluid", "wall"), or a whole Overlay nested in another (its region
+ * group).
+ * @details A region's name says which region it is, its material (MaterialLabel()) what it is made of: two regions of
+ * the same material have names of their own. ExprIndex gives the names (Region::m_name, RegionGroup::m_name) and
+ * finds a region by its name (findRegion()); names are unique among the regions, and among the region groups, or
+ * ExprIndex aborts with a message. A name on part of a solid aborts with a message, in every build, as a material
+ * label does. Naming a named object replaces its name.
+ * @tparam A Shape or Expr type.
+ * @param[in] a_operand Object.
+ * @param[in] a_name    Name (not empty).
+ * @return The named object.
+ */
+template <class A>
+[[nodiscard]] EBGEOMETRY_HOST
+inline Expr<ExprPrecision<A>>
+RegionName(const A& a_operand, std::string a_name);
 
 /**
  * @brief The nodes of an expression, numbered, with the leaves below each and their labels: on the host, the
@@ -892,7 +1047,7 @@ Label(const A& a_operand, FaceGroups a_groups);
  * m_firstLeaf + m_numLeaves), and so are its surfaces, [m_firstSurface, m_firstSurface + m_numSurfaces): one
  * per leaf, or all of a container leaf's (a sphere cloud's spheres, a BVH union's members). A group of surfaces
  * can be handed to a device as two numbers. The nodes
- * The labels are numbered in the order their names first appear, depth first, a leaf's face groups (Label(shape,
+ * The labels are numbered in the order their names first appear, depth first, a leaf's face groups (SurfaceLabel(shape,
  * FaceGroups)) after the leaf's own label. The nodes
  * are those the builder functions made: Difference(a, b) is an Intersection of a and a Complement of b,
  * and nested maps (Translate, Rotate, Scale, ...) are one Transform node.
@@ -938,16 +1093,85 @@ public:
     uint32_t m_numSurfaces = 0;
 
     /**
-     * @brief Its own label, or None (the label its leaves inherit from further up is getLabel()'s).
+     * @brief Its own surface label, or none (the label its leaves inherit from further up is getSurfaceLabel()'s).
      */
-    uint32_t m_label = None;
+    SurfaceLabelId m_surfaceLabel;
+
+    /**
+     * @brief Its own material label, or none (MaterialLabel()).
+     */
+    MaterialLabelId m_materialLabel;
 
     /**
      * @brief What it does: Primitive, Transform, Elongate, Repeat, Complement, Offset, Annulus, Blur, Mollify,
-     * Union, Intersection, SmoothUnion or SmoothIntersection, with " (BVH)" after a union built with
+     * Union, Intersection, SmoothUnion, SmoothIntersection or Overlay, with " (BVH)" after a union built with
      * Accelerate::BVH.
      */
     std::string m_operation;
+  };
+
+  /**
+   * @brief One region of the object (see Overlay()): the background (region 0), an operand of an Overlay, or, for
+   * an expression with no Overlay, the whole object (region 1).
+   */
+  struct Region
+  {
+    /**
+     * @brief Its operand's node; None for the background.
+     */
+    uint32_t m_node = None;
+
+    /**
+     * @brief The innermost group (nested Overlay) it is in; None for the background and a whole object.
+     */
+    uint32_t m_regionGroup = None;
+
+    /**
+     * @brief Its material: its operand's material label, or its group's, or none.
+     */
+    MaterialLabelId m_material;
+
+    /**
+     * @brief Its name (RegionName() on its operand, or on a map above it); empty for none and the background.
+     */
+    std::string m_name;
+  };
+
+  /**
+   * @brief A group of regions: an Overlay, whose regions are a contiguous range (a nested Overlay a range inside
+   * its parent's).
+   */
+  struct RegionGroup
+  {
+    /**
+     * @brief The Overlay's node.
+     */
+    uint32_t m_node = None;
+
+    /**
+     * @brief The group it is nested in; None for the outermost.
+     */
+    uint32_t m_parent = None;
+
+    /**
+     * @brief Its first region.
+     */
+    uint32_t m_firstRegion = 0;
+
+    /**
+     * @brief How many regions it has, those of nested groups included.
+     */
+    uint32_t m_numRegions = 0;
+
+    /**
+     * @brief Its material label, the default of its regions without one of their own; or none.
+     */
+    MaterialLabelId m_material;
+
+    /**
+     * @brief Its name (RegionName() on the Overlay); empty for none.
+     */
+    std::string m_name;
   };
 
   /**
@@ -1034,34 +1258,45 @@ public:
   getLeafOfSurface(uint32_t a_surface) const;
 
   /**
-   * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included.
+   * @brief A leaf's label: that of the nearest labeled node on its path, the leaf's own included, except that a label
+   * above a chain of maps relabels the object below them (see SurfaceLabel()).
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
-   * @return The label, or None if no node on the path has one.
+   * @return The label, or none if no node on the path has one.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  SurfaceLabelId
+  getSurfaceLabel(uint32_t a_leaf) const;
+
+  /**
+   * @brief How many parts a leaf's shape has (see hasParts): one for a shape without parts, a mesh's faces, a box's
+   * six; 0 for a collection (a cloud, a BVH union, a tape), whose surfaces are its members, each with its own parts.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The count, or 0.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   uint32_t
-  getLabel(uint32_t a_leaf) const;
+  getNumPartsOfLeaf(uint32_t a_leaf) const;
 
   /**
-   * @brief The label of a part of a leaf (see hasParts): its face group's label when Label(shape, FaceGroups)
-   * put it in one, and otherwise the leaf's (getLabel()).
+   * @brief The label of a part of a leaf (see hasParts): its face group's label when SurfaceLabel(shape, FaceGroups)
+   * put it in one, and otherwise the leaf's (getSurfaceLabel()).
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
    * @param[in] a_part Part of the leaf's shape (SurfaceRef::m_part).
-   * @return The label, or None.
+   * @return The label, or none.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  uint32_t
-  getPartLabel(uint32_t a_leaf, uint32_t a_part) const;
+  SurfaceLabelId
+  getPartSurfaceLabel(uint32_t a_leaf, uint32_t a_part) const;
 
   /**
-   * @brief The labels of a leaf's parts, one per part, as getPartLabel() gives them; empty for a leaf whose parts
-   * Label(shape, FaceGroups) did not name.
+   * @brief The labels of a leaf's parts, one per part, as getPartSurfaceLabel() gives them; empty for a leaf whose parts
+   * SurfaceLabel(shape, FaceGroups) did not name.
    * @param[in] a_leaf Leaf number (below getNumLeaves()).
    * @return The labels.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  const std::vector<uint32_t>&
-  getPartLabels(uint32_t a_leaf) const;
+  const std::vector<SurfaceLabelId>&
+  getPartSurfaceLabels(uint32_t a_leaf) const;
 
   /**
    * @brief The number of distinct labels.
@@ -1069,25 +1304,183 @@ public:
    */
   [[nodiscard]] EBGEOMETRY_HOST
   uint32_t
-  getNumLabels() const noexcept;
+  getNumSurfaceLabels() const noexcept;
 
   /**
    * @brief A label's name.
-   * @param[in] a_label Label (below getNumLabels()).
+   * @param[in] a_label Label (below getNumSurfaceLabels()).
    * @return The name.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   const std::string&
-  getLabelName(uint32_t a_label) const;
+  getSurfaceLabelName(SurfaceLabelId a_label) const;
 
   /**
    * @brief The label of a name.
    * @param[in] a_name Name.
-   * @return The label, or None if no node has that name.
+   * @return The label, or none if no node has that name.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  SurfaceLabelId
+  findSurfaceLabel(std::string_view a_name) const;
+
+  /**
+   * @brief The number of regions: the background (region 0), and one per operand of the Overlays, flattened into one
+   * priority order depth first (later regions on top); an expression with no Overlay has one, the whole object.
+   * @return The count.
    */
   [[nodiscard]] EBGEOMETRY_HOST
   uint32_t
-  findLabel(std::string_view a_name) const;
+  getNumRegions() const noexcept;
+
+  /**
+   * @brief A region.
+   * @param[in] a_region Region number (below getNumRegions()).
+   * @return The region.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const Region&
+  getRegion(uint32_t a_region) const;
+
+  /**
+   * @brief The region a leaf belongs to: the region whose operand holds it.
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The region, or None for a leaf of a mask (an operand that clips or drills the regions).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getRegionOfLeaf(uint32_t a_leaf) const;
+
+  /**
+   * @brief A region's material (see Region::m_material).
+   * @param[in] a_region Region number (below getNumRegions()).
+   * @return The material, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  MaterialLabelId
+  getMaterialOf(uint32_t a_region) const;
+
+  /**
+   * @brief The regions of a group, for a subdomain (Subdomains::addSubdomain()).
+   * @param[in] a_group Group number (below getNumRegionGroups()).
+   * @return Its regions, a contiguous range.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<uint32_t>
+  getRegionsOfRegionGroup(uint32_t a_group) const;
+
+  /**
+   * @brief The regions of a material, for a subdomain (Subdomains::addSubdomain()).
+   * @param[in] a_material Material label.
+   * @return Its regions, in order; empty for a material no region has.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<uint32_t>
+  getRegionsOfMaterial(MaterialLabelId a_material) const;
+
+  /**
+   * @brief The pairs of regions a leaf's surface may separate, conservatively: every pair it does is listed, and
+   * some listed may not occur (the boxes overlap, the shapes need not meet). A region's own surface separates it
+   * from the background and from earlier regions whose boxes meet its own (a later region covers it, and the
+   * interface is that region's surface); a mask's separates a region it cuts from the background or a region outside
+   * the masked Overlay. Each pair smaller region first, sorted. For an expression with no Overlay: (0, 1).
+   * @param[in] a_leaf Leaf number (below getNumLeaves()).
+   * @return The pairs.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const std::vector<std::pair<uint32_t, uint32_t>>&
+  getSidesOfLeaf(uint32_t a_leaf) const;
+
+  /**
+   * @brief The pairs of regions any surface may separate (see getSidesOfLeaf()): the interfaces a solver can meet.
+   * @return The pairs, smaller region first, sorted, without repeats.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<std::pair<uint32_t, uint32_t>>
+  getInterfaces() const;
+
+  /**
+   * @brief The number of groups: one per Overlay, numbered depth first.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumRegionGroups() const noexcept;
+
+  /**
+   * @brief A group.
+   * @param[in] a_group Group number (below getNumRegionGroups()).
+   * @return The group.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const RegionGroup&
+  getRegionGroup(uint32_t a_group) const;
+
+  /**
+   * @brief The number of distinct material labels.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  getNumMaterialLabels() const noexcept;
+
+  /**
+   * @brief A material label's name.
+   * @param[in] a_label Label (below getNumMaterialLabels()).
+   * @return The name.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const std::string&
+  getMaterialLabelName(MaterialLabelId a_label) const;
+
+  /**
+   * @brief The material label of a name.
+   * @param[in] a_name Name.
+   * @return The label, or none if no region has that material.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  MaterialLabelId
+  findMaterialLabel(std::string_view a_name) const;
+
+  /**
+   * @brief The region with a name (RegionName()).
+   * @param[in] a_name The name.
+   * @return Its number, or None if no region has it.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  uint32_t
+  findRegion(std::string_view a_name) const;
+
+  /**
+   * @brief Warnings about names that cannot appear on the object: a surface label none of whose leaves (or parts
+   * named through face groups) can reach the object's boundary, or that every leaf below it overrides with a label of
+   * its own; a region with no volume (covered by later regions of its Overlay, or outside a mask); a material all of
+   * whose regions have none.
+   * @details A diagnostic only: it changes nothing, and the expression is evaluated as written; a correct geometry
+   * is the user's to make. It is conservative: it reports only what it has proved, so a lost name can go unreported
+   * (surfaces that coincide exactly, as a core filling a cavity, are never reported), but a reported one is lost. The
+   * shapes are evaluated through the tape compiled from the expression (Tape::leafValue()), on the host, a few times
+   * per leaf; a leaf the tape does not hold (inside a collection) is never evaluated.
+   *
+   * A leaf is proved hidden when, on its way to the root, its box lies strictly inside another operand of a union,
+   * strictly inside later operands of an Overlay (its region has no volume; an earlier operand only lies under it,
+   * which leaves an interface), or strictly outside another operand of an intersection (a mask included), and only
+   * maps, Elongate, FiniteRepetition, complements, unions, Overlays and intersections lie on that way. An operation
+   * that acts on values (Offset, Annular, Blur, Mollify, the smooth operations) on the way leaves it unproved. Inside
+   * and outside are proved with bounds of the other operand's value over a ball around the box (a shape's value at
+   * the center, plus or minus the radius, for a shape whose value is a distance or a bound), the box split into up to
+   * 64 pieces when it is not proved whole. A region is proved empty the same way, from its operand.
+   * The index does not hold the expression, so it is given again; it must be the one the index was built from
+   * (aborts with a message, in every build, when its nodes do not match).
+   * @tparam TapeType The Tape compiled from the same expression, its pool readable on the host.
+   * @param[in] a_expr The expression the index was built from.
+   * @param[in] a_tape The tape compiled from it.
+   * @return The warnings, empty when there are none.
+   */
+  template <class TapeType>
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<std::string>
+  checkLabels(const Expr<T>& a_expr, const TapeType& a_tape) const;
 
 private:
   /**
@@ -1101,9 +1494,9 @@ private:
   std::vector<uint32_t> m_leafNodes;
 
   /**
-   * @brief Each leaf's label (see getLabel()).
+   * @brief Each leaf's label (see getSurfaceLabel()).
    */
-  std::vector<uint32_t> m_leafLabels;
+  std::vector<SurfaceLabelId> m_leafSurfaceLabels;
 
   /**
    * @brief Each leaf's first surface, and the number of surfaces last.
@@ -1111,28 +1504,160 @@ private:
   std::vector<uint32_t> m_leafSurfaces;
 
   /**
-   * @brief Each leaf's part labels (see getPartLabels()).
+   * @brief Each leaf's part labels (see getPartSurfaceLabels()).
    */
-  std::vector<std::vector<uint32_t>> m_leafPartLabels;
+  std::vector<std::vector<SurfaceLabelId>> m_leafPartSurfaceLabels;
+
+  /**
+   * @brief Each leaf's number of parts (see getNumPartsOfLeaf()).
+   */
+  std::vector<uint32_t> m_leafParts;
 
   /**
    * @brief The labels' names.
    */
-  std::vector<std::string> m_names;
+  std::vector<std::string> m_surfaceLabelNames;
 
   /**
    * @brief Each name's label.
    */
-  std::unordered_map<std::string, uint32_t> m_labels;
+  std::unordered_map<std::string, SurfaceLabelId> m_surfaceLabelIds;
+
+  /**
+   * @brief Each node's expression node, while the index is built (cleared after: the index does not hold the
+   * expression).
+   */
+  std::vector<const ExprDetail::Node<T>*> m_exprNodes;
+
+  /**
+   * @brief Each node's operands' numbers.
+   */
+  std::vector<std::vector<uint32_t>> m_operands;
+
+  /**
+   * @brief Why a node (a leaf, or a region's operand) cannot reach the object's boundary (see checkLabels()).
+   * @param[in] a_node      The node.
+   * @param[in] a_nodes     Each node's expression node.
+   * @param[in] a_leafValue A shape's value, through the tape.
+   * @return The reason, or empty when it was not proved.
+   */
+  [[nodiscard]] std::string
+  whyHidden(uint32_t                                                                    a_node,
+            const std::vector<const ExprDetail::Node<T>*>&                              a_nodes,
+            const std::function<bool(const ExprDetail::Node<T>&, const Vec3T<T>&, T&)>& a_leafValue) const;
+
+  /**
+   * @brief The regions.
+   */
+  std::vector<Region> m_regions;
+
+  /**
+   * @brief The groups.
+   */
+  std::vector<RegionGroup> m_regionGroups;
+
+  /**
+   * @brief Each leaf's region, or None.
+   */
+  std::vector<uint32_t> m_leafRegions;
+
+  /**
+   * @brief The material labels' names.
+   */
+  std::vector<std::string> m_materialLabelNames;
+
+  /**
+   * @brief Each material name's label.
+   */
+  std::unordered_map<std::string, MaterialLabelId> m_materialLabelIds;
+
+  /**
+   * @brief A mask of a partition (an operand of a clipping intersection), while the index is built.
+   */
+  struct Mask
+  {
+    /**
+     * @brief Its node.
+     */
+    uint32_t m_node;
+
+    /**
+     * @brief Its box in the scene's frame.
+     */
+    BoundingVolumes::AABBT<T> m_box;
+
+    /**
+     * @brief The first region it cuts.
+     */
+    uint32_t m_firstRegion;
+
+    /**
+     * @brief How many regions it cuts (a contiguous range).
+     */
+    uint32_t m_numRegions;
+  };
+
+  /**
+   * @brief Each region's box in the scene's frame (the background's is empty).
+   */
+  std::vector<BoundingVolumes::AABBT<T>> m_regionBoxes;
+
+  /**
+   * @brief The masks, while the index is built.
+   */
+  std::vector<Mask> m_masks;
+
+  /**
+   * @brief The maps above the node being numbered, outermost first, while the index is built.
+   */
+  std::vector<const ExprDetail::Node<T>*> m_maps;
+
+  /**
+   * @brief Each leaf's pairs of regions (see getSidesOfLeaf()).
+   */
+  std::vector<std::vector<std::pair<uint32_t, uint32_t>>> m_leafSides;
+
+  /**
+   * @brief A box in a node's frame, in the scene's: mapped through the maps above it.
+   * @param[in] a_box The box.
+   * @return The box in the scene's frame.
+   */
+  BoundingVolumes::AABBT<T>
+  sceneBox(const BoundingVolumes::AABBT<T>& a_box) const;
+
+  /**
+   * @brief Number the pairs of regions each leaf's surface may separate (getSidesOfLeaf()).
+   */
+  void
+  addSides();
+
+  /**
+   * @brief The material label of a name, numbered if it is new.
+   * @param[in] a_name Name (not empty).
+   * @return The label.
+   */
+  MaterialLabelId
+  internMaterial(const std::string& a_name);
+
+  /**
+   * @brief Number the regions and groups at and below a node of a partition (see Overlay()).
+   * @param[in] a_node     Node number.
+   * @param[in] a_group    The group it is in, or None.
+   * @param[in] a_material The material its regions inherit, or none.
+   */
+  void
+  addRegions(uint32_t a_node, uint32_t a_group, MaterialLabelId a_material);
 
   /**
    * @brief Number a node and those below it.
    * @param[in] a_node   Node.
    * @param[in] a_parent Its parent's number, or None.
-   * @param[in] a_label  The label it inherits, or None.
+   * @param[in] a_label  The label it inherits, or none.
+   * @param[in] a_object Whether that label names this very object, given above it with only maps between (a move
+   * does not make another object, so it relabels this one), rather than a composition this node is part of.
    */
   void
-  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, uint32_t a_label);
+  add(const ExprDetail::Node<T>& a_node, uint32_t a_parent, SurfaceLabelId a_label, bool a_object = false);
 };
 
 } // namespace EBGeometry

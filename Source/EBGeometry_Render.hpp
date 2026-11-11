@@ -34,6 +34,7 @@
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_Ray.hpp"
+#include "EBGeometry_RegionSettings.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -319,6 +320,13 @@ struct Settings
   Array<Vec3T<T>, PrimitiveColors> m_primitiveColors = unsetColors();
 
   /**
+   * @brief Colors of the materials of a view of regions, for the section plane's fill (m_sectionFill), by material
+   * number (linear RGB in [0, 1]), whatever the surfaces are colored by. An entry left unset, and every number from
+   * PrimitiveColors on, takes the built-in palette's color, as the surfaces colored by material do.
+   */
+  Array<Vec3T<T>, PrimitiveColors> m_materialColors = unsetColors();
+
+  /**
    * @brief Whether a render records each pixel's object in Image::m_primitives (for a viewer's pick
    * outline); off, the image's m_primitives stays empty and a render stores and copies less per pixel.
    */
@@ -341,6 +349,27 @@ struct Settings
   uint32_t m_highlightPrimitive = NoPrimitive;
 
   /**
+   * @brief How many keys are highlighted, from m_highlightPrimitive on (several selected surfaces, each its own key,
+   * so that each is outlined).
+   */
+  uint32_t m_highlightCount = 1U;
+
+  /**
+   * @brief Whether a primitive is highlighted.
+   * @param[in] a_primitive The primitive (HitT::m_primitive).
+   * @return True if its surface is tinted with m_highlightColor.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  isHighlighted(const uint32_t a_primitive) const noexcept
+  {
+    // A surface with no key is never the highlighted one, whatever the range.
+    return a_primitive != NoPrimitive &&
+           ((a_primitive - m_highlightPrimitive < m_highlightCount && m_highlightPrimitive != NoPrimitive) ||
+            m_highlightPrimitive == AllPrimitives);
+  }
+
+  /**
    * @brief The highlight's color.
    */
   Vec3T<T> m_highlightColor = Vec3T<T>(T(1.0), T(0.72), T(0.10));
@@ -360,7 +389,15 @@ struct Settings
    * @brief Opacity of the cut face (1: opaque): below 1, the shape's next surface behind it along the ray
    * shows through, seen from inside the solid without the inside tint (cavities, bores, the far wall).
    */
-  T m_cutOpacity = T(0.6);
+  T m_cutOpacity = T(1);
+
+  /**
+   * @brief Opacity of the surfaces of a view of regions that are seen through (RegionSettings::setSeenThrough()): drawn
+   * translucent over what lies behind them, up to four along each ray, the nearest ones; 0 leaves them out. What is
+   * picked or highlighted is drawn solid. However opaque they are
+   * drawn, a pick passes through them.
+   */
+  T m_seenThroughOpacity = T(0.3);
 
   /**
    * @brief The floor's color.
@@ -445,7 +482,7 @@ struct Settings
    * @brief Width in pixels of the line drawn on the section plane where it meets the shape's surface (the
    * shape's contour in the plane); 0 draws none.
    */
-  T m_contourWidth = T(2);
+  T m_contourWidth = T(3.5);
 
   /**
    * @brief The contour's color.
@@ -461,13 +498,40 @@ struct Settings
   /**
    * @brief The color of those lines.
    */
-  Vec3T<T> m_isoColor = Vec3T<T>(T(0.30), T(0.32), T(0.36));
+  Vec3T<T> m_isoColor = Vec3T<T>(T(0.10), T(0.11), T(0.13));
+
+  /**
+   * @brief The color of those lines where a shape marks them secondary: a view of regions showing a whole domain, in
+   * the regions it excludes (RegionSettings::m_sectionDomain).
+   */
+  Vec3T<T> m_isoSecondaryColor = Vec3T<T>(T(0.60), T(0.12), T(0.10));
+
+  /**
+   * @brief Whether lines of equal distance are drawn where a shape marks them secondary (where a view of regions'
+   * domain or subdomain does not compute); the zero line is drawn either way.
+   */
+  bool m_isoSecondary = false;
 
   /**
    * @brief Opacity of the section plane where it lies outside the shape, within the shape's box: a frosted
    * sheet that shows where the plane is, edged by a line where it meets the box (0: none, 1: opaque).
    */
   T m_sheetOpacity = T(0.35);
+
+  /**
+   * @brief Opacity of the section plane's fill by what each point of it is in, within the shape's box (0: none, 1:
+   * opaque): a shape's sectionKey(point) (a view of regions: the material of the region there), in its material's
+   * color (m_materialColors, else the palette); gray where the region has no material, and where a domain shown on
+   * the plane does not compute (m_fillSecondaryColor). Where it fills, it takes the sheet's place. Shapes without a key
+   * are not filled.
+   */
+  T m_sectionFill = T(1);
+
+  /**
+   * @brief The fill's color where a shape marks the field secondary (where a view of regions' domain or subdomain does
+   * not compute): not computed, whatever the material.
+   */
+  Vec3T<T> m_fillSecondaryColor = Vec3T<T>(T(0.45), T(0.45), T(0.47));
 
   /**
    * @brief The sheet's color.
@@ -503,8 +567,8 @@ struct Settings
 
   /**
    * @brief Primitives to see through (see HitT::m_primitive): a camera ray that meets one goes on as if it were
-   * not there, and the surface behind it is shaded as one seen from outside. The geometry is unchanged: shadows,
-   * occlusion and the solid's inside are those of the whole shape. NoPrimitive marks an unused entry.
+   * not there, and the surface behind it is shaded as one seen from outside; it casts no shadow and no ambient
+   * occlusion either. The solid's inside is the whole shape's. NoPrimitive marks an unused entry.
    */
   Array<uint32_t, HiddenPrimitives> m_hidden = noneHidden();
 
@@ -519,6 +583,13 @@ struct Settings
    * @brief The fill's color.
    */
   Vec3T<T> m_volumeColor = Vec3T<T>(T(0.10), T(0.75), T(1.0));
+
+  /**
+   * @brief How a view of regions (RegionView) is shown: the visible regions, what a surface is colored by, the
+   * surfaces shown alone or seen through, and a solver's scheme. The renderer gives them to the view; other shapes
+   * ignore them.
+   */
+  RegionSettings m_regions;
 
   /**
    * @brief The fill's opacity where the part is thickest along a ray, from 0 to 1.

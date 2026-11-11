@@ -19,6 +19,7 @@
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_LabelId.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -52,16 +53,41 @@ struct SurfaceRef
   uint32_t m_leaf = None;
 
   /**
-   * @brief Set by a tape: the surface's label, or None. A part labeled through face groups (Label(shape,
-   * FaceGroups)) has its group's label; any other the leaf's (Tape::getLabel()).
+   * @brief Set by a tape: the surface's label, or none. A part labeled through face groups (SurfaceLabel(shape,
+   * FaceGroups)) has its group's label; any other the leaf's (Tape::getSurfaceLabel()).
    */
-  uint32_t m_label = None;
+  SurfaceLabelId m_surfaceLabel;
 
   /**
    * @brief The part of the deepest shape reached, read from its own formula at the local point (see hasParts): a
    * box's face, a cylinder's side or cap, a mesh's face; 0 for a shape with one part.
    */
   uint32_t m_part = 0;
+
+  /**
+   * @brief Set by a tape's region queries: the owner, the region the surface is reported from at the queried point
+   * (for Tape::closestSurface(p, region), the region asked about; for a crossing along a ray, the region the ray
+   * leaves; for a piece, the later region, on top in the Overlay), or None. The normal points from the owner to the
+   * neighbor. Which side is in a subdomain is a question for the subdomains (Subdomains::role()), not a property of
+   * the surface.
+   */
+  uint32_t m_ownerRegion = None;
+
+  /**
+   * @brief Set by a tape's region queries: the neighbor, the region across the surface from the owner at the queried
+   * point (for a crossing along a ray, the region the ray enters; 0 for the background), or None.
+   */
+  uint32_t m_neighborRegion = None;
+
+  /**
+   * @brief Set with the sides: the owner's material (m_ownerRegion's MaterialLabel()), or none.
+   */
+  MaterialLabelId m_ownerMaterial;
+
+  /**
+   * @brief Set with the sides: the neighbor's material (m_neighborRegion's), or none.
+   */
+  MaterialLabelId m_neighborMaterial;
 
   /**
    * @brief The point in the frame of the deepest shape reached: the primitive, or the container member, whose

@@ -18,11 +18,11 @@ nearest. It answers them fast on CPUs and on GPUs, from the same code, with no d
 one header and compile with C++17.
 
 <p align="center">
-   <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
+   <img src="Docs/Sphinx/source/_static/f18_assembly.gif" width="800" alt="A fighter jet assembled from its parts, then cut open to show its distance field, shown in X-ray, and as the ray tracer's cost per pixel"/>
    <br/>
-   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
-   union and a difference. Dragon: Stanford 3D Scanning Repository, from
-   <a href="https://github.com/alecjacobson/common-3d-test-models">common-3d-test-models</a>.</sub>
+   <sub>A 61-part, 310,000-triangle assembly in one BVH-accelerated union. Model adapted from the
+   Boeing EA-18G Growler by Leo Zeng, from
+   <a href="https://grabcad.com/library/boeing-ea-18g-growler-1">GrabCAD</a>.</sub>
 </p>
 
 ## Why EBGeometry
@@ -30,6 +30,8 @@ one header and compile with C++17.
 * **Any geometry.** A triangle mesh read from STL, PLY, OBJ or VTK, an analytic shape, a point
   cloud, or any composition of them is queried the same way. Drill a hole through a mesh with an
   analytic cylinder, blend two shapes smoothly, or union ten thousand parts.
+* **Several materials.** An object can be made of regions, each with its material, and a solver gets
+  the implicit function of each region, or of each domain it computes in.
 * **Any hardware.** The same query runs on the host (SIMD from SSE to AVX-512) and on NVIDIA and AMD
   GPUs (CUDA and HIP). Build a structure once, mirror its memory to the device, and evaluate it
   there.
@@ -40,6 +42,14 @@ one header and compile with C++17.
   base, on the host and on a GPU, which also checks that the answers did not change. Unit tests check
   against brute force and closed forms, in both precisions, under sanitizers.
 * **No dependencies.** One header, C++17, `float` or `double`. Nothing to build or link.
+
+<p align="center">
+   <img src="Docs/Sphinx/source/_static/csg_dragon.gif" width="800" alt="CSG on a mesh: the dragon revealed by an intersection, joined to a table by a union that turns smooth, then cut open by a difference"/>
+   <br/>
+   <sub>A 250,000-triangle mesh composed with analytic shapes: an intersection, a union, a smooth
+   union and a difference. Dragon: Stanford 3D Scanning Repository, from
+   <a href="https://github.com/alecjacobson/common-3d-test-models">common-3d-test-models</a>.</sub>
+</p>
 
 ## What it does
 
@@ -55,6 +65,13 @@ one header and compile with C++17.
   repetitions, and translations, rotations and scalings.
 * A scene compiled into a *tape* that runs on a GPU, or a part fused into compiled code.
 * BVH-accelerated unions of thousands of objects.
+
+**Materials**
+
+* Regions with materials in one object, the surfaces between them kept, each with the materials on its
+  two sides.
+* An implicit function per region and per domain (the regions a solver computes in), and boundary
+  conditions tagged on the surfaces.
 
 **Queries**
 

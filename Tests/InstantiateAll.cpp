@@ -477,22 +477,36 @@ instantiateFunctionTemplates()
     (void)tape.getNumBVHUnions();
     (void)tape.getNumPrimitives();
     (void)tape.getLargestPlainUnion();
-    (void)tape.getNumLabels();
-    (void)tape.getLabel(0U);
-    (void)tape.getLabel(tape.closestLeaf(Vec3T<T>::zeros()));
-    (void)ExprIndex<T>(Label(expr, "all")).pathOf(0U);
+    (void)tape.getNumSurfaceLabels();
+    (void)tape.getSurfaceLabel(0U);
+    (void)tape.getSurfaceLabel(tape.closestLeaf(Vec3T<T>::zeros()));
+    (void)ExprIndex<T>(SurfaceLabel(expr, "all")).pathOf(0U);
     (void)tape.closestSurface(Vec3T<T>::zeros());
     (void)tape.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
     (void)tape.firstSurface(Vec3T<T>::zeros(), Vec3T<T>::ones());
     (void)closestSurface(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), Vec3T<T>::zeros());
     (void)firstSurface(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), Vec3T<T>::zeros(), Vec3T<T>::ones());
-    (void)ExprIndex<T>(expr).getPartLabel(0U, 0U);
-    (void)ExprIndex<T>(expr).getPartLabels(0U);
+    (void)ExprIndex<T>(expr).getPartSurfaceLabel(0U, 0U);
+    (void)ExprIndex<T>(expr).getPartSurfaceLabels(0U);
     (void)tape.getNumSurfaces();
     (void)tape.getFirstSurface(0U);
     (void)ExprIndex<T>(expr).getNumSurfaces();
     (void)ExprIndex<T>(expr).getFirstSurface(0U);
     (void)ExprIndex<T>(expr).getLeafOfSurface(0U);
+    {
+      const Expr<T> regions = Overlay(MaterialLabel(expr, "a"), expr, expr);
+      (void)Overlay({MaterialLabel(expr, "b"), expr, SphereSDF<T>(Vec3T<T>::zeros(), T(1))});
+      const ExprIndex<T> index(regions);
+
+      (void)index.getNumRegions();
+      (void)index.getRegion(0U);
+      (void)index.getRegionOfLeaf(0U);
+      (void)index.getMaterialOf(0U);
+      (void)index.getNumRegionGroups();
+      (void)index.getRegionGroup(0U);
+      (void)index.getNumMaterialLabels();
+      (void)index.getMaterialLabelName(index.findMaterialLabel("a"));
+    }
     (void)tape.getCallDepth();
     (void)Tape<T>(tape.layout(), tape.location()).signedDistance(Vec3T<T>::zeros());
     (void)tape.rebasedView(meshPool);
@@ -501,6 +515,54 @@ instantiateFunctionTemplates()
 
     // A tape with a feature (see TapeFeature), whose ray code compiles the feature's.
     const Tape<T, TapeFeature::ExactOffsets> exact(meshPool, expr);
+    {
+      const Tape<T> regions(meshPool, Overlay(expr, expr));
+
+      (void)regions.getNumRegions();
+      (void)regions.region(Vec3T<T>::zeros());
+      (void)regions.signedDistance(Vec3T<T>::zeros(), 1U);
+      (void)regions.closestSurface(Vec3T<T>::zeros(), 1U);
+
+      const RayT<T> along{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))};
+
+      (void)RegionView<Tape<T>>(regions).firstHit(along, T(0), T(1), RayOptions<T>());
+      (void)RegionView<Tape<T>>(regions).firstSeenThrough(along, T(0), T(1), RayOptions<T>());
+
+      Subdomains subdomains;
+
+      (void)subdomains.addSubdomain({0U, 1U});
+      (void)subdomains.role(regions.closestSurface(Vec3T<T>::zeros(), subdomains, 0U));
+      (void)regions.signedDistance(Vec3T<T>::zeros(), subdomains, 0U);
+
+      Scheme scheme;
+
+      scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::interface(0U, 1U));
+      (void)scheme.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
+      (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
+      (void)findSurfacePieces(regions, 4U);
+      (void)Domain{subdomains, scheme}.touches(0U, 1U);
+      (void)Domain{subdomains, scheme}.labelAt(regions, Vec3T<T>::zeros());
+      (void)Domain{subdomains, scheme}.signedDistance(regions, Vec3T<T>::zeros(), Domain::Excluded);
+      {
+        T values[Domain::MaxLabels];
+
+        Domain{subdomains, scheme}.signedDistances(regions, Vec3T<T>::zeros(), values);
+      }
+      (void)RegionSettings{}.selectionOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      {
+        const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
+
+        for (const PossiblePiece& piece : possiblePieces(inventory)) {
+          (void)coverageOf(piece, inventory, scheme);
+        }
+      }
+      (void)ExprIndex<T>(Overlay(RegionName(expr, "a"), expr)).findRegion("a");
+      (void)ExprIndex<T>(Overlay(expr, expr)).checkLabels(Overlay(expr, expr), regions);
+      (void)regions.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
+      (void)regions.firstRegionChange(Vec3T<T>::zeros(), Vec3T<T>::ones());
+      (void)regions.firstSurface(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1), subdomains, 0U);
+    }
 
     (void)exact.signedDistance(Vec3T<T>::zeros());
     (void)exact.firstHit(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
@@ -556,7 +618,7 @@ instantiateFunctionTemplates()
   (void)PolygonSoup<T>().convertToDCEL(meshPool);
   (void)PolygonSoup<T>().getFaceGroups();
   PolygonSoup<T>().setFaceGroups(FaceGroups{});
-  (void)Label(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), FaceGroups{{"a"}, std::vector<uint32_t>(6, 0U)});
+  (void)SurfaceLabel(BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()), FaceGroups{{"a"}, std::vector<uint32_t>(6, 0U)});
   (void)BoxSDF<T>(-Vec3T<T>::ones(), Vec3T<T>::ones()).closestPart(Vec3T<T>::zeros());
   (void)PolygonSoup<T>().convertToTriangles();
 

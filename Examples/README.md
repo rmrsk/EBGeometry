@@ -6,7 +6,7 @@ in the order you would write them, and prints results you can read. It does not 
 answers.
 
 **Several examples read a mesh from the `common-3d-test-models` git submodule by default** (`MeshSDF`,
-`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `Materials`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
+`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `SurfaceLabels`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
 `git submodule update --init` in it.
 
 The reading order:
@@ -21,25 +21,26 @@ The reading order:
 8. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 9. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
 10. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
-11. `Materials`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a material table indexed by it.
-12. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
-13. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
-14. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
-15. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
-16. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
-17. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
-18. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
-19. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
-20. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
-21. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
-22. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
-23. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
-24. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
-25. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
-26. `BuildBVH`: comparing the BVH construction methods by build time.
+11. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
+12. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
+13. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
+14. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
+15. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
+16. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
+17. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
+18. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
+19. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
+20. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
+21. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
+22. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
+23. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
+24. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
+25. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
+26. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
+27. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that builds a shape (`Shapes`, `BasicCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
-`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `Materials`, `NestedBVH`,
+`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `NestedBVH`,
 `ManyObjects`, `PackedSpheres`, `SphereClouds`, `ParticleContacts`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
 (`make VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
 without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes

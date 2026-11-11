@@ -201,9 +201,10 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
      - A smooth minimum or maximum of the two extreme values, with smoothing length :math:`s` and a
        ``BlendKind`` (``Polynomial`` or ``Exponential``); a smooth difference is the smooth
        intersection of :math:`a` with the complement of each :math:`b_i`
-   * - ``Label(a, name)``
+   * - ``SurfaceLabel(a, name)``
      - :math:`a(\mathbf{x})`, unchanged: names the object, and every leaf below it gets the label unless a
-       label nearer the leaf names it (see :ref:`Sec:DecidingLeaf`)
+       part of it has its own; labeling an object again, through moves too, replaces its label (see
+       :ref:`Sec:DecidingLeaf`)
 
 The n-ary smooth operations blend only the two extreme values, which differs from folding a binary
 smooth minimum over the list. ``Polynomial`` uses ``SmoothMinOp``/``SmoothMaxOp`` and
@@ -415,11 +416,11 @@ and has no ``closestLeaf()``.
      const auto face = mesh.getClosestFace(leaf.m_localPoint);
    }
 
-A tape also reports a leaf's label, ``getLabel(leaf)`` or ``getLabel(ref)``, on the host and on a device
-(``LeafRef::None`` for an unlabeled leaf), and ``getNumLabels()``. The names, and the expression's
+A tape also reports a leaf's label, ``getSurfaceLabel(leaf)`` or ``getSurfaceLabel(ref)``, on the host and on a device
+(``SurfaceLabelId::none()`` for an unlabeled leaf), and ``getNumSurfaceLabels()``. The names, and the expression's
 structure, are on the host in an
 `ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression:
-``findLabel(name)`` and ``getLabelName(label)``; the nodes, numbered depth first, with ``getNode(node)``
+``findSurfaceLabel(name)`` and ``getSurfaceLabelName(label)``; the nodes, numbered depth first, with ``getNode(node)``
 (its parent, operation, own label and the contiguous range of leaves below it); ``getLeafNode(leaf)``; and
 ``pathOf(leaf)``, the nodes from the root down to a leaf. Both number labels in the order their names
 first appear, so the same expression gives the same numbers to both.
@@ -438,9 +439,9 @@ are device-callable. :ref:`Sec:Surfaces` explains the numbering.
 
 The surface also carries the part of the deepest shape reached (``m_part``), from the shape's
 ``closestPart(localPoint)`` (a box's face, a cylinder's cap, a mesh's face id; ``getNumParts()`` counts them,
-and a shape without them has one part, 0). ``Label(shape, groups)`` labels a shape's parts by
+and a shape without them has one part, 0). ``SurfaceLabel(shape, groups)`` labels a shape's parts by
 `FaceGroups <doxygen/html/structEBGeometry_1_1FaceGroups.html>`__, a mesh's from its file
-(``PolygonSoup::getFaceGroups()``), and ``m_label`` is then the part's label; ``ExprIndex::getPartLabel(leaf,
+(``PolygonSoup::getFaceGroups()``), and ``m_surfaceLabel`` is then the part's label; ``ExprIndex::getPartSurfaceLabel(leaf,
 part)`` gives the same on the host. Along a ray, ``firstSurface(ray)`` (and its segment form) returns the
 crossing and the drilled surface as a
 `SurfaceHitT <doxygen/html/structEBGeometry_1_1SurfaceHitT.html>`__; ``closestSurface(shape, p)`` and

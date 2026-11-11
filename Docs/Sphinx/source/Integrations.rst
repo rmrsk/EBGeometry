@@ -19,8 +19,9 @@ every evaluation, and the implicit function holds the object by value. Several r
 git submodule by default (see :ref:`Sec:Cloning`).
 
 Everything in EBGeometry is negative inside an object and positive outside it. AMReX reads
-negative values as fluid, so every implicit function here returns the negated value, and the fluid is
-around the object. The sign is flipped at the boundary between the two codes, never by complementing the
+negative values as fluid, so the implicit functions of objects return the negated value, and the fluid is
+around the object; a subdomain's function is handed over as it is, since the subdomain is where the code
+computes. The sign is flipped at the boundary between the two codes, never by complementing the
 EBGeometry object.
 
 .. list-table::
@@ -40,9 +41,14 @@ EBGeometry object.
    * - :file:`MeshCSG`
      - The dragon on a table, blended by a smooth union, in a ``Tape``.
      - :ref:`Chap:ExampleMeshCSG`
-   * - :file:`Materials`
+   * - :file:`SurfaceLabels`
      - The armadillo with a bored cylinder, in a ``Tape``, and each cut cell labeled with its closest leaf
        (``closestLeaf()``) and, on the mesh, its closest face (``getClosestFace()``).
+     - :ref:`Chap:ExampleSurfaceLabels`
+   * - :file:`Materials`
+     - One subdomain of a ``Domain`` (a cable's air, or its jacket), its own function cut, and each cut cell
+       labeled with its surface group (the boundary condition's id), its role (a boundary or an interface) and
+       the region on the other side (``closestSurface(p, subdomains, subdomain)``).
      - :ref:`Chap:ExampleMaterials`
    * - :file:`ManyObjects`
      - 3,000 spheres in a cylinder joined by a ``BVHSmoothUnion`` (the fluid is between them), or a city of

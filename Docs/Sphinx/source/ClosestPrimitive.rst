@@ -125,17 +125,17 @@ union inside a nested tape). It returns a
   constructor was given them). ``getFirstSurface(leaf)`` is where a leaf's range starts, so data of your
   own per member (per sphere, say) is an array indexed by ``m_surface - getFirstSurface(m_leaf)``: no
   sphere needs a label.
-* ``m_leaf`` and ``m_label``: the leaf, as ``closestLeaf()`` numbers it, and the surface's label (see below).
+* ``m_leaf`` and ``m_surfaceLabel``: the leaf, as ``closestLeaf()`` numbers it, and the surface's label (see below).
 * ``m_part``: the part of the deepest shape reached, a box's face or a mesh's face (see :ref:`Sec:Parts`).
 * ``m_localPoint``: the point in the frame of the deepest shape reached.
 
 .. code-block:: c++
 
-   const Tape<T, SphereCloudBVH<T>> tape(pool, Difference(Label(box, "wall"), Label(cloud, "particles")));
+   const Tape<T, SphereCloudBVH<T>> tape(pool, Difference(SurfaceLabel(box, "wall"), SurfaceLabel(cloud, "particles")));
 
    const SurfaceRef<T> s = tape.closestSurface(p);   // on a device too
 
-   restitution[s.m_label];                                     // per-label data
+   restitution[s.m_surfaceLabel];                                     // per-label data
    sphereData[s.m_surface - tape.getFirstSurface(s.m_leaf)];   // per-sphere data, in cloud order
 
 A collection costs one more query of the deciding leaf for each level drilled (a second search of the cloud,
@@ -181,54 +181,61 @@ A shape of your own gets parts by defining ``getNumParts()`` and ``closestPart(l
 `hasParts <doxygen/html/namespaceEBGeometry.html>`__). The part is computed only by ``closestSurface()`` and
 ``firstSurface()``, once, for the deciding leaf; a mesh's costs one more closest-face search of that mesh.
 
-Labels
-------
+Surface labels
+--------------
 
 A leaf number is fine for a program that builds its expression itself, but it depends on the expression's
 order: an edit earlier in the expression renumbers everything after it. A name does not.
-``Label(object, "name")`` names an object, and every leaf below it gets the label, unless a label nearer the
-leaf names it. Labels change nothing in how the object is evaluated, and nothing has to be labeled: an
-unlabeled leaf has no label (``LeafRef::None``). Several objects may share a name, and so a label.
+``SurfaceLabel(object, "name")`` names the surfaces of an object, and every leaf below it gets the label, unless
+a part of it has a label of its own: on a composition (a union, an Overlay, ...) the label is a default for its
+operands. Labeling an object again, directly or through moves (a move does not make another object), replaces its
+label, as ``MaterialLabel()`` and ``RegionName()`` do. Labels change nothing in how the object is evaluated, and nothing has to be
+labeled: an unlabeled leaf has no label (``SurfaceLabelId::none()``). Several objects may share a name, and so
+a label.
+
+A label is a
+`SurfaceLabelId <doxygen/html/structEBGeometry_1_1LabelId.html>`__, a number typed by what it labels, so it
+cannot be mixed up with another kind of number; ``value()`` is the number, for indexing an array of your own.
 
 .. code-block:: c++
 
-   const Expr<T> part = Difference(Intersection(Label(box, "wall"), ball), Label(Union(drills), "bores"));
+   const Expr<T> part = Difference(Intersection(SurfaceLabel(box, "wall"), ball), SurfaceLabel(Union(drills), "bores"));
 
    const Tape<T>      tape(pool, part);
    const ExprIndex<T> index(part);
 
-   std::vector<Wall> walls(tape.getNumLabels());   // per-label data of your own
-   walls[index.findLabel("wall")]  = ...;          // findLabel() is LeafRef<T>::None for an unknown name
-   walls[index.findLabel("bores")] = ...;
+   std::vector<Wall> walls(tape.getNumSurfaceLabels());   // per-label data of your own
+   walls[index.findSurfaceLabel("wall").value()]  = ...;   // findSurfaceLabel() is none for an unknown name
+   walls[index.findSurfaceLabel("bores").value()] = ...;
 
-   const uint32_t label = tape.getLabel(tape.closestLeaf(p));   // or tape.getLabel(hit.m_primitive)
+   const SurfaceLabelId label = tape.getSurfaceLabel(tape.closestLeaf(p));   // or tape.getSurfaceLabel(hit.m_primitive)
 
 **A mesh's named patches.** A mesh file can name groups of its faces: an OBJ file's ``g`` and ``o`` groups,
 an ASCII STL file's named solids. The readers keep them as
 `FaceGroups <doxygen/html/structEBGeometry_1_1FaceGroups.html>`__ (``PolygonSoup::getFaceGroups()``), and
-``Label(mesh, groups)`` labels each face by its group's name. A face's group label wins over every label
+``SurfaceLabel(mesh, groups)`` labels each face by its group's name. A face's group label wins over every label
 above the mesh; a face in no group keeps those. The group names are numbered with the other labels, so
-``findLabel("inlet")`` works as for any name, and ``SurfaceRef::m_label`` is the face's label:
+``findSurfaceLabel("inlet")`` works as for any name, and ``SurfaceRef::m_surfaceLabel`` is the face's label:
 
 .. code-block:: c++
 
    const auto soup = Parser::readIntoPolygonSoup<T>("pump.obj");       // groups inlet, outlet, casing
    const auto pump = Parser::readIntoTriMeshSDF<T>("pump.obj", pool);
 
-   const Expr<T> part = Difference(Label(pump, soup.getFaceGroups()), Label(bore, "bore"));
+   const Expr<T> part = Difference(SurfaceLabel(pump, soup.getFaceGroups()), SurfaceLabel(bore, "bore"));
 
    const Tape<T>       tape(pool, part);
-   const SurfaceRef<T> s = tape.closestSurface(p);   // s.m_label: inlet, outlet, casing or bore
+   const SurfaceRef<T> s = tape.closestSurface(p);   // s.m_surfaceLabel: inlet, outlet, casing or bore
 
-Any shape with parts can be labeled this way, with one group per part. ``Label(object, groups)`` takes one
+Any shape with parts can be labeled this way, with one group per part. ``SurfaceLabel(object, groups)`` takes one
 shape, not a composition: label it before translating or combining it.
 
-The tape reports a leaf's label with ``getLabel()``, on the host and inside a GPU kernel, so a kernel
+The tape reports a leaf's label with ``getSurfaceLabel()``, on the host and inside a GPU kernel, so a kernel
 (a particle hitting a wall, say) looks up per-label data in an array of its own. The label is a number;
 the names live on the host, in an
 `ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__ built from the same expression. Both
 number the labels in the order their names first appear in the expression, depth first (a mesh's group names
-after its own label), so the same expression gives the same numbers to both. ``getPartLabel(leaf, part)`` is
+after its own label), so the same expression gives the same numbers to both. ``getPartSurfaceLabel(leaf, part)`` is
 a part's label. A tape whose expression has no label stores none, and one whose shapes' parts are not
 labeled stores no table of part labels.
 
@@ -241,6 +248,198 @@ surface belongs to. The nodes are
 those the expression is built of: ``Difference(a, b)`` is an intersection of ``a`` with the complement of
 ``b``, and translations, rotations and scalings applied one after another are one transform, unless one of
 them is labeled.
+
+A ``FiniteRepetition`` is, for now, one surface: all its copies are the leaf they copy, with its label and
+parts. Where each copy needs its own identity, place the copies as objects of their own, in a union
+(``Union(copies, Accelerate::BVH)`` for many): each is then a leaf, or a member of a BVH union, with a number
+and a label of its own.
+
+**Checking the names.** A label can name something that has no surface on the object: a part a union covers
+entirely, or a hole that misses the block it was meant to cut; a region can have no volume, buried under later
+regions of its ``Overlay`` or outside a mask. Nothing fails then: a boundary condition attached to that label is
+simply never applied. ``ExprIndex::checkLabels(expr, tape)`` looks for such names (surface labels, regions and
+their materials) and returns a warning for each one it finds, without printing anything or changing the object;
+making the geometry right is up to you. It evaluates the shapes through the tape compiled from the expression:
+
+.. code-block:: c++
+
+   const Expr<T> object = Union(SurfaceLabel(SphereSDF<T>(center, T(1)), "shell"),
+                                SurfaceLabel(SphereSDF<T>(center, T(0.5)), "core"));
+   const Tape<T> tape(pool, object);
+
+   for (const std::string& warning : ExprIndex<T>(object).checkLabels(object, tape)) {
+     std::cerr << warning << '\n';
+   }
+   // surface label "core" cannot reach the boundary: leaf 1: it lies inside another operand of the union at node 0
+
+The check is conservative: a name it reports is lost, but it reports only what it can prove from boxes and
+shape values, on the host. It says nothing about a name under an operation that changes values rather than
+shapes (an offset, a blur, a smooth union), and nothing about surfaces that coincide exactly. It also warns
+about a label that every leaf below it overrides with a label of its own. A core inside a shell has no surface
+of its own on a union, whatever its label; when the core is to keep its surface, as a second material, the two
+are regions of an ``Overlay`` (below), and the core's surface is the interface between them.
+
+Regions and materials
+---------------------
+
+A union is one solid: a core inside a jacket has no surface of its own. When the core is another material,
+the object is a set of **regions** instead, made with ``Overlay(a, b, ...)``, a priority union: each operand is a
+region, later ones on top of earlier ones where they overlap. The regions tile the object, with no gaps and no
+overlaps. The outside, beyond every operand, is the background, region 0, and has no material: a medium around the
+object (the air around a cable) is a region like the others, an operand under them, whose outer surface bounds what a
+solver computes on. ``RegionName(object, "name")`` names a region, which region it
+is, and ``MaterialLabel(object, "name")`` its material, what it is made of, apart from the surface labels above;
+two regions of the same material have names of their own:
+
+.. code-block:: c++
+
+   const auto air    = RegionName(MaterialLabel(BoxSDF<T>(low, high), "air"), "air");
+   const auto jacket = RegionName(MaterialLabel(SphereSDF<T>(center, T(1.0)), "PTFE"), "jacket");
+   const auto core   = RegionName(MaterialLabel(SphereSDF<T>(center, T(0.5)), "copper"), "core");
+
+   const Expr<T> cable = Overlay(air, jacket, core);     // region 0 the outside, 1 the air, 2 the jacket, 3 the core
+   // also: Overlay(std::vector<Expr<T>>{...}), or a braced list of mixed types, Overlay({air, jacket, core})
+
+   const ExprIndex<T> index(cable);
+   index.findRegion("core");                             // 3
+   index.getMaterialLabelName(index.getMaterialOf(3));   // "copper"
+
+An Overlay may be moved (``Translate``, ``Rotate``, ...), clipped or drilled as the first operand of an
+``Intersection`` or a ``Difference`` (the other operands are plain solids that remove space from every
+region), and placed in another Overlay, where its regions take its place in the priority order and stay
+together as a region group (`ExprIndex <doxygen/html/classEBGeometry_1_1ExprIndex.html>`__'s ``getRegionGroup()``); a
+material on the inner Overlay is the default of its regions. Anything else that would make it unclear which
+region a result belongs to (a union of an Overlay with a solid, an offset or a blend of one, a material or a
+region name on part of a solid) is rejected when the expression is built. A tape evaluates an Overlay as the whole object, so
+``signedDistance()`` is the union of the regions.
+
+Every tape answers for each region, on the host and on a device (an object without an ``Overlay`` is one region,
+region 1, in the background):
+
+.. code-block:: c++
+
+   const Tape<T> tape(pool, cable);
+
+   tape.getNumRegions();          // 4: the outside, the air, the jacket, the core
+   tape.region(p);                // the region p is in
+   tape.signedDistance(p, 2);     // the jacket's implicit function
+   tape.regionDistances(p, [&](uint32_t k, T value) { /* every region's function, in one pass */ });
+
+``region(p)`` is the last operand whose solid holds the point, or the background; every point is in exactly
+one region. ``signedDistance(p, k)`` is negative exactly inside region k, and its zero contour is the
+region's whole surface, the interfaces with the other regions included: the function a cut-cell code cuts
+for that region. It is a distance bound, exact near a smooth piece of surface. Every region's function at a point
+comes from ``regionDistances()`` in one pass, each operand's solid evaluated once (twice with masks), where asking
+region by region evaluates the later solids again for each; the domains' and subdomains' functions below use it. An object with no Overlay is
+one region, and a tape without the feature compiles none of this.
+
+A region's surface at a point, ``closestSurface(p, region)``, is reported as any surface is (its leaf, part and
+surface label), with the regions on its two sides **at that point**: its owner, ``m_ownerRegion`` (the region
+asked about), and its neighbor, ``m_neighborRegion`` (the one across); the normal points from the owner to the
+neighbor. A physical surface has a region, and a material, on each side; which side lies in a subdomain is a
+question for the subdomains (below), not a property of the surface. The sides belong to the point, not to the surface: a sphere centered on
+another's surface faces the air on one half and the other sphere on the other.
+
+EBGeometry does not provide solvers; it describes what a downstream code computes on. A
+`Domain <doxygen/html/structEBGeometry_1_1Domain.html>`__ is that description, in two parts: its **subdomains**, the
+regions the code computes in, and its **surface groups**, the boundary conditions it tags. It is a plain value a
+kernel takes whole.
+
+The subdomains (`Subdomains <doxygen/html/classEBGeometry_1_1Subdomains.html>`__) are each a set of regions (usually
+one; ``ExprIndex::getRegionsOfRegionGroup()`` and ``getRegionsOfMaterial()`` select several), coupled through the
+interfaces between them. Each surface then has a role for the domain at a point, from its two sides: a
+**boundary** (one side in the domain), an **interface** (two subdomains meet), **internal** (two regions of the same
+subdomain touch), or none. A subdomain's own function, ``signedDistance(p, subdomains, subdomain)``, is the one to
+cut, and the function of any union of regions or materials (a subdomain of their regions): negative exactly inside
+the subdomain and zero only where one of its regions meets one outside it, never on a contact between two of its
+own. It is half the difference of the smallest function of a region in the subdomain and of one outside it, a
+distance bound, exact near a smooth piece of its surface:
+
+.. code-block:: c++
+
+   Subdomains electrostatics;                   // the air and the jacket; the core is a conductor
+   electrostatics.addSubdomain({1});
+   electrostatics.addSubdomain({2});
+
+   const SurfaceRef<T> s = tape.closestSurface(p, electrostatics, 1);   // on a device too
+   electrostatics.role(s);                      // the outer sphere: Interface; the inner one: Boundary
+
+A subdomain's surface at a point is never a contact between two of its own regions: where its nearest region's nearest
+surface is one (near a step, where a region of it pokes out of another), the surface reported is the subdomain's
+boundary there.
+
+The surface groups are a `Scheme <doxygen/html/classEBGeometry_1_1Scheme.html>`__: up to eight ("dirichlet", "jump",
+"no-slip"), each a boundary condition's tag (its name) and id (its number), and a list of
+`SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSelector.html>`__ conditions on what a surface point is. A
+piece, ``SurfaceSelector::piece(surface)``, is a shape's surface between the regions on its two sides, the piece
+one clicks (``.withPart(part)`` narrows it to one face of a box or a mesh); broader ones select a whole surface, a
+surface label, an interface (two regions, either way round), a region (either side) or a pair of materials, and
+``SurfaceSelector::rest()`` the remaining surfaces, those no other selector holds, whatever the order they were
+added in. Patches with the same attributes are one piece: the conditions say what a surface is, not where.
+``scheme.surfaceGroupOf(surface)`` gives the surface group of a surface reported with its sides, on the host and on
+a device, and the surface carries the materials of its two sides too.
+
+.. code-block:: c++
+
+   Domain electrostatics{subdomains, {}};
+   const uint32_t dirichlet = electrostatics.m_scheme.addSurfaceGroup(); // every conductor surface
+   const uint32_t jump      = electrostatics.m_scheme.addSurfaceGroup(); // the jacket's outside
+   electrostatics.m_scheme.add(dirichlet, SurfaceSelector::label(index.findSurfaceLabel("conductor")));
+   electrostatics.m_scheme.add(jump, SurfaceSelector::interface(2, 1));
+
+   // At a cut cell, in a kernel: the subdomain's surface, its role and its boundary condition.
+   const SurfaceRef<T> s = tape.closestSurface(p, electrostatics.m_subdomains, subdomain);
+   electrostatics.m_subdomains.role(s);
+   electrostatics.m_scheme.surfaceGroupOf(s);
+
+A cut-cell code that computes in several subdomains needs a function for each, not one: one function has one
+inside, but a domain divides space into its subdomains and the regions in none of them (where it does not compute, a
+conductor). So a domain gives every point a **label**, its subdomain or ``Domain::Excluded``
+(``labelAt(tape, p)``), and each label a function, negative exactly in it (``signedDistance(tape, p, label)``); off
+the surfaces exactly one is negative. ``signedDistances(tape, p, values)`` gives them all at once, each region's
+function evaluated once: what a code samples at a node. An edge whose two ends have different labels crosses a
+surface. Between two subdomains it is an interface, where both their functions are zero, with opposite signs, so that
+the two sides cut the same surface; between a subdomain and the excluded regions, the subdomain's boundary, where its
+function is zero; its root along the edge is where. An edge from one subdomain to another across a conductor crosses
+twice, once for each. The excluded regions hold no unknowns (their cells are covered for every subdomain), and their
+function is the negative of the function of all the subdomains together.
+
+.. code-block:: c++
+
+   // At a node, in a kernel: every label's function, the subdomains' first, then the excluded regions'.
+   T values[Domain::MaxLabels];
+   electrostatics.signedDistances(tape, p, values);   // values[0]: the air's, [1]: the jacket's, [2]: excluded
+   electrostatics.labelAt(tape, p);                   // 0, 1 or Domain::Excluded
+
+The surfaces a domain must tag are those it touches (``touches()``): every surface with a side in one of its
+regions, internal ones between two of its regions included. ``RegionNames::addDomain("electrostatics", domain)``
+registers a domain by name, with its subdomains' and surface groups' names, for a viewer to show and check it.
+``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
+``getSidesOfLeaf(leaf)`` those of one shape's surface. Whether a scheme leaves a surface without a boundary
+condition is checked from these, on the host: ``possiblePieces(inventory)`` lists every piece the object may have
+(each surface between each pair of regions it may separate, from a ``SurfaceInventory`` of the index: nothing is
+left out, and some may not occur), and ``coverageOf(piece, inventory, scheme)`` says whether the scheme's surface
+groups hold all of it, part of it (some faces of a box or a mesh) or none. ``findSurfacePieces(tape)`` finds which
+pieces the object actually has, with a point on each, by crossing it with rays on a grid; a piece too small for the
+grid is missed there, but not by the check.
+
+Along a ray, ``firstRegionChange(ray, tMin, tMax)`` (or ``firstRegionChange(from, to)`` for a particle's step)
+finds the first point where the region changes, from inside any region: the crossing, with its normal pointing
+into the region entered, the surface crossed and its labels, and the regions left (``m_ownerRegion``) and entered
+(``m_neighborRegion``). The crossings are exact where the shapes have ray forms. A particle crossing several layers
+asks again from the last crossing's ``t``; crossings closer than the march's tolerance to ``tMin`` are not
+reported, so layers thinner than that are passed over. ``firstSurface(ray, tMin, tMax, subdomains, subdomain)`` finds
+where the ray enters or leaves a subdomain, passing through the contacts between its regions: with the visible
+regions as the subdomain, what a renderer needs to see through hidden ones.
+
+.. code-block:: c++
+
+   for (T t = 0;;) {                                          // a particle through the layers of the cable
+     const SurfaceHitT<T> c = tape.firstRegionChange(ray, t, tMax);
+     if (!c.m_hit.hit()) break;
+     // c.m_surface.m_ownerRegion -> c.m_surface.m_neighborRegion at c.m_hit.m_point
+     t = c.m_hit.m_t;
+   }
 
 Along a ray
 -----------
@@ -289,11 +488,11 @@ parts; to tell parts apart, make them leaves of a tape (each part can be a fused
 Examples
 --------
 
-* :ref:`Chap:ExampleMaterials` bores a cylinder through a mesh, labels the two parts, names each point's
+* :ref:`Chap:ExampleSurfaceLabels` bores a cylinder through a mesh, labels the two parts, names each point's
   part with ``closestLeaf()`` and each ray's with ``HitT::m_primitive``, looks its label up in a table
-  of materials, and renders the object colored by part.
+  of its own, and renders the object colored by part.
 * :ref:`Chap:ExampleBasicCSG` prints the deciding leaf at a few points of the classic CSG solid, a cube
   intersected with a ball and drilled along three axes.
-* The AMReX ``Materials`` integration (see :ref:`Chap:Integrations`) labels every cut cell with its
+* The AMReX ``SurfaceLabels`` integration (see :ref:`Chap:Integrations`) labels every cut cell with its
   deciding leaf and, on the mesh, with the mesh's closest face at the local point, on a GPU when AMReX is
   built for one.
