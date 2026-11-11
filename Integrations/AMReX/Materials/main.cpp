@@ -69,7 +69,7 @@ public:
     const uint32_t group = domain().surfaceGroupOf(surface);
     const uint32_t mine  = domain().subdomains().subdomainOf(surface.m_ownerRegion);
 
-    a_condition = (group == EBGeometry::Scheme::None) ? Real(-1) : Real(group);
+    a_condition = (group == EBGeometry::SurfaceGroups::None) ? Real(-1) : Real(group);
     a_role      = Real(static_cast<int>(domain().role(surface)));
     a_across    = Real((mine == m_subdomain) ? surface.m_neighborRegion : surface.m_ownerRegion);
   }

@@ -30,8 +30,8 @@ namespace EBGeometry {
  */
 enum class SurfaceRole : uint8_t
 {
-  None,      ///< Neither side is in a subdomain: the solver does not cut it.
-  Boundary,  ///< One side is in a subdomain: cut once, from that side; its surface label gives the boundary condition.
+  None,     ///< Neither side is in a subdomain: the solver does not cut it.
+  Boundary, ///< One side is in a subdomain: cut once, from that side; its surface group gives its meaning (a boundary condition, say).
   Interface, ///< The two sides are in two different subdomains: one surface the solver couples across.
   Internal ///< Both sides are in the same subdomain (two of its regions touching): the solver decides; usually not cut.
 };

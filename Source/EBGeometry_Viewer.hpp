@@ -145,9 +145,9 @@ view(const S&                           a_shape,
 
 /**
  * @brief Look at a shape in a window, from a given camera with given settings, naming its regions, materials,
- * surfaces and a scheme's groups as a_names does.
+ * surfaces and surface groups as a_names does.
  * @details See view(const S&, int, char**). For a view of regions (RegionView), the status lines name the picked
- * piece of surface, and a panel at the top left, shown with every menu, lists the domains, the regions and the scheme's
+ * piece of surface, and a panel at the top left, shown with every menu, lists the domains, the regions and the active domain's
  * groups by these names.
  * @tparam S Shape type (see isShape).
  * @param[in] a_shape    Shape, valid on the host.
@@ -168,7 +168,7 @@ view(const S&                           a_shape,
 
 /**
  * @brief Look at a shape that lives in a pool in a window, rendering on the GPU in a GPU build, from a given camera
- * with given settings, naming its regions, materials, surfaces and a scheme's groups as a_names does.
+ * with given settings, naming its regions, materials, surfaces and surface groups as a_names does.
  * @details See view(const S&, Pool&, int, char**) and view(const S&, const Camera&, const Settings&, const
  * RegionNames&, int, char**).
  * @tparam S Shape type (see isShape), with rebasedView(const Pool&).

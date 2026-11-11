@@ -400,8 +400,8 @@ device (the setup answers it on the host too), and the surface carries the mater
 A domain's tables usually live in the tape's pool, built before it is mirrored: one mirror, one lifetime. They may
 live in a pool of their own, ``Domain(otherPool, tape, setup)``, so that a domain built after the tape's pool was
 mirrored (surface groups edited while a program runs) costs a copy of its small tables only, never of the geometry;
-``rebasedView(tapePool, tablesPool)`` then moves it. A scheme in the render settings (``RegionSettings::m_scheme``,
-``domain.scheme()``) is rebased onto the device's pool for a render there, as the shape is.
+``rebasedView(tapePool, tablesPool)`` then moves it. Surface groups in the render settings (``RegionSettings::m_surfaceGroups``,
+``domain.surfaceGroups()``) is rebased onto the device's pool for a render there, as the shape is.
 
 A cut-cell code that computes in several subdomains needs a function for each, not one: one function has one
 inside, but a domain divides space into its subdomains and the regions in none of them (where it does not compute, a
@@ -426,7 +426,7 @@ The surfaces a domain must tag are those it touches (``touches()``): every surfa
 regions, internal ones between two of its regions included. ``RegionNames::addDomain("electrostatics", setup)``
 registers a domain's setup by name, with its subdomains' and surface groups' names, for a viewer to show and check it.
 ``ExprIndex::getInterfaces()`` lists, conservatively, the pairs of regions a surface may separate, and
-``getSidesOfLeaf(leaf)`` those of one shape's surface. Whether a scheme leaves a surface without a boundary
+``getSidesOfLeaf(leaf)`` those of one shape's surface. Whether a domain's surface groups leave a surface without a boundary
 condition is checked from these, on the host: ``possiblePieces(inventory)`` lists every piece the object may have
 (each surface between each pair of regions it may separate, from a ``SurfaceInventory`` of the index: nothing is
 left out, and some may not occur), and ``coverageOf(piece, inventory, setup)`` says whether the setup's surface

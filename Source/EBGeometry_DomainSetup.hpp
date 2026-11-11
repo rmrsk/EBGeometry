@@ -20,8 +20,8 @@
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_Pool.hpp"
-#include "EBGeometry_Scheme.hpp"
 #include "EBGeometry_Subdomains.hpp"
+#include "EBGeometry_SurfaceGroups.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 
 namespace EBGeometry {
@@ -311,10 +311,10 @@ public:
   }
 
   /**
-   * @brief The surface group a surface point is in (as Scheme::surfaceGroupOf()).
+   * @brief The surface group a surface point is in (as SurfaceGroups::surfaceGroupOf()).
    * @tparam T Floating-point precision.
    * @param[in] a_surface The surface, with its sides and their materials.
-   * @return The surface group, or Scheme::None.
+   * @return The surface group, or SurfaceGroups::None.
    */
   template <class T>
   [[nodiscard]] EBGEOMETRY_HOST
@@ -329,7 +329,7 @@ public:
       }
     }
 
-    return Scheme::None;
+    return SurfaceGroups::None;
   }
 
   /**
@@ -358,13 +358,13 @@ public:
   /**
    * @brief Build the surface groups.
    * @param[in,out] a_pool Pool to build the selectors in (not frozen).
-   * @return The scheme.
+   * @return The surface groups.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  Scheme
-  buildScheme(Pool& a_pool) const
+  SurfaceGroups
+  buildSurfaceGroups(Pool& a_pool) const
   {
-    return Scheme(a_pool, m_selectors, m_surfaceGroups, m_numSurfaceGroups);
+    return SurfaceGroups(a_pool, m_selectors, m_surfaceGroups, m_numSurfaceGroups);
   }
 
   /**

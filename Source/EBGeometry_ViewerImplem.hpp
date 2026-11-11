@@ -49,21 +49,21 @@ namespace EBGeometry::Render {
 namespace ViewerDetail {
 
 /**
- * @brief The surface groups of a scheme, as a setup to edit (the viewer's starting point when the settings give one).
- * @param[in] a_scheme A scheme resolving on the host.
+ * @brief Surface groups, as a setup to edit (the viewer's starting point when the settings give one).
+ * @param[in] a_setup Surface groups resolving on the host.
  * @return Its surface groups and selectors; no subdomains.
  */
 inline DomainSetup
-setupOf(const Scheme& a_scheme)
+setupOf(const SurfaceGroups& a_setup)
 {
   DomainSetup setup;
 
-  for (uint32_t g = 0; g < a_scheme.getNumSurfaceGroups(); g++) {
+  for (uint32_t g = 0; g < a_setup.getNumSurfaceGroups(); g++) {
     (void)setup.addSurfaceGroup();
   }
 
-  for (uint32_t i = 0; i < a_scheme.getNumSelectors(); i++) {
-    setup.add(a_scheme.getSurfaceGroupOfSelector(i), a_scheme.getSelector(i));
+  for (uint32_t i = 0; i < a_setup.getNumSelectors(); i++) {
+    setup.add(a_setup.getSurfaceGroupOfSelector(i), a_setup.getSelector(i));
   }
 
   return setup;
@@ -700,22 +700,22 @@ run(const S&           a_shape,
   // The region shown alone (0: all), stepped through with V.
   uint32_t soloRegion = 0;
 
-  // The group of the scheme that Enter adds to (see RegionSettings::m_scheme).
+  // The surface group that Enter adds to (see RegionSettings::m_surfaceGroups).
   uint32_t currentGroup = 0;
 
-  // The surface groups as edited (the active domain's, or those of the settings given), and as last shown: a scheme
-  // built from them in a small pool of its own, and mirrored for a device, after each change (publishScheme()). Those
-  // pools live as long as the viewer, so that a render in the background never outlives the scheme it reads; each
+  // The surface groups as edited (the active domain's, or those of the settings given), and as last shown: surface groups
+  // built from them in a small pool of its own, and mirrored for a device, after each change (publishGroups()). Those
+  // pools live as long as the viewer, so that a render in the background never outlives the surface groups it reads; each
   // holds a few selectors.
-  DomainSetup                        edited = ViewerDetail::setupOf(a_settings.m_regions.m_scheme);
+  DomainSetup                        edited = ViewerDetail::setupOf(a_settings.m_regions.m_surfaceGroups);
   DomainSetup                        published;
   bool                               publishedOnce = false;
-  Scheme                             deviceScheme;
-  std::vector<std::unique_ptr<Pool>> schemePools;
+  SurfaceGroups                      deviceGroups;
+  std::vector<std::unique_ptr<Pool>> groupPools;
 
-  // The surface group whose name is being typed (Scheme::None for none), and the name so far: while it is, keys type
+  // The surface group whose name is being typed (SurfaceGroups::None for none), and the name so far: while it is, keys type
   // it instead of acting.
-  uint32_t    renaming = Scheme::None;
+  uint32_t    renaming = SurfaceGroups::None;
   std::string renameText;
 
   // The pieces of surface of a view of regions, found once, the last one picked from them, and whether the panel
@@ -760,38 +760,38 @@ run(const S&           a_shape,
     }
   }
 
-  // How the scheme covers each possible piece, kept until the scheme changes. A piece the inventory does not hold is
+  // How the surface groups cover each possible piece, kept until they change. A piece the inventory does not hold is
   // judged by the surface where it was found.
   std::vector<PieceCoverage> coverage;
-  DomainSetup                coveredScheme;
+  DomainSetup                coveredGroups;
   bool                       coverageKnown = false;
 
-  const auto coverageOfScheme = [&](const DomainSetup& a_scheme, const std::size_t a_piece) {
+  const auto coverageOfGroups = [&](const DomainSetup& a_setup, const std::size_t a_piece) {
     const PossiblePiece& piece = possible[a_piece];
 
     if (piece.m_surface < inventory.getNumSurfaces()) {
-      return coverageOf(piece, inventory, a_scheme);
+      return coverageOf(piece, inventory, a_setup);
     }
 
     PieceCoverage judged;
 
-    judged.m_surfaceGroup = a_scheme.surfaceGroupOf(pieces[foundOf[a_piece]].m_surface);
-    judged.m_coverage     = (judged.m_surfaceGroup != Scheme::None) ? Coverage::Full : Coverage::None;
+    judged.m_surfaceGroup = a_setup.surfaceGroupOf(pieces[foundOf[a_piece]].m_surface);
+    judged.m_coverage     = (judged.m_surfaceGroup != SurfaceGroups::None) ? Coverage::Full : Coverage::None;
 
     return judged;
   };
 
   const auto coverages = [&]() -> const std::vector<PieceCoverage>& {
-    const DomainSetup& scheme = edited;
+    const DomainSetup& setup = edited;
 
-    if (!coverageKnown || scheme != coveredScheme) {
+    if (!coverageKnown || setup != coveredGroups) {
       coverage.clear();
 
       for (std::size_t c = 0; c < possible.size(); c++) {
-        coverage.push_back(coverageOfScheme(scheme, c));
+        coverage.push_back(coverageOfGroups(setup, c));
       }
 
-      coveredScheme = scheme;
+      coveredGroups = setup;
       coverageKnown = true;
     }
 
@@ -808,11 +808,11 @@ run(const S&           a_shape,
   };
 
   const auto finishRename = [&](const bool a_keep) {
-    if (renaming != Scheme::None && a_keep && !renameText.empty()) {
+    if (renaming != SurfaceGroups::None && a_keep && !renameText.empty()) {
       names.setSurfaceGroup(renaming, renameText);
     }
 
-    renaming = Scheme::None;
+    renaming = SurfaceGroups::None;
 
     renameText.clear();
 
@@ -863,7 +863,7 @@ run(const S&           a_shape,
     return pixel;
   };
 
-  // A scheme's selector, in words and as C++.
+  // A surface group's selector, in words and as C++.
   const auto selectorName = [&names](const SurfaceSelector& a_selector) {
     std::string name;
 
@@ -1041,7 +1041,7 @@ run(const S&           a_shape,
     showHighlight();
   };
 
-  // The picked surface's key under the region settings now (after the coloring or the scheme changed): a short ray
+  // The picked surface's key under the region settings now (after the coloring or the surface groups changed): a short ray
   // into the picked point, along its normal, asks the view again; the highlight follows.
   const auto rekeyPick = [&]() {
     if constexpr (hasRegionVisibility<S>) {
@@ -1171,7 +1171,7 @@ run(const S&           a_shape,
     uint32_t count = 0;
 
     for (std::size_t c = 0; c < possible.size(); c++) {
-      count += (foundOf[c] != std::size_t(-1) && coverageOfScheme(alone, c).m_coverage != Coverage::None) ? 1U : 0U;
+      count += (foundOf[c] != std::size_t(-1) && coverageOfGroups(alone, c).m_coverage != Coverage::None) ? 1U : 0U;
     }
 
     return std::to_string(count) + ((count == 1U) ? " piece" : " pieces");
@@ -1193,11 +1193,11 @@ run(const S&           a_shape,
     bool matched = false;
 
     for (std::size_t c = 0; c < possible.size(); c++) {
-      if (foundOf[c] != std::size_t(-1) && coverageOfScheme(alone, c).m_coverage != Coverage::None) {
+      if (foundOf[c] != std::size_t(-1) && coverageOfGroups(alone, c).m_coverage != Coverage::None) {
         matched = true;
 
         // Held here, only partly held, or held by several surface groups (perhaps this one too): not shadowed.
-        if (covered[c].m_surfaceGroup == a_group || covered[c].m_surfaceGroup == Scheme::None ||
+        if (covered[c].m_surfaceGroup == a_group || covered[c].m_surfaceGroup == SurfaceGroups::None ||
             covered[c].m_coverage != Coverage::Full) {
           return false;
         }
@@ -1247,7 +1247,7 @@ run(const S&           a_shape,
   // regions) to the current surface group, or remove what holds the pieces there; false when nothing is picked.
   const auto editPicked = [&](const PanelAction a_action) {
     if constexpr (hasRegionVisibility<S>) {
-      DomainSetup& scheme = edited;
+      DomainSetup& setup = edited;
 
       const std::vector<Picked> entries = pickedNow();
 
@@ -1258,11 +1258,11 @@ run(const S&           a_shape,
       for (const Picked& entry : entries) {
         if (a_action == PanelAction::RemovePiece) {
           // Every selector of the current surface group that holds the piece goes.
-          for (uint32_t i = scheme.getNumSelectors(); i > 0U; i--) {
-            const SurfaceSelector selector = scheme.getSelector(i - 1U);
+          for (uint32_t i = setup.getNumSelectors(); i > 0U; i--) {
+            const SurfaceSelector selector = setup.getSelector(i - 1U);
 
-            if (scheme.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(entry.m_piece)) {
-              scheme.remove(currentGroup, selector);
+            if (setup.getSurfaceGroupOfSelector(i - 1U) == currentGroup && selector.matches(entry.m_piece)) {
+              setup.remove(currentGroup, selector);
             }
           }
         }
@@ -1270,14 +1270,14 @@ run(const S&           a_shape,
           const SurfaceSelector selector =
             (a_action == PanelAction::AddPicked) ? entry.m_selector : selectorFor(a_action, entry.m_piece);
 
-          if (scheme.getNumSurfaceGroups() == 0U) {
-            currentGroup = scheme.addSurfaceGroup();
+          if (setup.getNumSurfaceGroups() == 0U) {
+            currentGroup = setup.addSurfaceGroup();
           }
 
           // The same selector is held once (several pieces of one surface add the surface once).
-          scheme.remove(currentGroup, selector);
+          setup.remove(currentGroup, selector);
 
-          scheme.add(currentGroup, selector);
+          setup.add(currentGroup, selector);
         }
       }
 
@@ -1362,13 +1362,13 @@ run(const S&           a_shape,
   // Delete a surface group, keeping the current one where it was.
   const auto deleteGroup = [&](const uint32_t a_group) {
     if constexpr (hasRegionVisibility<S>) {
-      DomainSetup& scheme = edited;
+      DomainSetup& setup = edited;
 
-      if (a_group < scheme.getNumSurfaceGroups()) {
-        scheme.removeSurfaceGroup(a_group);
+      if (a_group < setup.getNumSurfaceGroups()) {
+        setup.removeSurfaceGroup(a_group);
         names.removeSurfaceGroup(a_group);
 
-        if (currentGroup > a_group || currentGroup >= scheme.getNumSurfaceGroups()) {
+        if (currentGroup > a_group || currentGroup >= setup.getNumSurfaceGroups()) {
           currentGroup = (currentGroup > 0U) ? currentGroup - 1U : 0U;
         }
 
@@ -1685,29 +1685,29 @@ run(const S&           a_shape,
 
   fitToWindow();
 
-  // Show the surface groups as edited: a scheme built from them in a small pool of its own (and its mirror, for a render
+  // Show the surface groups as edited: built in a small pool of its own (and its mirror, for a render
   // on a device), when they changed since last shown.
-  const auto publishScheme = [&]() {
+  const auto publishGroups = [&]() {
     if (publishedOnce && edited == published) {
       return;
     }
 
-    auto         host   = std::make_unique<Pool>(hostMemoryResource());
-    const Scheme scheme = edited.buildScheme(*host);
+    auto                host  = std::make_unique<Pool>(hostMemoryResource());
+    const SurfaceGroups setup = edited.buildSurfaceGroups(*host);
 
     host->freeze();
 
-    settings.m_regions.m_scheme = scheme;
+    settings.m_regions.m_surfaceGroups = setup;
 
     if (GPU::enabled && a_deviceShape != nullptr && GPU::deviceAvailable()) {
       auto device = std::make_unique<Pool>(Pool::mirror(*host, GPU::memoryResource()));
 
-      deviceScheme = scheme.rebasedView(*device);
+      deviceGroups = setup.rebasedView(*device);
 
-      schemePools.push_back(std::move(device));
+      groupPools.push_back(std::move(device));
     }
 
-    schemePools.push_back(std::move(host));
+    groupPools.push_back(std::move(host));
 
     published     = edited;
     publishedOnce = true;
@@ -1716,7 +1716,7 @@ run(const S&           a_shape,
   // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
   // the full settings.
   const auto stageSettings = [&](const int a_stage) {
-    publishScheme();
+    publishGroups();
 
     Settings<T> frame = settings;
 
@@ -1817,19 +1817,19 @@ run(const S&           a_shape,
 
   // Everything a render reads is passed by value, so that a background render never sees the camera or
   // the settings change under it.
-  const auto render = [](const S&           a_host,
-                         const S&           a_device,
-                         const Scheme&      a_deviceScheme,
-                         const Settings<T>& a_frame,
-                         const Camera<T>    a_view,
-                         const bool         a_onDevice,
-                         Image&             a_image,
-                         Background*        a_job) {
+  const auto render = [](const S&             a_host,
+                         const S&             a_device,
+                         const SurfaceGroups& a_deviceScheme,
+                         const Settings<T>&   a_frame,
+                         const Camera<T>      a_view,
+                         const bool           a_onDevice,
+                         Image&               a_image,
+                         Background*          a_job) {
     // On a device, the surface groups are read from their pool's mirror.
     Settings<T> frame = a_frame;
 
     if (a_onDevice) {
-      frame.m_regions.m_scheme = a_deviceScheme;
+      frame.m_regions.m_surfaceGroups = a_deviceScheme;
     }
 
     const Renderer<T> renderer(frame);
@@ -2039,7 +2039,7 @@ run(const S&           a_shape,
 
     if constexpr (hasRegionVisibility<S>) {
       const RegionSettings& regions = settings.m_regions;
-      const DomainSetup&    scheme  = edited;
+      const DomainSetup&    setup   = edited;
 
       // Names, with their numbers only with details.
       const auto region  = [&](const uint32_t a_region) { return names.region(a_region, details); };
@@ -2323,10 +2323,10 @@ run(const S&           a_shape,
         const SurfaceRef<T> nearest = tape.closestSurface(probePoint, in);
 
         if (nearest.m_surface != SurfaceRef<T>::None) {
-          const uint32_t holds = scheme.surfaceGroupOf(nearest);
+          const uint32_t holds = setup.surfaceGroupOf(nearest);
 
           line("  Nearest surface " + pieceWords(nearest));
-          line("    " + ((holds == Scheme::None) ? std::string("In no surface group") : "In " + group(holds)) +
+          line("    " + ((holds == SurfaceGroups::None) ? std::string("In no surface group") : "In " + group(holds)) +
                ", region's function " + fixed(double(tape.signedDistance(probePoint, in)), 4));
         }
 
@@ -2349,11 +2349,11 @@ run(const S&           a_shape,
           const SurfaceRef<T>& piece = chosen[i].m_piece;
 
           if (byPart) {
-            const uint32_t in = scheme.surfaceGroupOf(piece);
+            const uint32_t in = setup.surfaceGroupOf(piece);
 
             line("    " + surface(piece.m_surface) + ", part " + std::to_string(piece.m_part) + ", between " +
                  region(piece.m_ownerRegion) + " and " + region(piece.m_neighborRegion) +
-                 ((in == Scheme::None) ? std::string(", in no surface group") : ", in " + group(in)));
+                 ((in == SurfaceGroups::None) ? std::string(", in no surface group") : ", in " + group(in)));
           }
           else {
             line("    " + region(chosen[i].m_selector.m_regionA) + ", all its surfaces");
@@ -2375,7 +2375,7 @@ run(const S&           a_shape,
 
         // The ways to add them, each saying what it adds and how much of the object that is.
         line("  Add to " +
-             ((scheme.getNumSurfaceGroups() > 0U) ? group(currentGroup) : std::string("a new surface group")));
+             ((setup.getNumSurfaceGroups() > 0U) ? group(currentGroup) : std::string("a new surface group")));
 
         const SurfaceRef<T>& first = chosen.front().m_piece;
 
@@ -2414,7 +2414,7 @@ run(const S&           a_shape,
           panelLines.back() += "  " + piecesOfAll(selectors);
         }
 
-        if (scheme.getNumSurfaceGroups() > 0U) {
+        if (setup.getNumSurfaceGroups() > 0U) {
           line("  ");
           button("Remove from " + group(currentGroup), PanelAction::RemovePiece, 0U);
         }
@@ -2450,7 +2450,7 @@ run(const S&           a_shape,
           others.push_back("showing only " + keyName(regions.m_only) + " (L)");
         }
 
-        for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+        for (uint32_t g = 0; g < setup.getNumSurfaceGroups(); g++) {
           if (regions.isSurfaceGroupHidden(g)) {
             others.push_back("surface group " + group(g) + " hidden");
           }
@@ -2517,7 +2517,7 @@ run(const S&           a_shape,
       line("");
       line("Surface groups (click to select and highlight)");
 
-      for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+      for (uint32_t g = 0; g < setup.getNumSurfaceGroups(); g++) {
         if (g == renaming) {
           line("  > " + renameText + "_");
           line("      Type its name; Enter keeps it, Esc cancels");
@@ -2548,10 +2548,10 @@ run(const S&           a_shape,
 
         button("Delete", PanelAction::DeleteGroup, g);
 
-        for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
-          if (scheme.getSurfaceGroupOfSelector(i) == g) {
-            line("        " + selectorWords(scheme.getSelector(i)) + ": " + piecesOf(scheme.getSelector(i)) +
-                 (shadowed(scheme.getSelector(i), g) ? " (all held by another surface group first)" : ""));
+        for (uint32_t i = 0; i < setup.getNumSelectors(); i++) {
+          if (setup.getSurfaceGroupOfSelector(i) == g) {
+            line("        " + selectorWords(setup.getSelector(i)) + ": " + piecesOf(setup.getSelector(i)) +
+                 (shadowed(setup.getSelector(i), g) ? " (all held by another surface group first)" : ""));
             button("x", PanelAction::RemoveSelector, i);
           }
         }
@@ -2561,11 +2561,11 @@ run(const S&           a_shape,
 
       button("+ New surface group", PanelAction::NewGroup, 0U);
 
-      if (scheme.getNumSurfaceGroups() > 0U) {
+      if (setup.getNumSurfaceGroups() > 0U) {
         button("Add remaining surfaces to " + group(currentGroup), PanelAction::AddRest, 0U);
       }
 
-      // The pieces the object may have: those found, those possible but not found, and how the scheme covers them.
+      // The pieces the object may have: those found, those possible but not found, and how the surface groups cover them.
       const std::vector<PieceCoverage>& covered = coverages();
 
       uint32_t found       = 0;
@@ -2629,10 +2629,10 @@ run(const S&           a_shape,
           std::string          words =
             surface(s.m_surface) + ", between " + region(s.m_ownerRegion) + " and " + region(s.m_neighborRegion) + ": ";
 
-          words += (in.m_coverage == Coverage::None)     ? std::string("none")
-                   : (in.m_coverage == Coverage::Partly) ? std::string("partly")
-                   : (in.m_surfaceGroup != Scheme::None) ? group(in.m_surfaceGroup)
-                                                         : std::string("several surface groups");
+          words += (in.m_coverage == Coverage::None)            ? std::string("none")
+                   : (in.m_coverage == Coverage::Partly)        ? std::string("partly")
+                   : (in.m_surfaceGroup != SurfaceGroups::None) ? group(in.m_surfaceGroup)
+                                                                : std::string("several surface groups");
 
           if (!seen) {
             words += " (possible, not found)";
@@ -2918,7 +2918,7 @@ run(const S&           a_shape,
 
     if constexpr (hasRegionVisibility<S>) {
       if (outline && several) {
-        (void)render(shape, deviceShape, deviceScheme, alone, camera, onDevice, edges, nullptr);
+        (void)render(shape, deviceShape, deviceGroups, alone, camera, onDevice, edges, nullptr);
       }
     }
 
@@ -3064,7 +3064,7 @@ run(const S&           a_shape,
       }
       case SDL_MOUSEBUTTONUP: {
         // A click anywhere keeps the name being typed.
-        if (renaming != Scheme::None) {
+        if (renaming != SurfaceGroups::None) {
           finishRename(true);
         }
 
@@ -3106,7 +3106,7 @@ run(const S&           a_shape,
 
               if (clicked.m_action != PanelAction::None) {
                 RegionSettings& regions = settings.m_regions;
-                DomainSetup&    scheme  = edited;
+                DomainSetup&    setup   = edited;
 
                 switch (clicked.m_action) {
                 case PanelAction::AddPicked:
@@ -3201,14 +3201,14 @@ run(const S&           a_shape,
                   break;
                 }
                 case PanelAction::RemoveSelector: {
-                  scheme.remove(scheme.getSurfaceGroupOfSelector(clicked.m_value), scheme.getSelector(clicked.m_value));
+                  setup.remove(setup.getSurfaceGroupOfSelector(clicked.m_value), setup.getSelector(clicked.m_value));
 
                   rekeyPick();
 
                   break;
                 }
                 case PanelAction::NewGroup: {
-                  currentGroup = scheme.addSurfaceGroup();
+                  currentGroup = setup.addSurfaceGroup();
 
                   // A new surface group is named first.
                   startRename(currentGroup);
@@ -3285,8 +3285,8 @@ run(const S&           a_shape,
                   break;
                 }
                 case PanelAction::AddRest: {
-                  scheme.remove(currentGroup, SurfaceSelector::rest());
-                  scheme.add(currentGroup, SurfaceSelector::rest());
+                  setup.remove(currentGroup, SurfaceSelector::rest());
+                  setup.add(currentGroup, SurfaceSelector::rest());
 
                   rekeyPick();
 
@@ -3295,12 +3295,12 @@ run(const S&           a_shape,
                 case PanelAction::CopyGroup: {
                   // The copy holds the same selectors; a surface is in the first surface group that holds it, so the
                   // copy holds what the original leaves until one of them is changed.
-                  const uint32_t copy = scheme.addSurfaceGroup();
+                  const uint32_t copy = setup.addSurfaceGroup();
                   const uint32_t from = clicked.m_value;
 
-                  for (uint32_t i = 0, n = scheme.getNumSelectors(); i < n; i++) {
-                    if (scheme.getSurfaceGroupOfSelector(i) == from) {
-                      scheme.add(copy, scheme.getSelector(i));
+                  for (uint32_t i = 0, n = setup.getNumSelectors(); i < n; i++) {
+                    if (setup.getSurfaceGroupOfSelector(i) == from) {
+                      setup.add(copy, setup.getSelector(i));
                     }
                   }
 
@@ -3315,11 +3315,11 @@ run(const S&           a_shape,
                 case PanelAction::SelectDomain: {
                   // The active domain keeps its surface groups as edited; the new one's are shown.
                   if (clicked.m_value != names.getActiveDomain()) {
-                    names.getDomain(names.getActiveDomain()) = scheme;
+                    names.getDomain(names.getActiveDomain()) = setup;
 
                     names.setActiveDomain(clicked.m_value);
 
-                    scheme                   = names.getDomain(clicked.m_value);
+                    setup                    = names.getDomain(clicked.m_value);
                     currentGroup             = 0;
                     regions.m_hiddenGroups   = 0U;
                     regions.m_throughGroups  = 0U;
@@ -3770,7 +3770,7 @@ run(const S&           a_shape,
       }
       case SDL_TEXTINPUT: {
         // Typing a surface group's name: printable characters only, up to 40.
-        if (renaming != Scheme::None) {
+        if (renaming != SurfaceGroups::None) {
           for (const char* c = event.text.text; *c != '\0'; c++) {
             if (*c >= 32 && *c <= 126 && renameText.size() < 40U) {
               renameText += *c;
@@ -3785,7 +3785,7 @@ run(const S&           a_shape,
       }
       case SDL_KEYDOWN: {
         // While a surface group's name is typed, keys type it: Enter keeps it, Esc cancels, Backspace erases.
-        if (renaming != Scheme::None) {
+        if (renaming != SurfaceGroups::None) {
           const SDL_Keycode key = event.key.keysym.sym;
 
           if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
@@ -3928,7 +3928,7 @@ run(const S&           a_shape,
           Image             image;
           const Settings<T> frame = stageSettings(2);
 
-          (void)render(shape, deviceShape, deviceScheme, frame, camera, onDevice, image, nullptr);
+          (void)render(shape, deviceShape, deviceGroups, frame, camera, onDevice, image, nullptr);
 
           // The next name not taken, so that an earlier run's images are kept.
           const auto taken = [](const std::string& a_name) {
@@ -4016,11 +4016,11 @@ run(const S&           a_shape,
 
           std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, shown).c_str());
 
-          // The scheme built by clicking, to paste into the program (into the settings' region settings).
+          // The setup built by clicking, to paste into the program.
           if constexpr (hasRegionVisibility<S>) {
-            const DomainSetup& scheme = edited;
+            const DomainSetup& setup = edited;
 
-            if (scheme.getNumSurfaceGroups() > 0U) {
+            if (setup.getNumSurfaceGroups() > 0U) {
               if (names.getNumDomains() > 0U) {
                 std::printf("// The surface groups of the domain \"%s\"\n",
                             names.domainName(names.getActiveDomain()).c_str());
@@ -4029,27 +4029,27 @@ run(const S&           a_shape,
               std::printf("DomainSetup setup;\n");
 
               // The subdomains first, so that the setup builds the same domain (Domain(pool, tape, setup)).
-              for (uint32_t d = 0; d < scheme.getNumSubdomains(); d++) {
+              for (uint32_t d = 0; d < setup.getNumSubdomains(); d++) {
                 std::string regions;
 
-                for (const uint32_t r : scheme.getRegions(d)) {
+                for (const uint32_t r : setup.getRegions(d)) {
                   regions += (regions.empty() ? "" : ", ") + std::to_string(r);
                 }
 
                 std::printf("(void)setup.addSubdomain({%s}); // %s\n", regions.c_str(), names.subdomain(d).c_str());
               }
 
-              for (uint32_t g = 0; g < scheme.getNumSurfaceGroups(); g++) {
+              for (uint32_t g = 0; g < setup.getNumSurfaceGroups(); g++) {
                 std::printf("const uint32_t group%u = setup.addSurfaceGroup(); // %s\n",
                             unsigned(g),
                             names.surfaceGroup(g).c_str());
               }
 
-              for (uint32_t i = 0; i < scheme.getNumSelectors(); i++) {
+              for (uint32_t i = 0; i < setup.getNumSelectors(); i++) {
                 std::printf("setup.add(group%u, %s); // %s\n",
-                            unsigned(scheme.getSurfaceGroupOfSelector(i)),
-                            selectorCode(scheme.getSelector(i)).c_str(),
-                            selectorName(scheme.getSelector(i)).c_str());
+                            unsigned(setup.getSurfaceGroupOfSelector(i)),
+                            selectorCode(setup.getSelector(i)).c_str(),
+                            selectorName(setup.getSelector(i)).c_str());
               }
             }
           }
@@ -4195,13 +4195,13 @@ run(const S&           a_shape,
         }
         case SDLK_j: {
           if constexpr (hasRegionVisibility<S>) {
-            DomainSetup& scheme = edited;
+            DomainSetup& setup = edited;
 
-            if (currentGroup + 1U < scheme.getNumSurfaceGroups()) {
+            if (currentGroup + 1U < setup.getNumSurfaceGroups()) {
               currentGroup++;
             }
             else {
-              currentGroup = scheme.addSurfaceGroup();
+              currentGroup = setup.addSurfaceGroup();
             }
           }
           else {
@@ -4212,7 +4212,7 @@ run(const S&           a_shape,
         }
         case SDLK_k: {
           if constexpr (hasRegionVisibility<S>) {
-            // Group only with a scheme to color by.
+            // Group only with surface groups to color by.
             const int count = (edited.getNumSurfaceGroups() > 0U) ? 7 : 6;
 
             settings.m_regions.setColoring(
@@ -4401,7 +4401,7 @@ run(const S&           a_shape,
           depthHits.clear();
           depthHidden.clear();
 
-          // A view of regions shows every region again, none alone and none seen through (its coloring and scheme
+          // A view of regions shows every region again, none alone and none seen through (its coloring and surface groups
           // stay).
           if constexpr (hasRegionVisibility<S>) {
             settings.m_regions.m_hidden = a_settings.m_regions.m_hidden;
@@ -4472,7 +4472,7 @@ run(const S&           a_shape,
       // What was under the cursor may have moved with the camera or the plane; read again on the next move.
       cursorOn = false;
 
-      const Stats stats = render(shape, deviceShape, deviceScheme, stageSettings(0), camera, onDevice, image, nullptr);
+      const Stats stats = render(shape, deviceShape, deviceGroups, stageSettings(0), camera, onDevice, image, nullptr);
       const auto  seconds = std::chrono::duration<double>(Clock::now() - start).count();
 
       // Keep previews between about 10 and 40 ms.
@@ -4502,10 +4502,10 @@ run(const S&           a_shape,
 
       next->m_stage  = pending;
       next->m_height = stage.m_height;
-      next->m_thread = std::thread([next, render, shape, deviceShape, deviceScheme, stage, camera, onDevice]() {
+      next->m_thread = std::thread([next, render, shape, deviceShape, deviceGroups, stage, camera, onDevice]() {
         const auto start = Clock::now();
 
-        next->m_stats   = render(shape, deviceShape, deviceScheme, stage, camera, onDevice, next->m_image, next);
+        next->m_stats   = render(shape, deviceShape, deviceGroups, stage, camera, onDevice, next->m_image, next);
         next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
         next->m_done    = true;
       });

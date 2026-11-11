@@ -3,13 +3,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file   EBGeometry_Scheme.hpp
- * @brief  SurfaceSelector and Scheme: which surfaces a solver groups under one boundary condition.
+ * @file   EBGeometry_SurfaceGroups.hpp
+ * @brief  SurfaceSelector and SurfaceGroups: which surfaces a downstream code groups under one meaning.
  * @author Robert Marskar
  */
 
-#ifndef EBGEOMETRY_SCHEME_HPP
-#define EBGEOMETRY_SCHEME_HPP
+#ifndef EBGEOMETRY_SURFACEGROUPS_HPP
+#define EBGEOMETRY_SURFACEGROUPS_HPP
 
 // Std includes
 #include <cstdint>
@@ -33,7 +33,7 @@ namespace EBGeometry {
  * and sides), every surface with a label, every surface between two regions (an interface, either order), every
  * surface of a region (either side), or between two materials. Patches with the same attributes are one piece: the
  * conditions say what a surface is, not where. The remaining surfaces (rest()) are what no other selector of a
- * scheme holds. Matched against a SurfaceRef with its sides set (a tape's region queries set them); a plain value,
+ * domain's surface groups hold. Matched against a SurfaceRef with its sides set (a tape's region queries set them); a plain value,
  * usable on a device.
  */
 struct SurfaceSelector
@@ -79,7 +79,7 @@ struct SurfaceSelector
   uint32_t m_materialB = Any;
 
   /**
-   * @brief Whether the selector holds the remaining surfaces (rest()): a scheme tries it after every other.
+   * @brief Whether the selector holds the remaining surfaces (rest()): surface groups try it after every other.
    */
   bool m_rest = false;
 
@@ -105,7 +105,7 @@ struct SurfaceSelector
   }
 
   /**
-   * @brief The remaining surfaces: every surface no other selector of the scheme holds, whatever the order the
+   * @brief The remaining surfaces: every surface no other selector of the surface groups holds, whatever the order the
    * selectors were added in.
    * @return The selector.
    */
@@ -256,17 +256,17 @@ struct SurfaceSelector
 };
 
 /**
- * @brief One solver's surface groups ("inlet", "outlet" and "wall" for a flow code; "heated" and "insulated" for a
- * heat one), read on the host or a device: the surface group of a surface, by the selectors (SurfaceSelector) of each
- * group, so that a cut cell's surface (Tape::closestSurface(p, subdomains, subdomain)) gives its surface group, and the
- * surface group its boundary condition.
+ * @brief A domain's surface groups, read on the host or a device: each group a set of surfaces, given by its selectors
+ * (SurfaceSelector), that the caller gives one meaning (a boundary condition, an exchange with another code), and the
+ * group of a surface, so that a surface found at a point (Domain::closestSurface()) gives its group, and the group its
+ * meaning.
  * @details A view of the selectors in a pool: trivially copyable, a pool handle (see PoolHandle). A Domain builds it
- * from a DomainSetup and returns it (Domain::scheme()); a renderer showing surface groups takes one built on its own
- * (the constructor below). The pool must outlive it. A default-constructed one has no surface groups. A surface is in
- * the surface group of the first selector it matches, in the order they were added, the remaining surfaces'
- * (SurfaceSelector::rest()) tried last. The surface groups' names are the caller's (a scheme holds numbers only).
+ * from a DomainSetup and returns it (Domain::surfaceGroups()); a renderer showing surface groups takes one built on its
+ * own (DomainSetup::buildSurfaceGroups()). The pool must outlive it. A default-constructed one has no surface groups. A
+ * surface is in the group of the first selector it matches, in the order they were added, the remaining surfaces'
+ * (SurfaceSelector::rest()) tried last. The groups' names and meanings are the caller's: the class holds numbers only.
  */
-class Scheme : public PoolHandle
+class SurfaceGroups : public PoolHandle
 {
 public:
   /**
@@ -287,7 +287,7 @@ public:
     /**
      * @brief Each selector's surface group.
      */
-    PODVector<uint32_t> m_surfaceGroups;
+    PODVector<uint32_t> m_groupOf;
 
     /**
      * @brief How many surface groups there are.
@@ -298,7 +298,7 @@ public:
   /**
    * @brief No surface groups.
    */
-  Scheme() noexcept = default;
+  SurfaceGroups() noexcept = default;
 
   /**
    * @brief Build the selectors in a pool.
@@ -310,33 +310,33 @@ public:
    * @param[in]     a_numSurfaceGroups How many surface groups there are.
    */
   EBGEOMETRY_HOST
-  Scheme(Pool&                               a_pool,
-         const std::vector<SurfaceSelector>& a_selectors,
-         const std::vector<uint32_t>&        a_surfaceGroups,
-         const uint32_t                      a_numSurfaceGroups)
+  SurfaceGroups(Pool&                               a_pool,
+                const std::vector<SurfaceSelector>& a_selectors,
+                const std::vector<uint32_t>&        a_surfaceGroups,
+                const uint32_t                      a_numSurfaceGroups)
   {
     EBGEOMETRY_REQUIRE(a_selectors.size() == a_surfaceGroups.size(),
-                       "Scheme: %zu selectors and %zu surface groups of them",
+                       "SurfaceGroups: %zu selectors and %zu surface groups of them",
                        a_selectors.size(),
                        a_surfaceGroups.size());
 
-    this->attach(a_pool, "Scheme");
+    this->attach(a_pool, "SurfaceGroups");
 
     const uint32_t n = static_cast<uint32_t>(a_selectors.size());
 
     m_layout.m_selectors.reserveSizedFrom(a_pool, n);
-    m_layout.m_surfaceGroups.reserveSizedFrom(a_pool, n);
+    m_layout.m_groupOf.reserveSizedFrom(a_pool, n);
     m_layout.m_numSurfaceGroups = a_numSurfaceGroups;
 
     for (uint32_t i = 0; i < n; i++) {
       EBGEOMETRY_REQUIRE(a_surfaceGroups[i] < a_numSurfaceGroups,
-                         "Scheme: selector %u is in surface group %u of %u",
+                         "SurfaceGroups: selector %u is in surface group %u of %u",
                          unsigned(i),
                          unsigned(a_surfaceGroups[i]),
                          unsigned(a_numSurfaceGroups));
 
-      m_layout.m_selectors.at(this->base(), i)     = a_selectors[i];
-      m_layout.m_surfaceGroups.at(this->base(), i) = a_surfaceGroups[i];
+      m_layout.m_selectors.at(this->base(), i) = a_selectors[i];
+      m_layout.m_groupOf.at(this->base(), i)   = a_surfaceGroups[i];
     }
   }
 
@@ -346,7 +346,8 @@ public:
    * @param[in] a_location Where they live.
    */
   EBGEOMETRY_HOST_DEVICE
-  Scheme(const Layout& a_layout, const PoolLocation& a_location) noexcept : PoolHandle(a_location), m_layout(a_layout)
+  SurfaceGroups(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location), m_layout(a_layout)
   {}
 
   /**
@@ -403,7 +404,7 @@ public:
   inline uint32_t
   getSurfaceGroupOfSelector(const uint32_t a_selector) const noexcept
   {
-    return m_layout.m_surfaceGroups.at(this->base(), a_selector);
+    return m_layout.m_groupOf.at(this->base(), a_selector);
   }
 
   /**
@@ -426,7 +427,7 @@ public:
     }
 
     const SurfaceSelector* selectors = m_layout.m_selectors.data(this->base());
-    const uint32_t*        groups    = m_layout.m_surfaceGroups.data(this->base());
+    const uint32_t*        groups    = m_layout.m_groupOf.data(this->base());
 
     // The remaining surfaces' selectors last.
     for (int pass = 0; pass < 2; pass++) {
@@ -446,12 +447,12 @@ public:
    * @return The view.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  inline Scheme
+  inline SurfaceGroups
   rebasedView(const Pool& a_pool) const noexcept
   {
-    Scheme view = *this;
+    SurfaceGroups view = *this;
 
-    view.setLocation(this->rebasedLocation(a_pool, m_layout.m_surfaceGroups.endByte(), "Scheme"));
+    view.setLocation(this->rebasedLocation(a_pool, m_layout.m_groupOf.endByte(), "SurfaceGroups"));
 
     return view;
   }
@@ -463,7 +464,8 @@ private:
   Layout m_layout;
 };
 
-static_assert(std::is_trivially_copyable_v<Scheme>, "Scheme must be trivially copyable, for a kernel to take it");
+static_assert(std::is_trivially_copyable_v<SurfaceGroups>,
+              "SurfaceGroups must be trivially copyable, for a kernel to take it");
 
 } // namespace EBGeometry
 

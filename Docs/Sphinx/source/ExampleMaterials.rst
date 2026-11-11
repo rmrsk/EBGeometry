@@ -69,8 +69,8 @@ Looking at the regions
 two regions included: along a camera ray, its crossings are the changes of region that touch a visible region,
 found exactly (``firstRegionChange()``). What it shows is part of the render settings, ``Settings::m_regions``
 (`RegionSettings <doxygen/html/structEBGeometry_1_1RegionSettings.html>`__): the regions shown, what a surface is
-colored by (region, material, surface label, surface, part, interface, or the group of a solver's scheme), the
-surfaces shown alone or seen through, and the scheme itself. The example registers two domains' setups,
+colored by (region, material, surface label, surface, part, interface, or a domain's surface group), the
+surfaces shown alone or seen through, and the surface groups themselves. The example registers two domains' setups,
 descriptions of what two downstream solvers compute on: electrostatics in the air and the jacket, every conductor
 surface dirichlet, the box grounded and the jacket's outside a jump; and flow in the air, the box its far field and
 every other surface of it a wall. It builds the electrostatic ``Domain`` for the tape (``Domain(pool, tape,
@@ -84,7 +84,7 @@ the surfaces like the picked one. Hidden regions cast no shadow.
 
 A click picks the piece of surface under the cursor: its surface, part, and the regions on its two sides
 (``RegionView::pieceAt()`` gives it to a program). The panel at the top left shows it, with the ways to add it to
-the current surface group of the scheme, each with how many pieces it takes in (this piece only, all of its surface,
+the current surface group, each with how many pieces it takes in (this piece only, all of its surface,
 all surfaces of its region, or everything between its two regions), or to remove it; below, the regions, each with a box a click cycles through shown, translucent and off, and a name a click
 highlights (the background too), and the surface groups with their selectors, a
 click making one current and highlighting its surfaces, ``[Translucent]``, ``[Hide]`` and ``[Show]`` cycling them through translucent, hidden and shown, ``[Rename]`` typing its name, ``[Delete]`` and ``[x]`` removing them, ``[+ New surface

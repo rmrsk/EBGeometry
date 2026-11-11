@@ -1503,7 +1503,7 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
 }
 
 TEMPLATE_TEST_CASE("ExprIndex: the pairs of regions each surface may separate, the interfaces",
-                   "[Overlay][Scheme]",
+                   "[Overlay][SurfaceGroups]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
@@ -1530,9 +1530,10 @@ TEMPLATE_TEST_CASE("ExprIndex: the pairs of regions each surface may separate, t
   CHECK(ExprIndex<T>(toExpr(SphereSDF<T>(Vec3::zeros(), T(1)))).getInterfaces() == std::vector<Pair>{{0, 1}});
 }
 
-TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions, interfaces, labels and materials",
-                   "[Overlay][Scheme]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE(
+  "SurfaceGroups: a solver's groups of surfaces, from pieces, regions, interfaces, labels and materials",
+  "[Overlay][SurfaceGroups]",
+  EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -1576,7 +1577,7 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   cfd.add(noSlip, SurfaceSelector::region(0));
 
   CHECK(cfd.surfaceGroupOf(outer) == noSlip);
-  CHECK(cfd.surfaceGroupOf(inner) == Scheme::None);
+  CHECK(cfd.surfaceGroupOf(inner) == SurfaceGroups::None);
 
   // The piece clicked matches itself; another part or other sides do not.
   const SurfaceSelector piece = SurfaceSelector::piece(inner);
@@ -1597,20 +1598,20 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
   cfd.remove(noSlip, SurfaceSelector::region(0));
 
   CHECK(cfd.getNumSelectors() == 0U);
-  CHECK(cfd.surfaceGroupOf(outer) == Scheme::None);
+  CHECK(cfd.surfaceGroupOf(outer) == SurfaceGroups::None);
 
   // Built in a pool, the surface groups answer as the setup does, on the host or a device.
   cfd.add(noSlip, SurfaceSelector::region(0));
 
-  const Scheme builtElectrostatics = electrostatics.buildScheme(pool);
-  const Scheme builtCfd            = cfd.buildScheme(pool);
+  const SurfaceGroups builtElectrostatics = electrostatics.buildSurfaceGroups(pool);
+  const SurfaceGroups builtCfd            = cfd.buildSurfaceGroups(pool);
 
   for (const SurfaceRef<T>& s : {inner, outer}) {
     CHECK(builtElectrostatics.surfaceGroupOf(s) == electrostatics.surfaceGroupOf(s));
     CHECK(builtCfd.surfaceGroupOf(s) == cfd.surfaceGroupOf(s));
   }
 
-  CHECK(Scheme().surfaceGroupOf(inner) == Scheme::None);
+  CHECK(SurfaceGroups().surfaceGroupOf(inner) == SurfaceGroups::None);
 
   // No limit on surface groups or selectors.
   DomainSetup many;
@@ -1621,7 +1622,7 @@ TEMPLATE_TEST_CASE("Scheme: a solver's groups of surfaces, from pieces, regions,
 
   many.add(many.addSurfaceGroup(), SurfaceSelector::interface(1, 0));
 
-  const Scheme builtMany = many.buildScheme(pool);
+  const SurfaceGroups builtMany = many.buildSurfaceGroups(pool);
 
   CHECK(builtMany.getNumSurfaceGroups() == 101U);
   CHECK(builtMany.surfaceGroupOf(outer) == 100U);
@@ -1649,7 +1650,7 @@ TEMPLATE_TEST_CASE("Domain: an empty domain, one whose tables live apart from it
 
   CHECK(empty.getNumLabels() == 1U);
   CHECK(empty.labelAt(inJacket) == Domain<T>::Excluded);
-  CHECK(empty.surfaceGroupOf(tape.closestSurface(inJacket, 1U)) == Scheme::None);
+  CHECK(empty.surfaceGroupOf(tape.closestSurface(inJacket, 1U)) == SurfaceGroups::None);
 
   // A subdomain must hold regions the tape has.
   REQUIRE(abortsWith(
@@ -1692,27 +1693,27 @@ TEMPLATE_TEST_CASE("Domain: an empty domain, one whose tables live apart from it
   CHECK(keptView.surfaceGroupOf(keptView.closestSurface(far, 0U)) == 0U);
 }
 
-TEST_CASE("Scheme: removing a surface group removes its selectors and renumbers the surface groups after it",
-          "[Scheme]")
+TEST_CASE("SurfaceGroups: removing a surface group removes its selectors and renumbers the surface groups after it",
+          "[SurfaceGroups]")
 {
-  DomainSetup scheme;
+  DomainSetup surfaceGroups;
 
-  const uint32_t first  = scheme.addSurfaceGroup();
-  const uint32_t second = scheme.addSurfaceGroup();
-  const uint32_t third  = scheme.addSurfaceGroup();
+  const uint32_t first  = surfaceGroups.addSurfaceGroup();
+  const uint32_t second = surfaceGroups.addSurfaceGroup();
+  const uint32_t third  = surfaceGroups.addSurfaceGroup();
 
-  scheme.add(first, SurfaceSelector::region(1));
-  scheme.add(second, SurfaceSelector::region(2));
-  scheme.add(third, SurfaceSelector::interface(0, 1));
+  surfaceGroups.add(first, SurfaceSelector::region(1));
+  surfaceGroups.add(second, SurfaceSelector::region(2));
+  surfaceGroups.add(third, SurfaceSelector::interface(0, 1));
 
-  scheme.removeSurfaceGroup(second);
+  surfaceGroups.removeSurfaceGroup(second);
 
-  REQUIRE(scheme.getNumSurfaceGroups() == 2U);
-  REQUIRE(scheme.getNumSelectors() == 2U);
-  CHECK(scheme.getSurfaceGroupOfSelector(0) == 0U);
-  CHECK(scheme.getSelector(0).m_regionA == 1U);
-  CHECK(scheme.getSurfaceGroupOfSelector(1) == 1U);
-  CHECK(scheme.getSelector(1).m_regionB == 1U);
+  REQUIRE(surfaceGroups.getNumSurfaceGroups() == 2U);
+  REQUIRE(surfaceGroups.getNumSelectors() == 2U);
+  CHECK(surfaceGroups.getSurfaceGroupOfSelector(0) == 0U);
+  CHECK(surfaceGroups.getSelector(0).m_regionA == 1U);
+  CHECK(surfaceGroups.getSurfaceGroupOfSelector(1) == 1U);
+  CHECK(surfaceGroups.getSelector(1).m_regionB == 1U);
 
   RegionNames names;
 
@@ -1861,7 +1862,7 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
     }));
   }
 
-  // How a scheme covers them: the core's surfaces wholly; one face of the box against the jacket partly.
+  // How surface groups cover them: the core's surfaces wholly; one face of the box against the jacket partly.
   const auto find = [&possible](const uint32_t a_surface, const uint32_t a_inside, const uint32_t a_outside) {
     return *std::find_if(possible.begin(), possible.end(), [&](const PossiblePiece& a_possible) {
       return a_possible.m_surface == a_surface && a_possible.m_ownerRegion == a_inside &&
@@ -1869,12 +1870,12 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
     });
   };
 
-  DomainSetup scheme;
+  DomainSetup surfaceGroups;
 
-  const uint32_t core = scheme.addSurfaceGroup();
-  const uint32_t face = scheme.addSurfaceGroup();
+  const uint32_t core = surfaceGroups.addSurfaceGroup();
+  const uint32_t face = surfaceGroups.addSurfaceGroup();
 
-  scheme.add(core, SurfaceSelector::region(2));
+  surfaceGroups.add(core, SurfaceSelector::region(2));
 
   SurfaceRef<T> boxOnJacket;
 
@@ -1883,15 +1884,15 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
   boxOnJacket.m_ownerRegion    = 1;
   boxOnJacket.m_neighborRegion = 0;
 
-  scheme.add(face, SurfaceSelector::piece(boxOnJacket).withPart(0));
+  surfaceGroups.add(face, SurfaceSelector::piece(boxOnJacket).withPart(0));
 
-  CHECK(coverageOf(find(1, 2, 1), inventory, scheme).m_coverage == Coverage::Full);
-  CHECK(coverageOf(find(1, 2, 1), inventory, scheme).m_surfaceGroup == core);
-  CHECK(coverageOf(find(2, 1, 0), inventory, scheme).m_coverage == Coverage::Partly);
-  CHECK(coverageOf(find(0, 1, 0), inventory, scheme).m_coverage == Coverage::None);
+  CHECK(coverageOf(find(1, 2, 1), inventory, surfaceGroups).m_coverage == Coverage::Full);
+  CHECK(coverageOf(find(1, 2, 1), inventory, surfaceGroups).m_surfaceGroup == core);
+  CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups).m_coverage == Coverage::Partly);
+  CHECK(coverageOf(find(0, 1, 0), inventory, surfaceGroups).m_coverage == Coverage::None);
 
   // The remaining surfaces cover the rest, whatever the order they were added in; the core's stay the core's.
-  DomainSetup rest = scheme;
+  DomainSetup rest = surfaceGroups;
 
   rest.add(face, SurfaceSelector::rest());
 
@@ -2167,7 +2168,7 @@ TEMPLATE_TEST_CASE("Render: a surface seen through is drawn translucent over wha
 
   groups.add(groups.addSurfaceGroup(), SurfaceSelector::interface(1, 0));
 
-  settings.m_regions.m_scheme = groups.buildScheme(pool);
+  settings.m_regions.m_surfaceGroups = groups.buildSurfaceGroups(pool);
   settings.m_regions.setSurfaceGroupSeenThrough(0, true);
 
   CHECK(settings.m_regions.isSurfaceGroupSeenThrough(0));
@@ -2384,10 +2385,10 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   groups.add(groups.addSurfaceGroup(), SurfaceSelector::region(2));
 
-  settings.m_regions.m_scheme   = groups.buildScheme(pool);
-  settings.m_regions.m_coloring = RegionColoring::SurfaceGroup;
+  settings.m_regions.m_surfaceGroups = groups.buildSurfaceGroups(pool);
+  settings.m_regions.m_coloring      = RegionColoring::SurfaceGroup;
 
-  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == Scheme::None);
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == SurfaceGroups::None);
 
   settings.m_regions.showOnly(2);
 

@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_RegionSettings.hpp
- * @brief  RegionSettings: how the regions of an object are shown (visibility, coloring, a domain's scheme, a selection).
+ * @brief  RegionSettings: how the regions of an object are shown (visibility, coloring, a domain's surface groups, a selection).
  * @author Robert Marskar
  */
 
@@ -17,7 +17,7 @@
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
-#include "EBGeometry_Scheme.hpp"
+#include "EBGeometry_SurfaceGroups.hpp"
 
 namespace EBGeometry {
 
@@ -32,7 +32,7 @@ enum class RegionColoring : uint8_t
   Surface,      ///< The surface itself (SurfaceRef::m_surface): each shape, each member of a collection.
   Part,         ///< The surface's part: a box's face, a mesh's face.
   Interface,    ///< The pair of regions on its two sides there (see RegionSettings::interfaceKey()).
-  SurfaceGroup  ///< The surface group of the scheme the surface is in (RegionSettings::m_scheme), or none.
+  SurfaceGroup  ///< The surface group the surface is in (RegionSettings::m_surfaceGroups), or none.
 };
 
 /**
@@ -57,7 +57,7 @@ struct ContourSample
 
 /**
  * @brief How the regions of an object are shown (see RegionView): which regions are visible, what a surface is
- * colored and named by, the surfaces shown alone or seen through, and a solver's scheme of groups.
+ * colored and named by, the surfaces shown alone or seen through, and a domain's surface groups.
  * @details A plain value, part of the render settings (Render::Settings::m_regions), so that a render, a viewer and
  * a saved view share one description, and a kernel takes it. Keys are by the coloring: a region's number, a
  * material's, a surface label's, a surface's, a part's, an interface's (interfaceKey()) or a group's.
@@ -108,13 +108,13 @@ struct RegionSettings
 
   /**
    * @brief A solver's groups of surfaces (RegionColoring::SurfaceGroup colors by them): a view of selectors in a pool
-   * (a domain's, Domain::scheme(), or one built on its own), which must outlive the settings and, for a render on a
+   * (a domain's, Domain::surfaceGroups(), or one built on its own), which must outlive the settings and, for a render on a
    * device, be rebased onto that pool's mirror. Empty by default.
    */
-  Scheme m_scheme;
+  SurfaceGroups m_surfaceGroups;
 
   /**
-   * @brief The surface group of the scheme whose surfaces are highlighted (keyed Highlighted), or None.
+   * @brief The surface group whose surfaces are highlighted (keyed Highlighted), or None.
    */
   uint32_t m_highlightGroup = None;
 
@@ -214,7 +214,7 @@ struct RegionSettings
   uint8_t m_sectionLabels[64] = {};
 
   /**
-   * @brief The hidden surface groups of the scheme, a bit each (bit g for surface group g): their surfaces are not
+   * @brief The hidden surface groups, a bit each (bit g for surface group g): their surfaces are not
    * drawn, and cast no shadow.
    */
   uint32_t m_hiddenGroups = 0U;
@@ -248,7 +248,7 @@ struct RegionSettings
   }
 
   /**
-   * @brief The surface groups of the scheme seen through, a bit each (bit g for surface group g): their surfaces drawn
+   * @brief The surface groups seen through, a bit each (bit g for surface group g): their surfaces drawn
    * translucent and passed through, as the keys of m_through are.
    */
   uint32_t m_throughGroups = 0U;

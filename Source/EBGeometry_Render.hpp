@@ -586,7 +586,7 @@ struct Settings
 
   /**
    * @brief How a view of regions (RegionView) is shown: the visible regions, what a surface is colored by, the
-   * surfaces shown alone or seen through, and a solver's scheme. The renderer gives them to the view; other shapes
+   * surfaces shown alone or seen through, and a domain's surface groups. The renderer gives them to the view; other shapes
    * ignore them.
    */
   RegionSettings m_regions;

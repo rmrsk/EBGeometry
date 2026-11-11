@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_SurfacePieces.hpp
- * @brief  The pieces of surface an object with regions has, and how a scheme covers them.
+ * @brief  The pieces of surface an object with regions has, and how a domain's surface groups cover them.
  * @author Robert Marskar
  */
 
@@ -183,7 +183,7 @@ findSurfacePieces(const TapeType& a_tape, const uint32_t a_resolution = 64)
 }
 
 /**
- * @brief What an expression's index says about its surfaces, kept for checking a scheme against them without the
+ * @brief What an expression's index says about its surfaces, kept for checking surface groups against them without the
  * index: each surface's shape (leaf), each shape's parts and their labels, the pairs of regions each may separate,
  * and each region's material.
  * @details Host only. Built from ExprIndex (from the expression alone, no geometry), so it holds every surface and
@@ -391,7 +391,7 @@ possiblePieces(const SurfaceInventory& a_inventory)
 }
 
 /**
- * @brief How much of a piece a scheme's surface groups hold.
+ * @brief How much of a piece a domain's surface groups hold.
  */
 enum class Coverage : uint8_t
 {
@@ -401,7 +401,7 @@ enum class Coverage : uint8_t
 };
 
 /**
- * @brief How a scheme covers a piece: how much of it its surface groups hold, and the surface group when one holds
+ * @brief How surface groups cover a piece: how much of it they hold, and the surface group when one holds
  * all of it.
  */
 struct PieceCoverage
@@ -412,32 +412,32 @@ struct PieceCoverage
   Coverage m_coverage = Coverage::None;
 
   /**
-   * @brief The surface group holding all of it, or Scheme::None (none, or several).
+   * @brief The surface group holding all of it, or SurfaceGroups::None (none, or several).
    */
-  uint32_t m_surfaceGroup = Scheme::None;
+  uint32_t m_surfaceGroup = SurfaceGroups::None;
 };
 
 /**
- * @brief How a scheme covers a piece an object may have: exactly, part by part when its selectors tell parts apart.
- * @details Host only. A piece is checked once when no selector of the scheme depends on the part (a part, or a label
+ * @brief How a domain's surface groups cover a piece an object may have: exactly, part by part when its selectors tell parts apart.
+ * @details Host only. A piece is checked once when no selector depends on the part (a part, or a label
  * that differs between parts); otherwise every part of its shape is (a mesh's faces: one check each). A member of a
  * collection has parts the inventory does not count: it is checked once, as a part no part condition matches, so
  * only selectors without one cover it.
  * @param[in] a_piece     The piece.
  * @param[in] a_inventory The object's surfaces.
- * @param[in] a_scheme    The domain whose surface groups cover it (its setup).
+ * @param[in] a_setup     The domain whose surface groups cover it (its setup).
  * @return The coverage.
  */
 [[nodiscard]] EBGEOMETRY_HOST
 inline PieceCoverage
-coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, const DomainSetup& a_scheme)
+coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, const DomainSetup& a_setup)
 {
   bool partConditions  = false;
   bool labelConditions = false;
 
-  for (uint32_t i = 0; i < a_scheme.getNumSelectors(); i++) {
-    partConditions  = partConditions || a_scheme.getSelector(i).m_part != SurfaceSelector::Any;
-    labelConditions = labelConditions || a_scheme.getSelector(i).m_label != SurfaceSelector::Any;
+  for (uint32_t i = 0; i < a_setup.getNumSelectors(); i++) {
+    partConditions  = partConditions || a_setup.getSelector(i).m_part != SurfaceSelector::Any;
+    labelConditions = labelConditions || a_setup.getSelector(i).m_label != SurfaceSelector::Any;
   }
 
   const uint32_t parts = a_inventory.getNumParts(a_piece.m_surface);
@@ -456,7 +456,7 @@ coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, co
 
   const uint32_t checks  = perPart ? parts : 1U;
   uint32_t       covered = 0;
-  uint32_t       group   = Scheme::None;
+  uint32_t       group   = SurfaceGroups::None;
   bool           mixed   = false;
 
   for (uint32_t part = 0; part < checks; part++) {
@@ -464,9 +464,9 @@ coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, co
     surface.m_part         = (parts == 0U) ? SurfaceSelector::Any - 1U : part;
     surface.m_surfaceLabel = a_inventory.getLabel(a_piece.m_surface, (parts == 0U) ? 0U : part);
 
-    const uint32_t g = a_scheme.surfaceGroupOf(surface);
+    const uint32_t g = a_setup.surfaceGroupOf(surface);
 
-    if (g != Scheme::None) {
+    if (g != SurfaceGroups::None) {
       mixed = mixed || (covered > 0U && g != group);
       group = g;
 
@@ -477,7 +477,7 @@ coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, co
   PieceCoverage coverage;
 
   coverage.m_coverage     = (covered == checks) ? Coverage::Full : (covered > 0U) ? Coverage::Partly : Coverage::None;
-  coverage.m_surfaceGroup = (coverage.m_coverage == Coverage::Full && !mixed) ? group : Scheme::None;
+  coverage.m_surfaceGroup = (coverage.m_coverage == Coverage::Full && !mixed) ? group : SurfaceGroups::None;
 
   return coverage;
 }

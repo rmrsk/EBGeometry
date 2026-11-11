@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_Domain.hpp
- * @brief  Domain: the regions a downstream code computes in and its tagged boundary conditions, over a tape.
+ * @brief  Domain: the regions a downstream code computes in and its groups of surfaces, over a tape.
  * @author Robert Marskar
  */
 
@@ -22,8 +22,8 @@
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_Math.hpp"
 #include "EBGeometry_Pool.hpp"
-#include "EBGeometry_Scheme.hpp"
 #include "EBGeometry_Subdomains.hpp"
+#include "EBGeometry_SurfaceGroups.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Tape.hpp"
 
@@ -31,8 +31,8 @@ namespace EBGeometry {
 
 /**
  * @brief A computational domain over a tape, for a downstream code (a solver EBGeometry does not provide): the regions
- * it computes in (its subdomains) and its surface groups (each a boundary condition's tag, the surface group's name,
- * which the caller keeps, and id, its number), with the queries a cut-cell code makes.
+ * it computes in (its subdomains) and its surface groups (each a set of surfaces the caller gives one meaning, a
+ * boundary condition say: named by the caller, numbered here), with the queries a cut-cell code makes.
  * @details Built on the host from a DomainSetup, for one tape, which it holds: its queries take no tape, so a domain
  * cannot be used with a tape it was not built for. Its tables, a subdomain per region of the tape and the selectors
  * with their surface groups, live in a pool (the tables pool); there is no limit on subdomains, surface groups or
@@ -45,8 +45,8 @@ namespace EBGeometry {
  * location, beside the location of its tables: the one pool-resident class holding a second handle rather than the
  * layouts of its parts, so that several domains can share one tape whose pool is frozen.
  *
- * The domain divides space by labels: each subdomain, and Excluded, the regions in none (where it does not compute,
- * a conductor say). Every point has one label (labelAt()), and each label a function negative exactly in it
+ * The domain divides space by labels: each subdomain, and Excluded, the regions in none (where it does not
+ * compute). Every point has one label (labelAt()), and each label a function negative exactly in it
  * (signedDistance()), so that at a point, off the surfaces, exactly one is negative. A cut-cell code samples them all
  * at a node (signedDistances()): an edge whose ends have different labels crosses a surface, an interface between two
  * subdomains (where their two functions are zero, with opposite signs) or a subdomain's boundary with the excluded
@@ -85,8 +85,8 @@ public:
   {
     this->attach(a_tables, "Domain");
 
-    m_subdomains = a_setup.buildSubdomains(a_tables, a_tape.getNumRegions()).layout();
-    m_scheme     = a_setup.buildScheme(a_tables).layout();
+    m_subdomains    = a_setup.buildSubdomains(a_tables, a_tape.getNumRegions()).layout();
+    m_surfaceGroups = a_setup.buildSurfaceGroups(a_tables).layout();
   }
 
   /**
@@ -116,10 +116,10 @@ public:
    * @return A view of the selectors.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline Scheme
-  scheme() const noexcept
+  inline SurfaceGroups
+  surfaceGroups() const noexcept
   {
-    return Scheme(m_scheme, this->location());
+    return SurfaceGroups(m_surfaceGroups, this->location());
   }
 
   /**
@@ -285,15 +285,15 @@ public:
   }
 
   /**
-   * @brief A surface's group (Scheme::surfaceGroupOf()).
+   * @brief A surface's group (SurfaceGroups::surfaceGroupOf()).
    * @param[in] a_surface The surface, with its sides and their materials.
-   * @return The surface group, or Scheme::None.
+   * @return The surface group, or SurfaceGroups::None.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   surfaceGroupOf(const SurfaceRef<T>& a_surface) const noexcept
   {
-    return this->scheme().surfaceGroupOf(a_surface);
+    return this->surfaceGroups().surfaceGroupOf(a_surface);
   }
 
   /**
@@ -322,7 +322,7 @@ public:
 
     view.m_tape = m_tape.rebasedView(a_tapePool);
 
-    const uint64_t endByte = Math::max(m_subdomains.m_table.endByte(), m_scheme.m_surfaceGroups.endByte());
+    const uint64_t endByte = Math::max(m_subdomains.m_table.endByte(), m_surfaceGroups.m_groupOf.endByte());
 
     view.setLocation(this->rebasedLocation(a_tablesPool, endByte, "Domain"));
 
@@ -343,7 +343,7 @@ private:
   /**
    * @brief The selectors and their surface groups.
    */
-  Scheme::Layout m_scheme;
+  SurfaceGroups::Layout m_surfaceGroups;
 };
 
 /**

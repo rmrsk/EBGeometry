@@ -528,19 +528,19 @@ instantiateFunctionTemplates()
       (void)RegionView<Tape<T>>(regions).firstHit(along, T(0), T(1), RayOptions<T>());
       (void)RegionView<Tape<T>>(regions).firstSeenThrough(along, T(0), T(1), RayOptions<T>());
 
-      DomainSetup scheme;
+      DomainSetup setup;
 
-      (void)scheme.addSubdomain({0U, 1U});
-      scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::interface(0U, 1U));
-      (void)scheme.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
-      (void)scheme.role(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)setup.addSubdomain({0U, 1U});
+      setup.add(setup.addSurfaceGroup(), SurfaceSelector::interface(0U, 1U));
+      (void)setup.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)setup.role(regions.closestSurface(Vec3T<T>::zeros(), 1U));
 
-      const Domain     domain(meshPool, regions, scheme);
+      const Domain     domain(meshPool, regions, setup);
       const Subdomains subdomains = domain.subdomains();
 
       (void)subdomains.role(regions.closestSurface(Vec3T<T>::zeros(), subdomains, 0U));
       (void)regions.signedDistance(Vec3T<T>::zeros(), subdomains, 0U);
-      (void)domain.scheme().surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)domain.surfaceGroups().surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
@@ -561,7 +561,7 @@ instantiateFunctionTemplates()
         const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
 
         for (const PossiblePiece& piece : possiblePieces(inventory)) {
-          (void)coverageOf(piece, inventory, scheme);
+          (void)coverageOf(piece, inventory, setup);
         }
       }
       (void)ExprIndex<T>(Overlay(RegionName(expr, "a"), expr)).findRegion("a");

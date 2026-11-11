@@ -449,11 +449,11 @@ Test coverage
        inside a region), and ``firstSurface()`` into and out of a subdomain of visible regions. The pairs of regions
        each surface may separate (``getSidesOfLeaf()``, ``getInterfaces()``); ``DomainSetup``'s surface groups and
        ``SurfaceSelector`` grouping the cable's surfaces for an electrostatic and a flow solver (pieces, labels,
-       interfaces, regions, materials), a ``Scheme`` built from them answering the same, no limit on groups, and the
+       interfaces, regions, materials), a ``SurfaceGroups`` built from them answering the same, no limit on groups, and the
        rejected groups; the region queries, and a ``Domain`` (with its tape) taken by a kernel (each
        subdomain's function, surface, role and boundary condition, the label and every label's function), on the
        device against the host; the pieces an
-       object has and may have, and a scheme's coverage of them; ``RegionView``'s highlights, hidden surface groups and
+       object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
        under later regions, outside a mask), and leaving unproved what it cannot prove.
    * - ``TestFused``

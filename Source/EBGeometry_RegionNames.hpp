@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_RegionNames.hpp
- * @brief  RegionNames: the names of an object's regions, materials, surfaces and a scheme's groups, for showing them.
+ * @brief  RegionNames: the names of an object's regions, materials, surfaces and surface groups, for showing them.
  * @author Robert Marskar
  */
 
@@ -31,7 +31,7 @@ namespace EBGeometry {
 
 /**
  * @brief The names of an object's regions, materials, surfaces and surface labels, from its expression's index, and
- * of a scheme's groups: what a viewer shows a piece of surface or a group by (Render::view()).
+ * of surface groups: what a viewer shows a piece of surface or a group by (Render::view()).
  * @details Host only. Anything without a name, or beyond the lists, is named by its kind and number ("region 3",
  * "surface group 1"). Names can also be given colors (setColor()), which a viewer colors the surfaces by.
  */
@@ -344,7 +344,7 @@ public:
   }
 
   /**
-   * @brief Name a surface group of the active domain (with no domain registered, of the scheme a viewer shows).
+   * @brief Name a surface group of the active domain (with no domain registered, of those a viewer shows).
    * @param[in] a_group The group.
    * @param[in] a_name  Its name.
    */
@@ -362,7 +362,7 @@ public:
   }
 
   /**
-   * @brief Forget a group's name; the names of the groups after it move down by one (as Scheme::removeSurfaceGroup()
+   * @brief Forget a group's name; the names of the groups after it move down by one (as SurfaceGroups::removeSurfaceGroup()
    * numbers them).
    * @param[in] a_group The group.
    */

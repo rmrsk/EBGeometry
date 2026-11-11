@@ -106,7 +106,7 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
 
   groups.add(groups.addSurfaceGroup(), SurfaceSelector::region(3));
 
-  const Scheme scheme = groups.buildScheme(pool);
+  const SurfaceGroups built = groups.buildSurfaceGroups(pool);
 
   pool.freeze();
 
@@ -127,13 +127,13 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
   settings.m_regions.m_coloring = RegionColoring::Material;
   settings.m_regions.setVisible(1, false);
   settings.m_regions.setRegionSeenThrough(2, true);
-  settings.m_regions.m_scheme = scheme;
+  settings.m_regions.m_surfaceGroups = built;
   settings.m_regions.setSurfaceGroupSeenThrough(0, true);
 
   // On the device, the settings read the surface groups from the mirror, as the shape does.
   Render::Settings<T> deviceSettings = settings;
 
-  deviceSettings.m_regions.m_scheme = scheme.rebasedView(devicePool);
+  deviceSettings.m_regions.m_surfaceGroups = built.rebasedView(devicePool);
 
   const Render::Renderer<T> renderer(settings);
   const Render::Renderer<T> deviceRenderer(deviceSettings);
