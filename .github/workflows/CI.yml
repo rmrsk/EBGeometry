@@ -538,9 +538,11 @@ jobs:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: GPU CUDA compile
     runs-on: ubuntu-24.04
-    # Every tape kernel compiles each built-in shape at every level of the evaluator; with the full set of
-    # analytic shapes, the region tests and the region probe, the build takes over an hour.
-    timeout-minutes: 90
+    # Every tape kernel compiles each built-in shape at every level of the evaluator, so the device tests
+    # and examples take about half an hour. The performance probes are not built here: they took as long
+    # again, and four of them compiled side by side need more memory than the runner has; the device
+    # receipt builds every probe for the device on the pull request's final code.
+    timeout-minutes: 60
     if: ${{ !github.event.pull_request.draft }}
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
@@ -554,14 +556,15 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart"]'
       - name: Configure
-        # Both precisions so the float instantiations of the device kernels are compiled too.
-        run: cmake -S . -B build/cuda -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON -DEBGEOMETRY_BUILD_PERFORMANCE=ON
+        # Both precisions so the float instantiations of the device kernels are compiled too. Optimized and
+        # without assertions, as users build: assertions make the device code, and ptxas's time, much larger.
+        run: cmake -S . -B build/cuda -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_ENABLE_ASSERTIONS=OFF -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
         # with nvcc, so the device-callable surface must compile for the device. The device-test list
         # lives in Tests/CMakeLists.txt; EBGeometry_GPUDeviceTests aggregates them, and
         # EBGeometry_GPUDeviceExamples the examples compiled for the device. No GPU is needed.
-        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples EBGeometry_Performance --parallel $(nproc)
+        run: cmake --build build/cuda --target EBGeometry_GPUDeviceTests EBGeometry_GPUDeviceExamples --parallel $(nproc)
       - name: Run device-tagged tests
         # This runner has no GPU. Every [gpu] test case SKIP()s at its first statement when
         # deviceAvailable() is false (see TestGPU.hpp), so no kernel is launched and no device code

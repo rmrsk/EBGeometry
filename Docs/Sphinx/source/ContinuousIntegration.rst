@@ -147,7 +147,7 @@ committed. It times nothing, since a shared runner is too noisy to judge perform
 pull request changes the library or the probes and its receipt is missing, measured other code (stale),
 measured an outdated base, or is not green and has no accepted reason; see :ref:`Chap:PerformanceTesting`.
 The result goes into the job summary. On a push or a draft the job does nothing and succeeds (on a
-draft, with a notice), since ``CI-passed`` counts a skipped job as a failure. The GPU lanes also compile the probes for their device.
+draft, with a notice), since ``CI-passed`` counts a skipped job as a failure. The HIP lane also compiles the probes for its device; the CUDA lane leaves them to the device receipt.
 
 CMake-consumer
 ~~~~~~~~~~~~~~
@@ -208,8 +208,9 @@ code gives correct results. This job is required by ``CI-passed``.
 GPU-CUDA
 ~~~~~~~~
 
-The same device compile with ``nvcc`` (CUDA 12.5), device examples and probes included, unoptimized
-and without SIMD flags. Full tier only. CUDA and HIP are separate jobs because they use different
+The same device compile with ``nvcc`` (CUDA 12.5), device examples included, optimized (Release), without
+assertions and without SIMD flags. It does not build the performance probes: the device receipt builds every
+probe for the device on the pull request's final code, and building them here too would double the job's time. Full tier only. CUDA and HIP are separate jobs because they use different
 device compilers and install routes, and run side by side. Marked
 ``continue-on-error: true``, because its toolkit install is the least reliable step in the
 workflow, so it is advisory and does not gate ``CI-passed``.
