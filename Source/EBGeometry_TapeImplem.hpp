@@ -2113,6 +2113,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
 
       break;
     }
+    // The point maps: tracedLeaf() applies them too, and a new one goes there as well.
     case Op::PushAffine: {
       points[np] = CSGOps::affinePoint(params + c.m_a, points[np - 1]);
 
@@ -3732,10 +3733,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       return result;
     }
 
-    const CSGOps::Tagged<T> value =
-      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, hit.m_point, base, this->location());
-
-    result.m_surface = this->surfaceOf(this->leafOf(value));
+    result.m_surface = this->surfaceOf(this->tracedLeaf(0U, hit.m_primitive, hit.m_point));
 
     if (hit.m_entering) {
       result.m_hit.m_normal = -hit.m_normal;
@@ -3749,7 +3747,23 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     return result;
   }
 
-  const auto regionAt = [this](const Vec3T<T>& a_point) { return this->region(a_point); };
+  // A point outside the object's box is outside every region (region 0), with nothing evaluated: the box bounds every
+  // region's solid (the builder's box rules never under-estimate, and the ray queries rely on it too). Where a ray
+  // starts (from the camera, say) is usually there, and asking region() there would search the whole object (a mesh's
+  // closest point) for every ray. A point within a nudge of the box is asked, so that a point on a face of the box is named
+  // as region() names it.
+  const auto regionAt = [this, &box, nudge](const Vec3T<T>& a_point) {
+    const Vec3T<T> lo = box.getLowCorner();
+    const Vec3T<T> hi = box.getHighCorner();
+
+    for (int k = 0; k < 3; k++) {
+      if (a_point[k] < lo[k] - nudge || a_point[k] > hi[k] + nudge) {
+        return 0U;
+      }
+    }
+
+    return this->region(a_point);
+  };
 
   // A crossing whose two sides are the same region (found again from the surface the query starts on, or a crossing
   // of one solid inside a later one) changes nothing: the search goes on past it.
@@ -3762,6 +3776,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     // later one's.
     HitT<T>  first;
     uint32_t program = 0U;
+    uint32_t entered = 0U;
 
     first.m_t = a_tMax;
 
@@ -3772,9 +3787,11 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
       const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
 
-      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
+      // On a tie, the later region: it lies on top, as region() names the point.
+      if (hit.hit() && (!first.hit() || hit.m_t <= first.m_t)) {
         first   = hit;
         program = solid;
+        entered = k;
       }
     }
 
@@ -3784,15 +3801,72 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       return result;
     }
 
-    const uint32_t to = regionAt(first.m_point + nudge * a_ray.m_direction);
+    // Entering a later region's solid, the ray enters that region: it was in none of the later regions' solids, and
+    // the crossing traced first is this one. Only a crossing leaving a solid asks which region lies beyond.
+    uint32_t to = (first.m_entering && entered > from) ? entered : regionAt(first.m_point + nudge * a_ray.m_direction);
+
+    // A marched crossing stops short of the surface: within the march's tolerance of it, and further along the ray
+    // where the ray meets it at a shallow angle. The nudge can then stay on the near side, which reads as no change,
+    // and a search starting there again would find the same crossing each time and miss the surface (a rounded edge,
+    // a flat cap seen from low down). The crossing itself is where the traced solid's sign changes along
+    // the ray: steps growing from the solid's distance find a point past it (within a hundred tolerances, or the ray
+    // only touches the surface and passes it), and halving the step finds it, where it is then reported. An exact
+    // crossing (a ray form) is on the surface and searches nothing.
+    if (to == from) {
+      const auto valueAt = [&](const T a_along) {
+        return this->template evaluate<MaxCallDepth, T>(
+          program, first.m_point + a_along * a_ray.m_direction, base, this->location());
+      };
+
+      const T    v0      = valueAt(T(0));
+      const bool outside = v0 > T(0);
+
+      if (std::abs(v0) > nudge) {
+        const T reach = Math::max(T(100) * a_options.m_tolerance * scale, T(4) * std::abs(v0));
+
+        T    lo      = T(0);
+        T    hi      = std::abs(v0);
+        bool flipped = false;
+
+        while (hi <= reach) {
+          if ((valueAt(hi) > T(0)) != outside) {
+            flipped = true;
+
+            break;
+          }
+
+          lo = hi;
+          hi = T(2) * hi;
+        }
+
+        if (flipped) {
+          for (int halving = 0; halving < 48 && hi - lo > nudge; halving++) {
+            const T mid = T(0.5) * (lo + hi);
+
+            if ((valueAt(mid) > T(0)) != outside) {
+              hi = mid;
+            }
+            else {
+              lo = mid;
+            }
+          }
+
+          to = regionAt(first.m_point + (hi + nudge) * a_ray.m_direction);
+
+          // The crossing is reported where it is, so that the next query, starting just past it, does not find it
+          // again.
+          if (to != from) {
+            first.m_t += hi;
+            first.m_point = first.m_point + hi * a_ray.m_direction;
+          }
+        }
+      }
+    }
 
     if (to != from) {
-      // The surface crossed: the leaf deciding the traced program's value there, drilled.
-      const CSGOps::Tagged<T> value =
-        this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, first.m_point, base, this->location());
-
+      // The surface crossed: the leaf the trace crossed, drilled.
       result.m_hit     = first;
-      result.m_surface = this->surfaceOf(this->leafOf(value));
+      result.m_surface = this->surfaceOf(this->tracedLeaf(program, first.m_primitive, first.m_point));
 
       // The normal from the region left into the region entered: the traced solid's outward normal where the ray
       // leaves it, against it where the ray enters.
@@ -4073,6 +4147,64 @@ Tape<T, UserPrimitives...>::leafOf(const CSGOps::Tagged<T>& a_value) const noexc
   }
 
   return ref;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline LeafRef<T>
+Tape<T, UserPrimitives...>::tracedLeaf(const uint32_t  a_program,
+                                       const uint32_t  a_leaf,
+                                       const Vec3T<T>& a_point) const noexcept
+{
+  using TapeDetail::Op;
+
+  const void* base = this->base();
+
+  const TapeDetail::Program range   = m_layout.m_programs.at(base, a_program);
+  const TapeDetail::Clause* clauses = m_layout.m_clauses.data(base);
+  const T*                  params  = m_layout.m_params.data(base);
+
+  // The point maps as evaluateBody() applies them, so the leaf's point is the one its evaluation sees.
+  Vec3T<T> points[PointStackSize];
+
+  uint32_t np = 0;
+
+  points[np++] = a_point;
+
+  for (uint32_t pc = range.m_begin; pc < range.m_end; pc++) {
+    const TapeDetail::Clause& c = clauses[pc];
+
+    if (c.m_op == Op::Primitive && c.m_b == a_leaf) {
+      LeafRef<T> ref;
+
+      ref.m_leaf       = c.m_b;
+      ref.m_type       = c.m_type;
+      ref.m_index      = c.m_a;
+      ref.m_localPoint = points[np - 1];
+
+      return ref;
+    }
+
+    if (c.m_op == Op::PushAffine) {
+      points[np] = CSGOps::affinePoint(params + c.m_a, points[np - 1]);
+
+      np++;
+    }
+    else if (c.m_op == Op::PushElongate) {
+      const T* h = params + c.m_a;
+
+      points[np] = CSGOps::elongatePoint(Vec3T<T>(h[0], h[1], h[2]), points[np - 1]);
+
+      np++;
+    }
+    else if (c.m_op == Op::PopPoint) {
+      np--;
+    }
+  }
+
+  return this->leafOf(
+    this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(a_program, a_point, base, this->location()));
 }
 
 template <class T, class... UserPrimitives>

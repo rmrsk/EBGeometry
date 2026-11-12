@@ -183,6 +183,7 @@ keys(const bool a_device, const bool a_regions = false)
       {"S", "Shadows on or off"},
       {"A", "Ambient occlusion on or off"},
       {"F", "Floor on or off"},
+      {"U", "Axis planes through the origin: all three, the one facing you most, or none"},
       {"B", "Sky on or off"},
       {"Shift + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
     {"Section and contours",
@@ -1528,6 +1529,10 @@ run(const S&           a_shape,
   int                   overlayHeight = 0;
   std::vector<uint32_t> overlayPixels;
 
+  // The axis planes through the origin, drawn over the image to check where the model sits: none (0), all three (1),
+  // or the one facing the camera most (2) (U).
+  int axisPlanes = 0;
+
   // The axis triad, in the bottom left corner, always drawn.
   SDL_Texture*          axes     = nullptr;
   int                   axesSize = 0;
@@ -1635,6 +1640,113 @@ run(const S&           a_shape,
         mark(bx, by);
       }
 
+      SDL_SetRenderDrawColor(screen, 0, 0, 0, 255);
+    }
+
+    // The axis planes, over the image: each plane through the origin (xy, yz, zx) a grid over the model's box (stretched
+    // to hold the origin), in the color of its normal's axis (x red, y green, z blue), the axes in it drawn stronger.
+    // Lines are drawn in short pieces, so that what lies behind a perspective camera is left out.
+    if (axisPlanes > 0) {
+      const auto bounds = box;
+
+      Vec3T<T> lo = bounds.getLowCorner();
+      Vec3T<T> hi = bounds.getHighCorner();
+
+      bool bounded = true;
+
+      for (int k = 0; k < 3; k++) {
+        bounded = bounded && std::isfinite(lo[k]) && std::isfinite(hi[k]) && lo[k] <= hi[k];
+      }
+
+      for (int k = 0; k < 3; k++) {
+        const T reach = bounded ? T(0) : camera.m_distance;
+
+        lo[k] = bounded ? Math::min(lo[k], T(0)) : -reach;
+        hi[k] = bounded ? Math::max(hi[k], T(0)) : reach;
+
+        const T margin = T(0.1) * (hi[k] - lo[k]);
+
+        lo[k] -= margin;
+        hi[k] += margin;
+      }
+
+      Vec3T<T> forward;
+      Vec3T<T> right;
+      Vec3T<T> up;
+
+      camera.frame(forward, right, up);
+
+      // The plane facing the camera most: the one whose normal is most along the view.
+      int facing = 0;
+
+      for (int k = 1; k < 3; k++) {
+        facing = (std::abs(forward[k]) > std::abs(forward[facing])) ? k : facing;
+      }
+
+      const uint8_t colors[3][3] = {{230, 60, 60}, {60, 190, 60}, {70, 110, 240}};
+
+      const auto segment = [&](const Vec3T<T>& a_from, const Vec3T<T>& a_to) {
+        constexpr int pieces = 24;
+
+        for (int s = 0; s < pieces; s++) {
+          int x0 = 0;
+          int y0 = 0;
+          int x1 = 0;
+          int y1 = 0;
+
+          const Vec3T<T> p0 = a_from + (T(s) / T(pieces)) * (a_to - a_from);
+          const Vec3T<T> p1 = a_from + (T(s + 1) / T(pieces)) * (a_to - a_from);
+
+          if (project(p0, x0, y0) && project(p1, x1, y1)) {
+            SDL_RenderDrawLine(screen, x0, y0, x1, y1);
+          }
+        }
+      };
+
+      SDL_SetRenderDrawBlendMode(screen, SDL_BLENDMODE_BLEND);
+
+      for (int normal = 0; normal < 3; normal++) {
+        if (axisPlanes == 2 && normal != facing) {
+          continue;
+        }
+
+        // The plane's two directions.
+        const int u = (normal + 1) % 3;
+        const int v = (normal + 2) % 3;
+
+        const auto at = [&](const T a_u, const T a_v) {
+          Vec3T<T> point = Vec3T<T>::zeros();
+
+          point[u] = a_u;
+          point[v] = a_v;
+
+          return point;
+        };
+
+        constexpr int lines = 10;
+
+        for (int i = 0; i <= lines; i++) {
+          const bool edge  = (i == 0 || i == lines);
+          const T    alpha = edge ? T(170) : T(70);
+
+          SDL_SetRenderDrawColor(
+            screen, colors[normal][0], colors[normal][1], colors[normal][2], static_cast<uint8_t>(alpha));
+
+          const T su = lo[u] + (hi[u] - lo[u]) * T(i) / T(lines);
+          const T sv = lo[v] + (hi[v] - lo[v]) * T(i) / T(lines);
+
+          segment(at(su, lo[v]), at(su, hi[v]));
+          segment(at(lo[u], sv), at(hi[u], sv));
+        }
+
+        // The plane's two axes through the origin, stronger.
+        SDL_SetRenderDrawColor(screen, colors[normal][0], colors[normal][1], colors[normal][2], 230);
+
+        segment(at(T(0), lo[v]), at(T(0), hi[v]));
+        segment(at(lo[u], T(0)), at(hi[u], T(0)));
+      }
+
+      SDL_SetRenderDrawBlendMode(screen, SDL_BLENDMODE_NONE);
       SDL_SetRenderDrawColor(screen, 0, 0, 0, 255);
     }
 
@@ -3821,6 +3933,15 @@ run(const S&           a_shape,
         }
         case SDLK_a: {
           settings.m_occlusion = !settings.m_occlusion;
+
+          break;
+        }
+        case SDLK_u: {
+          // Drawn over the image: nothing to render again.
+          axisPlanes = (axisPlanes + 1) % 3;
+          changed    = pending;
+
+          present();
 
           break;
         }

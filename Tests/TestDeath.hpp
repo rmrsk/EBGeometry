@@ -21,6 +21,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#if defined(__linux__)
+#include <sys/prctl.h>
+#endif
+
 // Run a_fn in a forked child. Returns what the child wrote to stderr if it terminated via SIGABRT,
 // and std::nullopt otherwise. If the operation wrongly returns without aborting, the child calls
 // _exit(0) -- bypassing atexit handlers so a sanitizer leak check on the deliberately-abandoned child
@@ -48,6 +52,11 @@ abortMessage(F&& a_fn)
     if (std::freopen("/dev/null", "w", stdout) == nullptr || dup2(fileno(captured), STDERR_FILENO) < 0) {
       _exit(1);
     }
+
+#if defined(__linux__)
+    // No core dump for the expected abort: a system crash reporter (apport) can take a second over each one.
+    (void)prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
+#endif
 
     a_fn();
 

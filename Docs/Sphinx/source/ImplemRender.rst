@@ -186,6 +186,9 @@ opened with them.
        opaque again; reverse it (remove the other side).
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
+   * - U
+     - The axis planes through the origin, drawn over the image to check where a model sits: all three, the one
+       facing the camera most, or none.
    * - Z
      - The slice view: the section plane flat on screen, seen square from the removed side by an orthographic camera,
        without the floor and shadows (a plane across x is turned on first if there is none). The wheel moves the plane

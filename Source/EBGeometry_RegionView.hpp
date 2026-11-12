@@ -347,10 +347,31 @@ private:
         return hit;
       }
 
-      t = change.m_hit.m_t;
+      // On past the crossing: a marched one is placed short of the surface, within the march's tolerance, so the
+      // search goes on four tolerances past it (as a renderer steps past a crossing), or it would find it again.
+      t = change.m_hit.m_t + (change.m_hit.m_exact ? T(0) : T(4) * a_options.m_tolerance * this->scaleOf(a_options));
     }
 
     return HitT<T>();
+  }
+
+  /**
+   * @brief The length the march's tolerance is relative to: the options', or the tape's box's diagonal.
+   * @param[in] a_options The options.
+   * @return The length.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  scaleOf(const RayOptions<T>& a_options) const noexcept
+  {
+    if (a_options.m_scale > T(0)) {
+      return a_options.m_scale;
+    }
+
+    const auto box      = m_tape.computeBoundingVolume();
+    const T    diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+
+    return (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal : T(1);
   }
 
 public:
@@ -484,6 +505,47 @@ public:
   interfaceKey(const uint32_t a_first, const uint32_t a_second) noexcept
   {
     return RegionSettings::interfaceKey(a_first, a_second);
+  }
+
+  /**
+   * @brief The first crossing of the whole object's surface along a ray, from the tape's ray program, as firstHit() on
+   * the tape finds it without RayOptions::m_march (the program is traced whatever a_options.m_march says).
+   * @details Through the tape's out-of-line trace, which the view's own queries call: firstHit() on the tape inlines a
+   * second copy of the tape's ray code into every device kernel reaching it. With that copy, ptxas on the device render
+   * tests of region views took over an hour where this takes nine minutes (CUDA, sm_70).
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMax    End of the interval, which starts at 0.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  objectHit(const RayT<T>& a_ray, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
+
+    return m_tape.traceProgram(0U, a_ray, T(0), a_tMax, a_options);
+  }
+
+  /**
+   * @brief Whether the view shows the whole object's outer surface, as the tape itself is drawn: every region shown,
+   * none alone, nothing seen through, no surface group hidden, not only the selected surfaces. A ray from outside the
+   * object then meets the view's surface where it meets the tape's (only the keys differ), so that a renderer can
+   * trace the tape for what needs only where (shadows, occlusion).
+   * @return Whether.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  showsWholeObject() const noexcept
+  {
+    bool through = m_settings.m_throughRegions != 0U || m_settings.m_throughGroups != 0U;
+
+    for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+      through = through || m_settings.m_through[i] != None;
+    }
+
+    return m_settings.m_hidden == 0U && m_settings.m_only == None && !through && m_settings.m_hiddenGroups == 0U &&
+           !m_settings.m_onlySelected;
   }
 
   /**
