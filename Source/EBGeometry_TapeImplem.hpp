@@ -2113,6 +2113,7 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
 
       break;
     }
+    // The point maps: tracedLeaf() applies them too, and a new one goes there as well.
     case Op::PushAffine: {
       points[np] = CSGOps::affinePoint(params + c.m_a, points[np - 1]);
 
@@ -3746,9 +3747,10 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     return result;
   }
 
-  // A point outside the object's box is outside every region (region 0), with nothing evaluated: where a ray starts
-  // (from the camera, say) is usually there, and asking region() there searched the whole object (a mesh's closest
-  // point) for every ray. A point within a nudge of the box is asked, so that a point on a face of the box is named
+  // A point outside the object's box is outside every region (region 0), with nothing evaluated: the box bounds every
+  // region's solid (the builder's box rules never under-estimate, and the ray queries rely on it too). Where a ray
+  // starts (from the camera, say) is usually there, and asking region() there would search the whole object (a mesh's
+  // closest point) for every ray. A point within a nudge of the box is asked, so that a point on a face of the box is named
   // as region() names it.
   const auto regionAt = [this, &box, nudge](const Vec3T<T>& a_point) {
     const Vec3T<T> lo = box.getLowCorner();
@@ -3805,8 +3807,8 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
     // A marched crossing stops short of the surface: within the march's tolerance of it, and further along the ray
     // where the ray meets it at a shallow angle. The nudge can then stay on the near side, which reads as no change,
-    // and the search, starting there again, found the same crossing until it gave up: the surface was missed (a
-    // rounded edge, a flat cap seen from low down). The crossing itself is where the traced solid's sign changes along
+    // and a search starting there again would find the same crossing each time and miss the surface (a rounded edge,
+    // a flat cap seen from low down). The crossing itself is where the traced solid's sign changes along
     // the ray: steps growing from the solid's distance find a point past it (within a hundred tolerances, or the ray
     // only touches the surface and passes it), and halving the step finds it, where it is then reported. An exact
     // crossing (a ray form) is on the surface and searches nothing.
