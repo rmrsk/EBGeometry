@@ -3749,7 +3749,22 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     return result;
   }
 
-  const auto regionAt = [this](const Vec3T<T>& a_point) { return this->region(a_point); };
+  // A point outside the object's box is outside every region (region 0), with nothing evaluated: where a ray starts
+  // (from the camera, say) is usually there, and asking region() there searched the whole object (a mesh's closest
+  // point) for every ray. A point within a nudge of the box is asked, so that a point on a face of the box is named
+  // as region() names it.
+  const auto regionAt = [this, &box, nudge](const Vec3T<T>& a_point) {
+    const Vec3T<T> lo = box.getLowCorner();
+    const Vec3T<T> hi = box.getHighCorner();
+
+    for (int k = 0; k < 3; k++) {
+      if (a_point[k] < lo[k] - nudge || a_point[k] > hi[k] + nudge) {
+        return 0U;
+      }
+    }
+
+    return this->region(a_point);
+  };
 
   // A crossing whose two sides are the same region (found again from the surface the query starts on, or a crossing
   // of one solid inside a later one) changes nothing: the search goes on past it.
