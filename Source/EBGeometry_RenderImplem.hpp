@@ -1401,9 +1401,10 @@ private:
 
     // A view of regions showing the whole object, uncut: its surface is the tape's, which one trace finds (the view's
     // search for each change of region asks which region a point is in, for keys a shadow does not need: shadows and
-    // occlusion took most of such a frame).
+    // occlusion took most of such a frame). Not when every shape is marched (m_march), which the trace below honors and
+    // the tape's ray program does not.
     if constexpr (hasRegionVisibility<S>) {
-      if (!m_object.m_on && m_object.m_shape.showsWholeObject()) {
+      if (!m_object.m_on && !m_rays.m_march && m_object.m_shape.showsWholeObject()) {
         const HitT<T> plain = m_object.m_shape.objectHit(a_ray, a_tMax, m_rays);
 
         return plain.hit() ? plain.m_t : Math::Limits<T>::infinity();

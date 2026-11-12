@@ -2845,9 +2845,10 @@ TEMPLATE_TEST_CASE("RegionView: shows the whole object only with every region sh
              withinAbsT<T>(tape.firstHit(ray, T(0), T(20)).m_t, looseMargin<T>()));
 }
 
-TEMPLATE_TEST_CASE("RegionView: showing the whole object, its rays hit where the tape's do, marched shapes included",
-                   "[Overlay][RegionView]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE(
+  "RegionView: showing the whole object, its rays and objectHit() hit where the tape's do, marched shapes included",
+  "[Overlay][RegionView]",
+  EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -2880,15 +2881,18 @@ TEMPLATE_TEST_CASE("RegionView: showing the whole object, its rays hit where the
 
       const HitT<T> plain = tape.firstHit(ray, T(0), T(20));
       const HitT<T> seen  = view.firstHit(ray, T(0), T(20), RayOptions<T>());
+      const HitT<T> outer = view.objectHit(ray, T(20), RayOptions<T>());
 
       INFO("ray " << i << ", " << j);
 
       REQUIRE(seen.hit() == plain.hit());
+      REQUIRE(outer.hit() == plain.hit());
 
       if (plain.hit()) {
         hits++;
 
         CHECK_THAT(seen.m_t, withinAbsT<T>(plain.m_t, 2.0e-3));
+        CHECK_THAT(outer.m_t, withinAbsT<T>(plain.m_t, tightMargin<T>()));
       }
     }
   }

@@ -508,10 +508,11 @@ public:
   }
 
   /**
-   * @brief The first crossing of the whole object's surface along a ray, as firstHit() on the tape finds it.
-   * @details Through the tape's out-of-line trace, which the view's own queries call: firstHit() on the tape inlines
-   * a second copy of the tape's ray code into every device kernel reaching it, and the device render tests of
-   * region views then took ptxas over an hour instead of about ten minutes (CUDA, sm_70).
+   * @brief The first crossing of the whole object's surface along a ray, from the tape's ray program, as firstHit() on
+   * the tape finds it without RayOptions::m_march (the program is traced whatever a_options.m_march says).
+   * @details Through the tape's out-of-line trace, which the view's own queries call: firstHit() on the tape inlines a
+   * second copy of the tape's ray code into every device kernel reaching it. With that copy, ptxas on the device render
+   * tests of region views took over an hour where this takes nine minutes (CUDA, sm_70).
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMax    End of the interval, which starts at 0.
    * @param[in] a_options How to march the parts without a ray form.
@@ -521,6 +522,8 @@ public:
   inline HitT<T>
   objectHit(const RayT<T>& a_ray, const T a_tMax, const RayOptions<T>& a_options) const noexcept
   {
+    EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
+
     return m_tape.traceProgram(0U, a_ray, T(0), a_tMax, a_options);
   }
 
