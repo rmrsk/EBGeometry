@@ -1980,6 +1980,22 @@ private:
   leafOf(const CSGOps::Tagged<T>& a_value) const noexcept;
 
   /**
+   * @brief A leaf a trace of a program crossed, with the point in its frame.
+   * @details Walks the program's clauses, applying only its point maps, to the leaf's clause: no shape is evaluated.
+   * Evaluating the program tagged named the same leaf at the crossing, but evaluated every shape of it there (a
+   * mesh's closest point far from the mesh, where the ray crossed another shape). A leaf in a sub-program (a
+   * repetition, a blur, a BVH union's operands) is not among the program's clauses, and is found by that evaluation.
+   * @param[in] a_program Program traced.
+   * @param[in] a_leaf    Leaf the trace reported (HitT::m_primitive).
+   * @param[in] a_point   Crossing.
+   * @return The leaf, or none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline LeafRef<T>
+  tracedLeaf(const uint32_t a_program, const uint32_t a_leaf, const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief A leaf's surface: drilled into a collection, with its part and its label (see closestSurface()).
    * @param[in] a_ref The leaf.
    * @return The surface, or none.

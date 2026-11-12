@@ -585,6 +585,73 @@ TEMPLATE_TEST_CASE("Tape: an object of one region changes region where a ray cro
   CHECK(crossings > 60);
 }
 
+TEMPLATE_TEST_CASE(
+  "Tape: firstRegionChange() names the shape a ray crosses, its part and its point in the shape's own frame",
+  "[Overlay][Tape]",
+  EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // Shapes under maps (the crossing is named by the leaf traced, mapped into its frame), and a repetition (whose
+  // copies are a sub-program: named by evaluating the region there). Apart, so that the closest shape to a crossing
+  // is the one crossed.
+  const Expr<T> box =
+    Translate(Rotate(Scale(BoxSDF<T>(Vec3(T(-1), T(-0.5), T(-0.7)), Vec3(T(1), T(0.5), T(0.7))), T(0.8)), T(30), 2),
+              Vec3(T(-3), T(0), T(0)));
+  const Expr<T> bar =
+    Translate(Elongate(SphereSDF<T>(Vec3::zeros(), T(0.5)), Vec3(T(0.6), T(0), T(0))), Vec3(T(0), T(0), T(0.3)));
+  const Expr<T> copies = FiniteRepetition(
+    SphereSDF<T>(Vec3(T(3), T(0), T(0)), T(0.3)), Vec3(T(1), T(1), T(1)), Vec3::zeros(), Vec3(T(0), T(1), T(0)));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> one(pool, Union(std::vector<Expr<T>>{box, bar, copies}));
+  const Tape<T> three(pool, Overlay(box, bar, copies));
+
+  REQUIRE(one.getNumRegions() == 2U);
+  REQUIRE(three.getNumRegions() == 4U);
+
+  for (const Tape<T>* tape : {&one, &three}) {
+    int crossings = 0;
+
+    for (int i = 0; i < 40; i++) {
+      for (int j = 0; j < 8; j++) {
+        const Vec3    origin = Vec3(T(0.2) * T(i) - T(4.5), T(4), T(0.25) * T(j) - T(1));
+        const Vec3    toward = Vec3(T(0.05) * T(j % 3) - T(0.05), T(-1), T(0.02) * T(i % 4));
+        const RayT<T> ray{origin, toward / toward.length()};
+
+        T t = T(0);
+
+        // Every crossing along the ray, out of each shape as well as into it.
+        for (int k = 0; k < 8; k++) {
+          const SurfaceHitT<T> change = tape->firstRegionChange(ray, t, T(10));
+
+          if (!change.m_hit.hit()) {
+            break;
+          }
+
+          crossings++;
+
+          // The shape closestSurface() names there, with its part and the point in its frame.
+          const SurfaceRef<T> closest = tape->closestSurface(change.m_hit.m_point);
+
+          CHECK(change.m_surface.m_leaf == closest.m_leaf);
+          CHECK(change.m_surface.m_part == closest.m_part);
+
+          for (int d = 0; d < 3; d++) {
+            CHECK_THAT(change.m_surface.m_localPoint[d], withinAbsT<T>(closest.m_localPoint[d], looseMargin<T>()));
+          }
+
+          t = change.m_hit.m_t;
+        }
+      }
+    }
+
+    CHECK(crossings > 200);
+  }
+}
+
 TEMPLATE_TEST_CASE("Tape: regionDistances() gives every region's function in one pass, as signedDistance() does",
                    "[Overlay][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)

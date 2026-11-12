@@ -3732,10 +3732,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       return result;
     }
 
-    const CSGOps::Tagged<T> value =
-      this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(0U, hit.m_point, base, this->location());
-
-    result.m_surface = this->surfaceOf(this->leafOf(value));
+    result.m_surface = this->surfaceOf(this->tracedLeaf(0U, hit.m_primitive, hit.m_point));
 
     if (hit.m_entering) {
       result.m_hit.m_normal = -hit.m_normal;
@@ -3865,12 +3862,9 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     }
 
     if (to != from) {
-      // The surface crossed: the leaf deciding the traced program's value there, drilled.
-      const CSGOps::Tagged<T> value =
-        this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(program, first.m_point, base, this->location());
-
+      // The surface crossed: the leaf the trace crossed, drilled.
       result.m_hit     = first;
-      result.m_surface = this->surfaceOf(this->leafOf(value));
+      result.m_surface = this->surfaceOf(this->tracedLeaf(program, first.m_primitive, first.m_point));
 
       // The normal from the region left into the region entered: the traced solid's outward normal where the ray
       // leaves it, against it where the ray enters.
@@ -4151,6 +4145,64 @@ Tape<T, UserPrimitives...>::leafOf(const CSGOps::Tagged<T>& a_value) const noexc
   }
 
   return ref;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline LeafRef<T>
+Tape<T, UserPrimitives...>::tracedLeaf(const uint32_t  a_program,
+                                       const uint32_t  a_leaf,
+                                       const Vec3T<T>& a_point) const noexcept
+{
+  using TapeDetail::Op;
+
+  const void* base = this->base();
+
+  const TapeDetail::Program range   = m_layout.m_programs.at(base, a_program);
+  const TapeDetail::Clause* clauses = m_layout.m_clauses.data(base);
+  const T*                  params  = m_layout.m_params.data(base);
+
+  // The point maps as evaluateBody() applies them, so the leaf's point is the one its evaluation sees.
+  Vec3T<T> points[PointStackSize];
+
+  uint32_t np = 0;
+
+  points[np++] = a_point;
+
+  for (uint32_t pc = range.m_begin; pc < range.m_end; pc++) {
+    const TapeDetail::Clause& c = clauses[pc];
+
+    if (c.m_op == Op::Primitive && c.m_b == a_leaf) {
+      LeafRef<T> ref;
+
+      ref.m_leaf       = c.m_b;
+      ref.m_type       = c.m_type;
+      ref.m_index      = c.m_a;
+      ref.m_localPoint = points[np - 1];
+
+      return ref;
+    }
+
+    if (c.m_op == Op::PushAffine) {
+      points[np] = CSGOps::affinePoint(params + c.m_a, points[np - 1]);
+
+      np++;
+    }
+    else if (c.m_op == Op::PushElongate) {
+      const T* h = params + c.m_a;
+
+      points[np] = CSGOps::elongatePoint(Vec3T<T>(h[0], h[1], h[2]), points[np - 1]);
+
+      np++;
+    }
+    else if (c.m_op == Op::PopPoint) {
+      np--;
+    }
+  }
+
+  return this->leafOf(
+    this->template evaluate<MaxCallDepth, CSGOps::Tagged<T>>(a_program, a_point, base, this->location()));
 }
 
 template <class T, class... UserPrimitives>
