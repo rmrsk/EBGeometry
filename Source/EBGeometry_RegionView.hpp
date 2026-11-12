@@ -347,10 +347,31 @@ private:
         return hit;
       }
 
-      t = change.m_hit.m_t;
+      // On past the crossing: a marched one is placed short of the surface, within the march's tolerance, so the
+      // search goes on four tolerances past it (as a renderer steps past a crossing), or it would find it again.
+      t = change.m_hit.m_t + (change.m_hit.m_exact ? T(0) : T(4) * a_options.m_tolerance * this->scaleOf(a_options));
     }
 
     return HitT<T>();
+  }
+
+  /**
+   * @brief The length the march's tolerance is relative to: the options', or the tape's box's diagonal.
+   * @param[in] a_options The options.
+   * @return The length.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  scaleOf(const RayOptions<T>& a_options) const noexcept
+  {
+    if (a_options.m_scale > T(0)) {
+      return a_options.m_scale;
+    }
+
+    const auto box      = m_tape.computeBoundingVolume();
+    const T    diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+
+    return (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal : T(1);
   }
 
 public:

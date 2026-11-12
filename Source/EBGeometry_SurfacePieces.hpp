@@ -129,7 +129,8 @@ findSurfacePieces(const TapeType& a_tape, const uint32_t a_resolution = 64)
             break;
           }
 
-          t = change.m_hit.m_t;
+          // On past it: a marched crossing is placed short of the surface, within the march's tolerance.
+          t = change.m_hit.m_t + (change.m_hit.m_exact ? T(0) : T(4) * RayOptions<T>().m_tolerance * size.length());
 
           // The piece the same whichever way it was crossed: the later region the owner, the normal pointing out of it.
           SurfaceRef<T> surface = change.m_surface;

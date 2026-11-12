@@ -2730,20 +2730,9 @@ TEMPLATE_TEST_CASE(
         if (hit.hit()) {
           hits++;
 
-          // The true crossing, by halving along the ray past where the march stopped (it stops short of the surface):
-          // the region change is reported there, to within the march's tolerance.
-          T lo = hit.m_t;
-          T hi = hit.m_t + T(0.05);
-
-          if (plain.signedDistance(ray.m_origin + hi * ray.m_direction) < T(0)) {
-            for (int halving = 0; halving < 60; halving++) {
-              const T mid = T(0.5) * (lo + hi);
-
-              (plain.signedDistance(ray.m_origin + mid * ray.m_direction) > T(0) ? lo : hi) = mid;
-            }
-
-            CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(hi, 2.0e-3));
-          }
+          // Where the tape itself finds it (a marched crossing short of the surface, within the march's tolerance):
+          // the region view shows what the tape shows.
+          CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(hit.m_t, 1.0e-4));
 
           CHECK(change.m_surface.m_ownerRegion == 0U);
           CHECK(change.m_surface.m_neighborRegion == 1U);
@@ -2787,4 +2776,55 @@ TEMPLATE_TEST_CASE("RegionView: shows the whole object only with every region sh
 
   CHECK_THAT(view.firstHit(ray, T(0), T(20), RayOptions<T>()).m_t,
              withinAbsT<T>(tape.firstHit(ray, T(0), T(20)).m_t, looseMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("RegionView: showing the whole object, its rays hit where the tape's do, marched shapes included",
+                   "[Overlay][RegionView]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Two regions, one of a marched smooth union, the other exact; rays from all around, grazing ones included.
+  const Expr<T> blob =
+    SmoothUnion(std::vector<Expr<T>>{toExpr(SphereSDF<T>(Vec3(T(-0.4), 0, 0), T(0.5))),
+                                     toExpr(RoundedCylinderSDF<T>(Vec3(T(0.4), 0, 0), T(0.5), T(0.1), T(0.6)))},
+                T(0.2));
+  const Expr<T> box = toExpr(BoxSDF<T>(Vec3(T(-1.5), T(-1), T(-0.2)), Vec3(T(1.5), T(-0.6), T(0.2))));
+
+  const Tape<T> tape(pool, Overlay(std::vector<Expr<T>>{RegionName(box, "base"), RegionName(blob, "blob")}));
+
+  const RegionView<Tape<T>> view(tape);
+
+  REQUIRE(view.showsWholeObject());
+
+  size_t hits = 0;
+
+  for (int i = 0; i < 36; i++) {
+    for (int j = 0; j < 9; j++) {
+      const T    angle = T(2) * T(3.14159265358979) * T(i) / T(36);
+      const T    y     = T(-1.1) + T(0.25) * T(j);
+      const Vec3 from(T(4) * std::cos(angle), y + T(0.3), T(4) * std::sin(angle));
+      const Vec3 to(T(0.1) * std::cos(angle), y, T(0.1) * std::sin(angle));
+
+      const RayT<T> ray{from, (to - from) / (to - from).length()};
+
+      const HitT<T> plain = tape.firstHit(ray, T(0), T(20));
+      const HitT<T> seen  = view.firstHit(ray, T(0), T(20), RayOptions<T>());
+
+      INFO("ray " << i << ", " << j);
+
+      REQUIRE(seen.hit() == plain.hit());
+
+      if (plain.hit()) {
+        hits++;
+
+        CHECK_THAT(seen.m_t, withinAbsT<T>(plain.m_t, 2.0e-3));
+      }
+    }
+  }
+
+  CHECK(hits > 100U);
 }

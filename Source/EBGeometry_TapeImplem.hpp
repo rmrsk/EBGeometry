@@ -3777,6 +3777,7 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     // later one's.
     HitT<T>  first;
     uint32_t program = 0U;
+    uint32_t entered = 0U;
 
     first.m_t = a_tMax;
 
@@ -3787,9 +3788,11 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
       const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
 
-      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t)) {
+      // On a tie, the later region: it lies on top, as region() names the point.
+      if (hit.hit() && (!first.hit() || hit.m_t <= first.m_t)) {
         first   = hit;
         program = solid;
+        entered = k;
       }
     }
 
@@ -3799,7 +3802,9 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       return result;
     }
 
-    uint32_t to = regionAt(first.m_point + nudge * a_ray.m_direction);
+    // Entering a later region's solid, the ray enters that region: it was in none of the later regions' solids, and
+    // the crossing traced first is this one. Only a crossing leaving a solid asks which region lies beyond.
+    uint32_t to = (first.m_entering && entered > from) ? entered : regionAt(first.m_point + nudge * a_ray.m_direction);
 
     // A marched crossing stops short of the surface: within the march's tolerance of it, and further along the ray
     // where the ray meets it at a shallow angle. The nudge can then stay on the near side, which reads as no change,
