@@ -270,7 +270,7 @@ private:
       // The surface group the surface is in, when the settings hide or highlight one.
       const uint32_t group =
         (m_settings.m_hiddenGroups != 0U || m_settings.m_throughGroups != 0U || m_settings.m_highlightGroup != None)
-          ? m_settings.m_scheme.surfaceGroupOf(change.m_surface)
+          ? m_settings.m_surfaceGroups.surfaceGroupOf(change.m_surface)
           : None;
 
       // With only the selected surfaces shown, the entry of the selection the surface is in.
@@ -374,7 +374,7 @@ public:
   /**
    * @brief The piece of surface at a point a ray met (firstHit()): the surface, its part and label, and the regions on
    * its two sides there, the region whose surface was seen the owner (SurfaceRef::m_ownerRegion) and the one across
-   * the neighbor, with their materials; what a click picks, for a scheme's selector (SurfaceSelector::piece()).
+   * the neighbor, with their materials; what a click picks, for a surface group's selector (SurfaceSelector::piece()).
    * @details The region seen is the one just behind the surface (against the normal, which points out of it) and the
    * one across just in front, a small step away; the surface and its sides then come from Tape::closestSurface(p,
    * region).
@@ -623,17 +623,17 @@ public:
   }
 
   /**
-   * @brief The same view with a solver's scheme (RegionColoring::SurfaceGroup colors by its groups).
-   * @param[in] a_scheme The scheme.
+   * @brief The same view with a domain's surface groups (RegionColoring::SurfaceGroup colors by them).
+   * @param[in] a_groups The surface groups.
    * @return The view.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline RegionView
-  withScheme(const Scheme& a_scheme) const noexcept
+  withSurfaceGroups(const SurfaceGroups& a_groups) const noexcept
   {
     RegionView view = *this;
 
-    view.m_settings.m_scheme = a_scheme;
+    view.m_settings.m_surfaceGroups = a_groups;
 
     return view;
   }
@@ -742,7 +742,7 @@ private:
       return RegionSettings::interfaceKey(a_surface.m_ownerRegion, a_surface.m_neighborRegion);
     }
     case RegionColoring::SurfaceGroup: {
-      return m_settings.m_scheme.surfaceGroupOf(a_surface);
+      return m_settings.m_surfaceGroups.surfaceGroupOf(a_surface);
     }
     case RegionColoring::Material: {
       return m_tape.getMaterialOf(a_region).value();
@@ -805,7 +805,7 @@ inline constexpr bool hasRegionVisibility = false;
 
 /**
  * @brief A shape with getNumRegions(), getSettings(), withSettings(), getTape() and pieceAt(): the renderer gives it
- * Render::Settings's region settings, and the viewer edits those and picks pieces of surface for a scheme.
+ * Render::Settings's region settings, and the viewer edits those and picks pieces of surface for surface groups.
  * @tparam S Shape type.
  */
 template <class S>

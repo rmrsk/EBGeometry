@@ -48,7 +48,7 @@ EBGeometry object.
    * - :file:`Materials`
      - One subdomain of a ``Domain`` (a cable's air, or its jacket), its own function cut, and each cut cell
        labeled with its surface group (the boundary condition's id), its role (a boundary or an interface) and
-       the region on the other side (``closestSurface(p, subdomains, subdomain)``).
+       the region on the other side (``Domain::closestSurface(p, subdomain)``).
      - :ref:`Chap:ExampleMaterials`
    * - :file:`ManyObjects`
      - 3,000 spheres in a cylinder joined by a ``BVHSmoothUnion`` (the fluid is between them), or a city of

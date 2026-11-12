@@ -8,21 +8,22 @@ of the core (0), the air's box (1) and the interface of the air and the jacket (
 [`Materials`](../../../Examples/Materials/README.md) example.
 
 AMReX's EB2 grid generation cuts one implicit function, so one subdomain is handed over: its function
-(`Tape::signedDistance(p, subdomains, subdomain)`), negative in the subdomain and zero on its boundary only,
+(`Domain::signedDistance(p, subdomain)`), negative in the subdomain and zero on its boundary only,
 never on a contact between two of its own regions. The subdomain is where the code computes, and the platform
 reads negative values as fluid, so the sign is EBGeometry's own. Cutting another subdomain is another EB
 generation (another index space).
 
-Each cut cell is labeled from the subdomain's surface closest to its center (`closestSurface(p, subdomains,
+Each cut cell is labeled from the subdomain's surface closest to its center (`Domain::closestSurface(p,
 subdomain)`):
 
-* `condition`: the surface group holding it (`Scheme::surfaceGroupOf()`), the boundary condition's id; -1 for none;
-* `role`: what the surface is to the domain (`Subdomains::role()`): 1 a boundary (one side in the domain), 2 an
+* `condition`: the surface group holding it (`Domain::surfaceGroupOf()`), the boundary condition's id; -1 for none;
+* `role`: what the surface is to the domain (`Domain::role()`): 1 a boundary (one side in the domain), 2 an
   interface with another subdomain;
 * `across`: the region on the other side.
 
 The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs: the geometry's pool is mirrored to
-device memory in one piece, and the implicit function holds a view of each copy and the domain, a plain value.
+device memory in one piece, and the implicit function holds a view of the domain (which holds its tape) in each
+copy.
 
 Compiling
 ---------

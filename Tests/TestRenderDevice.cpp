@@ -101,6 +101,13 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
             MaterialLabel(CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)), "PTFE"),
             MaterialLabel(CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)), "copper")));
 
+  // The core's surfaces as a surface group, built in the pool before it is mirrored.
+  DomainSetup groups;
+
+  groups.add(groups.addSurfaceGroup(), SurfaceSelector::region(3));
+
+  const SurfaceGroups built = groups.buildSurfaceGroups(pool);
+
   pool.freeze();
 
   const Pool             devicePool = Pool::mirror(pool, deviceTestResource());
@@ -120,17 +127,23 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
   settings.m_regions.m_coloring = RegionColoring::Material;
   settings.m_regions.setVisible(1, false);
   settings.m_regions.setRegionSeenThrough(2, true);
-  settings.m_regions.m_scheme.add(settings.m_regions.m_scheme.addSurfaceGroup(), SurfaceSelector::region(3));
+  settings.m_regions.m_surfaceGroups = built;
   settings.m_regions.setSurfaceGroupSeenThrough(0, true);
 
+  // On the device, the settings read the surface groups from the mirror, as the shape does.
+  Render::Settings<T> deviceSettings = settings;
+
+  deviceSettings.m_regions.m_surfaceGroups = built.rebasedView(devicePool);
+
   const Render::Renderer<T> renderer(settings);
+  const Render::Renderer<T> deviceRenderer(deviceSettings);
   const auto                camera = Render::Camera<T>::fit(host.computeBoundingVolume());
 
   Render::Image onHost;
   Render::Image onDevice;
 
   (void)renderer.render(host, camera, onHost);
-  (void)renderer.renderOnDevice(device, camera, onDevice);
+  (void)deviceRenderer.renderOnDevice(device, camera, onDevice);
 
   REQUIRE(onHost.m_pixels.size() == onDevice.m_pixels.size());
 

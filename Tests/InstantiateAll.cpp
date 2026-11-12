@@ -528,33 +528,40 @@ instantiateFunctionTemplates()
       (void)RegionView<Tape<T>>(regions).firstHit(along, T(0), T(1), RayOptions<T>());
       (void)RegionView<Tape<T>>(regions).firstSeenThrough(along, T(0), T(1), RayOptions<T>());
 
-      Subdomains subdomains;
+      DomainSetup setup;
 
-      (void)subdomains.addSubdomain({0U, 1U});
+      (void)setup.addSubdomain({0U, 1U});
+      setup.add(setup.addSurfaceGroup(), SurfaceSelector::interface(0U, 1U));
+      (void)setup.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)setup.role(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+
+      const Domain     domain(meshPool, regions, setup);
+      const Subdomains subdomains = domain.subdomains();
+
       (void)subdomains.role(regions.closestSurface(Vec3T<T>::zeros(), subdomains, 0U));
       (void)regions.signedDistance(Vec3T<T>::zeros(), subdomains, 0U);
-
-      Scheme scheme;
-
-      scheme.add(scheme.addSurfaceGroup(), SurfaceSelector::interface(0U, 1U));
-      (void)scheme.surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
+      (void)domain.surfaceGroups().surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
-      (void)Domain{subdomains, scheme}.touches(0U, 1U);
-      (void)Domain{subdomains, scheme}.labelAt(regions, Vec3T<T>::zeros());
-      (void)Domain{subdomains, scheme}.signedDistance(regions, Vec3T<T>::zeros(), Domain::Excluded);
+      (void)domain.touches(0U, 1U);
+      (void)domain.labelAt(Vec3T<T>::zeros());
+      (void)domain.signedDistance(Vec3T<T>::zeros(), Domain<T>::Excluded);
+      (void)domain.closestSurface(Vec3T<T>::zeros(), 0U);
+      (void)domain.surfaceGroupOf(domain.closestSurface(Vec3T<T>::zeros(), 0U));
+      (void)domain.role(domain.closestSurface(Vec3T<T>::zeros(), 0U));
+      (void)domain.rebasedView(meshPool);
       {
-        T values[Domain::MaxLabels];
+        T values[2];
 
-        Domain{subdomains, scheme}.signedDistances(regions, Vec3T<T>::zeros(), values);
+        domain.signedDistances(Vec3T<T>::zeros(), values);
       }
       (void)RegionSettings{}.selectionOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       {
         const SurfaceInventory inventory(ExprIndex<T>(Overlay(expr, expr)));
 
         for (const PossiblePiece& piece : possiblePieces(inventory)) {
-          (void)coverageOf(piece, inventory, scheme);
+          (void)coverageOf(piece, inventory, setup);
         }
       }
       (void)ExprIndex<T>(Overlay(RegionName(expr, "a"), expr)).findRegion("a");

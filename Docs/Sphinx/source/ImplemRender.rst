@@ -230,7 +230,7 @@ opened with them.
      - For a view of regions, shortcuts for the panel's buttons (below): add what is picked to the current
        surface group; add the picked pieces' whole surfaces; add the interfaces between their two regions;
        remove them from the current surface group; make the next surface group current, or start one past the last; delete the
-       current surface group. C also prints the scheme as C++.
+       current surface group. C also prints the active domain's setup as C++.
    * - Tab, Shift + Tab; F1 to F6
      - Show the next or the previous menu of keys; show one: camera, rendering, section, picking, regions,
        window. Every key works whichever menu is shown.
@@ -266,7 +266,7 @@ regions' boxes and the camera; each region with a box a click cycles through sho
 (``RegionSettings::setRegionSeenThrough()``, whatever the coloring; a region seen through by T under the region or
 material coloring shows so too) and off ``[ ]``, and highlighted by a click on its name (every
 surface with it on either side lights; the background is listed and highlighted so, never drawn); and the
-surface groups of the scheme (``Settings::m_regions.m_scheme``) with their selectors: a click on a surface group makes
+surface groups of the active domain's setup (shown through ``Settings::m_regions.m_surfaceGroups``) with their selectors: a click on a surface group makes
 it current and highlights its surfaces, whatever the coloring (a second click, or picking a surface, stops it;
 ``RegionSettings::m_highlightGroup`` does the same in a program), its button cycles its surfaces through
 translucent (``[Translucent]``; ``RegionSettings::setSurfaceGroupSeenThrough()`` in a program, passed through by a

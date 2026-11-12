@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_RegionNames.hpp
- * @brief  RegionNames: the names of an object's regions, materials, surfaces and a scheme's groups, for showing them.
+ * @brief  RegionNames: the names of an object's regions, materials, surfaces and surface groups, for showing them.
  * @author Robert Marskar
  */
 
@@ -20,7 +20,7 @@
 #include <vector>
 
 // Our includes
-#include "EBGeometry_Domain.hpp"
+#include "EBGeometry_DomainSetup.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_Macros.hpp"
 #include "EBGeometry_RegionSettings.hpp"
@@ -31,7 +31,7 @@ namespace EBGeometry {
 
 /**
  * @brief The names of an object's regions, materials, surfaces and surface labels, from its expression's index, and
- * of a scheme's groups: what a viewer shows a piece of surface or a group by (Render::view()).
+ * of surface groups: what a viewer shows a piece of surface or a group by (Render::view()).
  * @details Host only. Anything without a name, or beyond the lists, is named by its kind and number ("region 3",
  * "surface group 1"). Names can also be given colors (setColor()), which a viewer colors the surfaces by.
  */
@@ -81,15 +81,15 @@ public:
   static constexpr uint32_t None = 0xFFFFFFFFU;
 
   /**
-   * @brief Register a domain: its name, the regions it computes in and its surface groups (see Domain). The first
-   * registered is the active one, whose surface groups the names name and a viewer shows.
+   * @brief Register a domain: its name, and how it is made (its subdomains and surface groups, see DomainSetup). The
+   * first registered is the active one, whose surface groups the names name and a viewer shows.
    * @param[in] a_name   Its name ("heat transfer").
-   * @param[in] a_domain The domain.
+   * @param[in] a_domain How it is made.
    * @return Its number, from 0 in the order registered.
    */
   EBGEOMETRY_HOST
   uint32_t
-  addDomain(std::string a_name, const Domain& a_domain)
+  addDomain(std::string a_name, const DomainSetup& a_domain)
   {
     m_domainNames.push_back(std::move(a_name));
     m_domains.push_back(a_domain);
@@ -115,12 +115,12 @@ public:
   }
 
   /**
-   * @brief A domain.
+   * @brief How a domain is made, to edit.
    * @param[in] a_domain Its number (below getNumDomains()).
-   * @return The domain.
+   * @return Its setup.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  Domain&
+  DomainSetup&
   getDomain(const uint32_t a_domain)
   {
     EBGEOMETRY_REQUIRE(
@@ -130,12 +130,12 @@ public:
   }
 
   /**
-   * @brief A domain.
+   * @brief How a domain is made.
    * @param[in] a_domain Its number (below getNumDomains()).
-   * @return The domain.
+   * @return Its setup.
    */
   [[nodiscard]] EBGEOMETRY_HOST
-  const Domain&
+  const DomainSetup&
   getDomain(const uint32_t a_domain) const
   {
     EBGEOMETRY_REQUIRE(
@@ -344,7 +344,7 @@ public:
   }
 
   /**
-   * @brief Name a surface group of the active domain (with no domain registered, of the scheme a viewer shows).
+   * @brief Name a surface group of the active domain (with no domain registered, of those a viewer shows).
    * @param[in] a_group The group.
    * @param[in] a_name  Its name.
    */
@@ -362,7 +362,7 @@ public:
   }
 
   /**
-   * @brief Forget a group's name; the names of the groups after it move down by one (as Scheme::removeSurfaceGroup()
+   * @brief Forget a group's name; the names of the groups after it move down by one (as SurfaceGroups::removeSurfaceGroup()
    * numbers them).
    * @param[in] a_group The group.
    */
@@ -465,7 +465,7 @@ protected:
   /**
    * @brief The domains, their names and their surface groups' names; and the active one, or None.
    */
-  std::vector<Domain> m_domains;
+  std::vector<DomainSetup> m_domains;
 
   /**
    * @brief The domains' names.

@@ -45,6 +45,7 @@ What is in Performance/
      ClosestSurface/main.cpp  a tape's closestSurface(), drilled into a collection
      SurfaceParts/main.cpp    parts and labels of a tape's surfaces, and firstSurface()
      Regions/main.cpp         a tape's regions, their functions, and a domain's labels
+     Domain/main.cpp          a domain with many subdomains and surface groups
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -577,6 +578,23 @@ Family                                Build  Measures
 ``assembly/firstRegionChange``,       host   where 50,000 rays at the assembly first change region,
 ``assembly/firstHit``                        with the surface; or where they first cross it
 ``<input>/<operation>``               GPU    each of the above at 262,144 points or rays on both sides
+====================================  =====  =====================================================
+
+**Domain** (``Performance/Domain``): a domain (see :ref:`Chap:ClosestPrimitive`) with many subdomains and surface
+groups, over the Regions probe's matrix of 32 particles: the matrix and every shell a subdomain of its own (33
+subdomains, the grains excluded), and 33 selectors (each shell's interface with its grain, and the remaining surfaces)
+dealt into 8 surface groups, so that a surface facing the matrix tries every selector before the remaining surfaces
+hold it.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``particles/labels``                  host   every label's function at each of 20,000 points in the
+                                             matrix
+``particles/labelAt``                 host   the label of each of those points
+``particles/surfaceGroups``           host   the surface group of the surface of each point's region
+                                             closest to it (found untimed)
+``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
 ====================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see

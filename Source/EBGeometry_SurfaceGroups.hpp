@@ -3,22 +3,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
- * @file   EBGeometry_Scheme.hpp
- * @brief  SurfaceSelector and Scheme: which surfaces a solver groups under one boundary condition.
+ * @file   EBGeometry_SurfaceGroups.hpp
+ * @brief  SurfaceSelector and SurfaceGroups: which surfaces a downstream code groups under one meaning.
  * @author Robert Marskar
  */
 
-#ifndef EBGEOMETRY_SCHEME_HPP
-#define EBGEOMETRY_SCHEME_HPP
+#ifndef EBGEOMETRY_SURFACEGROUPS_HPP
+#define EBGEOMETRY_SURFACEGROUPS_HPP
 
 // Std includes
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
 #include "EBGeometry_LabelId.hpp"
 #include "EBGeometry_Macros.hpp"
+#include "EBGeometry_PODVector.hpp"
+#include "EBGeometry_Pool.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 
 namespace EBGeometry {
@@ -30,7 +33,7 @@ namespace EBGeometry {
  * and sides), every surface with a label, every surface between two regions (an interface, either order), every
  * surface of a region (either side), or between two materials. Patches with the same attributes are one piece: the
  * conditions say what a surface is, not where. The remaining surfaces (rest()) are what no other selector of a
- * scheme holds. Matched against a SurfaceRef with its sides set (a tape's region queries set them); a plain value,
+ * domain's surface groups hold. Matched against a SurfaceRef with its sides set (a tape's region queries set them); a plain value,
  * usable on a device.
  */
 struct SurfaceSelector
@@ -76,7 +79,7 @@ struct SurfaceSelector
   uint32_t m_materialB = Any;
 
   /**
-   * @brief Whether the selector holds the remaining surfaces (rest()): a scheme tries it after every other.
+   * @brief Whether the selector holds the remaining surfaces (rest()): surface groups try it after every other.
    */
   bool m_rest = false;
 
@@ -102,7 +105,7 @@ struct SurfaceSelector
   }
 
   /**
-   * @brief The remaining surfaces: every surface no other selector of the scheme holds, whatever the order the
+   * @brief The remaining surfaces: every surface no other selector of the surface groups holds, whatever the order the
    * selectors were added in.
    * @return The selector.
    */
@@ -253,14 +256,17 @@ struct SurfaceSelector
 };
 
 /**
- * @brief One solver's surface groups ("inlet", "outlet" and "wall" for a flow code; "heated" and "insulated" for a
- * heat one), each a list of selectors (SurfaceSelector), so that a cut cell's surface (Tape::closestSurface(p, subdomains,
- * subdomain)) gives its surface group, and the surface group its boundary condition.
- * @details At most MaxSurfaceGroups surface groups and MaxSelectors selectors in all, so that a scheme is a plain value a kernel
- * takes (surfaceGroupOf() is callable on a device). A surface is in the surface group of the first selector it matches, in the
- * order they were added, the remaining surfaces' (SurfaceSelector::rest()) tried last. The surface groups' names are the caller's (a scheme holds numbers only).
+ * @brief A domain's surface groups, read on the host or a device: each group a set of surfaces, given by its selectors
+ * (SurfaceSelector), that the caller gives one meaning (a boundary condition, an exchange with another code), and the
+ * group of a surface, so that a surface found at a point (Domain::closestSurface()) gives its group, and the group its
+ * meaning.
+ * @details A view of the selectors in a pool: trivially copyable, a pool handle (see PoolHandle). A Domain builds it
+ * from a DomainSetup and returns it (Domain::surfaceGroups()); a renderer showing surface groups takes one built on its
+ * own (DomainSetup::buildSurfaceGroups()). The pool must outlive it. A default-constructed one has no surface groups. A
+ * surface is in the group of the first selector it matches, in the order they were added, the remaining surfaces'
+ * (SurfaceSelector::rest()) tried last. The groups' names and meanings are the caller's: the class holds numbers only.
  */
-class Scheme
+class SurfaceGroups : public PoolHandle
 {
 public:
   /**
@@ -269,109 +275,90 @@ public:
   static constexpr uint32_t None = 0xFFFFFFFFU;
 
   /**
-   * @brief The most surface groups a scheme holds.
+   * @brief The arrays, as offsets: what a Domain stores.
    */
-  static constexpr uint32_t MaxSurfaceGroups = 8;
+  struct Layout
+  {
+    /**
+     * @brief The selectors, in the order added.
+     */
+    PODVector<SurfaceSelector> m_selectors;
+
+    /**
+     * @brief Each selector's surface group.
+     */
+    PODVector<uint32_t> m_groupOf;
+
+    /**
+     * @brief How many surface groups there are.
+     */
+    uint32_t m_numSurfaceGroups = 0;
+  };
 
   /**
-   * @brief The most selectors a scheme holds, over all its surface groups.
+   * @brief No surface groups.
    */
-  static constexpr uint32_t MaxSelectors = 32;
+  SurfaceGroups() noexcept = default;
 
   /**
-   * @brief Add a surface group.
-   * @details Aborts with a message, in every build, beyond MaxSurfaceGroups.
-   * @return Its number, from 0 in the order added.
+   * @brief Build the selectors in a pool.
+   * @details Aborts with a message, in every build, when the two lists differ in length or a selector's surface group
+   * is not below @p a_numSurfaceGroups.
+   * @param[in,out] a_pool             Pool to reserve the arrays from (not frozen).
+   * @param[in]     a_selectors        The selectors, in order.
+   * @param[in]     a_surfaceGroups    Each selector's surface group.
+   * @param[in]     a_numSurfaceGroups How many surface groups there are.
    */
   EBGEOMETRY_HOST
-  uint32_t
-  addSurfaceGroup()
+  SurfaceGroups(Pool&                               a_pool,
+                const std::vector<SurfaceSelector>& a_selectors,
+                const std::vector<uint32_t>&        a_surfaceGroups,
+                const uint32_t                      a_numSurfaceGroups)
   {
-    EBGEOMETRY_REQUIRE(m_numSurfaceGroups < MaxSurfaceGroups,
-                       "Scheme: a scheme holds at most %u surface groups",
-                       unsigned(MaxSurfaceGroups));
+    EBGEOMETRY_REQUIRE(a_selectors.size() == a_surfaceGroups.size(),
+                       "SurfaceGroups: %zu selectors and %zu surface groups of them",
+                       a_selectors.size(),
+                       a_surfaceGroups.size());
 
-    return m_numSurfaceGroups++;
-  }
+    this->attach(a_pool, "SurfaceGroups");
 
-  /**
-   * @brief Add a selector to a surface group.
-   * @details Aborts with a message, in every build, for a surface group not added or beyond MaxSelectors.
-   * @param[in] a_group    The surface group.
-   * @param[in] a_selector The selector.
-   */
-  EBGEOMETRY_HOST
-  void
-  add(const uint32_t a_group, const SurfaceSelector& a_selector)
-  {
-    EBGEOMETRY_REQUIRE(
-      a_group < m_numSurfaceGroups, "Scheme: surface group %u of %u", unsigned(a_group), unsigned(m_numSurfaceGroups));
-    EBGEOMETRY_REQUIRE(
-      m_numSelectors < MaxSelectors, "Scheme: a scheme holds at most %u selectors", unsigned(MaxSelectors));
+    const uint32_t n = static_cast<uint32_t>(a_selectors.size());
 
-    m_selectors[m_numSelectors]     = a_selector;
-    m_surfaceGroups[m_numSelectors] = a_group;
+    m_layout.m_selectors.reserveSizedFrom(a_pool, n);
+    m_layout.m_groupOf.reserveSizedFrom(a_pool, n);
+    m_layout.m_numSurfaceGroups = a_numSurfaceGroups;
 
-    m_numSelectors++;
-  }
+    for (uint32_t i = 0; i < n; i++) {
+      EBGEOMETRY_REQUIRE(a_surfaceGroups[i] < a_numSurfaceGroups,
+                         "SurfaceGroups: selector %u is in surface group %u of %u",
+                         unsigned(i),
+                         unsigned(a_surfaceGroups[i]),
+                         unsigned(a_numSurfaceGroups));
 
-  /**
-   * @brief Remove a surface group and its selectors; the surface groups after it move down by one.
-   * @details Aborts with a message, in every build, for a surface group not added.
-   * @param[in] a_group The surface group.
-   */
-  EBGEOMETRY_HOST
-  void
-  removeSurfaceGroup(const uint32_t a_group)
-  {
-    EBGEOMETRY_REQUIRE(
-      a_group < m_numSurfaceGroups, "Scheme: surface group %u of %u", unsigned(a_group), unsigned(m_numSurfaceGroups));
-
-    uint32_t kept = 0;
-
-    for (uint32_t i = 0; i < m_numSelectors; i++) {
-      if (m_surfaceGroups[i] != a_group) {
-        m_selectors[kept]     = m_selectors[i];
-        m_surfaceGroups[kept] = (m_surfaceGroups[i] > a_group) ? m_surfaceGroups[i] - 1U : m_surfaceGroups[i];
-
-        kept++;
-      }
+      m_layout.m_selectors.at(this->base(), i) = a_selectors[i];
+      m_layout.m_groupOf.at(this->base(), i)   = a_surfaceGroups[i];
     }
-
-    m_numSelectors = kept;
-
-    m_numSurfaceGroups--;
   }
 
   /**
-   * @brief Remove the selectors of a surface group that equal one (to undo a click).
-   * @param[in] a_group    The surface group.
-   * @param[in] a_selector The selector.
+   * @brief Rebuild a view from a stored layout and the location of the pool that holds it (as a Domain does).
+   * @param[in] a_layout   The arrays.
+   * @param[in] a_location Where they live.
    */
-  EBGEOMETRY_HOST
-  void
-  remove(const uint32_t a_group, const SurfaceSelector& a_selector)
+  EBGEOMETRY_HOST_DEVICE
+  SurfaceGroups(const Layout& a_layout, const PoolLocation& a_location) noexcept
+    : PoolHandle(a_location), m_layout(a_layout)
+  {}
+
+  /**
+   * @brief The arrays, as offsets.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Layout&
+  layout() const noexcept
   {
-    uint32_t kept = 0;
-
-    for (uint32_t i = 0; i < m_numSelectors; i++) {
-      const SurfaceSelector& s = m_selectors[i];
-
-      const bool same = m_surfaceGroups[i] == a_group && s.m_surface == a_selector.m_surface &&
-                        s.m_part == a_selector.m_part && s.m_regionA == a_selector.m_regionA &&
-                        s.m_regionB == a_selector.m_regionB && s.m_label == a_selector.m_label &&
-                        s.m_materialA == a_selector.m_materialA && s.m_materialB == a_selector.m_materialB &&
-                        s.m_rest == a_selector.m_rest;
-
-      if (!same) {
-        m_selectors[kept]     = m_selectors[i];
-        m_surfaceGroups[kept] = m_surfaceGroups[i];
-
-        kept++;
-      }
-    }
-
-    m_numSelectors = kept;
+    return m_layout;
   }
 
   /**
@@ -382,7 +369,7 @@ public:
   inline uint32_t
   getNumSurfaceGroups() const noexcept
   {
-    return m_numSurfaceGroups;
+    return m_layout.m_numSurfaceGroups;
   }
 
   /**
@@ -393,7 +380,7 @@ public:
   inline uint32_t
   getNumSelectors() const noexcept
   {
-    return m_numSelectors;
+    return m_layout.m_selectors.size();
   }
 
   /**
@@ -405,9 +392,7 @@ public:
   inline const SurfaceSelector&
   getSelector(const uint32_t a_selector) const noexcept
   {
-    EBGEOMETRY_EXPECT(a_selector < m_numSelectors);
-
-    return m_selectors[a_selector];
+    return m_layout.m_selectors.at(this->base(), a_selector);
   }
 
   /**
@@ -419,9 +404,7 @@ public:
   inline uint32_t
   getSurfaceGroupOfSelector(const uint32_t a_selector) const noexcept
   {
-    EBGEOMETRY_EXPECT(a_selector < m_numSelectors);
-
-    return m_surfaceGroups[a_selector];
+    return m_layout.m_groupOf.at(this->base(), a_selector);
   }
 
   /**
@@ -437,11 +420,20 @@ public:
   inline uint32_t
   surfaceGroupOf(const SurfaceRef<T>& a_surface) const noexcept
   {
+    const uint32_t n = m_layout.m_selectors.size();
+
+    if (n == 0U) {
+      return None;
+    }
+
+    const SurfaceSelector* selectors = m_layout.m_selectors.data(this->base());
+    const uint32_t*        groups    = m_layout.m_groupOf.data(this->base());
+
     // The remaining surfaces' selectors last.
     for (int pass = 0; pass < 2; pass++) {
-      for (uint32_t i = 0; i < m_numSelectors; i++) {
-        if (m_selectors[i].m_rest == (pass == 1) && m_selectors[i].matches(a_surface)) {
-          return m_surfaceGroups[i];
+      for (uint32_t i = 0; i < n; i++) {
+        if (selectors[i].m_rest == (pass == 1) && selectors[i].matches(a_surface)) {
+          return groups[i];
         }
       }
     }
@@ -449,29 +441,31 @@ public:
     return None;
   }
 
+  /**
+   * @brief A view resolving against another pool of the selectors' mirror chain (see PoolHandle).
+   * @param[in] a_pool The pool, or a mirror of it.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline SurfaceGroups
+  rebasedView(const Pool& a_pool) const noexcept
+  {
+    SurfaceGroups view = *this;
+
+    view.setLocation(this->rebasedLocation(a_pool, m_layout.m_groupOf.endByte(), "SurfaceGroups"));
+
+    return view;
+  }
+
 private:
   /**
-   * @brief The selectors.
+   * @brief The arrays.
    */
-  SurfaceSelector m_selectors[MaxSelectors] = {};
-
-  /**
-   * @brief Each selector's surface group.
-   */
-  uint32_t m_surfaceGroups[MaxSelectors] = {};
-
-  /**
-   * @brief How many selectors are used.
-   */
-  uint32_t m_numSelectors = 0;
-
-  /**
-   * @brief How many surface groups there are.
-   */
-  uint32_t m_numSurfaceGroups = 0;
+  Layout m_layout;
 };
 
-static_assert(std::is_trivially_copyable_v<Scheme>, "Scheme must be a plain value, for a kernel to take it");
+static_assert(std::is_trivially_copyable_v<SurfaceGroups>,
+              "SurfaceGroups must be trivially copyable, for a kernel to take it");
 
 } // namespace EBGeometry
 
