@@ -3791,8 +3791,8 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     // and the search, starting there again, found the same crossing until it gave up: the surface was missed (a
     // rounded edge, a flat cap seen from low down). The crossing itself is where the traced solid's sign changes along
     // the ray: steps growing from the solid's distance find a point past it (within a hundred tolerances, or the ray
-    // only touches the surface and passes it), and halving the step finds it. An exact crossing (a ray form) is on the
-    // surface and searches nothing.
+    // only touches the surface and passes it), and halving the step finds it, where it is then reported. An exact
+    // crossing (a ray form) is on the surface and searches nothing.
     if (to == from) {
       const auto valueAt = [&](const T a_along) {
         return this->template evaluate<MaxCallDepth, T>(
@@ -3833,6 +3833,13 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
           }
 
           to = regionAt(first.m_point + (hi + nudge) * a_ray.m_direction);
+
+          // The crossing is reported where it is, so that the next query, starting just past it, does not find it
+          // again.
+          if (to != from) {
+            first.m_t += hi;
+            first.m_point = first.m_point + hi * a_ray.m_direction;
+          }
         }
       }
     }

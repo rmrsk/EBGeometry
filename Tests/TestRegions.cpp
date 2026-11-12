@@ -2730,7 +2730,21 @@ TEMPLATE_TEST_CASE(
         if (hit.hit()) {
           hits++;
 
-          CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(hit.m_t, looseMargin<T>()));
+          // The true crossing, by halving along the ray past where the march stopped (it stops short of the surface):
+          // the region change is reported there, to within the march's tolerance.
+          T lo = hit.m_t;
+          T hi = hit.m_t + T(0.05);
+
+          if (plain.signedDistance(ray.m_origin + hi * ray.m_direction) < T(0)) {
+            for (int halving = 0; halving < 60; halving++) {
+              const T mid = T(0.5) * (lo + hi);
+
+              (plain.signedDistance(ray.m_origin + mid * ray.m_direction) > T(0) ? lo : hi) = mid;
+            }
+
+            CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(hi, 2.0e-3));
+          }
+
           CHECK(change.m_surface.m_ownerRegion == 0U);
           CHECK(change.m_surface.m_neighborRegion == 1U);
         }
