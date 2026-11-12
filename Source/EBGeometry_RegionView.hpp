@@ -508,6 +508,23 @@ public:
   }
 
   /**
+   * @brief The first crossing of the whole object's surface along a ray, as firstHit() on the tape finds it.
+   * @details Through the tape's out-of-line trace, which the view's own queries call: firstHit() on the tape inlines
+   * a second copy of the tape's ray code into every device kernel reaching it, and the device render tests of
+   * region views then took ptxas over an hour instead of about ten minutes (CUDA, sm_70).
+   * @param[in] a_ray     The ray, with a unit direction.
+   * @param[in] a_tMax    End of the interval, which starts at 0.
+   * @param[in] a_options How to march the parts without a ray form.
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline HitT<T>
+  objectHit(const RayT<T>& a_ray, const T a_tMax, const RayOptions<T>& a_options) const noexcept
+  {
+    return m_tape.traceProgram(0U, a_ray, T(0), a_tMax, a_options);
+  }
+
+  /**
    * @brief Whether the view shows the whole object's outer surface, as the tape itself is drawn: every region shown,
    * none alone, nothing seen through, no surface group hidden, not only the selected surfaces. A ray from outside the
    * object then meets the view's surface where it meets the tape's (only the keys differ), so that a renderer can

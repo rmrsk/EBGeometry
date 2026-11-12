@@ -1404,7 +1404,7 @@ private:
     // occlusion took most of such a frame).
     if constexpr (hasRegionVisibility<S>) {
       if (!m_object.m_on && m_object.m_shape.showsWholeObject()) {
-        const HitT<T> plain = firstHit(m_object.m_shape.getTape(), a_ray, T(0), a_tMax, m_rays);
+        const HitT<T> plain = m_object.m_shape.objectHit(a_ray, a_tMax, m_rays);
 
         return plain.hit() ? plain.m_t : Math::Limits<T>::infinity();
       }

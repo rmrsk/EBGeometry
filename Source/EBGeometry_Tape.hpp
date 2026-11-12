@@ -52,6 +52,9 @@
 
 namespace EBGeometry {
 
+template <class TapeType>
+class RegionView;
+
 /**
  * @brief Settings for compiling an Expr into a Tape.
  */
@@ -1451,6 +1454,12 @@ private:
    * @brief Tape's ray form follows the ray programs.
    */
   friend struct RayForm<Tape>;
+
+  /**
+   * @brief A view of the tape's regions traces the whole object through traceProgram(), out of line.
+   */
+  template <class TapeType>
+  friend class RegionView;
 
   /**
    * @brief The primitive of a crossing found by marching a subtree, which closestLeaf() then names.
