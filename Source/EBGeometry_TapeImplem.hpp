@@ -3784,7 +3784,58 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       return result;
     }
 
-    const uint32_t to = regionAt(first.m_point + nudge * a_ray.m_direction);
+    uint32_t to = regionAt(first.m_point + nudge * a_ray.m_direction);
+
+    // A marched crossing stops short of the surface: within the march's tolerance of it, and further along the ray
+    // where the ray meets it at a shallow angle. The nudge can then stay on the near side, which reads as no change,
+    // and the search, starting there again, found the same crossing until it gave up: the surface was missed (a
+    // rounded edge, a flat cap seen from low down). The crossing itself is where the traced solid's sign changes along
+    // the ray: steps growing from the solid's distance find a point past it (within a hundred tolerances, or the ray
+    // only touches the surface and passes it), and halving the step finds it. An exact crossing (a ray form) is on the
+    // surface and searches nothing.
+    if (to == from) {
+      const auto valueAt = [&](const T a_along) {
+        return this->template evaluate<MaxCallDepth, T>(
+          program, first.m_point + a_along * a_ray.m_direction, base, this->location());
+      };
+
+      const T    v0      = valueAt(T(0));
+      const bool outside = v0 > T(0);
+
+      if (std::abs(v0) > nudge) {
+        const T reach = Math::max(T(100) * a_options.m_tolerance * scale, T(4) * std::abs(v0));
+
+        T    lo      = T(0);
+        T    hi      = std::abs(v0);
+        bool flipped = false;
+
+        while (hi <= reach) {
+          if ((valueAt(hi) > T(0)) != outside) {
+            flipped = true;
+
+            break;
+          }
+
+          lo = hi;
+          hi = T(2) * hi;
+        }
+
+        if (flipped) {
+          for (int halving = 0; halving < 48 && hi - lo > nudge; halving++) {
+            const T mid = T(0.5) * (lo + hi);
+
+            if ((valueAt(mid) > T(0)) != outside) {
+              hi = mid;
+            }
+            else {
+              lo = mid;
+            }
+          }
+
+          to = regionAt(first.m_point + (hi + nudge) * a_ray.m_direction);
+        }
+      }
+    }
 
     if (to != from) {
       // The surface crossed: the leaf deciding the traced program's value there, drilled.

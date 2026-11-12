@@ -2685,3 +2685,58 @@ TEMPLATE_TEST_CASE("ExprIndex: checkLabels reports regions with no volume and ma
     },
     "ExprIndex: checkLabels was given an expression of"));
 }
+
+TEMPLATE_TEST_CASE(
+  "Tape: firstRegionChange() finds a marched shape's surface wherever firstHit() does, grazing rays too",
+  "[Overlay][Tape]",
+  EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Shapes with no ray form (marched), each the one region of an Overlay: a crossing the march stops short of, at a
+  // rounded edge or a flat face seen at a shallow angle, must still change the region.
+  const std::vector<Expr<T>> shapes{toExpr(RoundedCylinderSDF<T>(Vec3::zeros(), T(1), T(0.3), T(2))),
+                                    toExpr(RoundedCylinderSDF<T>(Vec3::zeros(), T(1), T(0.02), T(0.2))),
+                                    toExpr(RoundedBoxSDF<T>(Vec3::zeros(), Vec3(T(2), T(0.4), T(2)), T(0.1))),
+                                    toExpr(TorusSDF<T>(Vec3::zeros(), T(1), T(0.2)))};
+
+  for (size_t s = 0; s < shapes.size(); s++) {
+    const Tape<T> plain(pool, shapes[s]);
+    const Tape<T> regions(pool, Overlay(std::vector<Expr<T>>{RegionName(shapes[s], "a")}));
+
+    size_t hits = 0;
+
+    // Rays from a ring around the shape, from low (grazing the flat faces) to high, aimed across it.
+    for (int i = 0; i < 24; i++) {
+      for (int j = 0; j < 12; j++) {
+        const T    angle = T(2) * T(3.14159265358979) * T(i) / T(24);
+        const T    y     = T(-1.2) + T(0.21) * T(j);
+        const Vec3 from(T(4) * std::cos(angle), y + T(0.35), T(4) * std::sin(angle));
+        const Vec3 to(T(-0.3) * std::cos(angle), y, T(0.2) * std::sin(angle));
+
+        const Vec3    direction = (to - from) / (to - from).length();
+        const RayT<T> ray{from, direction};
+
+        const HitT<T>        hit    = plain.firstHit(ray, T(0), T(20));
+        const SurfaceHitT<T> change = regions.firstRegionChange(ray, T(0), T(20));
+
+        INFO("shape " << s << ", ray " << i << ", " << j);
+
+        REQUIRE(change.m_hit.hit() == hit.hit());
+
+        if (hit.hit()) {
+          hits++;
+
+          CHECK_THAT(change.m_hit.m_t, withinAbsT<T>(hit.m_t, looseMargin<T>()));
+          CHECK(change.m_surface.m_ownerRegion == 0U);
+          CHECK(change.m_surface.m_neighborRegion == 1U);
+        }
+      }
+    }
+
+    CHECK(hits > 30U);
+  }
+}
