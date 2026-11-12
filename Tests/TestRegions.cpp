@@ -2754,3 +2754,37 @@ TEMPLATE_TEST_CASE(
     CHECK(hits > 30U);
   }
 }
+
+TEMPLATE_TEST_CASE("RegionView: shows the whole object only with every region shown and nothing seen through or hidden",
+                   "[Overlay][RegionView]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool,
+                     Overlay(std::vector<Expr<T>>{RegionName(toExpr(BoxSDF<T>(Vec3(-2, -2, -2), Vec3(2, 2, 2))), "air"),
+                                                  RegionName(toExpr(SphereSDF<T>(Vec3::zeros(), T(1))), "ball")}));
+
+  const RegionView<Tape<T>> view(tape);
+
+  CHECK(view.showsWholeObject());
+  CHECK_FALSE(view.withVisible(1, false).showsWholeObject());
+  CHECK_FALSE(view.withOnly(2).showsWholeObject());
+  CHECK_FALSE(view.withSeenThrough(1, true).showsWholeObject());
+  CHECK(view.withVisible(1, false).withAllVisible().showsWholeObject());
+
+  RegionSettings settings = view.getSettings();
+
+  settings.setSurfaceGroupHidden(0, true);
+
+  CHECK_FALSE(view.withSettings(settings).showsWholeObject());
+
+  // Showing the whole object, a ray from outside meets the view's surface where it meets the tape's.
+  const RayT<T> ray{Vec3(-5, T(0.3), T(0.2)), Vec3(1, 0, 0)};
+
+  CHECK_THAT(view.firstHit(ray, T(0), T(20), RayOptions<T>()).m_t,
+             withinAbsT<T>(tape.firstHit(ray, T(0), T(20)).m_t, looseMargin<T>()));
+}

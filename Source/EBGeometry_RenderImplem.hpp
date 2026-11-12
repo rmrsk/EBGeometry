@@ -1399,6 +1399,17 @@ private:
       return this->blockedPastHidden(a_ray, a_tMax);
     }
 
+    // A view of regions showing the whole object, uncut: its surface is the tape's, which one trace finds (the view's
+    // search for each change of region asks which region a point is in, for keys a shadow does not need: shadows and
+    // occlusion took most of such a frame).
+    if constexpr (hasRegionVisibility<S>) {
+      if (!m_object.m_on && m_object.m_shape.showsWholeObject()) {
+        const HitT<T> plain = firstHit(m_object.m_shape.getTape(), a_ray, T(0), a_tMax, m_rays);
+
+        return plain.hit() ? plain.m_t : Math::Limits<T>::infinity();
+      }
+    }
+
     const HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
 
     return hit.hit() ? hit.m_t : Math::Limits<T>::infinity();

@@ -487,6 +487,27 @@ public:
   }
 
   /**
+   * @brief Whether the view shows the whole object's outer surface, as the tape itself is drawn: every region shown,
+   * none alone, nothing seen through, no surface group hidden, not only the selected surfaces. A ray from outside the
+   * object then meets the view's surface where it meets the tape's (only the keys differ), so that a renderer can
+   * trace the tape for what needs only where (shadows, occlusion).
+   * @return Whether.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  showsWholeObject() const noexcept
+  {
+    bool through = m_settings.m_throughRegions != 0U || m_settings.m_throughGroups != 0U;
+
+    for (uint32_t i = 0; i < RegionSettings::MaxSeenThrough; i++) {
+      through = through || m_settings.m_through[i] != None;
+    }
+
+    return m_settings.m_hidden == 0U && m_settings.m_only == None && !through && m_settings.m_hiddenGroups == 0U &&
+           !m_settings.m_onlySelected;
+  }
+
+  /**
    * @brief Whether a region is shown (the background never is).
    * @param[in] a_region Region.
    * @return True if visible.
