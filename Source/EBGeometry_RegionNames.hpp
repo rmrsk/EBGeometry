@@ -257,7 +257,8 @@ public:
 
   /**
    * @brief The color a key has, colored by a kind of key: by the name of the region, material, surface label (a
-   * surface's too) or surface group it is.
+   * surface's too) or surface group it is. Colored by region, a region without a color of its own takes its
+   * material's, so that colors given to materials (the usual case) are kept when the coloring turns to regions.
    * @param[in]  a_coloring The kind of key.
    * @param[in]  a_key      The key.
    * @param[out] a_color    Its color, if it has one.
@@ -304,19 +305,20 @@ public:
     }
     }
 
-    if (name == nullptr || name->empty()) {
-      return false;
+    const auto color = (name == nullptr || name->empty()) ? m_colors.end() : m_colors.find(*name);
+
+    if (color != m_colors.end()) {
+      a_color = color->second;
+
+      return true;
     }
 
-    const auto color = m_colors.find(*name);
-
-    if (color == m_colors.end()) {
-      return false;
+    // A region without a color of its own: its material's.
+    if (a_coloring == RegionColoring::Region && this->materialOf(a_key) != None) {
+      return this->colorOf(RegionColoring::Material, this->materialOf(a_key), a_color);
     }
 
-    a_color = color->second;
-
-    return true;
+    return false;
   }
 
   /**

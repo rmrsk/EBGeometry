@@ -2107,7 +2107,8 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
   CHECK(names.surfaceGroup(1) == "1 jump");
   CHECK(RegionNames().region(1) == "region 1");
 
-  // Colors by name: a material's when colored by material, a surface group's when colored by surface group.
+  // Colors by name: a material's when colored by material, a surface group's when colored by surface group, and
+  // colored by region, a region's material's when the region has none of its own.
   names.setColor("PTFE", Vec3T<double>(0.5, 0.5, 0.5));
   names.setColor("jump", Vec3T<double>(0.0, 0.0, 1.0));
 
@@ -2115,12 +2116,30 @@ TEMPLATE_TEST_CASE("RegionNames: regions by their materials, surfaces by their l
 
   CHECK(names.colorOf(RegionColoring::Material, 0, color));
   CHECK(color[0] == 0.5);
-  CHECK(!names.colorOf(RegionColoring::Region, 1, color));
+  color = Vec3T<double>::zeros();
+  CHECK(names.colorOf(RegionColoring::Region, 1, color));
+  CHECK(color[0] == 0.5);
+  CHECK(!names.colorOf(RegionColoring::Region, 2, color));
   CHECK(names.colorOf(RegionColoring::SurfaceGroup, 1, color));
   CHECK(color[2] == 1.0);
   CHECK(!names.colorOf(RegionColoring::SurfaceGroup, 0, color));
   CHECK(names.materialOf(1) == 0U);
   CHECK(names.materialOf(2) == RegionNames::None);
+
+  // A region's own color wins over its material's.
+  const Expr<T> named = Overlay(RegionName(MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), "PTFE"), "jacket"),
+                                RegionName(MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(0.5)), "PTFE"), "core"));
+
+  RegionNames regions{ExprIndex<T>(named)};
+
+  regions.setColor("PTFE", Vec3T<double>(0.5, 0.5, 0.5));
+  regions.setColor("core", Vec3T<double>(1.0, 0.0, 0.0));
+
+  CHECK(regions.colorOf(RegionColoring::Region, 1, color));
+  CHECK(color[0] == 0.5);
+  CHECK(regions.colorOf(RegionColoring::Region, 2, color));
+  CHECK(color[0] == 1.0);
+  CHECK(color[1] == 0.0);
 }
 
 TEMPLATE_TEST_CASE("Render: a surface between two regions near the section plane is no cut face",
