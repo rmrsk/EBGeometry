@@ -154,7 +154,8 @@ its boundary. ``[Hide]`` and ``[Only]`` hide a subdomain's or the domain's regio
 **Color by, and Pick.** A "Color by" row sets what the surfaces are colored by: material, region, surface
 group, surface label, surface, part, interface, the normal, or one color. A swatch beside each region and
 surface group shows its color; colors given to names replace the palette's (colored by region, a region with no
-color of its own takes its material's), and colored by surface group, a surface in none is gray. A "Pick" row sets what a click picks: the part of the surface clicked (a cylinder's
+color of its own takes its material's color, given or from the palette, so that it looks as it does colored by
+material), and colored by surface group, a surface in none is gray. A "Pick" row sets what a click picks: the part of the surface clicked (a cylinder's
 cap, a box's face), or the region there, with all its surfaces.
 
 **What is picked.** Each picked part is listed with its surface, the regions on its two sides and its

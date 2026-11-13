@@ -989,14 +989,22 @@ run(const S&           a_shape,
   };
 
   // The colors the names give the keys of the coloring shown, over the settings' own (see RegionNames::setColor()).
+  //
+  // Colored by region, a region with no color, its own or its material's, takes its material's palette color: the
+  // colors it has colored by material, which numbers materials from 0 where regions start at 1 (0 is the outside).
   const auto applyColors = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
         Vec3T<double> color;
 
-        settings.m_primitiveColors[i] = names.colorOf(settings.m_regions.m_coloring, i, color)
-                                          ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
-                                          : a_settings.m_primitiveColors[i];
+        const bool     named      = names.colorOf(settings.m_regions.m_coloring, i, color);
+        const uint32_t material   = names.materialOf(i);
+        const bool     ofMaterial = !named && settings.m_regions.m_coloring == RegionColoring::Region &&
+                                material != RegionNames::None && !(a_settings.m_primitiveColors[i][0] >= T(0));
+
+        settings.m_primitiveColors[i] = named        ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
+                                        : ofMaterial ? RenderDetail::palette<T>(material)
+                                                     : a_settings.m_primitiveColors[i];
         settings.m_materialColors[i]  = names.colorOf(RegionColoring::Material, i, color)
                                           ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
                                           : a_settings.m_materialColors[i];
