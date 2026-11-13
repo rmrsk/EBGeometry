@@ -1,8 +1,3 @@
-.. EBGeometry documentation master file, created by
-   sphinx-quickstart on Mon Mar  7 22:24:17 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 EBGeometry's user documentation
 ===============================
 
@@ -67,12 +62,10 @@ Getting started
    :caption: Getting started
    :hidden:
 
-   ObtainingEBGeometry.rst
    Quickstart.rst
    Building.rst
-   SIMDAcceleration.rst
    ConfigurationOptions.rst
-   History.rst
+   SIMDAcceleration.rst
 
 Concepts
 ********
@@ -168,10 +161,11 @@ Contributing and testing
    :hidden:
 
    Contributing.rst
+   ContributionGuidelines.rst
    TestingLocally.rst
    PerformanceTesting.rst
    ContinuousIntegration.rst
-   ContributionGuidelines.rst
+   History.rst
 
 .. toctree::
    :maxdepth: 3

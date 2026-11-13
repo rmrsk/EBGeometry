@@ -8,9 +8,9 @@ Integrations
    These integrations show how EBGeometry is coupled to a third-party application code. They are not
    built as part of EBGeometry's continuous integration: unlike everything under :ref:`Chap:Examples`,
    which is compiled and run on every pull request, a change to a third-party platform (or to EBGeometry
-   itself) can break them without anyone noticing. All of them were last compiled and run in October 2026,
-   on CPUs and on an NVIDIA GPU (CUDA), against AMReX's development branch (26.09); they have not been run
-   with HIP. Treat them as a starting point for your own integration.
+   itself) can break them without anyone noticing. They are run by hand, on CPUs and on an NVIDIA GPU (CUDA),
+   against AMReX's development branch, and never with HIP. Treat them as a starting point for your own
+   integration.
 
 Each integration mirrors one or more of the :ref:`Chap:Examples` and hands the object it builds to AMReX's
 embedded-boundary grid generation as an implicit function, on a domain around the object's box with

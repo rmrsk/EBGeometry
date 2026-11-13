@@ -40,7 +40,7 @@ Add the following to your ``CMakeLists.txt``:
    FetchContent_Declare(
      EBGeometry
      GIT_REPOSITORY https://github.com/rmrsk/EBGeometry.git
-     GIT_TAG        main   # pin to a release tag in production
+     GIT_TAG        main   # or a commit hash, to pin a version
    )
    FetchContent_MakeAvailable(EBGeometry)
 
@@ -88,7 +88,7 @@ The ``EBGEOMETRY_SIMD`` cache variable (``avx512``, ``avx``, ``sse41`` or ``none
 ``EBGeometry::EBGeometry`` target add the matching flags to every target in the same build that links
 against it. Its default is ``none`` when another project pulls EBGeometry in, since SIMD flags
 produce binaries that fail on processors without those instructions, and ``avx`` when EBGeometry
-itself is the project being built (its tests, examples and benchmarks). To opt in from a project
+itself is the project being built (its tests, examples and performance probes). To opt in from a project
 that uses ``FetchContent`` or ``add_subdirectory``, set it first:
 
 .. code-block:: cmake
@@ -176,9 +176,9 @@ A minimal ``Makefile`` that compiles a single ``main.cpp`` against EBGeometry:
    	rm -f $(TARGET)
 
 Because EBGeometry is header-only, there are no object files or static libraries
-to build; the ``$(TARGET)`` rule is the only build step required.  Every example under
-:file:`Examples/<something>` ships a ``GNUmakefile`` following this same pattern —
-see :ref:`Chap:Examples`.
+to build; the ``$(TARGET)`` rule is the only build step required. Every example under
+:file:`Examples/<something>` ships a ``GNUmakefile`` built on this pattern, adding the precision, the
+assertions, the viewer and the GPU switches (see :ref:`Chap:Examples`).
 
 Conditional SIMD selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -260,9 +260,9 @@ Pass the corresponding flags to expose the widest register set supported by your
    * - Target ISA
      - GCC / Clang flag(s)
    * - AVX-512F (recent server/HEDT CPUs)
-     - ``-mavx512f -mfma``
-   * - AVX + FMA (recommended on x86-64 since ~2013)
-     - ``-mavx -mfma``
+     - ``-mavx512f -mavx2 -mavx -mfma -msse4.1``
+   * - AVX + FMA (most x86-64 processors)
+     - ``-mavx -mfma -msse4.1``
    * - SSE 4.1 (older or constrained targets)
      - ``-msse4.1``
    * - No SIMD (portable fallback)

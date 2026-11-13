@@ -283,7 +283,7 @@ A subset of the CI checks can be reproduced locally before pushing using
 
 The hooks configured in ``.pre-commit-config.yaml`` include:
 
-* **clang-format** — formats ``Source/`` and ``Examples/`` C/C++ files (default stage; runs on
+* **clang-format** — formats every C and C++ file in the repository (default stage; runs on
   every ``git commit`` once ``pre-commit install`` has been run).
 * **reuse** — REUSE license/copyright header compliance (default stage).
 * **codespell** — typo detection across ``Source/``, ``Docs/``, ``Examples/`` (except

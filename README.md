@@ -87,6 +87,7 @@ one header and compile with C++17.
 
 ```cpp
 #include <iostream>
+#include <vector>
 
 #include <EBGeometry.hpp>
 
@@ -110,7 +111,8 @@ main()
 {
   Pool pool(hostMemoryResource());
 
-  // A triangle mesh as a signed distance field: SIMD triangle blocks under a BVH.
+  // A triangle mesh as a signed distance field: SIMD triangle blocks under a BVH. (The armadillo is in
+  // the common-3d-test-models submodule, common-3d-test-models/data/armadillo.obj.)
   const auto mesh = Parser::readIntoTriMeshSDF<T>("armadillo.obj", pool);
 
   // Place the other shapes from the mesh's bounding box: the armadillo is about 130 units across.
@@ -128,9 +130,9 @@ main()
   const Tape<T> scene(pool, Union(Difference(Expr<T>(mesh), drill), blob));
 
   // Ask it anything, anywhere: here, at a point in the blob.
-  const Vec3T<T>        p    = beside;
-  const T               d    = scene.signedDistance(p);    // negative inside, positive outside
-  const LeafRef<T> leaf = scene.closestLeaf(p);  // which surface decides the value
+  const Vec3T<T>   p    = beside;
+  const T          d    = scene.signedDistance(p);   // negative inside, positive outside
+  const LeafRef<T> leaf = scene.closestLeaf(p);      // which surface decides the value
 
   std::cout << "distance " << d << ", decided by leaf " << leaf.m_leaf << '\n';
 
@@ -174,19 +176,19 @@ git clone --recurse-submodules https://github.com/rmrsk/EBGeometry.git
 cd EBGeometry
 ```
 
-Build and run the `MeshSDF` example, which reads a triangulated surface mesh and evaluates it as a
-signed distance function:
+Build and run the first example, which constructs every analytic shape and prints its signed distance
+at a few points:
 
 ```bash
-cd Examples/MeshSDF
-g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o MeshSDF.ex
-./MeshSDF.ex
+cd Examples/Shapes
+g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o Shapes.ex
+./Shapes.ex
 ```
 
-This loads `armadillo.obj` from the `common-3d-test-models` submodule by default; pass a path to run
-it on a different STL/PLY/OBJ/VTK file instead. Every example under `Examples/` can also be built with
-[CMake](https://cmake.org/) or GNU make (see [Examples/MeshSDF/README.md](Examples/MeshSDF/README.md)),
-and with `make GPU=CUDA` or `make GPU=HIP` for a GPU.
+Every example under `Examples/` can also be built with [CMake](https://cmake.org/) or GNU make (see
+[Examples/README.md](Examples/README.md) for the reading order), and with `make GPU=CUDA` or
+`make GPU=HIP` for a GPU. The [Quickstart](https://rmrsk.github.io/EBGeometry/Quickstart.html) writes a
+first program of your own.
 
 To build and run the whole test suite and every example, use the
 [CMake presets](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html):

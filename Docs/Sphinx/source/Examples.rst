@@ -1,7 +1,7 @@
 .. _Chap:Examples:
 
-Overview
-========
+About the examples
+==================
 
 The :file:`Examples/` folder contains pure EBGeometry examples with no third-party
 dependencies.  Each one can be built directly with a compiler, with GNU Make, or with CMake
@@ -29,13 +29,14 @@ window on it with ``Render::view()`` when built with the viewer (``make VIEWER=S
 :ref:`Sec:ConfigViewer`), and its page shows what that window first shows
 (rendered by ``Scripts/render-example-figures.sh``); otherwise, with
 ``--no-view`` or without a display, ``view()`` prints why and returns, so the examples still run
-unattended. Each example folder also ships its own ``README.md`` with the exact build/run
-commands reproduced on its page.
+unattended. Each example folder also has a ``README.md`` with its build and run commands.
 
 Reading order
 -------------
 
-The examples build on each other. A new user can read them in this order:
+The examples build on each other. A new user can read them in this order.
+
+**Shapes and composition**
 
 #. :ref:`Chap:ExampleShapes`: the analytic shapes, their signed distance, bounding box and distance
    quality.
@@ -46,35 +47,56 @@ The examples build on each other. A new user can read them in this order:
 #. :ref:`Chap:ExampleRepetition`: many copies of a mesh from one ``FiniteRepetition``.
 #. :ref:`Chap:ExampleValueOperations`: offsets, shells, blurring and mollifying.
 #. :ref:`Chap:ExampleFusedCSG`: the classic solid as a fused composition, against the tape.
-#. :ref:`Chap:ExampleMeshSDF`: reading a surface mesh into a signed distance function, and the
+
+**Meshes**
+
+8. :ref:`Chap:ExampleMeshSDF`: reading a surface mesh into a signed distance function, and the
    three representations to choose from.
 #. :ref:`Chap:ExampleMeshCSG`: a mesh joined to analytic shapes, the dragon on a table.
 #. :ref:`Chap:ExampleShell`: a thin shell around a mesh (Lucy), cut open.
-#. :ref:`Chap:ExampleSurfaceLabels`: which part of an object a query found, and a table of your own indexed by its label.
+
+**Parts, labels and materials**
+
+11. :ref:`Chap:ExampleSurfaceLabels`: which part of an object a query found, and a table of your own indexed
+    by its label.
 #. :ref:`Chap:ExampleMaterials`: several materials in one object, as regions, and each region's own function.
-#. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
+
+**Many objects and particles**
+
+13. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
 #. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
    plain loop.
 #. :ref:`Chap:ExamplePackedSpheres`: thousands of spheres at random places in a cylinder, joined by a
    smooth BVH union.
 #. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
    BVH or a hash grid.
+#. :ref:`Chap:ExampleParticleNeighbors`: moving particles and every particle's nearest neighbors after
+   each step, the grid rebuilt where the particles live.
 #. :ref:`Chap:ExampleSphereClouds`: particles of differing sizes packed in a cylinder, the signed distance to their
    union and the closest particle; the cylinder with the particles cut out of it, fused and in a tape, and a ray
    through both.
 #. :ref:`Chap:ExampleParticleContacts`: particles of differing sizes pushed apart in a cylinder until none
    overlap, rebuilding the cloud each round; their contacts, a contact list, and a near-contact force per particle
    on a GPU.
-#. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own -- the nearest object to
-   a point, the first one a ray hits, whether a segment is blocked.
-#. :ref:`Chap:ExampleRayTracing`: casting rays at a triangle mesh -- where a ray or a particle's step
+
+**Rays and BVHs**
+
+20. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own: the nearest object to
+    a point, the first one a ray hits, whether a segment is blocked.
+#. :ref:`Chap:ExampleRayTracing`: casting rays at a triangle mesh: where a ray or a particle's step
    first crosses the surface, and the same walk of the BVH written by hand.
-#. :ref:`Chap:ExampleOctreeBoundingVolume`: estimating a bounding box for a function with no
-   closed-form one.
+
+**Extending the library**
+
+22. :ref:`Chap:ExampleOctreeBoundingVolume`: estimating a bounding box for a function with no
+    closed-form one.
 #. :ref:`Chap:ExampleCustomShape`: a shape type of your own, and calling EBGeometry from your own
    kernel.
 #. :ref:`Chap:ExampleTwist`: an operation of your own, a twist, applied to a mesh.
-#. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
+
+**Tuning**
+
+25. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
 #. :ref:`Chap:ExampleDeviceTuning`: the block size and register budget of a GPU launch, tuned to the
    query.
 #. :ref:`Chap:ExampleBuildBVH`: comparing the BVH construction methods by build time.
@@ -144,7 +166,7 @@ Each query is a small trivially copyable struct whose call operator is ``EBGEOME
 holding what it evaluates by value. :ref:`Chap:ExampleCustomShape` writes the kernel out instead, to
 show how an application calls EBGeometry from its own kernels.
 
-The examples show three ways of getting the geometry to the device:
+The examples show three ways of getting the geometry to the device; for example:
 
 * **Nothing to copy.** Analytic shapes are plain values, so a query holds them and goes straight to
   the kernel (:ref:`Chap:ExampleShapes`, :ref:`Chap:ExampleFusedCSG`,

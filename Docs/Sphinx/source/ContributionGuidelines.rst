@@ -7,6 +7,55 @@ Contribution guidelines
    :local:
    :depth: 2
 
+What a change needs
+-------------------
+
+Three folders hold programs, each with one job: ``Tests/`` *verifies* (it fails when the library is
+wrong), ``Examples/`` *teaches* (it shows a user the calls to write, and checks nothing), and
+``Performance/`` *measures* (it times and compares, and checks only that answers did not change). A new
+program goes in the folder whose job it does.
+
+* **A new public class or function** needs unit tests (see `Adding tests`_), an entry in
+  ``Tests/InstantiateAll.cpp``, and documentation (below). If users build it or query it in bulk, it
+  needs performance cases (:ref:`Chap:PerformanceTesting`); if users need to be shown how to use it (a new
+  capability, not a new overload), an example.
+* **A new device path for existing code** needs a ``[gpu]`` test and a host-and-device performance pair.
+* **A bug fix** needs a test that fails without the fix.
+* **A new example** is a folder with ``main.cpp``, ``CMakeLists.txt``, ``GNUmakefile`` and ``README.md``
+  (copied from the nearest existing example, so that its three build routes and switches keep working), a
+  page ``Example<Name>.rst`` in the Examples section, and a line in the reading order of
+  ``Examples/README.md`` and :ref:`Chap:Examples`. An example that builds a shape ends by opening the viewer
+  on it, and its page shows the first frame (``Scripts/render-example-figures.sh <Name>``).
+
+Documentation
+-------------
+
+The two documentation systems have different readers:
+
+* **This user guide** (``Docs/Sphinx/source``) explains concepts, how to use the API and how to choose
+  between options. It names no internal classes or namespaces and gives no measured numbers: a choice is
+  explained in words, with a pointer to measuring it (the probes, or an example). Short usage snippets
+  are fine; anything longer is an example. ``literalinclude`` is not used: a page links to a class's
+  Doxygen page instead.
+* **The Doxygen comments** in the headers state the contract a user relies on (``@brief``, ``@param``,
+  ``@return``), and in ``@details`` what a maintainer needs: the algorithm, invariants, device and
+  performance constraints, why the design is as it is, and the measurements behind a rule.
+
+Both are written in American English, and state what is true now: no "formerly", "since #...", or pull
+request and issue numbers (the :ref:`Chap:History` page excepted). The user guide shows a feature with an
+example program, never with a unit test. A change that alters a documented behavior updates the pages
+that describe it in the same pull request.
+
+Pull requests
+-------------
+
+Open a pull request as a draft, from the template (``.github/pull_request_template.md``): its *Summary*
+sections, *Background*, *Solution*, *Side-effects*, *Alternative solutions*, *Performance* and *Where to
+look*, describe the change; the reviewer checklist is for the reviewer. *Where to look* names the files
+that carry the risk, what was verified and how, and what was not (a configuration not built, no run on a
+GPU). Before it is marked ready for review, record the performance receipt on the finished code (see
+:ref:`Chap:PerformanceTesting`) and summarize its verdicts in *Performance*.
+
 Code style
 ------------
 

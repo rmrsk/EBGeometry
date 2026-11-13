@@ -33,15 +33,15 @@ debugger output), and turns on both the test suite and the examples.
    # 3b. Run example programs (allow several minutes in Debug mode)
    ctest --preset examples
 
-A successful unit-test run looks like::
+A successful unit-test run ends with::
 
-   100% tests passed, 0 tests failed out of 566
+   100% tests passed, 0 tests failed out of <N>
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
-matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
-additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (1021 tests). To do the same locally:
+matching whatever the CMake preset otherwise builds). CI additionally configures with
+``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite under both precisions. To do the same
+locally:
 
 .. code-block:: bash
 
@@ -165,6 +165,19 @@ CMake options
      - The default triangle-group width ``TriangleSoA::DefaultWidth<T>()`` becomes the host-tuned
        width for these SIMD flags (8 for ``float`` with ``avx``). Cannot be combined with
        ``EBGEOMETRY_ENABLE_CUDA`` or ``EBGEOMETRY_ENABLE_HIP``. See :ref:`Sec:DefaultKW`.
+   * - ``EBGEOMETRY_ENABLE_CUDA``, ``EBGEOMETRY_ENABLE_HIP``
+     - ``OFF``
+     - Compile the ``[gpu]`` tests and the examples for a device, with CUDA or HIP (see
+       :ref:`Sec:BuildingGPU`).
+   * - ``EBGEOMETRY_VIEWER``
+     - ``OFF``
+     - ``SDL2`` compiles the interactive window of ``Render::view()`` (see :ref:`Sec:ConfigViewer`).
+   * - ``EBGEOMETRY_INSTALL``
+     - ``ON`` (``OFF`` when another project includes EBGeometry)
+     - Generate the install target (``cmake --install``).
+   * - ``EBGEOMETRY_PERF_ARCH_FLAGS``
+     - ``-march=native`` for a standalone host build of the probes
+     - Architecture flags for the performance probes (see :ref:`Chap:PerformanceTesting`).
 
 Selecting individual tests
 -----------------------------

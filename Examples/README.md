@@ -1,5 +1,7 @@
-This folder contains examples of using EBGeometry on its own (header-only, C++17, no
-third-party dependencies):
+# Examples
+
+Programs that use EBGeometry on its own (header-only, C++17, no third-party dependencies), each with a page in
+the [user guide's Examples section](https://rmrsk.github.io/EBGeometry/Examples.html).
 
 The examples teach; the unit tests in `Tests/` verify. An example shows the calls you would write,
 in the order you would write them, and prints results you can read. It does not check its own
@@ -11,6 +13,8 @@ answers.
 
 The reading order:
 
+**Shapes and composition**
+
 1. `Shapes`: the built-in analytic shapes: constructing them, their signed distance, bounding box and distance quality.
 2. `BasicCSG`: the classic CSG solid, with `Union`, `Intersection` and `Difference`, compiled into a `Tape`.
 3. `SmoothCSG`: smooth unions, intersections and differences, and the two blend kinds.
@@ -18,11 +22,20 @@ The reading order:
 5. `Repetition`: many copies of a mesh (the happy Buddha) from one `FiniteRepetition`.
 6. `ValueOperations`: `Offset`, `Annular`, `Blur` and `Mollify`.
 7. `FusedCSG`: the classic solid as a fused composition (`Fused::`), against the tape.
+
+**Meshes**
+
 8. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 9. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
 10. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
+
+**Parts, labels and materials**
+
 11. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
 12. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
+
+**Many objects and particles**
+
 13. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
 14. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
 15. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
@@ -30,11 +43,20 @@ The reading order:
 17. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
 18. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
 19. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
+
+**Rays and BVHs**
+
 20. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
 21. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
+
+**Extending the library**
+
 22. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
 23. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
 24. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
+
+**Tuning**
+
 25. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
 26. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
 27. `BuildBVH`: comparing the BVH construction methods by build time.
@@ -62,4 +84,5 @@ Examples that couple EBGeometry to a third-party application code live under
 `data/` holds the small mesh (`dodecahedron.stl`) that `NestedBVH` and `HostTuning` read by default. The
 larger mesh files used by the examples listed at the top come from the [common-3d-test-models](https://github.com/alecjacobson/common-3d-test-models)
 git submodule (`common-3d-test-models/`) at the repository root. Clone the repository with `--recurse-submodules` (or run
-`git submodule update --init --recursive`); see the "Building and using" documentation for details.
+`git submodule update --init --recursive`); see the user guide's
+[Quickstart](https://rmrsk.github.io/EBGeometry/Quickstart.html).

@@ -27,7 +27,7 @@ define, that is the code path compiled in.
      - Compiler macro(s) required
    * - AVX-512F (recent server/HEDT CPUs)
      - ``__AVX512F__``
-   * - AVX (recommended on x86-64 since ~2013)
+   * - AVX (most x86-64 processors)
      - ``__AVX__``
    * - SSE 4.1 (older or constrained targets)
      - ``__SSE4_1__``

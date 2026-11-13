@@ -109,7 +109,7 @@ branching factor and the point-group width stay 4, since widening them does not 
   since the host and device passes of such a compile see different SIMD flags.
 
 EBGeometry's CMake build sets it through the ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` option, which is on
-when EBGeometry is the top-level project (its tests, examples and benchmarks) and no GPU backend is
+when EBGeometry is the top-level project (its tests, examples and performance probes) and no GPU backend is
 enabled, and off otherwise; asking for it together with a GPU backend is a configure error. Like
 ``EBGEOMETRY_SIMD``, it is not passed on to a project that uses EBGeometry through
 ``find_package``, ``add_subdirectory`` or ``FetchContent``: such a project defines the macro itself
@@ -163,10 +163,10 @@ On failure the program prints what went wrong, the failed condition, the file an
 
 .. code-block:: text
 
-   EBGeometry::BVHUnion: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
-     check: (a_primitives.size() == a_boundingVolumes.size())
-     file: Source/EBGeometry_BVHUnionImplem.hpp
-     line: 92
+   MySDF: the radius must be positive (-1)
+     check: a_radius > T(0)
+     file: my_shape.hpp
+     line: 12
 
 The message argument is a ``printf`` format string literal, starting with the class or function
 that checks, followed by its arguments, so the compiler checks the format against the arguments.
@@ -272,8 +272,8 @@ preconditions that are known at compile time (from the template parameters alone
 Both macros are available in any translation unit that (directly or transitively) includes
 ``EBGeometry_Macros.hpp``, which is pulled in automatically through ``EBGeometry.hpp``. An example combining both is given below. Like the built-in analytic shapes
 (:ref:`Sec:AnalyticShapes`), it is a plain, trivially copyable value type with a
-``signedDistance()`` member rather than a subclass of a virtual base, so it can also be evaluated on
-a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
+``signedDistance()`` and a ``computeBoundingVolume()`` member rather than a subclass of a virtual base,
+so it can also be evaluated on a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
 
 .. code-block:: cpp
 
@@ -297,6 +297,13 @@ a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
      signedDistance(const EBGeometry::Vec3T<T>& a_point) const noexcept
      {
        return a_point.length() - m_radius;
+     }
+
+     [[nodiscard]] EBGEOMETRY_HOST_DEVICE EBGeometry::BoundingVolumes::AABBT<T>
+     computeBoundingVolume() const noexcept
+     {
+       return EBGeometry::BoundingVolumes::AABBT<T>(-m_radius * EBGeometry::Vec3T<T>::ones(),
+                                                    m_radius * EBGeometry::Vec3T<T>::ones());
      }
 
    private:
