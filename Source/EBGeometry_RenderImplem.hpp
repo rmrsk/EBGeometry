@@ -3176,7 +3176,7 @@ Renderer<T>::renderOnHost(const Q&                 a_query,
 
   const Q& query = a_query;
 
-  // Rows not reached by a canceled render stay black.
+  // Pixels not reached by a canceled render stay black.
   std::vector<RenderDetail::StoredPixel> results(size_t(width) * size_t(height));
   std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? results.size() : 0U, 0xFFFFFFFFU);
 
@@ -3186,13 +3186,15 @@ Renderer<T>::renderOnHost(const Q&                 a_query,
 
   const auto work = [&query, &results, &primitives, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
     for (uint32_t row = next++; row < height; row = next++) {
-      if (a_cancel.load(std::memory_order_relaxed)) {
-        stopped = true;
-
-        return;
-      }
-
       for (uint32_t column = 0; column < width; column++) {
+        // The flag is read at every pixel, not every row: a row of a full frame with shadows and occlusion can take
+        // far longer than a viewer may wait to stop it (a click during refinement).
+        if (a_cancel.load(std::memory_order_relaxed)) {
+          stopped = true;
+
+          return;
+        }
+
         const uint32_t    index  = row * width + column;
         const PixelResult result = query(index);
 
