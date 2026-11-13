@@ -21,7 +21,7 @@ can be checked without knowing what the properties mean: that every name used is
 a shape is given is valid, and that a domain leaves no surface without a condition.
 
 If the terms above are new, :ref:`Chap:Regions` explains regions, materials, domains and surface groups,
-with a picture of the cable below.
+with a picture of the cable below, and the :ref:`Chap:Glossary` defines each in a line.
 
 A first model
 -------------

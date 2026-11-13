@@ -39,7 +39,7 @@ from the ``air`` material.
 On the host and on a GPU
 ------------------------
 
-A query reads the fluid's density at a point, by the domain's label there, along a line across the cable: on
+A query reads the fluid's density at a point, by the domain label there, along a line across the cable: on
 the host, then the same through ``GPU::transform``, after the pool is mirrored to the device. Last, the window
 shows the regions, colored by material, with the model's names; its panel switches between the two domains.
 

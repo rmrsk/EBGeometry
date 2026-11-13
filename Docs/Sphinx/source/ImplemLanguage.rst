@@ -64,7 +64,7 @@ Domains and their properties
 A domain of the model, `ModelDomain <doxygen/html/classEBGeometry_1_1Language_1_1ModelDomain.html>`__, holds
 its ``DomainSetup`` with the names and properties of its subdomains and surface groups. The program builds the
 domain for its tape from the setup (see :ref:`Chap:ImplemRegions`), with the same numbers: subdomain *i* is
-label *i*, surface group *g* is group *g*.
+domain label *i*, surface group *g* is group *g*.
 
 .. code-block:: c++
 
