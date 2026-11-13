@@ -152,6 +152,12 @@ struct Hooks
   std::function<bool()> m_redo;
 
   /**
+   * @brief C: the current view in the program's own words (a model's view block), printed after the C++; "" for
+   * none.
+   */
+  std::function<std::string(const Camera<T>&, const Settings<T>&)> m_viewText;
+
+  /**
    * @brief The window kept between calls (an SDL_Window), or null before the first.
    */
   void* m_window = nullptr;
@@ -4631,6 +4637,14 @@ run(const S&           a_shape,
           shown.m_recordPrimitives = a_settings.m_recordPrimitives;
 
           std::printf("EBGeometry viewer: the current view, as C++:\n%s", toCode(camera, shown).c_str());
+
+          if (a_hooks != nullptr && a_hooks->m_viewText) {
+            const std::string text = a_hooks->m_viewText(camera, shown);
+
+            if (!text.empty()) {
+              std::printf("%s\n", text.c_str());
+            }
+          }
 
           // The setup built by clicking, to paste into the program.
           if constexpr (hasRegionVisibility<S>) {

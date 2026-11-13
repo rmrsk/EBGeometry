@@ -325,11 +325,29 @@ viewOf(const Language::Model<T>& a_model,
   // The view block's camera, or one fitted to the shape (the default camera for one that is not bounded).
   a_camera = Render::ViewerDetail::initialCamera<T>(a_shape);
 
+  // The camera by the eye's position (camera, target, up), or as the window prints it (target, yaw, pitch, distance);
+  // not both.
+  const bool angles = view.has("yaw") || view.has("pitch") || view.has("distance");
+
+  if (view.has("camera") && angles) {
+    throw Language::Error(view.find(view.has("yaw") ? "yaw" : (view.has("pitch") ? "pitch" : "distance"))->m_span,
+                          "the view: give the camera as camera = (x, y, z), or as yaw, pitch and distance, not both");
+  }
+
   if (view.has("camera")) {
     const Vec3T<T> target = view.vector<T>("target", a_shape.computeBoundingVolume().getCentroid());
 
     a_camera = Render::Camera<T>::lookAt(view.vector<T>("camera"), target, view.vector<T>("up", Vec3T<T>(0, 1, 0)));
   }
+  else {
+    a_camera.m_target   = view.vector<T>("target", a_camera.m_target);
+    a_camera.m_yaw      = T(view.number("yaw", double(a_camera.m_yaw)));
+    a_camera.m_pitch    = T(view.number("pitch", double(a_camera.m_pitch)));
+    a_camera.m_distance = T(view.number("distance", double(a_camera.m_distance)));
+  }
+
+  a_camera.m_fieldOfView  = T(view.number("field_of_view", double(a_camera.m_fieldOfView)));
+  a_camera.m_orthographic = view.flag("orthographic", a_camera.m_orthographic);
 
   // The background: a plain color instead of the sky's gradient, and the floor under the object or not.
   if (view.has("background")) {
@@ -339,6 +357,58 @@ viewOf(const Language::Model<T>& a_model,
 
   a_settings.m_sky   = view.flag("sky", a_settings.m_sky);
   a_settings.m_floor = view.flag("floor", a_settings.m_floor);
+}
+
+// The current view as a view block to paste into the model: the camera as the window holds it, the background where
+// it is not the default, and the model's colors as its view block gives them.
+std::string
+viewText(const Language::Model<T>& a_model, const Render::Camera<T>& a_camera, const Render::Settings<T>& a_settings)
+{
+  const auto number = [](const double a_value) {
+    char text[32];
+
+    std::snprintf(text, sizeof(text), "%.6g", a_value);
+
+    return std::string(text);
+  };
+  const auto vector = [&number](const Vec3T<double>& a_v) {
+    return "(" + number(a_v[0]) + ", " + number(a_v[1]) + ", " + number(a_v[2]) + ")";
+  };
+  const auto vectorT = [&vector](const Vec3T<T>& a_v) {
+    return vector(Vec3T<double>(double(a_v[0]), double(a_v[1]), double(a_v[2])));
+  };
+
+  const Render::Camera<T>   camera;
+  const Render::Settings<T> settings;
+
+  std::string text = "view { target = " + vectorT(a_camera.m_target) + ", yaw = " + number(double(a_camera.m_yaw)) +
+                     ", pitch = " + number(double(a_camera.m_pitch)) +
+                     ", distance = " + number(double(a_camera.m_distance));
+
+  if (a_camera.m_fieldOfView != camera.m_fieldOfView) {
+    text += ", field_of_view = " + number(double(a_camera.m_fieldOfView));
+  }
+  if (a_camera.m_orthographic) {
+    text += ", orthographic = true";
+  }
+  if (!a_settings.m_sky) {
+    text += ", background = " + vectorT(a_settings.m_background);
+  }
+  if (!a_settings.m_floor) {
+    text += ", floor = false";
+  }
+
+  const Language::Properties& view = a_model.view();
+
+  for (const std::string& key : view.keys()) {
+    const Language::Properties::Value* value = view.find(key);
+
+    if (key.rfind("color.", 0) == 0 && value->m_type == Language::Properties::Type::Vector) {
+      text += ", " + key + " = " + vector(value->m_vector);
+    }
+  }
+
+  return text + " }";
 }
 
 int
@@ -585,9 +655,15 @@ view(const Options& a_options)
   hooks.m_edited = [&writer](const RegionNames& a_names, const DomainSetup& a_setup) {
     return writer.edited(a_names, a_setup);
   };
-  hooks.m_named  = [&writer](const std::string& a_name) { return writer.named(a_name); };
-  hooks.m_undo   = [&writer]() { return writer.undo(); };
-  hooks.m_redo   = [&writer]() { return writer.redo(); };
+  hooks.m_named = [&writer](const std::string& a_name) { return writer.named(a_name); };
+  hooks.m_undo  = [&writer]() { return writer.undo(); };
+  hooks.m_redo  = [&writer]() { return writer.redo(); };
+
+  // C prints the view as a view block too, to paste into the model.
+  hooks.m_viewText = [&current](const Render::Camera<T>& a_camera, const Render::Settings<T>& a_settings) {
+    return "ebgstudio: the current view, as the model's view block:\n" +
+           viewText(*current->m_model, a_camera, a_settings);
+  };
   hooks.m_reload = [&]() {
     const auto now = std::chrono::steady_clock::now();
 
