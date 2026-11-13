@@ -344,6 +344,52 @@ public:
   }
 
   /**
+   * @brief Name a surface (by default it is named by its label): where it comes from, say ("cylinder, model.ebg:6").
+   * @param[in] a_surface The surface.
+   * @param[in] a_name    Its name.
+   */
+  EBGEOMETRY_HOST
+  void
+  setSurface(const uint32_t a_surface, std::string a_name)
+  {
+    if (a_surface >= m_surfaces.size()) {
+      m_surfaces.resize(a_surface + 1U);
+    }
+
+    m_surfaces[a_surface] = std::move(a_name);
+  }
+
+  /**
+   * @brief Pick a surface by its labels rather than its parts: a click on it picks the faces labeled as the one clicked
+   * (a mesh's face group), or the whole surface when the face has no label of its own. For a mesh, whose parts are its
+   * faces, which a model names only through its face groups.
+   * @param[in] a_surface The surface.
+   * @param[in] a_byLabel Whether it is picked by its labels.
+   */
+  EBGEOMETRY_HOST
+  void
+  setPickedByLabel(const uint32_t a_surface, const bool a_byLabel = true)
+  {
+    if (a_surface >= m_pickedByLabel.size()) {
+      m_pickedByLabel.resize(a_surface + 1U, false);
+    }
+
+    m_pickedByLabel[a_surface] = a_byLabel;
+  }
+
+  /**
+   * @brief Whether a surface is picked by its labels (see setPickedByLabel()).
+   * @param[in] a_surface The surface.
+   * @return Whether it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  pickedByLabel(const uint32_t a_surface) const noexcept
+  {
+    return a_surface < m_pickedByLabel.size() && m_pickedByLabel[a_surface];
+  }
+
+  /**
    * @brief Name a surface group of the active domain (with no domain registered, of those a viewer shows).
    * @param[in] a_group The group.
    * @param[in] a_name  Its name.
@@ -531,6 +577,11 @@ protected:
    * @brief The surfaces' names.
    */
   std::vector<std::string> m_surfaces;
+
+  /**
+   * @brief Which surfaces are picked by their labels (see setPickedByLabel()).
+   */
+  std::vector<bool> m_pickedByLabel;
 
   /**
    * @brief The surface labels' names.

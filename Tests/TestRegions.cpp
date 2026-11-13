@@ -1837,6 +1837,19 @@ TEST_CASE("SurfaceGroups: removing a surface group removes its selectors and ren
 
   CHECK(names.surfaceGroup(1) == "1 jump");
 
+  // A surface named, and one picked by its labels (a mesh's face groups); the others by their parts.
+  names.setSurface(3, "mesh, model.ebg:4");
+  names.setPickedByLabel(3);
+
+  CHECK(names.surface(3, false) == "mesh, model.ebg:4");
+  CHECK(names.pickedByLabel(3));
+  CHECK_FALSE(names.pickedByLabel(2));
+  CHECK_FALSE(names.pickedByLabel(7));
+
+  names.setPickedByLabel(3, false);
+
+  CHECK_FALSE(names.pickedByLabel(3));
+
   // The remaining surfaces are tried last, even when added first.
   DomainSetup ordered;
 
@@ -2003,6 +2016,14 @@ TEMPLATE_TEST_CASE("findSurfacePieces: every surface between every pair of regio
   CHECK(coverageOf(find(1, 2, 1), inventory, surfaceGroups).m_surfaceGroup == core);
   CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups).m_coverage == Coverage::Partly);
   CHECK(coverageOf(find(0, 1, 0), inventory, surfaceGroups).m_coverage == Coverage::None);
+
+  // Judged on some of its parts (those a ray found between its two regions): the face the group holds is all of it;
+  // a list naming none of the box's parts judges every part.
+  CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups, {0U}).m_coverage == Coverage::Full);
+  CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups, {0U}).m_surfaceGroup == face);
+  CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups, {0U, 1U}).m_coverage == Coverage::Partly);
+  CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups, {}).m_coverage == Coverage::Partly);
+  CHECK(coverageOf(find(2, 1, 0), inventory, surfaceGroups, {99U}).m_coverage == Coverage::Partly);
 
   // The remaining surfaces cover the rest, whatever the order they were added in; the core's stay the core's.
   DomainSetup rest = surfaceGroups;

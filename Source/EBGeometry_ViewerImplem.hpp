@@ -1162,10 +1162,28 @@ run(const S&           a_shape,
 
   std::vector<Picked> selection;
 
-  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background).
+  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background). A
+  // surface picked by its labels (a mesh, see RegionNames::setPickedByLabel()) gives the faces labeled as the one
+  // clicked (its face group), or the whole piece when that face has no label of its own.
   const auto selectorOf = [&](const SurfaceRef<T>& a_piece) {
     if (pickMode == PickMode::Region) {
       return SurfaceSelector::region((a_piece.m_ownerRegion != 0U) ? a_piece.m_ownerRegion : a_piece.m_neighborRegion);
+    }
+
+    if (names.pickedByLabel(a_piece.m_surface)) {
+      const SurfaceInventory& surfaces = names.getInventory();
+
+      SurfaceSelector selector = SurfaceSelector::piece(a_piece);
+
+      if (a_piece.m_surface < surfaces.getNumSurfaces() && surfaces.hasPartLabels(a_piece.m_surface)) {
+        const SurfaceLabelId label = surfaces.getLabel(a_piece.m_surface, a_piece.m_part);
+
+        if (!label.isNone()) {
+          selector.m_label = label.value();
+        }
+      }
+
+      return selector;
     }
 
     return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
@@ -2133,19 +2151,37 @@ run(const S&           a_shape,
       frame.m_regions.m_surfaceGroups = a_deviceScheme;
     }
 
-    const Renderer<T> renderer(frame);
+    const auto draw = [&](const auto& a_hostShape, const auto& a_deviceShape, const Settings<T>& a_settings) {
+      const Renderer<T> renderer(a_settings);
 
-    if (a_onDevice && a_job != nullptr) {
-      return renderer.renderOnDevice(a_device, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
-    }
-    if (a_onDevice) {
-      return renderer.renderOnDevice(a_device, a_view, a_image);
-    }
-    if (a_job != nullptr) {
-      return renderer.render(a_host, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      if (a_onDevice && a_job != nullptr) {
+        return renderer.renderOnDevice(a_deviceShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+      if (a_onDevice) {
+        return renderer.renderOnDevice(a_deviceShape, a_view, a_image);
+      }
+      if (a_job != nullptr) {
+        return renderer.render(a_hostShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+
+      return renderer.render(a_hostShape, a_view, a_image);
+    };
+
+    // A cost view of regions times the queries its labels name, firstHit() and firstCrossing() of the object: its
+    // tape's own, through the renderer's path for a tape, not the view's tracing of regions (finding where the region
+    // changes and what is seen there), which costs more and is no query a program calls. The tape's leaves are not the
+    // view's coloring keys, so its primitives are not recorded.
+    if constexpr (hasRegionVisibility<S>) {
+      if (frame.m_viewMode == ViewMode::CostHit || frame.m_viewMode == ViewMode::CostCrossing) {
+        Settings<T> object = frame;
+
+        object.m_recordPrimitives = false;
+
+        return draw(a_host.getTape(), a_device.getTape(), object);
+      }
     }
 
-    return renderer.render(a_host, a_view, a_image);
+    return draw(a_host, a_device, frame);
   };
 
   // The slice view's camera turned square to the plane, from its removed side; its target, distance and field of view

@@ -118,7 +118,10 @@ higher than those of a frame the shape fills.
 
 The viewer draws a colorbar in a cost view's bottom right corner: the scale's colors, ticks at round costs, its
 ends reading "<=" ``m_costLow`` and ">=" ``m_costHigh`` (the end colors take the frame's cheapest and dearest
-hundredth too), the unit and the rays per second; a window too narrow for it beside the axes leaves it out. A program that calls ``render()`` can
+hundredth too), the unit and the rays per second; a window too narrow for it beside the axes leaves it out.
+A view of regions (``RegionView``) shows the cost of its object's ``firstHit()`` and ``firstCrossing()`` in the viewer:
+its tape's queries, the regions not shown, since the view's own tracing of regions (where the region changes, and what
+is seen there) costs more and is no query a program calls. A program that calls ``render()`` can
 draw a matching one with ``Render::costPlace(stats, cost)``, which gives where a cost sits on the frame's scale (0 at
 ``m_costLow``, 1 at ``m_costHigh``), and ``Render::costColor(place)``, the color the frame gives that place.
 
