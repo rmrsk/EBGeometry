@@ -141,30 +141,55 @@ endif()
 set(_studio_repo "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 # Every model in Studio/Models reads with no error and no warning, every domain it has is complete, and it renders:
-# they are users' starting points.
+# they are users' starting points. A model's files are those of a folder: each that no other file there includes (the
+# model, or its whole setup) is checked, and each that includes model.ebg (a setup of its own).
 file(GLOB _studio_models LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/Models/*")
 
 foreach(_model IN LISTS _studio_models)
-  if(IS_DIRECTORY "${_model}")
-    get_filename_component(_name "${_model}" NAME)
-
-    add_test(NAME ebgstudio-model-${_name} COMMAND ebgstudio check "${_model}" --all-domains)
-    add_test(NAME ebgstudio-model-${_name}-render
-             COMMAND ebgstudio render "${_model}" -o "${CMAKE_CURRENT_BINARY_DIR}/${_name}.ppm" --size 64 64)
-    set_tests_properties(ebgstudio-model-${_name} ebgstudio-model-${_name}-render PROPERTIES
-                         LABELS "unit;studio" FAIL_REGULAR_EXPRESSION "warning|error|incomplete")
+  if(NOT IS_DIRECTORY "${_model}")
+    continue()
   endif()
+
+  get_filename_component(_name "${_model}" NAME)
+  file(GLOB _files "${_model}/*.ebg")
+
+  set(_included)
+
+  foreach(_file IN LISTS _files)
+    file(STRINGS "${_file}" _includes REGEX "include\\(\"[^\"]*\"\\)")
+
+    foreach(_line IN LISTS _includes)
+      string(REGEX REPLACE ".*include\\(\"([^\"]*)\"\\).*" "\\1" _target "${_line}")
+      list(APPEND _included "${_target}")
+    endforeach()
+  endforeach()
+
+  foreach(_file IN LISTS _files)
+    get_filename_component(_base "${_file}" NAME)
+    get_filename_component(_stem "${_file}" NAME_WE)
+    file(STRINGS "${_file}" _setup REGEX "include\\(\"model\\.ebg\"\\)")
+
+    if(NOT _base IN_LIST _included OR _setup)
+      set(_test ebgstudio-model-${_name}-${_stem})
+
+      add_test(NAME ${_test} COMMAND ebgstudio check "${_file}" --all-domains)
+      add_test(NAME ${_test}-render
+               COMMAND ebgstudio render "${_file}" -o "${CMAKE_CURRENT_BINARY_DIR}/${_name}-${_stem}.ppm" --size 64 64)
+      set_tests_properties(${_test} ${_test}-render PROPERTIES
+                           LABELS "unit;studio" FAIL_REGULAR_EXPRESSION "warning|error|incomplete")
+    endif()
+  endforeach()
 endforeach()
 
 set(_studio_data "${_studio_repo}/Tests/data/language")
 
-add_test(NAME ebgstudio-check-cubes COMMAND ebgstudio check "${_studio_data}/cubes" --inventory)
-add_test(NAME ebgstudio-print-cubes COMMAND ebgstudio print "${_studio_data}/cubes" --flatten)
-add_test(NAME ebgstudio-params-cubes COMMAND ebgstudio params "${_studio_data}/cubes" --json -D "shift=(0, 2, 0)")
+add_test(NAME ebgstudio-check-cubes COMMAND ebgstudio check "${_studio_data}/cubes/setup.ebg" --inventory)
+add_test(NAME ebgstudio-print-cubes COMMAND ebgstudio print "${_studio_data}/cubes/setup.ebg" --flatten)
+add_test(NAME ebgstudio-params-cubes COMMAND ebgstudio params "${_studio_data}/cubes/setup.ebg" --json -D "shift=(0, 2, 0)")
 add_test(NAME ebgstudio-render-cubes
-         COMMAND ebgstudio render "${_studio_data}/cubes" -o "${CMAKE_CURRENT_BINARY_DIR}/cubes.ppm" --size 64 64)
+         COMMAND ebgstudio render "${_studio_data}/cubes/setup.ebg" -o "${CMAKE_CURRENT_BINARY_DIR}/cubes.ppm" --size 64 64)
 add_test(NAME ebgstudio-check-example
-         COMMAND ebgstudio check "${_studio_repo}/Examples/Language/cable" --domain cfd --domain electrostatics)
+         COMMAND ebgstudio check "${_studio_repo}/Examples/Language/cable/setup.ebg" --domain cfd --domain electrostatics)
 set_tests_properties(ebgstudio-check-cubes ebgstudio-print-cubes ebgstudio-params-cubes ebgstudio-render-cubes
                      ebgstudio-check-example PROPERTIES LABELS "unit;studio")
 

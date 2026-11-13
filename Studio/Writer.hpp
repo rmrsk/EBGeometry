@@ -87,7 +87,7 @@ template <class T>
 class Writer
 {
 public:
-  // The writer of a model read from a path (a .ebg file or a model folder).
+  // The writer of a model read from a .ebg file.
   explicit Writer(std::string a_path) : m_path(std::move(a_path))
   {}
 
@@ -451,14 +451,10 @@ private:
     return nullptr;
   }
 
-  // The file a new domain is appended to: the folder's setup.ebg, or the model's file.
+  // The file a new domain is appended to: the file the model was read from.
   std::string
   setupFile() const
   {
-    if (std::filesystem::is_directory(m_path)) {
-      return (std::filesystem::path(m_path) / "setup.ebg").string();
-    }
-
     return m_path;
   }
 

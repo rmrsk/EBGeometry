@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Tests of ebgstudio's writer (Writer.hpp): the viewer's edits of a domain written into a copy of a model folder, as
+// Tests of ebgstudio's writer (Writer.hpp): the viewer's edits of a domain written into a copy of a model, as
 // the viewer makes them (a clicked surface, a renamed group, a new domain), then read again; undo and redo; no write
 // over a file changed on disk; and no write at all when one of its files cannot be written.
 
@@ -22,7 +22,7 @@ namespace {
 
 using T = double;
 
-// A fresh copy of the test model folder.
+// A fresh copy of the test model, its model.ebg and the setup.ebg that includes it.
 std::string
 copyOfWire(const std::string& a_name)
 {
@@ -54,9 +54,9 @@ TEST_CASE("Writer: a clicked surface without a label is named, and the group is 
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(folder + "/setup.ebg");
 
   writer.attach(model);
 
@@ -88,6 +88,8 @@ TEST_CASE("Writer: a clicked surface without a label is named, and the group is 
              Catch::Matchers::ContainsSubstring("wire = cylinder((0, 0, -1), (0, 0, 1), 0.2).label(\"wire\")\n"));
   CHECK(text(folder + "/setup.ebg") == R"(ebg 0
 
+include("model.ebg")
+
 material air { density = 1.2 }
 
 domain flow {
@@ -100,7 +102,7 @@ domain flow {
 )");
 
   // The model reads, and the group holds the piece.
-  const auto again = Language::read<T>(folder, pool);
+  const auto again = Language::read<T>(folder + "/setup.ebg", pool);
 
   const Language::ModelDomain& flow = again.domain("flow");
 
@@ -129,9 +131,9 @@ TEST_CASE("Writer: a renamed group keeps its properties; an unchanged one is kep
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(folder + "/setup.ebg");
 
   writer.attach(model);
 
@@ -143,6 +145,8 @@ TEST_CASE("Writer: a renamed group keeps its properties; an unchanged one is kep
 
   // The renamed group is written anew where it was, with its comment and properties; the other is kept as written.
   CHECK(text(folder + "/setup.ebg") == R"(ebg 0
+
+include("model.ebg")
 
 material air { density = 1.2 }
 
@@ -161,9 +165,9 @@ TEST_CASE("Writer: surface groups without a domain make a new one, named when as
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(folder + "/setup.ebg");
 
   writer.attach(model);
 
@@ -182,7 +186,7 @@ TEST_CASE("Writer: surface groups without a domain make a new one, named when as
   CHECK_THAT(text(folder + "/setup.ebg"),
              Catch::Matchers::EndsWith("}\n\ndomain heat {\n  group gas_walls = region(gas)\n}\n"));
 
-  const auto again = Language::read<T>(folder, pool);
+  const auto again = Language::read<T>(folder + "/setup.ebg", pool);
 
   CHECK(again.getNumDomains() == 2U);
 }
@@ -193,9 +197,9 @@ TEST_CASE("Writer: no write over a file changed on disk since it was read", "[St
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(folder + "/setup.ebg");
 
   writer.attach(model);
 
@@ -224,9 +228,9 @@ TEST_CASE("Writer: a file that is a link is written through it, the link kept", 
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(folder + "/setup.ebg");
 
   writer.attach(model);
 
@@ -243,22 +247,20 @@ TEST_CASE("Writer: a file that is a link is written through it, the link kept", 
   CHECK_THAT(text(folder + "/shared-setup.ebg"), Catch::Matchers::ContainsSubstring("group far = remaining()"));
 }
 
-TEST_CASE("Writer: undoing a write that made the setup file removes it", "[Studio]")
+TEST_CASE("Writer: a domain made in the window is added to the file opened, and undone", "[Studio]")
 {
   namespace fs = std::filesystem;
 
   const std::string folder = copyOfWire("made");
+  const std::string opened = folder + "/model.ebg";
+  const std::string before = text(opened);
 
-  fs::remove(folder + "/setup.ebg");
-
-  // The model without its setup: no materials, no domains.
-  std::ofstream(folder + "/model.ebg", std::ios::app) << "";
-
+  // The model alone, opened without its setup: no materials, no domains.
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(opened, pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(opened);
 
   writer.attach(model);
 
@@ -270,12 +272,12 @@ TEST_CASE("Writer: undoing a write that made the setup file removes it", "[Studi
 
   CHECK(writer.edited(names, setup) == "Name the new domain");
   CHECK(writer.named("flow").empty());
-  CHECK(text(folder + "/setup.ebg") == "ebg 0\n\ndomain flow {\n  group walls = region(gas)\n}\n");
+  CHECK(text(opened) == before + "\ndomain flow {\n  group walls = region(gas)\n}\n");
 
   CHECK(writer.undo());
-  CHECK_FALSE(fs::exists(folder + "/setup.ebg"));
+  CHECK(text(opened) == before);
   CHECK(writer.redo());
-  CHECK(fs::exists(folder + "/setup.ebg"));
+  CHECK_THAT(text(opened), Catch::Matchers::EndsWith("domain flow {\n  group walls = region(gas)\n}\n"));
 }
 
 TEST_CASE("Writer: what cannot be named where it is made is not written", "[Studio]")
@@ -294,16 +296,16 @@ object overlay {
   region core = union(ball, other, block, block.translate((0, 2, 0)))
 }
 )";
-  std::ofstream(folder + "/setup.ebg") << "ebg 0\n";
+  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
   const std::string before = text(folder + "/model.ebg");
 
   const auto clickOn = [&](const uint32_t a_surface) {
-    Studio::Writer<T> writer(folder);
+    Studio::Writer<T> writer(folder + "/setup.ebg");
 
     writer.attach(model);
 
@@ -353,6 +355,8 @@ object overlay {
 )";
   std::ofstream(folder + "/setup.ebg") << R"(ebg 0
 
+include("model.ebg")
+
 domain flow {
   subdomain fluid = air
   group walls = interface(cable, air) # the cable
@@ -363,9 +367,9 @@ domain flow {
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(folder, pool);
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
 
-  Studio::Writer<T> writer(folder);
+  Studio::Writer<T> writer(folder + "/setup.ebg");
 
   writer.attach(model);
 
@@ -377,6 +381,8 @@ domain flow {
   CHECK(writer.edited(names, model.domain("flow").setup()).empty());
 
   CHECK(text(folder + "/setup.ebg") == R"(ebg 0
+
+include("model.ebg")
 
 domain flow {
   subdomain fluid = air
@@ -395,9 +401,9 @@ TEST_CASE("Writer: a write that cannot write one of its files changes none", "[S
   const auto clickAndName = [](const std::string& a_folder) {
     Pool pool(hostMemoryResource());
 
-    const auto model = Language::read<T>(a_folder, pool);
+    const auto model = Language::read<T>(a_folder + "/setup.ebg", pool);
 
-    Studio::Writer<T> writer(a_folder);
+    Studio::Writer<T> writer(a_folder + "/setup.ebg");
 
     writer.attach(model);
 
@@ -476,8 +482,9 @@ TEST_CASE("Writer: a mesh is picked by its face group, or whole without one, and
     std::ofstream(to / "model.ebg") << "ebg 0\n\nair  = box((-2, -2, -2), (2, 2, 2))\npart = mesh(\"part.obj\")\n\n"
                                        "object overlay {\n  region gas   = air material air\n  region solid = part "
                                        "material steel\n}\n";
-    std::ofstream(to / "setup.ebg") << "ebg 0\n\nmaterial air { density = 1.2 }\nmaterial steel { density = 7850 }\n\n"
-                                       "domain flow {\n  subdomain fluid = gas\n  group far = remaining()\n}\n";
+    std::ofstream(to / "setup.ebg")
+      << "ebg 0\n\ninclude(\"model.ebg\")\nmaterial air { density = 1.2 }\nmaterial steel { density = 7850 }\n\n"
+         "domain flow {\n  subdomain fluid = gas\n  group far = remaining()\n}\n";
 
     return to.string();
   };
@@ -494,9 +501,9 @@ TEST_CASE("Writer: a mesh is picked by its face group, or whole without one, and
   SECTION("with face groups: the group clicked, by its label")
   {
     const std::string folder = folderWith("mesh-groups", vertices + "g top\n" + top + "g bottom\n" + bottom);
-    const auto        model  = Language::read<T>(folder, pool);
+    const auto        model  = Language::read<T>(folder + "/setup.ebg", pool);
 
-    Studio::Writer<T> writer(folder);
+    Studio::Writer<T> writer(folder + "/setup.ebg");
 
     writer.attach(model);
 
@@ -528,9 +535,9 @@ TEST_CASE("Writer: a mesh is picked by its face group, or whole without one, and
   SECTION("without face groups: the whole mesh, named first")
   {
     const std::string folder = folderWith("mesh-plain", vertices + top + bottom);
-    const auto        model  = Language::read<T>(folder, pool);
+    const auto        model  = Language::read<T>(folder + "/setup.ebg", pool);
 
-    Studio::Writer<T> writer(folder);
+    Studio::Writer<T> writer(folder + "/setup.ebg");
 
     writer.attach(model);
 

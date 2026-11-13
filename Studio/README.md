@@ -20,17 +20,20 @@ or with CMake: `cmake -S . -B build && cmake --build build`, which also puts the
 ## Running
 
 ```bash
-./ebgstudio Models/cooling_block                        # the window
-./ebgstudio check Models/cooling_block --all-domains    # errors, warnings, and whether every domain is complete
-./ebgstudio print Models/cooling_block --flatten        # the model as one text, in canonical form
-./ebgstudio params Models/cooling_block -D inflow=0.8   # the params, one changed
-./ebgstudio render Models/cooling_block -o block.ppm    # one frame, as the window opens
+./ebgstudio Models/cooling_block/setup.ebg                        # the window
+./ebgstudio check Models/cooling_block/setup.ebg --all-domains    # errors, warnings, and whether every domain is complete
+./ebgstudio print Models/cooling_block/setup.ebg --flatten        # the model as one text, in canonical form
+./ebgstudio params Models/cooling_block/flow.ebg -D inflow=0.8    # the params, one changed
+./ebgstudio render Models/cooling_block/setup.ebg -o block.ppm    # one frame, as the window opens
 ```
+
+A model is the `.ebg` file named and the files it includes.
 
 ## Models
 
-- `Models/gallery`: every shape and operation of the language, once each; copy a line as a start.
-- `Models/cooling_block`: a steel block cooled by water through a channel, with a flow and a heat domain coupled at
-  the channel's wall; the walkthrough in the user guide builds it step by step.
+- `Models/gallery/model.ebg`: every shape and operation of the language, once each; copy a line as a start.
+- `Models/cooling_block`: a steel block cooled by water through a channel (`model.ebg`), its materials
+  (`materials.ebg`), a flow and a heat setup (`flow.ebg`, `heat.ebg`), and both coupled at the channel's wall
+  (`setup.ebg`); the walkthrough in the user guide builds it step by step.
 
 Every model here reads with no error or warning, and its domains are complete: CI checks them.

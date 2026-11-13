@@ -8,8 +8,8 @@ Language
 The source is at :file:`Examples/Language/main.cpp`, and the model in :file:`Examples/Language/cable/`.
 
 Editing the files changes the model with no compiling: ``ebgstudio`` (built in ``Studio/``, see :ref:`Chap:Studio`)
-checks it, ``ebgstudio check cable --domain cfd``, and opens it in a window that reloads it on every save,
-``ebgstudio cable``.
+checks it, ``ebgstudio check cable/setup.ebg --domain cfd``, and opens it in a window that reloads it on every
+save, ``ebgstudio cable/setup.ebg``.
 
 .. figure:: _static/example_Language.jpg
    :width: 60%

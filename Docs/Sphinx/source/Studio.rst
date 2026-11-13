@@ -10,8 +10,8 @@ files.
 
 .. code-block:: text
 
-   ebgstudio Models/cooling_block                       open the model in the window
-   ebgstudio check Models/cooling_block --all-domains   check it, and that its domains are complete
+   ebgstudio Models/cooling_block/setup.ebg                       open the model in the window
+   ebgstudio check Models/cooling_block/setup.ebg --all-domains   check it, and that its domains are complete
 
 ``Studio/`` holds the program (``main.cpp``, ``Writer.hpp``), its build files, and ``Studio/Models``, the models it
 comes with: starting points to copy, each checked in every CI run. :ref:`Chap:StudioCommands` describes the commands,
@@ -57,5 +57,5 @@ Models in a program
 -------------------
 
 ``ebgstudio`` reads models the way any program can: through ``Language::read()`` (see :ref:`Chap:ImplemLanguage`).
-:ref:`Chap:ExampleLanguage` reads a model folder, builds its domain and fills a table of its materials, on the host and
+:ref:`Chap:ExampleLanguage` reads a model's setup file, builds its domain and fills a table of its materials, on the host and
 on a GPU; ``ebgstudio`` is how such a model is written and checked before a program reads it.

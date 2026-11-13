@@ -41,7 +41,6 @@ Each change is written into the model's files at once, in the language, so that 
 * A clicked surface is written by its label: ``label("inlet")``. A shape or part with no label is named first (the
   window asks), and the label is written after the shape's call in the file it is in: ``.label(cap1 = "inlet")``.
 * Only the edited domain's block is rewritten, in the canonical form (see :ref:`Chap:StudioCommands`), its subdomains
-  and unchanged surface groups as written; a domain made in the window is added at the end of ``setup.ebg`` (of the
-  model's file, for a model without one).
+  and unchanged surface groups as written; a domain made in the window is added at the end of the file opened.
 * Ctrl + Z and Ctrl + Y undo and redo what it wrote. It never writes over a file changed on disk since it was read,
   and a write that cannot write all its files writes none of them.

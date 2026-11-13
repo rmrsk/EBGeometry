@@ -1,0 +1,5 @@
+ebg 0
+
+# The materials' properties, shared by every setup of the block.
+material steel { conductivity = 45, density = 7850, heat_capacity = 490 }
+material water { conductivity = 0.6, density = 1000, viscosity = 1.0e-3, heat_capacity = 4180 }

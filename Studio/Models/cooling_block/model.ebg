@@ -1,7 +1,8 @@
 ebg 0
 
 # A steel block cooled by water: the water flows through a channel bored along the block, from an inlet at one end
-# to an outlet at the other. The geometry is here; what is computed on it is in setup.ebg.
+# to an outlet at the other. The geometry is here; what is computed on it is in
+# flow.ebg, heat.ebg and setup.ebg, which include it.
 
 param length    = 4
 param width     = 2

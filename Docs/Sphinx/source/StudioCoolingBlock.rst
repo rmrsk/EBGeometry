@@ -5,21 +5,22 @@ Walkthrough: a cooled block
 
 This builds ``Studio/Models/cooling_block`` step by step: a steel block heated from below and cooled by water flowing
 through a channel bored along it, with the two computations a program would run on it, the water's flow and the heat in
-the steel. Each step is a few lines added to the model; keep the window open (``ebgstudio mine`` in ``Studio/``) and it
-shows each step as the files are saved. The finished model is in ``Studio/Models/cooling_block``.
+the steel. Each step is a few lines added to a file of the model, in a folder ``mine``; keep the window open on the file
+being written (``ebgstudio mine/model.ebg`` in ``Studio/``) and it shows each step as the file is saved. The finished
+model is in ``Studio/Models/cooling_block``.
 
 .. figure:: _static/studio_cooling_block.jpg
    :width: 70%
    :align: center
 
-   The finished model, as ``ebgstudio Models/cooling_block`` opens it: the steel block, and the water where the channel
+   The finished model, as ``ebgstudio Models/cooling_block/setup.ebg`` opens it: the steel block, and the water where the channel
    comes out of it.
 
 1. The block
 ------------
 
-A model is a folder; ``model.ebg`` holds its geometry. Start one, ``mine/model.ebg``, with the block's size as params
-(values a program or ``-D`` can change) and the block itself, the model's object:
+The geometry goes in one file, ``mine/model.ebg``: the block's size as params (values a program or ``-D`` can change) and
+the block itself, the model's object:
 
 .. code-block:: text
 
@@ -34,8 +35,8 @@ A model is a folder; ``model.ebg`` holds its geometry. Start one, ``mine/model.e
 
    object block
 
-``ebgstudio mine`` opens it; ``ebgstudio params mine`` lists the params, and ``ebgstudio mine -D length=6`` opens it
-longer.
+``ebgstudio mine/model.ebg`` opens it; ``ebgstudio params mine/model.ebg`` lists the params, and ``ebgstudio
+mine/model.ebg -D length=6`` opens it longer.
 
 2. Labeling its faces
 ---------------------
@@ -49,7 +50,7 @@ written on its own line keeps the shape's line short:
    block = box((0, 0, 0), (length, height, width))
      .label(ymin = "base", ymax = "top", zmin = "side", zmax = "side", xmin = "end", xmax = "end")
 
-``ebgstudio check mine --inventory`` lists the labels and which part has which.
+``ebgstudio check mine/model.ebg --inventory`` lists the labels and which part has which.
 
 3. The channel, and two regions
 -------------------------------
@@ -68,31 +69,38 @@ regions of an ``overlay``, each with a material; where they overlap, the later o
    }
 
 The window colors the regions by material. ``check`` now warns that ``steel`` and ``water`` are not declared: that is
-the setup's job.
+the setups' job.
 
-4. The setup: materials
------------------------
+4. The materials
+----------------
 
-What is computed on the geometry goes in ``mine/setup.ebg``, read after ``model.ebg``: first the materials, with the
-properties a program reads (any names; the language gives them no meaning):
+What is computed on the geometry goes in files of its own, so that one geometry can have several setups (see
+:ref:`Chap:Language`). First the materials, shared by every setup, in ``mine/materials.ebg``, with the properties a
+program reads (any names; the language gives them no meaning):
 
 .. code-block:: text
 
    ebg 0
 
-   param inflow = 0.5
-
    material steel { conductivity = 45, density = 7850, heat_capacity = 490 }
    material water { conductivity = 0.6, density = 1000, viscosity = 1.0e-3, heat_capacity = 4180 }
 
-5. The flow: a domain
----------------------
+5. The flow: a setup and its domain
+-----------------------------------
 
 A domain is one computation: the regions it runs in (its subdomains) and what it does on each piece of surface that
-bounds them (its surface groups). The flow runs in the water, enters at the inlet, leaves at the outlet, and sticks to
-the channel's wall:
+bounds them (its surface groups). The flow is a setup of its own, ``mine/flow.ebg``, which names the geometry and the
+materials it needs. The flow runs in the water, enters at the inlet, leaves at the outlet, and sticks to the channel's
+wall:
 
 .. code-block:: text
+
+   ebg 0
+
+   include("model.ebg")
+   include("materials.ebg")
+
+   param inflow = 0.5
 
    domain flow {
      subdomain fluid = water
@@ -101,17 +109,23 @@ the channel's wall:
      group wall = interface(water, solid) { kind = "no_slip" }
    }
 
-``ebgstudio check mine --domain flow`` says whether every piece of surface around the water is in a group. Instead of
-writing the groups, they can be made in the window (see :ref:`Chap:StudioViewer`): click the domain ``flow``, start a
-surface group, click the channel's inlet and press Enter; the window writes ``label("inlet")`` into the setup file.
+``ebgstudio check mine/flow.ebg --domain flow`` says whether every piece of surface around the water is in a group.
+Instead of writing the groups, they can be made in the window (see :ref:`Chap:StudioViewer`): open ``ebgstudio
+mine/flow.ebg``, click the domain ``flow``, start a surface group, click the channel's inlet and press Enter; the window
+writes ``label("inlet")`` into ``flow.ebg``, the file that holds the domain.
 
-6. The heat: a second domain
-----------------------------
+6. The heat: a second setup
+---------------------------
 
-The heat runs in the steel: heated through the base, cooled through the channel, insulated elsewhere.
-``remaining()`` takes every surface no earlier group holds:
+The heat runs in the steel: heated through the base, cooled through the channel, insulated elsewhere. Its setup,
+``mine/heat.ebg``, names the same geometry and materials; ``remaining()`` takes every surface no earlier group holds:
 
 .. code-block:: text
+
+   ebg 0
+
+   include("model.ebg")
+   include("materials.ebg")
 
    domain heat {
      subdomain metal = solid
@@ -123,22 +137,28 @@ The heat runs in the steel: heated through the base, cooled through the channel,
 7. Joining them
 ---------------
 
-The heat crosses the channel's wall from one computation into the other: a coupling joins the two surface groups that
-hold it, and ``check`` makes sure they hold the same surfaces:
+The heat crosses the channel's wall from one computation into the other. A third setup, ``mine/setup.ebg``, includes the
+two (the geometry and the materials both include are read once), and a coupling joins the two surface groups that hold
+the wall; ``check`` makes sure they hold the same surfaces:
 
 .. code-block:: text
+
+   ebg 0
+
+   include("flow.ebg")
+   include("heat.ebg")
 
    couple wall_heat = surface(heat.cooled, flow.wall) { transfer = "heat" }
 
 8. The view, and the check
 --------------------------
 
-Last, the camera and colors the window opens with:
+Last, in ``mine/setup.ebg``, the camera and colors the window opens with:
 
 .. code-block:: text
 
    view { camera = (6.5, 4, 6), target = (2, 0.5, 1), color.steel = (0.6, 0.62, 0.66), color.water = (0.3, 0.55, 0.9) }
 
-``ebgstudio check mine --all-domains`` now reports no error and no warning, and both domains complete: the model
-``Studio/Models/cooling_block`` is, and a program reads it with ``Language::read()`` (see
-:ref:`Chap:ExampleLanguage`).
+``ebgstudio check mine/setup.ebg --all-domains`` now reports no error and no warning, and both domains complete: the
+model ``Studio/Models/cooling_block`` is, and a program reads ``setup.ebg`` (or either setup on its own) with
+``Language::read()`` (see :ref:`Chap:ExampleLanguage`).

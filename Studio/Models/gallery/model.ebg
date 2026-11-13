@@ -3,8 +3,8 @@ ebg 0
 # Every shape and operation of the language, once each, in rows: each is made around the origin, then moved to its
 # place on a grid. Copy any line as a start.
 #
-#   ebgstudio check Models/gallery --inventory
-#   ebgstudio view Models/gallery
+#   ebgstudio check Models/gallery/model.ebg --inventory
+#   ebgstudio Models/gallery/model.ebg
 
 param spacing = 3
 

@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// ebgstudio: check, print, list the params of, render and view a .ebg model (a file, or a folder holding model.ebg
-// and setup.ebg). The language is the library's (Source/EBGeometry_Language.hpp); this program is its command line.
+// ebgstudio: check, print, list the params of, render and view a .ebg model (a file, and the files it includes). The language is the library's (Source/EBGeometry_Language.hpp); this program is its command line.
 
 #include "EBGeometry.hpp"
 #include "Source/EBGeometry_Language.hpp"
@@ -36,7 +35,7 @@ using namespace EBGeometry;
 const char* const usage = R"(usage: ebgstudio MODEL [options]             open the model in the viewer
        ebgstudio <command> MODEL [options]
 
-MODEL is a .ebg file, or a folder holding model.ebg (and setup.ebg, read after it).
+MODEL is a .ebg file, read with the files it includes (a setup file that includes its model.ebg, say).
 
 commands:
   check   MODEL [--domain NAME]... [--all-domains] [--inventory]
@@ -486,8 +485,8 @@ stampsOf(const std::vector<std::string>& a_files)
   return stamps;
 }
 
-// The files a reload watches: the given ones, a model's first files (a folder's model.ebg and setup.ebg, even before
-// they exist), and every file their texts include, resolved as the language does. The reader reports none of the
+// The files a reload watches: the given ones, the model's file, and every file their texts include, resolved as the
+// language does. The reader reports none of the
 // files of a model that fails, so a file a failing version includes first (one not written yet, or with an error) is
 // found here, and fixing or making it reloads.
 std::vector<std::string>
@@ -495,15 +494,7 @@ watched(const Options& a_options, std::vector<std::string> a_files)
 {
   namespace fs = std::filesystem;
 
-  std::vector<std::string> texts;
-
-  if (fs::is_directory(a_options.m_model)) {
-    texts.push_back((fs::path(a_options.m_model) / "model.ebg").string());
-    texts.push_back((fs::path(a_options.m_model) / "setup.ebg").string());
-  }
-  else {
-    texts.push_back(a_options.m_model);
-  }
+  std::vector<std::string> texts{a_options.m_model};
 
   // The texts grow as their includes are found; only these are parsed (a mesh among a_files is not).
   for (size_t i = 0; i < texts.size(); i++) {

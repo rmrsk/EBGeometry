@@ -12,7 +12,8 @@ Commands
    ebgstudio render MODEL -o FILE [--size W H]
    ebgstudio view   MODEL
 
-``MODEL`` is a ``.ebg`` file, or a folder holding ``model.ebg`` and, read after it, ``setup.ebg``. Every command takes
+``MODEL`` is a ``.ebg`` file, read with the files it includes (a setup that includes its ``model.ebg``, say). Every
+command takes
 ``-D NAME=VALUE``, a value for a param, written as in a file (``-D "inflow=0.8"``, ``-D "shift=(0, 2, 0)"``).
 
 ``ebgstudio MODEL``, view
@@ -28,7 +29,7 @@ check
 
 print
    The model in canonical form: one statement per line, comments kept. The model's first file, with its includes kept;
-   ``--flatten`` writes the whole model, includes and the setup file resolved, as one text.
+   ``--flatten`` writes the whole model, includes resolved, as one text.
 
 params
    The params, with their values (after ``-D``) and where they are written; ``--json`` for a program to read.
@@ -37,6 +38,7 @@ render
    One frame, as the window opens on the model, written as a PPM image: the camera and colors of the model's ``view``
    block, regions colored by material.
 
-A model folder's files are read in order, ``model.ebg`` then ``setup.ebg``: the geometry in one, what is computed on
-it (materials, domains, couplings, the view) in the other, so that a program can read the same geometry with another
-setup.
+A model is the file named and the files it includes, each read once; nothing is read that is not named. The geometry
+usually goes in one file and what is computed on it (materials, domains, couplings, the view) in a setup that includes
+it, so that the same geometry can have several setups (see :ref:`Chap:Language`). Open the geometry alone to work on
+its shapes and labels, and a setup to work on its domains.

@@ -237,17 +237,23 @@ jobs:
             echo "::endgroup::"
           done
       # ebgstudio built on its own, as Studio.rst says; every model it comes with reads with no error or warning
-      # and its domains are complete.
+      # and its domains are complete: in each model's folder, each file no other file there includes, and each that
+      # includes model.ebg (a setup of its own), as Studio/CMakeLists.txt checks them.
       - name: Build ebgstudio with GNU make and check its models
         run: |
           set -euo pipefail
           make -C Studio
-          for model in Studio/Models/*/; do
-            echo "::group::$model"
-            out=$(Studio/ebgstudio check "$model" --all-domains 2>&1)
+          for file in Studio/Models/*/*.ebg; do
+            dir=$(dirname "$file")
+            name=$(basename "$file")
+            if grep -q "include(\"$name\")" "$dir"/*.ebg && ! grep -q 'include("model.ebg")' "$file"; then
+              continue
+            fi
+            echo "::group::$file"
+            out=$(Studio/ebgstudio check "$file" --all-domains 2>&1)
             echo "$out"
             if grep -q "warning" <<< "$out"; then
-              echo "::error::$model has warnings"
+              echo "::error::$file has warnings"
               exit 1
             fi
             echo "::endgroup::"
