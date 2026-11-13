@@ -78,14 +78,8 @@ Concepts
    Meshes.rst
    BVH.rst
    PointCloud.rst
-   CSG.rst
-   Tape.rst
-   LeavesAndSurfaces.rst
-   Regions.rst
-   Rays.rst
-   RayTracing.rst
-   SphereTracing.rst
-   Rendering.rst
+   ConceptsComposition.rst
+   ConceptsRays.rst
 
 Implementation
 **************
@@ -96,22 +90,13 @@ Implementation
    :hidden:
 
    Implementation.rst
-   MemoryModel.rst
-   RunningOnGPU.rst
-   ImplemVec.rst
-   ImplemCSG.rst
-   ImplemRegions.rst
-   Parsers.rst
-   ImplemMeshSDF.rst
-   ImplemDCEL.rst
-   ImplemBVH.rst
-   ImplemBVHTraversal.rst
+   ImplemFoundations.rst
+   ImplemMeshes.rst
+   ImplemBVHs.rst
    ImplemPointCloud.rst
-   ImplemRays.rst
-   ImplemRender.rst
-   Viewer.rst
-   ImplemOctree.rst
-   SIMDClasses.rst
+   ImplemComposition.rst
+   ImplemRaysPictures.rst
+   ImplemUtilities.rst
 
 Examples
 ********

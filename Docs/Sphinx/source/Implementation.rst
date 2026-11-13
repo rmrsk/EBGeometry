@@ -5,7 +5,7 @@ Overview
 
 EBGeometry is a header-only C++17 library with no external dependencies: ``#include <EBGeometry.hpp>``
 gives all of it, in the namespace ``EBGeometry``. The pages of this section describe the classes and calls,
-by task:
+in the same topics as the concepts. To find one by task:
 
 .. list-table::
    :header-rows: 1
@@ -17,16 +17,16 @@ by task:
      - :ref:`Chap:MemoryModel`, :ref:`Chap:RunningOnGPU`
    * - work with points and vectors
      - :ref:`Chap:Vector`
-   * - use analytic shapes, compose them, and compile a composition
-     - :ref:`Chap:ImplemCSG`
-   * - build objects of several materials, and the domains a solver computes in
-     - :ref:`Chap:ImplemRegions`
    * - read a mesh from a file, and query it
      - :ref:`Chap:Parsers`, :ref:`Chap:ImplemMeshSDF`, :ref:`Chap:ImplemDCEL`
    * - build a BVH over your own primitives, and search it
      - :ref:`Chap:ImplemBVH`, :ref:`Chap:ImplemBVHTraversal`
    * - find nearest neighbors in a cloud of points or spheres
      - :ref:`Chap:ImplemPointCloud`
+   * - use analytic shapes, compose them, and compile a composition
+     - :ref:`Chap:ImplemCSG`
+   * - build objects of several materials, and the domains a solver computes in
+     - :ref:`Chap:ImplemRegions`
    * - trace rays and particles' steps through a shape
      - :ref:`Chap:ImplemRays`
    * - render a shape, and look at it in a window
