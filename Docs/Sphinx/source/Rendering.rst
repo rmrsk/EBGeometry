@@ -75,14 +75,14 @@ Besides the shaded picture, the renderer has views that show what shading hides:
 * **X-ray** shows every surface a ray crosses, all the way through the scene, on a black background: each
   glows faintly, more where it is seen edge-on, with modest highlights from the light, and partly hides what
   lies behind it, so cavities, internal walls and parts hidden behind others show through as outlines.
-* **Cost** colors each pixel by how long the query for one ray through its center took, from dark (fast) to
-  bright (slow), on a log
-  scale over the frame. There are two: the cost of finding the first hit with its normal and primitive,
-  and the cost of finding only where the ray crosses the surface (see :ref:`Chap:Rays`); comparing them
-  shows where a shape spends its time on the normal. Only the camera's rays are timed, without shadows or
-  lighting. The times are wall-clock, so they include whatever else the machine was doing, and on a GPU,
-  where threads trace in groups that wait for their slowest ray, the time a pixel waited too; they show where
-  a shape is expensive, not a benchmark (see :ref:`Chap:PerformanceTesting` for measuring).
+* **Cost** colors each pixel by what the query for one ray through its center cost, from dark (cheap) to
+  bright (dear), on a log scale over the frame. There are two: the cost of finding the first hit with its normal
+  and primitive, and the cost of finding only where the ray crosses the surface (see :ref:`Chap:Rays`); comparing
+  them shows where a shape spends its time on the normal. Only the camera's rays are measured, without shadows or
+  lighting: in nanoseconds on the host, in clock cycles on a GPU, where threads trace in groups that wait for their
+  slowest ray, so that a pixel's cycles include that wait. The costs are wall-clock, so they include whatever else
+  the machine was doing; they show where a shape is expensive, not a benchmark. A cost view also reports the
+  frame's rays per second, which time the tracing alone (see :ref:`Chap:PerformanceTesting` for measuring).
 
 .. figure:: _static/render_views.jpg
    :width: 100%
