@@ -7,6 +7,10 @@ Language
 :ref:`Chap:Language`'s first model, a copper core inside a PTFE jacket, in a box of air with a flow across it.
 The source is at :file:`Examples/Language/main.cpp`, and the model in :file:`Examples/Language/cable/`.
 
+Editing the files changes the model with no compiling: ``ebgstudio`` (built in ``Studio/``, see :ref:`Chap:Studio`)
+checks it, ``ebgstudio check cable --domain cfd``, and opens it in a window that reloads it on every save,
+``ebgstudio cable``.
+
 .. figure:: _static/example_Language.jpg
    :width: 60%
    :align: center

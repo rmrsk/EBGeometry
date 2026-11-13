@@ -57,6 +57,17 @@ path = [
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
+# ebgstudio: its build file, its README and its models (main.cpp, Writer.hpp and CMakeLists.txt carry their own
+# inline headers)
+[[annotations]]
+path = [
+  "Studio/GNUmakefile",
+  "Studio/README.md",
+  "Studio/Models/**",
+]
+SPDX-FileCopyrightText = "2026 Robert Marskar <robert.marskar@sintef.no>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
 # Third-party integration examples: build files and per-example
 # documentation. main.cpp files carry their own inline SPDX headers.
 [[annotations]]

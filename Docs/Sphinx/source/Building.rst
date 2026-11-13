@@ -68,6 +68,9 @@ Installing copies the headers to ``<prefix>/include/EBGeometry`` and a CMake pac
    cmake -S /path/to/EBGeometry -B build-ebgeometry -DCMAKE_INSTALL_PREFIX=/opt/ebgeometry
    cmake --install build-ebgeometry
 
+With ``-DEBGEOMETRY_BUILD_STUDIO=ON`` it also installs ``ebgstudio`` to ``<prefix>/bin``, which then builds first
+(``cmake --build build-ebgeometry`` before installing; see :ref:`Chap:Studio`).
+
 A project then finds it with ``find_package``, passing ``-DCMAKE_PREFIX_PATH=/opt/ebgeometry`` when
 it configures:
 

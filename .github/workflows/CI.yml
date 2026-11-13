@@ -236,6 +236,22 @@ jobs:
             make -C "$dir" run
             echo "::endgroup::"
           done
+      # ebgstudio built on its own, as Studio.rst says; every model it comes with reads with no error or warning
+      # and its domains are complete.
+      - name: Build ebgstudio with GNU make and check its models
+        run: |
+          set -euo pipefail
+          make -C Studio
+          for model in Studio/Models/*/; do
+            echo "::group::$model"
+            out=$(Studio/ebgstudio check "$model" --all-domains 2>&1)
+            echo "$out"
+            if grep -q "warning" <<< "$out"; then
+              echo "::error::$model has warnings"
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
 
   # The CMake example lanes build the examples alone (no unit tests, no Catch2), with warnings as
   # errors.

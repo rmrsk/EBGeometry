@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -105,6 +106,102 @@ displayAvailable() noexcept
   return true;
 #endif
 }
+
+/**
+ * @brief What a program that reloads what the window shows hooks into it (ebgstudio, on a model file's change).
+ * @details Internal helper; not part of the public API. The window asks m_reload between frames; when it answers
+ * true, the window returns, leaving the camera and settings it had in m_camera and m_settings and the window itself
+ * open (m_window, m_screen), so that the program reads the new version and calls it again with them, and the window
+ * neither closes nor moves. m_note is shown in the title (an error that kept the last good version, say). The program
+ * closes the window with closeWindow() when it is done.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct Hooks
+{
+  /**
+   * @brief Asked between frames: whether to return so that the program reloads.
+   */
+  std::function<bool()> m_reload;
+
+  /**
+   * @brief Asked between frames: a note for the title ("" for none).
+   */
+  std::function<std::string()> m_note;
+
+  /**
+   * @brief Told after the domains were edited (a surface group added, renamed or removed, a selector added or removed),
+   * with the names and the active domain's surface groups as edited: answers "" when the program wrote the edit, or a
+   * question for a name it needs first (a surface without a label), which the window asks, typed as a group's name.
+   */
+  std::function<std::string(const RegionNames&, const DomainSetup&)> m_edited;
+
+  /**
+   * @brief Told the name typed for m_edited's question ("" when cancelled): answers "" or the next question.
+   */
+  std::function<std::string(const std::string&)> m_named;
+
+  /**
+   * @brief Ctrl+Z: undo the program's last write; answers whether there was one.
+   */
+  std::function<bool()> m_undo;
+
+  /**
+   * @brief Ctrl+Y: redo the last write undone; answers whether there was one.
+   */
+  std::function<bool()> m_redo;
+
+  /**
+   * @brief The window kept between calls (an SDL_Window), or null before the first.
+   */
+  void* m_window = nullptr;
+
+  /**
+   * @brief Its renderer (an SDL_Renderer), or null.
+   */
+  void* m_screen = nullptr;
+
+  /**
+   * @brief Whether the window returned for a reload (false: it was closed).
+   */
+  bool m_reloading = false;
+
+  /**
+   * @brief The camera when it returned.
+   */
+  Camera<T> m_camera;
+
+  /**
+   * @brief Whether m_home is set.
+   */
+  bool m_hasHome = false;
+
+  /**
+   * @brief The camera R resets to, when set (a reloaded model's own: fitted to its new geometry), rather than the one
+   * the window started with this time (the camera kept across the reload).
+   */
+  Camera<T> m_home;
+
+  /**
+   * @brief The settings when it returned.
+   */
+  Settings<T> m_settings;
+
+  /**
+   * @brief How many times the window has started (the keys are printed the first time).
+   */
+  int m_starts = 0;
+};
+
+/**
+ * @brief Close a window kept between calls (see Hooks).
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in,out] a_hooks The hooks holding it.
+ */
+template <class T>
+inline void
+closeWindow(Hooks<T>& a_hooks);
 
 // The window's helpers are compiled only with the window: kept out of every other translation unit that
 // includes the library, they cannot change how the compiler inlines code there (they made GCC stop inlining
@@ -789,6 +886,7 @@ struct PanelSpan
  * @param[in] a_camera      Initial camera.
  * @param[in] a_settings    Settings.
  * @param[in] a_names       Names of the regions, materials, surfaces and groups, or null (numbers).
+ * @param[in,out] a_hooks   A reloading program's hooks, or null.
  */
 template <class T, class S>
 inline void
@@ -796,13 +894,20 @@ run(const S&           a_shape,
     const S*           a_deviceShape,
     const Camera<T>&   a_camera,
     const Settings<T>& a_settings,
-    const RegionNames* a_names)
+    const RegionNames* a_names,
+    Hooks<T>*          a_hooks)
 {
   using Clock = std::chrono::steady_clock;
 
+  const bool kept = a_hooks != nullptr && a_hooks->m_window != nullptr;
+
+  if (a_hooks != nullptr) {
+    a_hooks->m_reloading = false;
+  }
+
   SDL_SetMainReady();
 
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+  if (!kept && SDL_Init(SDL_INIT_VIDEO) != 0) {
     std::printf("EBGeometry: the viewer could not start SDL (%s), so it does not open.\n", SDL_GetError());
 
     return;
@@ -811,13 +916,16 @@ run(const S&           a_shape,
   const int width  = static_cast<int>(a_settings.m_width);
   const int height = static_cast<int>(a_settings.m_height);
 
-  SDL_Window*   window = SDL_CreateWindow("EBGeometry",
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        width,
-                                        height,
-                                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-  SDL_Renderer* screen = (window != nullptr) ? SDL_CreateRenderer(window, -1, 0) : nullptr;
+  SDL_Window*   window = kept ? static_cast<SDL_Window*>(a_hooks->m_window)
+                              : SDL_CreateWindow("EBGeometry",
+                                               SDL_WINDOWPOS_CENTERED,
+                                               SDL_WINDOWPOS_CENTERED,
+                                               width,
+                                               height,
+                                               SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+  SDL_Renderer* screen = kept                  ? static_cast<SDL_Renderer*>(a_hooks->m_screen)
+                         : (window != nullptr) ? SDL_CreateRenderer(window, -1, 0)
+                                               : nullptr;
 
   if (window == nullptr || screen == nullptr) {
     std::printf("EBGeometry: the viewer could not open a window (%s).\n", SDL_GetError());
@@ -834,9 +942,14 @@ run(const S&           a_shape,
   // Text input only while a name is typed (some platforms start with it on).
   SDL_StopTextInput();
 
-  std::printf("EBGeometry viewer keys\n");
+  const bool printKeys = a_hooks == nullptr || a_hooks->m_starts++ == 0;
 
-  for (const KeyGroup& group : keys(a_deviceShape != nullptr, hasRegionVisibility<S>)) {
+  if (printKeys) {
+    std::printf("EBGeometry viewer keys\n");
+  }
+
+  for (const KeyGroup& group :
+       printKeys ? keys(a_deviceShape != nullptr, hasRegionVisibility<S>) : std::vector<KeyGroup>()) {
     std::printf("\n%s\n", group.m_title);
 
     for (const Key& key : group.m_keys) {
@@ -929,8 +1042,8 @@ run(const S&           a_shape,
     }
   }
 
-  // How the surface groups cover each possible piece, kept until they change. A piece the inventory does not hold is
-  // judged by the surface where it was found.
+  // How the surface groups cover each possible piece, kept until they change: a piece found on the parts of it found,
+  // which need not be all its shape's. A piece the inventory does not hold is judged by the surface where it was found.
   std::vector<PieceCoverage> coverage;
   DomainSetup                coveredGroups;
   bool                       coverageKnown = false;
@@ -939,7 +1052,9 @@ run(const S&           a_shape,
     const PossiblePiece& piece = possible[a_piece];
 
     if (piece.m_surface < inventory.getNumSurfaces()) {
-      return coverageOf(piece, inventory, a_setup);
+      return (foundOf[a_piece] != std::size_t(-1))
+               ? coverageOf(piece, inventory, a_setup, pieces[foundOf[a_piece]].m_parts)
+               : coverageOf(piece, inventory, a_setup);
     }
 
     PieceCoverage judged;
@@ -3385,7 +3500,9 @@ run(const S&           a_shape,
              ((a_stats.m_insideHits * 1000U > a_stats.m_hits) ? ", red: seen from inside the solid" : "") +
              ((a_stats.m_unresolved > 0U) ? ", some rays unresolved" : "");
 
-    SDL_SetWindowTitle(window, status.c_str());
+    const std::string note = (a_hooks != nullptr && a_hooks->m_note) ? a_hooks->m_note() : std::string();
+
+    SDL_SetWindowTitle(window, (status + (note.empty() ? "" : " | " + note)).c_str());
 
     shownStats   = a_stats;
     shownSeconds = a_seconds;
@@ -3397,8 +3514,79 @@ run(const S&           a_shape,
     present();
   };
 
+  // The hooks' note last shown in the title.
+  std::string shownNote;
+
+  // The edits last told to the hooks (the active domain, its surface groups and their names), and a question the hooks
+  // asked about them, with the answer being typed.
+  bool                     editsKnown  = false;
+  uint32_t                 editsDomain = SurfaceGroups::None;
+  DomainSetup              editsTold;
+  std::vector<std::string> editsNames;
+  std::string              question;
+  std::string              answer;
+
+  const auto editNames = [&]() {
+    std::vector<std::string> list;
+
+    for (uint32_t g = 0; g < edited.getNumSurfaceGroups(); g++) {
+      list.push_back(names.surfaceGroup(g, false));
+    }
+
+    return list;
+  };
+
+  const auto askedTitle = [&]() {
+    SDL_SetWindowTitle(window, (question + ": " + answer + "_  (Enter keeps it, Esc cancels)").c_str());
+  };
+
   while (running) {
     SDL_Event event;
+
+    // A reloading program's new version: return, keeping the window, the camera and the settings. A new note (a
+    // reload that failed) shows at once, not only with the next frame.
+    if (a_hooks != nullptr && a_hooks->m_reload && a_hooks->m_reload()) {
+      a_hooks->m_reloading = true;
+      a_hooks->m_camera    = camera;
+      a_hooks->m_settings  = settings;
+
+      break;
+    }
+
+    // An edit of the domains, told once (switching domains is not one).
+    if (a_hooks != nullptr && a_hooks->m_edited && question.empty() && renaming == SurfaceGroups::None) {
+      const uint32_t domain = names.getNumDomains() > 0U ? names.getActiveDomain() : SurfaceGroups::None;
+
+      if (!editsKnown || domain != editsDomain) {
+        editsKnown  = true;
+        editsDomain = domain;
+        editsTold   = edited;
+        editsNames  = editNames();
+      }
+      else if (edited != editsTold || editNames() != editsNames) {
+        editsTold  = edited;
+        editsNames = editNames();
+        question   = a_hooks->m_edited(names, edited);
+
+        if (!question.empty()) {
+          answer.clear();
+
+          SDL_StartTextInput();
+
+          askedTitle();
+        }
+      }
+    }
+
+    if (a_hooks != nullptr && a_hooks->m_note && question.empty()) {
+      const std::string note = a_hooks->m_note();
+
+      if (note != shownNote) {
+        shownNote = note;
+
+        SDL_SetWindowTitle(window, (status + (note.empty() ? "" : " | " + note)).c_str());
+      }
+    }
 
     // Wait a little for the first event, then take every one that is queued.
     bool got = SDL_WaitEventTimeout(&event, 16) != 0;
@@ -4136,6 +4324,19 @@ run(const S&           a_shape,
         break;
       }
       case SDL_TEXTINPUT: {
+        // Typing the answer to the hooks' question: printable characters only, up to 40.
+        if (!question.empty()) {
+          for (const char* c = event.text.text; *c != '\0'; c++) {
+            if (*c >= 32 && *c <= 126 && answer.size() < 40U) {
+              answer += *c;
+            }
+          }
+
+          askedTitle();
+
+          break;
+        }
+
         // Typing a surface group's name: printable characters only, up to 40.
         if (renaming != SurfaceGroups::None) {
           for (const char* c = event.text.text; *c != '\0'; c++) {
@@ -4151,6 +4352,45 @@ run(const S&           a_shape,
         break;
       }
       case SDL_KEYDOWN: {
+        // While the hooks' question is answered, keys type the answer: Enter gives it, Esc cancels, Backspace erases.
+        if (!question.empty()) {
+          const SDL_Keycode key = event.key.keysym.sym;
+
+          if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
+            question = a_hooks->m_named(key == SDLK_ESCAPE ? std::string() : answer);
+
+            answer.clear();
+
+            if (question.empty()) {
+              SDL_StopTextInput();
+              SDL_SetWindowTitle(window, status.c_str());
+            }
+            else {
+              askedTitle();
+            }
+          }
+          else if (key == SDLK_BACKSPACE && !answer.empty()) {
+            answer.pop_back();
+
+            askedTitle();
+          }
+
+          break;
+        }
+
+        // Ctrl+Z and Ctrl+Y undo and redo what a program writing the edits wrote.
+        if (a_hooks != nullptr && (event.key.keysym.mod & KMOD_CTRL) != 0 &&
+            (event.key.keysym.sym == SDLK_z || event.key.keysym.sym == SDLK_y)) {
+          const bool  undo = event.key.keysym.sym == SDLK_z;
+          const auto& act  = undo ? a_hooks->m_undo : a_hooks->m_redo;
+
+          if (act && !act()) {
+            SDL_SetWindowTitle(window, (status + (undo ? " | nothing to undo" : " | nothing to redo")).c_str());
+          }
+
+          break;
+        }
+
         // While a surface group's name is typed, keys type it: Enter keeps it, Esc cancels, Backspace erases.
         if (renaming != SurfaceGroups::None) {
           const SDL_Keycode key = event.key.keysym.sym;
@@ -4765,7 +5005,7 @@ run(const S&           a_shape,
           // The camera, the light and the picked surfaces, as the window opened with them (out of the slice view).
           leaveSlice();
 
-          camera                        = a_camera;
+          camera                        = (a_hooks != nullptr && a_hooks->m_hasHome) ? a_hooks->m_home : a_camera;
           settings.m_light              = a_settings.m_light;
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
@@ -4932,12 +5172,40 @@ run(const S&           a_shape,
     SDL_DestroyTexture(colorbar);
   }
 
+  if (a_hooks != nullptr && a_hooks->m_reloading) {
+    a_hooks->m_window = window;
+    a_hooks->m_screen = screen;
+
+    return;
+  }
+
+  if (a_hooks != nullptr) {
+    a_hooks->m_window = nullptr;
+    a_hooks->m_screen = nullptr;
+  }
+
   SDL_DestroyRenderer(screen);
   SDL_DestroyWindow(window);
   SDL_Quit();
 }
 
 #endif
+
+template <class T>
+inline void
+closeWindow(Hooks<T>& a_hooks)
+{
+#ifdef EBGEOMETRY_VIEWER_SDL2
+  if (a_hooks.m_window != nullptr) {
+    SDL_DestroyRenderer(static_cast<SDL_Renderer*>(a_hooks.m_screen));
+    SDL_DestroyWindow(static_cast<SDL_Window*>(a_hooks.m_window));
+    SDL_Quit();
+  }
+#endif
+
+  a_hooks.m_window = nullptr;
+  a_hooks.m_screen = nullptr;
+}
 
 /**
  * @brief Open the window, or say why not.
@@ -4951,6 +5219,7 @@ run(const S&           a_shape,
  * @param[in] a_argc        Argument count.
  * @param[in] a_argv        Arguments.
  * @param[in] a_names       Names of the regions, materials, surfaces and groups, or null.
+ * @param[in,out] a_hooks   A reloading program's hooks, or null.
  */
 template <class T, class S>
 inline void
@@ -4960,7 +5229,8 @@ start(const S&           a_shape,
       const Settings<T>& a_settings,
       const int          a_argc,
       char**             a_argv,
-      const RegionNames* a_names = nullptr)
+      const RegionNames* a_names = nullptr,
+      Hooks<T>*          a_hooks = nullptr)
 {
   static_assert(isShape<S>, "Render::view: the object to look at must be a shape (see isShape)");
 
@@ -4977,13 +5247,14 @@ start(const S&           a_shape,
     return;
   }
 
-  run(a_shape, a_deviceShape, a_camera, a_settings, a_names);
+  run(a_shape, a_deviceShape, a_camera, a_settings, a_names, a_hooks);
 #else
   (void)a_shape;
   (void)a_deviceShape;
   (void)a_camera;
   (void)a_settings;
   (void)a_names;
+  (void)a_hooks;
 
   std::printf("EBGeometry: built without the viewer; build with VIEWER=SDL2 (make) or -DEBGEOMETRY_VIEWER=SDL2 "
               "(CMake) to look at the shape.\n");
@@ -5026,6 +5297,7 @@ initialCamera(const S& a_shape)
  * @param[in]     a_argc     Argument count.
  * @param[in]     a_argv     Arguments.
  * @param[in]     a_names    Names of the regions, materials, surfaces and groups, or null.
+ * @param[in,out] a_hooks    A reloading program's hooks, or null.
  */
 template <class S>
 inline void
@@ -5035,7 +5307,8 @@ startInPool(const S&                           a_shape,
             const Settings<ShapePrecision<S>>& a_settings,
             int                                a_argc,
             char**                             a_argv,
-            const RegionNames*                 a_names)
+            const RegionNames*                 a_names,
+            Hooks<ShapePrecision<S>>*          a_hooks = nullptr)
 {
   using T = ShapePrecision<S>;
 
@@ -5048,7 +5321,7 @@ startInPool(const S&                           a_shape,
     const Pool mirror      = Pool::mirror(a_pool, GPU::memoryResource());
     const S    deviceShape = a_shape.rebasedView(mirror);
 
-    start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv, a_names);
+    start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv, a_names, a_hooks);
 
     return;
   }
@@ -5056,7 +5329,7 @@ startInPool(const S&                           a_shape,
 
   (void)a_pool;
 
-  start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv, a_names);
+  start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv, a_names, a_hooks);
 }
 
 } // namespace ViewerDetail

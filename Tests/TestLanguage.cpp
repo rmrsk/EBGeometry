@@ -965,7 +965,8 @@ couple wall_heat = surface(heat.cooled, flow.wall)
   }
 }
 
-TEST_CASE("Language: every built-in shape and operation has its line in the docs", "[Language]")
+TEST_CASE("Language: every built-in shape and operation is used in the gallery model and has its line in the docs",
+          "[Language]")
 {
   namespace fs = std::filesystem;
 
@@ -981,16 +982,21 @@ TEST_CASE("Language: every built-in shape and operation has its line in the docs
     return all.str();
   };
 
+  const std::string gallery    = text(repository / "Studio" / "Models" / "gallery" / "model.ebg");
   const std::string shapes     = text(repository / "Docs" / "Sphinx" / "source" / "LanguageShapes.rst");
   const std::string operations = text(repository / "Docs" / "Sphinx" / "source" / "LanguageOperations.rst");
 
+  REQUIRE_FALSE(gallery.empty());
   REQUIRE_FALSE(shapes.empty());
   REQUIRE_FALSE(operations.empty());
 
   for (const std::string& name : Language::LanguageDetail::builtinNames()) {
     CAPTURE(name);
 
-    // Named in a table of the docs.
+    // Called in the gallery (as name(...), or a.name(...) for a method), and named in a table of the docs.
+    const std::regex called("(^|[^A-Za-z0-9_])" + name + "\\(");
+
+    CHECK(std::regex_search(gallery, called));
     CHECK((shapes.find("``" + name + "``") != std::string::npos ||
            operations.find("``" + name + "``") != std::string::npos));
   }

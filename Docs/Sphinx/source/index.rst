@@ -41,6 +41,7 @@ and on GPUs, from the same code, with no dependencies.
    section#getting-started,
    section#concepts,
    section#the-ebg-language,
+   section#studio,
    section#implementation,
    section#examples,
    section#contributing-and-testing,
@@ -97,6 +98,19 @@ The .ebg language
    LanguageShapes.rst
    LanguageOperations.rst
    LanguageReference.rst
+
+Studio
+******
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Studio
+   :hidden:
+
+   Studio.rst
+   StudioCommands.rst
+   StudioViewer.rst
+   StudioCoolingBlock.rst
 
 Implementation
 **************

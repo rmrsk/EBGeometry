@@ -1,0 +1,27 @@
+ebg 0
+
+param inflow = 0.5
+
+material steel { conductivity = 45, density = 7850, heat_capacity = 490 }
+material water { conductivity = 0.6, density = 1000, viscosity = 1.0e-3, heat_capacity = 4180 }
+
+# The flow of the water through the channel.
+domain flow {
+  subdomain fluid = water
+  group inlet = label("inlet") { velocity = (inflow, 0, 0), temperature = 290 }
+  group outlet = label("outlet") { pressure = 0 }
+  group wall = interface(water, solid) { kind = "no_slip" }
+}
+
+# The heat in the steel: heated from below, cooled by the water, insulated elsewhere.
+domain heat {
+  subdomain metal = solid
+  group heated = label("base") { heat_flux = 5.0e4 }
+  group cooled = interface(solid, water) { kind = "coupled" }
+  group insulated = remaining() { heat_flux = 0 }
+}
+
+# The heat crosses the channel wall: the solid's cooled face is the water's wall.
+couple wall_heat = surface(heat.cooled, flow.wall) { transfer = "heat" }
+
+view { camera = (6.5, 4, 6), target = (2, 0.5, 1), color.steel = (0.6, 0.62, 0.66), color.water = (0.3, 0.55, 0.9) }

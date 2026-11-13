@@ -35,7 +35,8 @@ namespace LanguageDetail {
 
 /**
  * @brief The language's built-in shapes and operations, by name: the shapes first, then the operations.
- * @details Every name here has its line in the Sphinx pages of shapes and operations, which the unit tests check.
+ * @details Every name here has its line in the Sphinx pages of shapes and operations and is used once in
+ * Studio/Models/gallery, which the unit tests check.
  * @return The names.
  */
 inline const std::vector<std::string>&

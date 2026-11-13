@@ -164,7 +164,8 @@ main(int argc, char* argv[])
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // The regions, colored by material, with the model's names: its regions, materials and labels, and its domains and
-  // their surface groups (the panel switches between them).
+  // their surface groups (the panel switches between them). ebgstudio view does the same, and writes the surface
+  // groups made in the window back into the files.
   EBGeometry::Render::Settings<T> settings;
 
   settings.m_colorBy            = EBGeometry::Render::ColorBy::Primitive;
