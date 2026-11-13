@@ -63,15 +63,15 @@ main(int argc, char* argv[])
 {
   // ── Read the model ─────────────────────────────────────────────────────────────────────────────────
   //
-  // A folder holds model.ebg and setup.ebg; read() reads both, in that order. A model with errors throws them all, with
-  // their files, lines and columns. Meshes a model reads would be built into the pool.
-  const std::string folder = (argc > 1 && argv[1][0] != '-') ? argv[1] : "cable";
+  // The setup file includes the geometry (model.ebg); read() reads it and what it includes. A model with errors throws
+  // them all, with their files, lines and columns. Meshes a model reads would be built into the pool.
+  const std::string file = (argc > 1 && argv[1][0] != '-') ? argv[1] : "cable/setup.ebg";
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
   const auto model = [&]() {
     try {
-      return EBGeometry::Language::read<T>(folder, pool);
+      return EBGeometry::Language::read<T>(file, pool);
     } catch (const EBGeometry::Language::Error& e) {
       std::cerr << e.what() << "\n";
 
@@ -83,7 +83,7 @@ main(int argc, char* argv[])
     std::cout << warning.str() << "\n";
   }
 
-  std::cout << "Read " << folder << ": " << model.index().getNumRegions() << " regions, " << model.getNumMaterials()
+  std::cout << "Read " << file << ": " << model.index().getNumRegions() << " regions, " << model.getNumMaterials()
             << " materials, " << model.getNumDomains() << " domains\n";
 
   // ── Build what the program computes on ─────────────────────────────────────────────────────────────

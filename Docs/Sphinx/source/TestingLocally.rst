@@ -473,7 +473,7 @@ Test coverage
      - The ``.ebg`` language: every built-in shape and operation against the same expression built in C++ (equal
        distances on a grid), arithmetic, params and overrides, regions, materials, labels and part names in the
        index, domains (subdomains with properties merged from materials, selectors against the C++ selectors, a
-       domain built for the tape), couplings, a domain's completeness, a model folder with an include and a mesh
+       domain built for the tape), couplings, a domain's completeness, a setup including its model and a mesh
        read once, errors at their line and column (all reported, none aborting, the library's own value checks
        included), the printer's canonical form (idempotent, the same model) and a table of properties read on a
        device.

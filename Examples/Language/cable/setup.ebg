@@ -1,5 +1,7 @@
 ebg 0
 
+include("model.ebg")
+
 param mu_air = 1.8e-5
 
 material copper { conductivity = 5.8e7 }

@@ -17,8 +17,9 @@ on a device by the numbers EBGeometry computes there.
 A first model
 -------------
 
-A model is a file, or a folder holding ``model.ebg`` (the geometry) and ``setup.ebg`` (materials, domains, couplings
-and the view, read after it, the file a viewer writes). A cable along *z*, in a box of air with a flow across it:
+A model is a file, and the files it includes. Usually the geometry is in one, ``model.ebg``, and what is computed on it
+in another, ``setup.ebg``, which includes the geometry and is the file a program reads. A cable along *z*, in a box of
+air with a flow across it, ``model.ebg``:
 
 .. code-block:: text
 
@@ -39,11 +40,13 @@ and the view, read after it, the file a viewer writes). A cable along *z*, in a 
      region core   = conductor   material copper
    }
 
-and its ``setup.ebg``:
+and its ``setup.ebg``, which names the geometry it is a setup of:
 
 .. code-block:: text
 
    ebg 0
+
+   include("model.ebg")
 
    material copper { conductivity = 5.8e7 }
    material PTFE   { permittivity = 2.1, density = 2200 }
@@ -144,19 +147,20 @@ A **coupling** joins two domains: ``couple name = volume(a.sub, b.sub)``, two su
 ``couple name = surface(a.group, b.group)``, two surface groups holding the same pieces; both are checked, and their
 properties pass through.
 
-Files, folders and includes
----------------------------
+Files and includes
+------------------
 
 ``include("file.ebg")`` brings in another file's names and declarations, in one namespace: a name defined twice is an
 error naming both places. A file is read once however many files include it, by whatever path; a file including
-itself, through others, is an error. A path is relative to the file it is written in. Materials, domains and couplings are resolved after the whole model is read, so they may live
-in their own file. A ``view`` block holds what a viewer shows (see below) and programs ignore.
+itself, through others, is an error. A path is relative to the file it is written in. Nothing is read that a file does
+not include: a reader is given one file (a folder is an error). Materials, domains and couplings are resolved after the
+whole model is read, so they may live in their own file. A ``view`` block holds what a viewer shows (see below) and programs ignore.
 
 Organizing a model
 ------------------
 
-A model is one file, or a folder holding ``model.ebg`` and, read after it, ``setup.ebg``: the geometry in one, what is
-computed on it (materials, domains, couplings, the view) in the other. A reader is given the file or the folder.
+A small model is one file. A larger one keeps its geometry in ``model.ebg`` and what is computed on it (materials,
+domains, couplings, the view) in ``setup.ebg``, which begins with ``include("model.ebg")`` and is the file read.
 
 When one geometry has several setups, each setup is a file of its own that includes the geometry, and is read by
 itself:

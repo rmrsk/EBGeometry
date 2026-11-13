@@ -3,8 +3,8 @@ Examples/Language
 
 A model read from text. A cable, a copper core inside a PTFE jacket, in a box of air with a flow across it, written
 in the .ebg language: `cable/model.ebg` holds the geometry (the shapes, the overlay of regions and their materials,
-the box's faces labeled), `cable/setup.ebg` the materials' properties, two domains (electrostatics and cfd, each with
-its subdomains and surface groups) and the couplings between them. `Language::read()` reads the folder at run time;
+the box's faces labeled), `cable/setup.ebg` includes it and holds the materials' properties, two domains (electrostatics and cfd, each with
+its subdomains and surface groups) and the couplings between them. `Language::read()` reads the setup at run time;
 the program compiles the object into a tape, builds the cfd domain for it from the model's setup, and fills a table of
 its own rows (`Fluid`, a density and a viscosity per subdomain) from the subdomains' properties, in the tape's pool.
 `completeness()` says whether every subdomain has properties and every piece of surface bounding the domain a surface

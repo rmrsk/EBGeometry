@@ -1,5 +1,7 @@
 ebg 0
 
+include("model.ebg")
+
 material air { density = 1.2 }
 
 domain flow {

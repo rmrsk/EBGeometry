@@ -3,7 +3,7 @@
 
 // Test suite for the .ebg language (EBGeometry_Language.hpp): every shape and operation against the same expression
 // built in C++, arithmetic, params and overrides, regions and materials, domains with their subdomains, properties and
-// surface groups, couplings, includes and model folders, meshes and their face groups, errors at their line and
+// surface groups, couplings, includes and setups, meshes and their face groups, errors at their line and
 // column (none aborts), the printer's canonical form, a domain's completeness, and tables read on a device.
 
 #include "Source/EBGeometry_Language.hpp"
@@ -510,7 +510,7 @@ object intersection(overlay {
   }
 
   // A mesh's face groups whose names are not names of the language: its parts are named so that they can be.
-  const auto mesh = Language::read<T>(dataFile("language/odd_groups"), pool);
+  const auto mesh = Language::read<T>(dataFile("language/odd_groups/model.ebg"), pool);
 
   CHECK(mesh.shapes()[0].m_parts == std::vector<std::string>{"bottom", "_2top", "side_wall"});
   CHECK(mesh.shapes()[0].m_partLabels == std::vector<std::string>{"bottom", "2top", "outer"});
@@ -945,7 +945,7 @@ TEST_CASE("Language: every built-in shape and operation has its line in the docs
   }
 }
 
-TEMPLATE_TEST_CASE("Language: a model folder, its setup file and includes; a mesh and its face groups",
+TEMPLATE_TEST_CASE("Language: a setup file including its model and more; a mesh and its face groups",
                    "[Language]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -953,15 +953,24 @@ TEMPLATE_TEST_CASE("Language: a model folder, its setup file and includes; a mes
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(dataFile("language/cubes"), pool, {{"shift", "(0, 4, 0)"}});
+  const auto model = Language::read<T>(dataFile("language/cubes/setup.ebg"), pool, {{"shift", "(0, 4, 0)"}});
 
-  // model.ebg, the file it includes, setup.ebg (every file is read before any is evaluated), and the mesh, once
-  // however often it is used.
+  // setup.ebg, the model it includes and the file that includes (every file is read before any is evaluated), and the
+  // mesh, once however often it is used.
   REQUIRE(model.files().size() == 4U);
-  CHECK_THAT(model.files()[1], Catch::Matchers::EndsWith("shapes.ebg"));
-  CHECK_THAT(model.files()[2], Catch::Matchers::EndsWith("setup.ebg"));
+  CHECK_THAT(model.files()[0], Catch::Matchers::EndsWith("setup.ebg"));
+  CHECK_THAT(model.files()[1], Catch::Matchers::EndsWith("model.ebg"));
+  CHECK_THAT(model.files()[2], Catch::Matchers::EndsWith("shapes.ebg"));
   CHECK_THAT(model.files()[3], Catch::Matchers::EndsWith("cube_groups.obj"));
-  CHECK(model.setupSource() == 2);
+
+  // A folder is no model: the file is named.
+  try {
+    (void)Language::read<T>(dataFile("language/cubes"), pool);
+
+    FAIL("a folder reads");
+  } catch (const Language::Error& e) {
+    CHECK_THAT(e.diagnostics().front().m_message, Catch::Matchers::ContainsSubstring("is a folder"));
+  }
 
   // The mesh's face groups are labels, one renamed; the second copy is unlabeled.
   const ExprIndex<T>& index = model.index();
@@ -1188,14 +1197,14 @@ object overlay {
     CHECK(a.signedDistance(p) == b.signedDistance(p));
   }
 
-  // A model folder flattens into one text.
-  const auto folder    = Language::read<T>(dataFile("language/cubes"), pool);
-  const auto flattened = Language::print(folder, true);
+  // A setup and the model it includes flatten into one text.
+  const auto setup     = Language::read<T>(dataFile("language/cubes/setup.ebg"), pool);
+  const auto flattened = Language::print(setup, true);
 
   CHECK_THAT(flattened, Catch::Matchers::ContainsSubstring("cube = mesh("));
   CHECK_THAT(flattened, Catch::Matchers::ContainsSubstring("material steel"));
   CHECK_THAT(flattened, !Catch::Matchers::ContainsSubstring("include("));
-  CHECK_THAT(Language::print(folder), Catch::Matchers::ContainsSubstring("include(\"shapes.ebg\")"));
+  CHECK_THAT(Language::print(setup), Catch::Matchers::ContainsSubstring("include(\"model.ebg\")"));
 }
 
 TEMPLATE_TEST_CASE("Language: every model in the repository reads, and its canonical form is itself once printed",
@@ -1207,17 +1216,18 @@ TEMPLATE_TEST_CASE("Language: every model in the repository reads, and its canon
   // The models the tests, the examples and the docs rely on: a change to the language that breaks one shows here.
   const std::string root = std::string(EBGEOMETRY_TEST_DATA_DIR) + "/../..";
 
-  for (const std::string folder :
-       {"Tests/data/language/cubes", "Tests/data/language/wire", "Examples/Language/cable"}) {
-    INFO(folder);
+  for (const std::string file : {"Tests/data/language/cubes/setup.ebg",
+                                 "Tests/data/language/wire/setup.ebg",
+                                 "Examples/Language/cable/setup.ebg"}) {
+    INFO(file);
 
     Pool pool(hostMemoryResource());
 
-    const auto model = Language::read<T>(root + "/" + folder, pool);
+    const auto model = Language::read<T>(root + "/" + file, pool);
 
     // Printed whole, read again: the same object, and printing it again changes nothing.
     const std::string printed = Language::print(model, true);
-    const auto        again   = Language::parse<T>(printed, root + "/" + folder + "/model.ebg", pool);
+    const auto        again   = Language::parse<T>(printed, root + "/" + file, pool);
 
     CHECK(Language::print(again) == printed);
     CHECK(again.getNumDomains() == model.getNumDomains());
@@ -1256,7 +1266,11 @@ TEST_CASE("Language: mangled models read or report errors, never crash or abort"
   }
 
   // The whole cable in one file, so that mangling reaches the domains too.
-  texts.push_back(texts[2] + texts[3].substr(texts[3].find('\n')));
+  std::string setup = texts[3].substr(texts[3].find('\n'));
+
+  setup.erase(setup.find("include(\"model.ebg\")"), std::string("include(\"model.ebg\")").size());
+
+  texts.push_back(texts[2] + setup);
 
   const std::string alphabet = "(){}[],.=+-*/\"#\\\n abcxyz019_eE";
 

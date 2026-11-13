@@ -902,7 +902,7 @@ public:
   {}
 
   /**
-   * @brief Read a file or a model folder.
+   * @brief Read a file and the files it includes.
    * @param[in] a_path The path.
    * @return The model; an Error with every diagnostic when it has errors.
    */
@@ -952,29 +952,19 @@ private:
   {
     namespace fs = std::filesystem;
 
-    // The overloads taking an error code: a path that cannot be inspected is then read as a file, whose error says
-    // why, never a filesystem_error out of read().
+    // A model is the file named, and the files it includes: nothing is read that a file does not name. The overload
+    // taking an error code: a path that cannot be inspected is read as a file, whose error says why, never a
+    // filesystem_error out of read().
     std::error_code ec;
 
     if (fs::is_directory(a_path, ec)) {
-      const std::string model = (fs::path(a_path) / "model.ebg").string();
-      const std::string setup = (fs::path(a_path) / "setup.ebg").string();
-
-      if (!fs::exists(model, ec)) {
-        throw Error(Span{a_path, 0, 0, 0, 0}, "a model folder holds model.ebg; '" + a_path + "' has none");
-      }
-
-      this->loadFile(model, Span{a_path, 0, 0, 0, 0});
-
-      if (fs::exists(setup, ec)) {
-        m_setupSource = static_cast<int>(m_sources.size());
-
-        this->loadFile(setup, Span{a_path, 0, 0, 0, 0});
-      }
+      throw Error(Span{a_path, 0, 0, 0, 0},
+                  "'" + a_path +
+                    "' is a folder: a model is a file, which includes the others it needs (name the setup " +
+                    "file, say)");
     }
-    else {
-      this->loadFile(a_path, Span{a_path, 0, 0, 0, 0});
-    }
+
+    this->loadFile(a_path, Span{a_path, 0, 0, 0, 0});
 
     this->evaluate();
 
@@ -1064,11 +1054,6 @@ private:
    * @brief The parsed files (a deque, so that statements stay where they are as files are added).
    */
   std::deque<Syntax::File> m_sources;
-
-  /**
-   * @brief The setup file of a model folder, among the sources, or -1.
-   */
-  int m_setupSource = -1;
 
   /**
    * @brief The files being read, outermost first: for include cycles and relative paths.
@@ -3204,7 +3189,6 @@ private:
     }
 
     m_model.m_sources.assign(m_sources.begin(), m_sources.end());
-    m_model.m_setupSource = m_setupSource;
 
     return std::move(m_model);
   }
@@ -4723,12 +4707,6 @@ print(const Model<T>& a_model, const bool a_flatten)
   std::set<std::string> printed;
 
   LanguageDetail::printFile(out, sources, sources[0], a_flatten, printed);
-
-  if (a_flatten && a_model.setupSource() >= 0) {
-    out += "\n";
-
-    LanguageDetail::printFile(out, sources, sources[static_cast<size_t>(a_model.setupSource())], a_flatten, printed);
-  }
 
   while (out.size() > 1 && out[out.size() - 1] == '\n' && out[out.size() - 2] == '\n') {
     out.pop_back();

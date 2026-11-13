@@ -801,7 +801,7 @@ struct ShapeSite
 };
 
 /**
- * @brief A model read from a .ebg file or folder: its object, the names of its regions, materials and labels, its
+ * @brief A model read from a .ebg file and the files it includes: its object, the names of its regions, materials and labels, its
  * materials, domains, couplings and params, and the files it read.
  * @details The caller compiles the object into a tape, Tape<T, UserPrimitives...>(pool, model.object()), picking the
  * tape's features; and builds a domain for that tape from a ModelDomain's setup, Domain(pool, tape,
@@ -987,17 +987,6 @@ public:
   }
 
   /**
-   * @brief The setup file a model folder includes after its model.ebg.
-   * @return Its index among sources(), or -1 for none.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST
-  int
-  setupSource() const noexcept
-  {
-    return m_setupSource;
-  }
-
-  /**
    * @brief The model's names for a viewer: regions, materials and labels, every domain's setup with the names of its
    * subdomains and surface groups, and the colors of the view block.
    * @return The names.
@@ -1102,17 +1091,12 @@ private:
    * @brief The parsed files.
    */
   std::vector<Syntax::File> m_sources;
-
-  /**
-   * @brief The setup file a folder includes after its model.ebg, among the sources, or -1 for none.
-   */
-  int m_setupSource = -1;
 };
 
 /**
- * @brief Read a model: a .ebg file, or a folder holding model.ebg, with setup.ebg included after it when present.
+ * @brief Read a model: a .ebg file, and the files it includes (a setup file includes the geometry it is a setup of).
  * @tparam T Precision.
- * @param[in]     a_path      The file or folder.
+ * @param[in]     a_path      The file; a folder is an error.
  * @param[in,out] a_pool      Where meshes the model reads are built; it must outlive the model's object.
  * @param[in]     a_overrides Values for its params.
  * @return The model. Throws Error with every diagnostic when the model has errors.

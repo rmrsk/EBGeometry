@@ -108,7 +108,7 @@ main(int argc, char* argv[])
     pp.query("max_grid_size", max_grid_size);
     pp.query("subdomain", subdomain);
 
-    // A .ebg model to read the object and the domain from (a file, or a folder holding model.ebg and setup.ebg),
+    // A .ebg model to read the object and the domain from (a file: a setup that includes its geometry, say),
     // and the domain's name; without one, the cable below, built in C++.
     std::string model;
     std::string domainName;

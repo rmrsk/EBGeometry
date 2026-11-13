@@ -11,7 +11,7 @@ included.
 Reading
 -------
 
-`Language::read() <doxygen/html/namespaceEBGeometry_1_1Language.html>`__ reads a ``.ebg`` file or a model folder,
+`Language::read() <doxygen/html/namespaceEBGeometry_1_1Language.html>`__ reads a ``.ebg`` file and the files it includes,
 ``Language::parse()`` text, into a
 `Language::Model <doxygen/html/classEBGeometry_1_1Language_1_1Model.html>`__, with overrides for its params written as
 in a file. A model with errors throws a
