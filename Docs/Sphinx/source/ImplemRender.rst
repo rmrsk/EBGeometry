@@ -122,16 +122,16 @@ draw a matching one with ``Render::costPlace(stats, cost)``, which gives where a
 ``m_costLow``, 1 at ``m_costHigh``), and ``Render::costColor(place)``, the color the frame gives that place.
 
 The figure shows the xyzrgb dragon as :ref:`Chap:ExampleMeshSDF` shows it when given that mesh (a ``TriMeshSDF``,
-built in single precision, ``PRECISION=float``), in the cost view of ``firstHit()``, rendered on the host (left) and
-on a GPU (right); the cost view of ``firstCrossing()`` looks alike. M in the viewer steps to the cost views, and the
+built in single precision, ``PRECISION=float``), in the cost view of ``firstCrossing()``, rendered on the host (left)
+and on a GPU (right); the cost view of ``firstHit()`` looks alike. M in the viewer steps to the cost views, and the
 example's window shows the same colorbars.
 
-.. figure:: _static/render_cost_firstHit.jpg
+.. figure:: _static/render_cost_firstCrossing.jpg
    :width: 100%
    :align: center
 
-   The cost of ``firstHit()`` per pixel, on the host in nanoseconds (left) and on a GPU in clock cycles (right),
-   with each frame's rays per second in its colorbar.
+   The cost of ``firstCrossing()`` per pixel, on the host in nanoseconds (left) and on a GPU in clock cycles
+   (right), with each frame's rays per second in its colorbar.
 
 The viewer
 ----------
