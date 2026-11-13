@@ -1220,6 +1220,27 @@ TEMPLATE_TEST_CASE("Ray: a tape's queries test its box first, and a ray through 
 
   REQUIRE(hit.hit());
   CHECK_THAT(hit.m_t, withinAbsT(T(2.5), looseMargin<T>()));
+
+  // A shape's spans() writes the list it is given, whatever was in it: a list a composition used for another
+  // operand comes back empty for a ray that misses the tape's box, as for any other miss.
+  RaySpansT<T> list;
+
+  list.addClipped(T(1), T(2), T(0), far);
+
+  RayForm<Tape<T>>::spans(tape, towardBeside, T(0), far, RayOptions<T>(), false, list);
+
+  CHECK(list.m_count == 0U);
+  CHECK(list.m_horizon >= far);
+
+  // In a composition: a ray that misses the nested tape's box, through an operand before it in the program.
+  const SphereSDF<T>     a(Vec3(T(0), T(5), T(0)), T(0.5));
+  const SphereSDF<T>     b(Vec3(T(5), T(0), T(0)), T(0.5));
+  const Tape<T, Tape<T>> cut(pool, Difference(Union(a, b), Expr<T>(tape)));
+  const HitT<T>          throughB = cut.firstHit(towardBeside, T(0), far);
+
+  REQUIRE(throughB.hit());
+  CHECK_THAT(throughB.m_t, withinAbsT(T(2.5), looseMargin<T>()));
+  CHECK(firstCrossing(cut, towardBeside, T(0), far).m_status == HitStatus::Hit);
 }
 
 TEMPLATE_TEST_CASE("Ray: device ray queries of compositions match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)

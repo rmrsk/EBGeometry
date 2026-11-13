@@ -2685,7 +2685,11 @@ Tape<T, UserPrimitives...>::raySpans(const RayT<T>&       a_ray,
                                      const bool           a_firstOnly,
                                      RaySpansT<T>&        a_spans) const noexcept
 {
+  // A miss writes an empty list, complete up to a_tMax, as the program would: the list may hold what a composition
+  // put in it for another operand.
   if (this->missesBox(a_ray, a_tMin, a_tMax)) {
+    a_spans.reset(a_tMax);
+
     return;
   }
 
