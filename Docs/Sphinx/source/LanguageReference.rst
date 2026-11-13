@@ -127,8 +127,9 @@ The view block
      - a plain default background; no floor under the object
    * - ``color.NAME = (r, g, b)``
      - the color of a name, each component from 0 to 1: a material's, a region's, a surface label's or a
-       surface group's, used when the viewer colors by that kind of name; a name without one takes the
-       built-in palette's
+       surface group's, used when the viewer colors by that kind of name; colored by region, a region without
+       one takes its material's (given, or the palette's), and a name without one otherwise takes the built-in
+       palette's
 
 Limits
 ------
