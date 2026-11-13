@@ -149,7 +149,25 @@ Files, folders and includes
 
 ``include("file.ebg")`` brings in another file's names and declarations, in one namespace: a name defined twice is an
 error naming both places. Materials, domains and couplings are resolved after the whole model is read, so they may live
-in their own file. A ``view`` block holds what a viewer shows (the camera, colors by name) and programs ignore.
+in their own file. A ``view`` block holds what a viewer shows (see below) and programs ignore.
+
+The view: camera and colors
+---------------------------
+
+A ``view`` block, once per model and usually in the setup file, says how a viewer opens the model:
+
+.. code-block:: text
+
+   view { camera = (7, 5, 9), target = (1, 0, 0), color.copper = (0.8, 0.5, 0.2), color.inlet = (0.2, 0.6, 1) }
+
+* ``camera`` is where the eye is; ``target`` what it looks at (by default the center of the object's box); ``up`` the
+  direction that is up in the window (by default ``(0, 1, 0)``). Without a camera, the viewer fits one to the object.
+* ``color.NAME = (r, g, b)`` gives a name a color, each component from 0 to 1: a material's, a region's, a surface
+  label's or a surface group's. The viewer uses it when it colors by that kind of name (by material, region, label or
+  surface group); a name without one takes the built-in palette's.
+
+Programs reading the model ignore the block; a program that views the model gets the colors with its names
+(``Model::names()``).
 
 Errors
 ------
