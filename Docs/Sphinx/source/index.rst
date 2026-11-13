@@ -92,6 +92,8 @@ The .ebg language
    :hidden:
 
    Language.rst
+   LanguageModels.rst
+   LanguageDomains.rst
    LanguageShapes.rst
    LanguageOperations.rst
    LanguageReference.rst

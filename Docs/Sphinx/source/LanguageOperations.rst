@@ -3,9 +3,10 @@
 Operations
 ==========
 
-An operation is a call that takes shapes and gives one (see :ref:`Chap:ConstructiveSolidGeometry` for what each does to the distance). The
-method form ``a.op(args)`` means ``op(a, args)``, so that a chain reads in order: ``box(lo, hi).rotate(30, "z")``.
-In the calls, ``a`` and ``b`` stand for shapes.
+Every built-in operation, with a call to copy. An operation takes shapes and gives one; the method form
+``a.op(args)`` means ``op(a, args)``, so that a chain reads in order: ``box(lo, hi).rotate(30, "z")``. In the
+calls, ``a`` and ``b`` stand for shapes. :ref:`Chap:ConstructiveSolidGeometry` describes what each does to the
+distance, and which keep it exact.
 
 Combining shapes
 ----------------
@@ -65,7 +66,8 @@ Moving shapes
      - ``a`` turned about an axis through the origin
    * - ``scale``
      - ``scale(a, 0.6)``: a, factor
-     - ``a`` scaled about the origin
+     - ``a`` scaled about the origin, by the same factor along every axis (a negative factor also reflects it
+       through the origin)
    * - ``reflect``
      - ``reflect(a, "y")``: a, axis
      - ``a`` mirrored in the coordinate plane through the origin normal to the axis
@@ -115,7 +117,7 @@ Labeling shapes
    * - ``label``
      - ``a.label("skin")``, ``a.label(xmin = "inlet", xmax = "outlet")``, or both
      - ``a``, its surface (or its parts, by name) labeled, so that surface groups can select them (see
-       :ref:`Chap:Language`)
+       :ref:`Chap:LanguageModels`)
 
 A label names a shape's own parts only, before it is moved or combined: ``box(...).label(xmin = "inlet")``, not
 ``translate(box(...), v).label(xmin = "inlet")``. A shape's parts are listed in :ref:`Chap:LanguageShapes`.
