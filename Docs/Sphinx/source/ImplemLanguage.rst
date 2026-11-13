@@ -49,7 +49,7 @@ group *g* is group *g*.
    const Domain fluid(pool, tape, cfd.setup());
 
 `Properties <doxygen/html/classEBGeometry_1_1Language_1_1Properties.html>`__ are what a material, subdomain, surface
-group or coupling carries: ``number()``, ``vector<T>()`` and ``string()`` by key, each with an optional fallback, and
+group or coupling carries: ``number()``, ``vector<T>()``, ``string()`` and ``flag()`` (true or false) by key, each with an optional fallback, and
 ``code(key, {"no_slip", "slip"})``, a string as its index among names, for a kernel to switch on. A missing key or a
 value of another type throws an ``Error`` at the line in the file. A subdomain's properties are its own over its
 regions' material's.

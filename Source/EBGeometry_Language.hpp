@@ -191,6 +191,25 @@ public:
   string(std::string_view a_key, const std::string& a_fallback) const;
 
   /**
+   * @brief A bool, true or false.
+   * @param[in] a_key The key.
+   * @return The bool; an Error when the key is missing or not true or false.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  flag(std::string_view a_key) const;
+
+  /**
+   * @brief A bool, or a fallback when the key is missing.
+   * @param[in] a_key      The key.
+   * @param[in] a_fallback The value when the key is missing.
+   * @return The bool; an Error when the key is set and not true or false.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  flag(std::string_view a_key, bool a_fallback) const;
+
+  /**
    * @brief A string that is one of a set of names, as its index among them: how a solver turns a kind ("no_slip")
    * into a code its kernels switch on.
    * @param[in] a_key   The key.

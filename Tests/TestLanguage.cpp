@@ -267,6 +267,10 @@ material air { permittivity = 1, density = 1.2, kind = "gas", flowing = true, ve
   CHECK(air.number("density") == 1.2);
   CHECK(air.string("kind") == "gas");
   CHECK(air.vector<T>("velocity") == Vec3T<T>(1, 0, 0));
+  CHECK(air.flag("flowing"));
+  CHECK_FALSE(air.flag("frozen", false));
+  CHECK_THROWS_AS(air.flag("density"), Language::Error);
+  CHECK_THROWS_AS(air.flag("frozen"), Language::Error);
   CHECK(air.number("viscosity", 1.8e-5) == 1.8e-5);
   CHECK(air.code("kind", {"liquid", "gas"}) == 1U);
   CHECK(air.spanOf("density").m_line == 13U);

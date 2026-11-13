@@ -158,10 +158,12 @@ A ``view`` block, once per model and usually in the setup file, says how a viewe
 
 .. code-block:: text
 
-   view { camera = (7, 5, 9), target = (1, 0, 0), color.copper = (0.8, 0.5, 0.2), color.inlet = (0.2, 0.6, 1) }
+   view { camera = (7, 5, 9), target = (1, 0, 0), background = (1, 1, 1), floor = false, color.copper = (0.8, 0.5, 0.2) }
 
 * ``camera`` is where the eye is; ``target`` what it looks at (by default the center of the object's box); ``up`` the
   direction that is up in the window (by default ``(0, 1, 0)``). Without a camera, the viewer fits one to the object.
+* ``background = (r, g, b)`` is a plain background in that color, each component from 0 to 1, instead of the sky's
+  gradient; ``sky = false`` gives the plain default one, and ``floor = false`` leaves out the floor under the object.
 * ``color.NAME = (r, g, b)`` gives a name a color, each component from 0 to 1: a material's, a region's, a surface
   label's or a surface group's. The viewer uses it when it colors by that kind of name (by material, region, label or
   surface group); a name without one takes the built-in palette's.

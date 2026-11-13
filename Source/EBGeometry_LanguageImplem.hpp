@@ -589,6 +589,26 @@ Properties::string(std::string_view a_key, const std::string& a_fallback) const
   return value != nullptr ? value->m_string : a_fallback;
 }
 
+inline bool
+Properties::flag(std::string_view a_key) const
+{
+  const Value* value = this->typed(a_key, Type::Bool);
+
+  if (value == nullptr) {
+    throw this->missing(a_key);
+  }
+
+  return value->m_number != 0.0;
+}
+
+inline bool
+Properties::flag(std::string_view a_key, const bool a_fallback) const
+{
+  const Value* value = this->typed(a_key, Type::Bool);
+
+  return value != nullptr ? value->m_number != 0.0 : a_fallback;
+}
+
 inline uint32_t
 Properties::code(std::string_view a_key, std::initializer_list<std::string_view> a_names) const
 {
