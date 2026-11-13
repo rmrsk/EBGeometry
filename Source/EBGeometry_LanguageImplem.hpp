@@ -3182,6 +3182,8 @@ private:
 
     if (m_viewStatement != nullptr) {
       m_model.m_view = this->properties(m_viewStatement->m_properties, "the view", m_viewStatement->m_span);
+
+      this->checkView();
     }
 
     this->stopOnErrors();
@@ -3723,6 +3725,99 @@ private:
     a_domain.m_groupNames.push_back(a_item.m_name);
     a_domain.m_groupProperties.push_back(this->properties(a_item.m_properties, owner, a_item.m_span));
     a_domain.m_groupSpans.push_back(a_item.m_span);
+  }
+
+  /**
+   * @brief Warn about what a viewer would pass over in the view block: a key it does not read, and a color for a name
+   * nothing in the model has.
+   * @details A viewer reads the keys below and ignores the rest, so a misspelled key would change nothing without a
+   * word; warnings, since programs reading the model ignore the block. A key of the form NAME.color, or with "color"
+   * misspelled before or after the dot, is pointed to color.NAME.
+   */
+  void
+  checkView()
+  {
+    static const std::vector<std::string> keys{"camera",
+                                               "target",
+                                               "up",
+                                               "yaw",
+                                               "pitch",
+                                               "distance",
+                                               "field_of_view",
+                                               "orthographic",
+                                               "background",
+                                               "sky",
+                                               "floor"};
+
+    const ExprIndex<T>& index = *m_model.m_index;
+
+    // Every name a color may be given to: the regions' and region groups', the materials', the surface labels' and
+    // the surface groups'.
+    std::vector<std::string> names = this->regionNames();
+
+    for (uint32_t m = 0; m < index.getNumMaterialLabels(); m++) {
+      names.push_back(index.getMaterialLabelName(MaterialLabelId(m)));
+    }
+
+    for (uint32_t l = 0; l < index.getNumSurfaceLabels(); l++) {
+      names.push_back(index.getSurfaceLabelName(SurfaceLabelId(l)));
+    }
+
+    for (const ModelDomain& domain : m_model.m_domains) {
+      for (uint32_t g = 0; g < domain.getNumSurfaceGroups(); g++) {
+        names.push_back(domain.surfaceGroupName(g));
+      }
+    }
+
+    const Properties& view = m_model.m_view;
+
+    for (const std::string& key : view.keys()) {
+      const Span& where = view.find(key)->m_span;
+
+      if (key.rfind("color.", 0) == 0) {
+        const std::string name = key.substr(6);
+
+        if (std::find(names.begin(), names.end(), name) == names.end()) {
+          this->warning(where,
+                        "view: '" + key +
+                          "' colors nothing: no region, material, surface label or surface group is "
+                          "named '" +
+                          name + "'" + LanguageDetail::suggest(name, names));
+        }
+
+        continue;
+      }
+
+      if (std::find(keys.begin(), keys.end(), key) != keys.end()) {
+        continue;
+      }
+
+      // NAME.color, or "color" misspelled on either side of the dot: a color meant for NAME.
+      const size_t dot = key.find('.');
+
+      if (dot != std::string::npos && key.find('.', dot + 1) == std::string::npos) {
+        const std::string first  = key.substr(0, dot);
+        const std::string second = key.substr(dot + 1);
+
+        const bool        colorAfter = LanguageDetail::editDistance(second, "color") <= 2U;
+        const bool        colorFirst = !colorAfter && LanguageDetail::editDistance(first, "color") <= 2U;
+        const std::string name       = colorAfter ? first : second;
+
+        if (colorAfter || colorFirst) {
+          const bool named = std::find(names.begin(), names.end(), name) != names.end();
+
+          this->warning(
+            where,
+            "view: '" + key + "' is no view key (did you mean 'color." + name + "'?)" +
+              (named ? std::string() : "; and nothing is named '" + name + "'" + LanguageDetail::suggest(name, names)));
+
+          continue;
+        }
+      }
+
+      this->warning(where,
+                    "view: '" + key + "' is no view key" + LanguageDetail::suggest(key, keys) + ", or color.NAME");
+    }
   }
 
   /**

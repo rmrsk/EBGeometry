@@ -159,7 +159,10 @@ The warnings:
 
 * a material named by a region but not declared (it has no properties);
 * a material declared but used by no region;
-* a selector that can hold nothing, such as ``interface(a, a)`` (a region has no interface with itself).
+* a selector that can hold nothing, such as ``interface(a, a)`` (a region has no interface with itself);
+* a key in the view block that a viewer does not read, pointing to the key meant (``red.color`` to
+  ``color.red``);
+* a color in the view block for a name nothing in the model has (``color.blue`` with only a ``blu``).
 
 Common errors, as a reader words them:
 

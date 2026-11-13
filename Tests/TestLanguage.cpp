@@ -527,6 +527,57 @@ object intersection(overlay {
   }
 }
 
+TEMPLATE_TEST_CASE("Language: the view block warns about a key a viewer passes over",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const std::string model = "ebg 0\nmaterial red\nmaterial blu\nobject overlay {\n  region r1 = sphere((0, 0, 0), 1) "
+                            "material red\n  region r2 = sphere((2, 0, 0), 1) material blu\n}\n";
+
+  // Every key a viewer reads, and a color for each kind of name: no warning.
+  const auto clean = Language::parse<T>(model + "view { camera = (7, 5, 9), target = (1, 0, 0), up = (0, 1, 0), "
+                                                "field_of_view = 30, orthographic = false, background = (1, 1, 1), "
+                                                "sky = false, floor = false, color.red = (1, 0, 1), "
+                                                "color.r2 = (0, 0, 1) }\n",
+                                        "test.ebg",
+                                        pool);
+
+  CHECK(clean.warnings().empty());
+
+  // Each mistake a warning at its line, pointing to the key meant; the model still reads.
+  const auto wrong = Language::parse<T>(model + "view {\n  red.colorr = (1, 0, 1)\n  blue.color = (0, 0, 1)\n"
+                                                "  colr.blu = (0, 0, 1)\n  color.green = (0, 1, 0)\n"
+                                                "  camra = (7, 5, 9)\n}\n",
+                                        "test.ebg",
+                                        pool);
+
+  const auto& warnings = wrong.warnings();
+
+  REQUIRE(warnings.size() == 5U);
+
+  CHECK(warnings[0].m_span.m_line == 9U);
+  CHECK_THAT(warnings[0].m_message,
+             Catch::Matchers::ContainsSubstring("'red.colorr' is no view key (did you mean 'color.red'?)"));
+  CHECK_THAT(warnings[0].m_message, !Catch::Matchers::ContainsSubstring("nothing is named"));
+
+  CHECK(warnings[1].m_span.m_line == 10U);
+  CHECK_THAT(warnings[1].m_message, Catch::Matchers::ContainsSubstring("did you mean 'color.blue'?"));
+  CHECK_THAT(warnings[1].m_message,
+             Catch::Matchers::ContainsSubstring("nothing is named 'blue' (did you mean 'blu'?)"));
+
+  CHECK_THAT(warnings[2].m_message,
+             Catch::Matchers::ContainsSubstring("'colr.blu' is no view key (did you mean 'color.blu'?)"));
+
+  CHECK_THAT(warnings[3].m_message, Catch::Matchers::ContainsSubstring("'color.green' colors nothing"));
+
+  CHECK_THAT(warnings[4].m_message,
+             Catch::Matchers::ContainsSubstring("'camra' is no view key (did you mean 'camera'?)"));
+}
+
 TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice and empty selectors",
                    "[Language]",
                    EBGEOMETRY_TEST_PRECISIONS)
