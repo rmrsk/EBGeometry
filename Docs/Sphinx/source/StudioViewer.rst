@@ -5,15 +5,16 @@ The window
 
 ``ebgstudio MODEL`` opens the model in EBGeometry's viewer (see :ref:`Chap:ImplemRender` for every key), showing its
 regions colored by material, with a panel of its names at the top left: its domains, their subdomains and surface
-groups, the regions, and what is picked. The camera and colors are those of the model's ``view`` block; R goes back to
-them.
+groups, the regions, and what is picked. The camera, colors and background are those of the model's ``view`` block
+(see :ref:`Chap:Language`); R goes back to the camera.
 
 Editing the files
 -----------------
 
 The window reads the model again whenever one of its files changes (an included file, or a mesh it reads), keeping the
 camera and what is shown: edit the model in any editor and save, and the window follows. A model with errors keeps
-the last one that read, and shows the first error in the title; ``ebgstudio check`` lists them all.
+the last one that read, and shows the first error in the title; ``ebgstudio check`` lists them all. A background
+edited in the ``view`` block is applied when the file is saved; what B and F set in the window stays until it is.
 
 Making surface groups
 ---------------------

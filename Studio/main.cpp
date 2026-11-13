@@ -17,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace {
@@ -329,6 +330,15 @@ viewOf(const Language::Model<T>& a_model,
 
     a_camera = Render::Camera<T>::lookAt(view.vector<T>("camera"), target, view.vector<T>("up", Vec3T<T>(0, 1, 0)));
   }
+
+  // The background: a plain color instead of the sky's gradient, and the floor under the object or not.
+  if (view.has("background")) {
+    a_settings.m_sky        = false;
+    a_settings.m_background = view.vector<T>("background");
+  }
+
+  a_settings.m_sky   = view.flag("sky", a_settings.m_sky);
+  a_settings.m_floor = view.flag("floor", a_settings.m_floor);
 }
 
 int
@@ -630,6 +640,18 @@ view(const Options& a_options)
     viewOf(*current->m_model, *current->m_regions, camera, settings);
   }
 
+  // The background the view block gave last: a reload applies the block's only when it changed, so that saving the
+  // file keeps what the keys (B, F) set in the window.
+  const auto backgroundOf = [](const Render::Settings<T>& a_settings) {
+    return std::make_tuple(a_settings.m_sky,
+                           a_settings.m_floor,
+                           a_settings.m_background[0],
+                           a_settings.m_background[1],
+                           a_settings.m_background[2]);
+  };
+
+  auto viewBackground = backgroundOf(settings);
+
   std::cout << "ebgstudio: opening the viewer (it finds the model's pieces of surface first)" << std::endl;
 
   // Without a window (a build without the viewer, no display) the viewer says why, and the command fails.
@@ -655,25 +677,40 @@ view(const Options& a_options)
 
     writer.attach(*current->m_model);
 
-    // R goes to the new model's own view: its view block's camera, or one fitted to its geometry.
+    // R goes to the new model's own view: its view block's camera, or one fitted to its geometry. A view block the
+    // window cannot use (a value of the wrong type) is reported, and the window keeps what it shows.
+    Render::Settings<T> fresh;
+    bool                viewRead = false;
+
     {
       const ThrowOnRequire checks;
-
-      Render::Settings<T> fresh;
 
       try {
         viewOf(*current->m_model, *current->m_regions, hooks.m_home, fresh);
 
         hooks.m_hasHome = true;
+        viewRead        = true;
       } catch (const RequireError&) {
+        hooks.m_hasHome = false;
+      } catch (const Language::Error& e) {
+        std::cerr << e.what() << "\n";
+
         hooks.m_hasHome = false;
       }
     }
     camera = hooks.m_camera;
 
-    // What is shown stays; the surface groups shown are the new model's domains'.
+    // What is shown stays; the surface groups shown are the new model's domains'. The view block's background, when
+    // it changed in the file.
     settings                           = hooks.m_settings;
     settings.m_regions.m_surfaceGroups = SurfaceGroups();
+
+    if (viewRead && backgroundOf(fresh) != viewBackground) {
+      settings.m_sky        = fresh.m_sky;
+      settings.m_floor      = fresh.m_floor;
+      settings.m_background = fresh.m_background;
+      viewBackground        = backgroundOf(fresh);
+    }
   }
 
   Render::ViewerDetail::closeWindow(hooks);
