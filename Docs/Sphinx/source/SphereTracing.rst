@@ -167,5 +167,6 @@ BVH; for a tape, its program. A ray takes many steps, more the closer it passes 
 grazing ray the most. An exact trace instead visits each part, or each box of a mesh's BVH along the ray,
 once, and its cost does not depend on how close the ray passes to the surface. Tracing exactly is therefore
 much faster wherever it applies, and a composition is fastest when its marched parts are few, small and
-direct operands of its intersections. To see the difference for your own shape, time a query with and
+direct operands of its intersections. A ray that never enters a tape's bounding box costs one box test,
+whatever the tape holds. To see the difference for your own shape, time a query with and
 without ``m_march``, or run the ray probes in ``Performance/`` (see :ref:`Chap:PerformanceTesting`).
