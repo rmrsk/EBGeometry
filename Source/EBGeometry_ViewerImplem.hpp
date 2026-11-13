@@ -1332,16 +1332,16 @@ run(const S&           a_shape,
     return mask;
   };
 
-  // The section plane's labels from the active domain (RegionSettings::m_sectionLabels): each region's subdomain, or
-  // excluded.
-  const auto sectionLabels = [&]() {
+  // The section plane's subdomains from the active domain (RegionSettings::m_sectionSubdomains): each region's
+  // subdomain, or excluded.
+  const auto sectionSubdomains = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       const bool any = names.getNumDomains() > 0U;
 
       for (uint32_t k = 0; k < 64U; k++) {
         const uint32_t d = any ? names.getDomain(names.getActiveDomain()).subdomainOf(k) : Subdomains::None;
 
-        settings.m_regions.m_sectionLabels[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedLabel;
+        settings.m_regions.m_sectionSubdomains[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedSubdomain;
       }
     }
   };
@@ -2624,7 +2624,7 @@ run(const S&           a_shape,
       const bool                byPart  = pickMode == PickMode::Surface;
       const bool                several = chosen.size() > 1U;
 
-      // The probed point: where it is, the region it is in, the active domain's label and functions there, and the
+      // The probed point: where it is, the region it is in, the active domain's subdomain and functions there, and the
       // nearest surface of its region with its surface group.
       if (probed) {
         const auto&    tape = shape.getTape();
@@ -2637,16 +2637,15 @@ run(const S&           a_shape,
           // The active domain built for the readout alone, in a pool of its own.
           Pool           tables(hostMemoryResource());
           const Domain   domain(tables, tape, names.getDomain(names.getActiveDomain()));
-          const uint32_t label = domain.labelAt(probePoint);
-          const uint32_t count = domain.getNumLabels();
+          const uint32_t sub   = domain.subdomainAt(probePoint);
+          const uint32_t count = domain.getNumSubdomainFunctions();
 
           std::vector<T> values(count);
 
           domain.signedDistances(probePoint, values.data(), count);
 
           line("  " + names.domainName(names.getActiveDomain()) + ": " +
-               ((label == Subdomains::None) ? std::string("excluded")
-                                            : "in subdomain " + names.subdomain(label, details)));
+               ((sub == Subdomains::None) ? std::string("excluded") : "in subdomain " + names.subdomain(sub, details)));
 
           for (uint32_t l = 0; l < count; l++) {
             line("    " + ((l + 1U == count) ? std::string("Excluded") : "Subdomain " + names.subdomain(l, details)) +
@@ -3689,7 +3688,7 @@ run(const S&           a_shape,
                     regions.m_sectionDomain  = regions.m_sectionDomain || regions.m_sectionRegions != 0U;
                     regions.m_sectionRegions = 0U;
 
-                    sectionLabels();
+                    sectionSubdomains();
                     pieceIndex = std::size_t(-1);
 
                     applyColors();
@@ -4225,7 +4224,7 @@ run(const S&           a_shape,
               if (names.getNumDomains() > 0U && !regions.m_sectionDomain && regions.m_sectionRegions == 0U) {
                 regions.m_sectionDomain = true;
 
-                sectionLabels();
+                sectionSubdomains();
               }
             }
 
@@ -4450,7 +4449,7 @@ run(const S&           a_shape,
                   regions.m_sectionRegions == 0U) {
                 regions.m_sectionDomain = true;
 
-                sectionLabels();
+                sectionSubdomains();
               }
             }
 
@@ -4630,7 +4629,7 @@ run(const S&           a_shape,
             regions.m_sectionDomain  = next == 1U;
             regions.m_sectionRegions = (next >= 2U) ? subdomainAllRegions(next - 2U) : uint64_t(0);
 
-            sectionLabels();
+            sectionSubdomains();
 
             if ((regions.m_sectionDomain || regions.m_sectionRegions != 0U) && sectionMode == 0) {
               sectionMode   = 2;

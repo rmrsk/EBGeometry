@@ -989,9 +989,10 @@ hold it.
 ====================================  =====  =====================================================
 Family                                Build  Measures
 ====================================  =====  =====================================================
-``particles/labels``                  host   every label's function at each of 20,000 points in the
-                                             matrix
-``particles/labelAt``                 host   the label of each of those points
+``particles/labels``                  host   every subdomain's function at each of 20,000 points in
+                                             the matrix (``signedDistances()``)
+``particles/labelAt``                 host   the subdomain of each of those points
+                                             (``subdomainAt()``)
 ``particles/surfaceGroups``           host   the surface group of the surface of each point's region
                                              closest to it (found untimed)
 ``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides

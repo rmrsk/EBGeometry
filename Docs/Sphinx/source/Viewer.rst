@@ -74,7 +74,7 @@ The keys
    * - Right drag; right click
      - Move the light; probe the point under the cursor (on a surface, or on the section plane in front of it):
        its position and the shape's value there, and for a view of regions the region it is in, the active
-       domain's domain label and functions there, and the nearest surface with its surface group. A right click on
+       domain's subdomain and functions there, and the nearest surface with its surface group. A right click on
        the background clears it.
    * - Left, Right (Shift + Left, Right)
      - Weaker or stronger highlights (broader or tighter).
@@ -123,7 +123,7 @@ The keys
        region.
    * - E; Shift + E
      - For a view of regions with domains, what the section plane shows, in turn: the whole active domain (each
-       point its own domain label's function, so that the zero line is every boundary and interface); each
+       point its own subdomain's function, so that the zero line is every boundary and interface); each
        subdomain's function alone, what a cut-cell code cuts for it; then the visible regions'. Where the
        domain shown does not compute, the plane is filled gray; Shift + E draws its lines there too, in another
        color.

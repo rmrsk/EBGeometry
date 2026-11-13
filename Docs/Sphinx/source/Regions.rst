@@ -71,11 +71,10 @@ A :term:`domain` is what one computation runs on (:numref:`Fig:Regions` (b)). It
 
 **Subdomains.** Each subdomain is a set of regions the computation runs in, usually one, sometimes several (a
 region group, or every region of a material). Regions in no subdomain are *excluded*: the computation does
-not run there (a conductor held at a potential, the outside). Every point therefore has a :term:`domain
-label`, its subdomain or *excluded* (not to be confused with a surface label), and each domain label a
-function negative exactly where the point has that domain label. A cut-cell code samples these at the nodes
-of its grid: an edge whose two ends have different domain labels crosses a
-surface, and the root of the right function along the edge is where.
+not run there (a conductor held at a potential, the outside). Every point is therefore in one subdomain, or
+excluded, and each subdomain, and the excluded regions together, has a function negative exactly there. A
+cut-cell code samples these at the nodes of its grid: an edge whose two ends are in different subdomains (or
+one is excluded) crosses a surface, and the root of the right function along the edge is where.
 
 **Roles.** From the sides of a surface at a point, the domain gives it a role:
 

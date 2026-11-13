@@ -3,9 +3,7 @@
 Glossary
 ========
 
-The words this guide uses with a meaning of its own, each with the page that explains it. Three kinds of
-name share the word *label* in the API; this guide keeps them apart as :term:`surface label`,
-:term:`material` and :term:`domain label`.
+The words this guide uses with a meaning of its own, each with the page that explains it.
 
 .. glossary::
    :sorted:
@@ -84,8 +82,7 @@ name share the word *label* in the API; this guide keeps them apart as :term:`su
 
    surface label
       A name given to a surface, or to each of a shape's parts, so that conditions can be attached to it by
-      name (``SurfaceLabel()``, ``SurfaceLabelId``). Not to be confused with a :term:`domain label`. See
-      :ref:`Chap:LeavesAndSurfaces`.
+      name (``SurfaceLabel()``, ``SurfaceLabelId``). See :ref:`Chap:LeavesAndSurfaces`.
 
    overlay
       A composition of regions: each operand is a :term:`region`, later ones on top where they overlap.
@@ -116,12 +113,8 @@ name share the word *label* in the API; this guide keeps them apart as :term:`su
       A set of regions a domain computes in. See :ref:`Chap:Regions`.
 
    excluded
-      The regions in none of a domain's subdomains, where the domain does not compute.
-
-   domain label
-      What a domain says a point is in: one of its subdomains, or excluded (``Domain::labelAt()``); each has
-      a function negative exactly there. Not to be confused with a :term:`surface label`. See
-      :ref:`Chap:ImplemRegions`.
+      The regions in none of a domain's subdomains, where the domain does not compute
+      (``Domain<T>::Excluded``, what ``subdomainAt()`` gives there).
 
    role
       What a surface is to a domain at a point: a *boundary* (one side in the domain), an *interface* (a
