@@ -880,10 +880,12 @@ partNames(std::string_view a_shape, const uint32_t a_sides)
 // The reader
 // ---------------------------------------------------------------------------------------------------------------------
 
+namespace LanguageDetail {
+
 /**
  * @brief Reads a model: loads its files, evaluates their statements in order, then resolves materials, domains and
  * couplings against the object's index.
- * @details Every error is collected; a statement with an error is skipped, and a value it defined is marked invalid, so
+ * @details Internal; not part of the public API (read() and parse() are). Every error is collected; a statement with an error is skipped, and a value it defined is marked invalid, so
  * that its uses report nothing more. The expression builder aborts on misuse (an Overlay where it may not be, a name
  * given twice, parts named on a composition); the reader checks each of these first, so that a mistake in a file is
  * an error at its line, never an abort.
@@ -3813,11 +3815,13 @@ private:
   }
 };
 
+} // namespace LanguageDetail
+
 template <class T>
 inline Model<T>
 read(const std::string& a_path, Pool& a_pool, const Overrides& a_overrides)
 {
-  Reader<T> reader(a_pool, a_overrides);
+  LanguageDetail::Reader<T> reader(a_pool, a_overrides);
 
   return reader.readPath(a_path);
 }
@@ -3826,7 +3830,7 @@ template <class T>
 inline Model<T>
 parse(std::string_view a_text, const std::string& a_name, Pool& a_pool, const Overrides& a_overrides)
 {
-  Reader<T> reader(a_pool, a_overrides);
+  LanguageDetail::Reader<T> reader(a_pool, a_overrides);
 
   return reader.readText(a_text, a_name);
 }

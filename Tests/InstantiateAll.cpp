@@ -148,7 +148,7 @@ namespace EBGeometry {
   template struct Render::PixelQuery<PREC, Tape<PREC>>;                      \
   template class Render::Renderer<PREC>;                                     \
   template class Language::Model<PREC>;                                      \
-  template class Language::Reader<PREC>;                                     \
+  template class Language::LanguageDetail::Reader<PREC>;                                     \
   template class Language::Table<Vec3T<PREC>>;                               \
   template Render::Stats Render::Renderer<PREC>::render<Tape<PREC>>(         \
     const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \

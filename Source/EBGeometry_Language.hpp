@@ -35,6 +35,13 @@ namespace EBGeometry {
  */
 namespace Language {
 
+namespace LanguageDetail {
+
+template <class T>
+class Reader;
+
+} // namespace LanguageDetail
+
 /**
  * @brief The properties a material, subdomain, surface group, coupling or the view block carries: numbers, vectors and
  * strings by key, passed through unread for the program to interpret.
@@ -653,7 +660,7 @@ public:
 
 private:
   template <class T>
-  friend class Reader;
+  friend class LanguageDetail::Reader;
 
   /**
    * @brief The name.
@@ -1025,7 +1032,7 @@ public:
 
 private:
   template <class U>
-  friend class Reader;
+  friend class LanguageDetail::Reader;
 
   /**
    * @brief An empty model, which only the reader makes and fills.
