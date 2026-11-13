@@ -524,6 +524,10 @@ public:
   {
     EBGEOMETRY_EXPECT(std::abs(a_ray.m_direction.length() - T(1)) < T(1e-3));
 
+    if (m_tape.missesBox(a_ray, T(0), a_tMax)) {
+      return HitT<T>();
+    }
+
     return m_tape.traceProgram(0U, a_ray, T(0), a_tMax, a_options);
   }
 

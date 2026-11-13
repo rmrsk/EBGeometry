@@ -2577,6 +2577,10 @@ Tape<T, UserPrimitives...>::traceRay(const RayT<T>&       a_ray,
                                      const T              a_tMax,
                                      const RayOptions<T>& a_options) const noexcept
 {
+  if (this->missesBox(a_ray, a_tMin, a_tMax)) {
+    return HitT<T>();
+  }
+
   return this->template traceBody<true>(0U, a_ray, a_tMin, a_tMax, a_options);
 }
 
@@ -2681,6 +2685,10 @@ Tape<T, UserPrimitives...>::raySpans(const RayT<T>&       a_ray,
                                      const bool           a_firstOnly,
                                      RaySpansT<T>&        a_spans) const noexcept
 {
+  if (this->missesBox(a_ray, a_tMin, a_tMax)) {
+    return;
+  }
+
   // As a leaf of another composition, the tape is named by it: its own leaves are not.
   this->template rayEvaluate<MaxCallDepth>(
     0U, a_ray, a_tMin, a_tMax, a_options, !a_firstOnly, this->base(), this->location(), a_spans);
@@ -3703,6 +3711,13 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
                                               const T              a_tMax,
                                               const RayOptions<T>& a_options) const noexcept
 {
+  SurfaceHitT<T> result;
+
+  // Every region but the outside lies in the object's box.
+  if (this->missesBox(a_ray, a_tMin, a_tMax)) {
+    return result;
+  }
+
   const void* base = this->base();
 
   const uint32_t n = this->numRegionOperands();
@@ -3717,8 +3732,6 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
                      : (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal
                                                                               : T(1);
   const T nudge    = T(0.01) * a_options.m_tolerance * scale;
-
-  SurfaceHitT<T> result;
 
   // An object with no Overlay is one region: every crossing of it changes the region, and whether the ray enters says
   // which way, so no distance is asked to name the two sides. Asking them was two searches of the whole object per

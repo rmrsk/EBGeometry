@@ -1084,6 +1084,88 @@ TEMPLATE_TEST_CASE("Ray: a union through a BVH (Accelerate::BVH) is traced to th
   }
 }
 
+TEMPLATE_TEST_CASE("Ray: a tape's queries test its box first, and a ray through its faces, edges or corners still "
+                   "finds the object",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // The box's faces are the tape's box's faces: a ray through them is the case the box test must not reject.
+  const BoxSDF<T>    box(-Vec3::ones(), Vec3::ones());
+  const SphereSDF<T> ball(Vec3(T(0.2), T(0), T(0)), T(0.3));
+
+  const Tape<T> tape(pool, Union(box, ball));
+  const auto    fused = Fused::Union(box, ball);
+
+  // The same box as a region, for the region queries: every crossing of its outer faces changes the region.
+  const Tape<T> regions(pool, Overlay(box, ball));
+
+  struct Case
+  {
+    Vec3 m_origin;
+    Vec3 m_target;
+    T    m_tMax;
+  };
+
+  const T far = T(10);
+
+  const std::vector<Case> cases = {
+    {Vec3(T(3), T(0), T(0)), Vec3(T(6), T(0), T(0)), far},        // away from the box: a miss
+    {Vec3(T(3), T(0.5), T(0)), Vec3(T(0), T(0.5), T(0)), far},    // at a face
+    {Vec3(T(3), T(3), T(0)), Vec3(T(1), T(1), T(0)), far},        // at an edge
+    {Vec3(T(3), T(3), T(3)), Vec3(T(1), T(1), T(1)), far},        // at a corner
+    {Vec3(T(3), T(1), T(0)), Vec3(T(0), T(1), T(0)), far},        // along a face's plane
+    {Vec3(T(0.9), T(0.9), T(0)), Vec3(T(3), T(0.9), T(0)), far},  // from inside, out through a face
+    {Vec3(T(3), T(0.5), T(0)), Vec3(T(0), T(0.5), T(0)), T(1.5)}, // stopping short of the box
+    {Vec3(T(3), T(0.5), T(0)), Vec3(T(0), T(0.5), T(0)), T(2)},   // stopping on the face
+    {Vec3(T(3), T(-3), T(0.5)), Vec3(T(-3), T(3), T(0.5)), far},  // past an edge, through the box
+  };
+
+  for (const Case& c : cases) {
+    const Vec3    direction = (c.m_target - c.m_origin) / (c.m_target - c.m_origin).length();
+    const RayT<T> ray{c.m_origin, direction};
+
+    INFO("ray from " << c.m_origin << " toward " << c.m_target << ", tMax " << c.m_tMax);
+
+    const HitT<T> viaTape  = tape.firstHit(ray, T(0), c.m_tMax);
+    const HitT<T> viaFused = firstHit(fused, ray, T(0), c.m_tMax);
+
+    REQUIRE(viaTape.m_status == viaFused.m_status);
+
+    if (viaFused.hit()) {
+      CHECK_THAT(viaTape.m_t, withinAbsT(viaFused.m_t, looseMargin<T>()));
+      CHECK(viaTape.m_entering == viaFused.m_entering);
+    }
+
+    CHECK(firstCrossing(tape, ray, T(0), c.m_tMax).m_status == firstCrossing(fused, ray, T(0), c.m_tMax).m_status);
+    CHECK(intersects(tape, ray, T(0), c.m_tMax) == intersects(fused, ray, T(0), c.m_tMax));
+
+    // The region changes where the ray meets the box's outer surface, or the ball's (the box's own crossing,
+    // traced exactly, is the reference where the ray meets the box first).
+    const SurfaceHitT<T> change = regions.firstRegionChange(ray, T(0), c.m_tMax);
+
+    REQUIRE(change.m_hit.m_status == viaFused.m_status);
+
+    if (viaFused.hit()) {
+      CHECK_THAT(change.m_hit.m_t, withinAbsT(viaFused.m_t, looseMargin<T>()));
+    }
+  }
+
+  // A tape as a leaf of another: a ray that misses the inner tape's box leaves it no spans, and finds what else the
+  // outer composition holds.
+  const SphereSDF<T>     beside(Vec3(T(5), T(0), T(0)), T(0.5));
+  const Tape<T, Tape<T>> outer(pool, Union(Expr<T>(tape), beside));
+  const RayT<T>          towardBeside{Vec3(T(5), T(3), T(0)), Vec3(T(0), T(-1), T(0))};
+  const HitT<T>          hit = outer.firstHit(towardBeside, T(0), far);
+
+  REQUIRE(hit.hit());
+  CHECK_THAT(hit.m_t, withinAbsT(T(2.5), looseMargin<T>()));
+}
+
 TEMPLATE_TEST_CASE("Ray: device ray queries of compositions match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
