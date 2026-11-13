@@ -420,8 +420,8 @@ drawColorbar(const Stats&           a_stats,
       return false;
     }
 
-    // A blank column on either side.
-    for (int c = Math::max(0, a_from - 1); c < Math::min(Columns, a_from + static_cast<int>(a_length) + 1); c++) {
+    // Two blank columns on either side.
+    for (int c = Math::max(0, a_from - 2); c < Math::min(Columns, a_from + static_cast<int>(a_length) + 2); c++) {
       if (labels[std::size_t(c)] != ' ') {
         return false;
       }

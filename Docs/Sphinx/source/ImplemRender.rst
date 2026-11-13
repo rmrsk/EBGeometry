@@ -121,17 +121,17 @@ ends at ``m_costLow`` and ``m_costHigh``, the unit and the rays per second. A pr
 draw a matching one with ``Render::costPlace(stats, cost)``, which gives where a cost sits on the frame's scale (0 at
 ``m_costLow``, 1 at ``m_costHigh``), and ``Render::costColor(place)``, the color the frame gives that place.
 
-The figure shows an F-18 assembled from 67 meshes, each a ``TriMeshSDF``, in a tape's BVH union
-(``Union(parts, Accelerate::BVH)``), in the cost view of ``firstCrossing()`` in single precision, rendered on the
-host (left) and on a GPU (right); the cost view of ``firstHit()`` looks alike. Each side was rendered with
-``Renderer::render()`` or ``renderOnDevice()``, with the viewer's colorbar drawn over its corner.
+The figure shows the xyzrgb dragon as :ref:`Chap:ExampleMeshSDF` shows it when given that mesh (a ``TriMeshSDF``,
+built in single precision, ``PRECISION=float``), in the cost view of ``firstHit()``, rendered on the host (left) and
+on a GPU (right); the cost view of ``firstCrossing()`` looks alike. M in the viewer steps to the cost views, and the
+example's window shows the same colorbars.
 
-.. figure:: _static/render_cost_firstCrossing.jpg
+.. figure:: _static/render_cost_firstHit.jpg
    :width: 100%
    :align: center
 
-   The cost of ``firstCrossing()`` per pixel, on the host in nanoseconds (left) and on a GPU in clock cycles
-   (right), with each frame's rays per second in its colorbar.
+   The cost of ``firstHit()`` per pixel, on the host in nanoseconds (left) and on a GPU in clock cycles (right),
+   with each frame's rays per second in its colorbar.
 
 The viewer
 ----------
