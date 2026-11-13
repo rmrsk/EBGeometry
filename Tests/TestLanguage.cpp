@@ -652,18 +652,48 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
     std::ofstream(a_file, std::ios::binary) << a_text;
   };
 
-  // A file is read once: a second include of it is an error, not a second (or exponential) read.
+  // A file is read once, however often and by whatever path it is included: a second include is skipped, not a second
+  // (or exponential) read, and its names are defined once.
   write(folder / "values.ebg", "ebg 0\nr = 1\n");
   write(folder / "twice.ebg",
         "ebg 0\ninclude(\"values.ebg\")\ninclude(\"./values.ebg\")\nobject sphere((0, 0, 0), r)\n");
 
-  try {
-    (void)Language::read<T>((folder / "twice.ebg").string(), pool);
+  CHECK_NOTHROW(Language::read<T>((folder / "twice.ebg").string(), pool));
 
-    FAIL("a second include of a file reads");
+  // Setups sharing one geometry, combined: each includes the geometry and the materials, and a third includes both
+  // setups and couples their domains.
+  write(folder / "geometry.ebg",
+        "ebg 0\nobject overlay {\n  region solid = box((0, 0, 0), (2, 1, 1)) material steel\n  region water = "
+        "cylinder((0, 0.5, 0.5), (2, 0.5, 0.5), 0.2) material water\n}\n");
+  write(folder / "materials.ebg", "ebg 0\nmaterial steel { density = 7850 }\nmaterial water { density = 1000 }\n");
+  write(
+    folder / "flow.ebg",
+    "ebg 0\ninclude(\"geometry.ebg\")\ninclude(\"materials.ebg\")\ndomain flow {\n  subdomain fluid = water\n  group "
+    "wall = interface(water, solid)\n  group ends = remaining()\n}\n");
+  write(
+    folder / "heat.ebg",
+    "ebg 0\ninclude(\"geometry.ebg\")\ninclude(\"materials.ebg\")\ndomain heat {\n  subdomain metal = solid\n  group "
+    "cooled = interface(solid, water)\n  group rest = remaining()\n}\n");
+  write(folder / "coupled.ebg",
+        "ebg 0\ninclude(\"flow.ebg\")\ninclude(\"heat.ebg\")\ncouple wall = surface(heat.cooled, flow.wall)\n");
+
+  const auto coupled = Language::read<T>((folder / "coupled.ebg").string(), pool);
+
+  CHECK(coupled.getNumDomains() == 2U);
+  CHECK(coupled.getNumMaterials() == 2U);
+  CHECK(coupled.couplings().size() == 1U);
+  CHECK(coupled.index().getNumRegions() == 3U);
+
+  // A file including itself, through another, is still an error.
+  write(folder / "loop_a.ebg", "ebg 0\ninclude(\"loop_b.ebg\")\nobject sphere((0, 0, 0), 1)\n");
+  write(folder / "loop_b.ebg", "ebg 0\ninclude(\"loop_a.ebg\")\n");
+
+  try {
+    (void)Language::read<T>((folder / "loop_a.ebg").string(), pool);
+
+    FAIL("an include loop reads");
   } catch (const Language::Error& e) {
-    CHECK_THAT(e.diagnostics().front().m_message, Catch::Matchers::ContainsSubstring("is already read"));
-    CHECK(e.diagnostics().front().m_span.m_line == 3U);
+    CHECK_THAT(e.diagnostics().front().m_message, Catch::Matchers::ContainsSubstring("includes itself"));
   }
 
   // A mesh used by two calls: each call is its leaf's site. Flattened, an included file's mesh path still reads.

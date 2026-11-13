@@ -1248,14 +1248,10 @@ private:
       }
     }
 
-    // A second read would define its names again; and files including one another twice over would be read
-    // exponentially many times.
-    if (const auto first = m_read.find(canonical); first != m_read.end()) {
-      this->error(a_from,
-                  "'" + a_path + "' is already read" +
-                    (first->second.m_line == 0U ? std::string() : " (included at " + place(first->second) + ")") +
-                    ": a model reads each file once");
-
+    // A file is read once, however many files include it (by whatever path): a second read would define its names
+    // again, and files including one another twice over would be read exponentially many times. So setups that each
+    // include the geometry can be included together.
+    if (m_read.count(canonical) > 0) {
       return;
     }
 

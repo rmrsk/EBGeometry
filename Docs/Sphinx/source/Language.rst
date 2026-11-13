@@ -148,8 +148,30 @@ Files, folders and includes
 ---------------------------
 
 ``include("file.ebg")`` brings in another file's names and declarations, in one namespace: a name defined twice is an
-error naming both places. Materials, domains and couplings are resolved after the whole model is read, so they may live
+error naming both places. A file is read once however many files include it, by whatever path; a file including
+itself, through others, is an error. A path is relative to the file it is written in. Materials, domains and couplings are resolved after the whole model is read, so they may live
 in their own file. A ``view`` block holds what a viewer shows (see below) and programs ignore.
+
+Organizing a model
+------------------
+
+A model is one file, or a folder holding ``model.ebg`` and, read after it, ``setup.ebg``: the geometry in one, what is
+computed on it (materials, domains, couplings, the view) in the other. A reader is given the file or the folder.
+
+When one geometry has several setups, each setup is a file of its own that includes the geometry, and is read by
+itself:
+
+.. code-block:: text
+
+   cable/
+     model.ebg           the geometry: shapes, regions and the materials they are of
+     materials.ebg       the materials' properties, shared by the setups
+     cfd.ebg             include("model.ebg"), include("materials.ebg"), domain cfd
+     electrostatics.ebg  include("model.ebg"), include("materials.ebg"), domain electrostatics
+     coupled.ebg         include("cfd.ebg"), include("electrostatics.ebg"), the couplings between them
+
+Each setup reads on its own (``cable/cfd.ebg``), and ``coupled.ebg`` combines them: the geometry and the materials both
+include are read once. A domain or a coupling lives in one file, which every setup needing it includes.
 
 The view: camera and colors
 ---------------------------
