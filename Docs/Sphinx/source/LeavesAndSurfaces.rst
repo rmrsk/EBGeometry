@@ -7,7 +7,7 @@ A composed object answers one question at a point, its signed distance, but an a
 a second: which part of the object is that? A boundary condition depends on whether a wall is the inlet,
 the outlet or the casing; a material on whether a surface is the machined bore or the cast body; a
 picture or a label on which object a pixel shows. A tape answers this with ``closestLeaf(p)``. It
-names the leaf of the composition whose surface the value at ``p`` comes from: the *deciding leaf*.
+names the :term:`leaf` of the composition whose surface the value at ``p`` comes from: the :term:`deciding leaf`.
 When that leaf holds many things itself (a cloud of spheres, a BVH union of objects, another tape),
 ``closestSurface(p)`` goes on into it and names the one that decides there (see :ref:`Sec:Surfaces`).
 

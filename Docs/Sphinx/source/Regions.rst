@@ -23,13 +23,13 @@ itself.
 Regions
 -------
 
-An *overlay* of shapes makes an object of regions: each shape is a region, and where shapes overlap, the later
-one lies on top. In :numref:`Fig:Regions` (a) the air is a box, the jacket a cylinder over it, and the core a
-thinner cylinder over the jacket: the jacket's region is the jacket minus the core, the air's the box minus
-both. The regions tile the object, with no gaps and no overlaps, so that every point is in exactly one of
-them. The space beyond every shape is the *outside*, region 0. A medium around an object (the air around the
-cable) is a region like the others, the first of the overlay, whose outer surface bounds what a program
-computes in.
+An :term:`overlay` of shapes makes an object of :term:`regions <region>`: each shape is a region, and where
+shapes overlap, the later one lies on top. In :numref:`Fig:Regions` (a) the air is a box, the jacket a
+cylinder over it, and the core a thinner cylinder over the jacket: the jacket's region is the jacket minus the
+core, the air's the box minus both. The regions tile the object, with no gaps and no overlaps, so that every
+point is in exactly one of them. The space beyond every shape is the *outside*, region 0. A medium around an
+object (the air around the cable) is a region like the others, the first of the overlay, whose outer surface
+bounds what a program computes in.
 
 Each region has a function of its own, negative exactly inside it, whose zero level is the region's whole
 surface, the interfaces with its neighbors included: the function a cut-cell code cuts for that region. The
@@ -45,7 +45,7 @@ blend of one, is rejected when the object is built.
 Materials
 ---------
 
-A region is named for *which* part of the object it is (the jacket) and labeled with a *material*, *what*
+A region is named for *which* part of the object it is (the jacket) and labeled with a :term:`material`, *what*
 it is made of (PTFE). Two regions of the same material are still two regions: an inner and an outer
 insulation layer, say, may differ in their conditions though both are PTFE. A material carries no numbers in
 EBGeometry; it is a name a program attaches properties to.
@@ -54,7 +54,7 @@ Pieces of surface
 -----------------
 
 A surface between two regions has a region, and a material, on each side. Where a shape's surface separates
-two regions, it is a *piece* of the object's surface: the jacket's cylinder between the jacket and the air
+two regions, it is a :term:`piece` of the object's surface: the jacket's cylinder between the jacket and the air
 is one piece, and between the jacket and the core (where the core's surface lies) there is none, since the
 core's own cylinder is the surface there. A piece is named by the shape it comes from and the regions on
 its two sides; it is the unit a domain assigns conditions to, and the thing a viewer picks when a surface is
@@ -67,13 +67,14 @@ the other half, and is two pieces.
 Domains
 -------
 
-A *domain* is what one computation runs on (:numref:`Fig:Regions` (b)). It has two parts.
+A :term:`domain` is what one computation runs on (:numref:`Fig:Regions` (b)). It has two parts.
 
 **Subdomains.** Each subdomain is a set of regions the computation runs in, usually one, sometimes several (a
 region group, or every region of a material). Regions in no subdomain are *excluded*: the computation does
-not run there (a conductor held at a potential, the outside). Every point therefore has a *label*, its
-subdomain or *excluded*, and each label a function negative exactly where the point has that label. A
-cut-cell code samples these at the nodes of its grid: an edge whose two ends have different labels crosses a
+not run there (a conductor held at a potential, the outside). Every point therefore has a :term:`domain
+label`, its subdomain or *excluded* (not to be confused with a surface label), and each domain label a
+function negative exactly where the point has that domain label. A cut-cell code samples these at the nodes
+of its grid: an edge whose two ends have different domain labels crosses a
 surface, and the root of the right function along the edge is where.
 
 **Roles.** From the sides of a surface at a point, the domain gives it a role:
@@ -87,7 +88,7 @@ surface, and the root of the right function along the edge is where.
 
 **Surface groups.** A domain also sorts the surfaces it touches into *surface groups*, one per condition it
 applies: "inlet", "wall", "held at 0 V". A surface group is a list of *selectors*, each saying what a
-surface is, never where: a piece, every surface with a label (see :ref:`Chap:LeavesAndSurfaces`), the
+surface is, never where: a piece, every surface with a surface label (see :ref:`Chap:LeavesAndSurfaces`), the
 interface between two regions, every surface of a region, the surfaces between two materials, or *the
 rest*, every surface no other selector holds. The selectors of a domain are tried in the order they were
 added, across all its groups, and the first that holds a surface puts it in its group; the rest is tried
@@ -108,7 +109,7 @@ Along a ray
 
 A particle crossing the object crosses from region to region. The first point along a ray, or along a
 particle's step, where the region changes is found exactly where the shapes have exact ray forms (see
-:ref:`Chap:RayTracing`), with the surface crossed, its labels, and the regions left and entered. A ray can
+:ref:`Chap:RayTracing`), with the surface crossed, its surface labels, and the regions left and entered. A ray can
 also be asked where it first enters or leaves a set of regions, passing through the surfaces between them:
 what a renderer needs to show some regions and see through the others.
 

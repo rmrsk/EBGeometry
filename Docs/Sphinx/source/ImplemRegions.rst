@@ -148,7 +148,7 @@ no domain already built: build another.
 
    const Domain electrostatics(pool, tape, setup);
 
-   // At a node, in a kernel: every label's function, the subdomains' first, then the excluded regions'.
+   // At a node, in a kernel: every domain label's function, the subdomains' first, then the excluded regions'.
    T values[3];                                       // at least electrostatics.getNumLabels()
    electrostatics.signedDistances(p, values);         // values[0]: the air's, [1]: the jacket's, [2]: excluded
    electrostatics.labelAt(p);                         // 0, 1 or Domain<T>::Excluded
@@ -158,12 +158,13 @@ no domain already built: build another.
    electrostatics.role(s);                            // SurfaceRole::Boundary, Interface, Internal or None
    electrostatics.surfaceGroupOf(s);
 
-* ``labelAt(p)`` is the point's subdomain, or ``Domain<T>::Excluded``; ``getNumLabels()`` counts the
-  subdomains and the excluded label.
-* ``signedDistance(p, label)`` is a label's function, negative exactly where the point has that label: for
-  a subdomain, the function to cut, zero only where one of its regions meets one outside it. The excluded
-  label's is the negative of all the subdomains' together. ``signedDistances(p, values)`` gives them all at
-  once, into a buffer of at least ``getNumLabels()`` values.
+* ``labelAt(p)`` is the point's :term:`domain label`: its subdomain, or ``Domain<T>::Excluded``.
+  ``getNumLabels()`` counts the domain labels, the subdomains and the excluded one. (These labels are a
+  domain's, and have nothing to do with surface labels.)
+* ``signedDistance(p, label)`` is a domain label's function, negative exactly where the point has that domain
+  label: for a subdomain, the function to cut, zero only where one of its regions meets one outside it. The
+  excluded label's is the negative of all the subdomains' together. ``signedDistances(p, values)`` gives them
+  all at once, into a buffer of at least ``getNumLabels()`` values.
 * ``closestSurface(p, subdomain)`` is the subdomain's surface nearest to ``p``, never a contact between two
   of its own regions; ``role()`` and ``surfaceGroupOf()`` read it.
 * ``subdomains()`` and ``surfaceGroups()`` are the domain's tables,

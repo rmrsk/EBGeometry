@@ -65,6 +65,7 @@ Getting started
    Quickstart.rst
    Building.rst
    ConfigurationOptions.rst
+   Glossary.rst
 
 Concepts
 ********

@@ -18,6 +18,8 @@ are composed, and the questions they answer:
 * :ref:`Chap:Rays`, :ref:`Chap:RayTracing`, :ref:`Chap:SphereTracing` and :ref:`Chap:Rendering`: where a
   ray or a particle's step meets the object, and pictures made that way.
 
+The :ref:`Chap:Glossary` defines the words these pages give a meaning of their own.
+
 Signed distance functions
 -------------------------
 
@@ -74,8 +76,8 @@ and equally by the implicit function
 
 whose value is not a distance. Many operations on signed distance functions (a union, an intersection,
 a smooth blend) give back a function that is no longer an exact distance, but still never overestimates
-one. EBGeometry therefore records, for every object, how far its value can be trusted: its *distance
-quality*.
+one. EBGeometry therefore records, for every object, how far its value can be trusted: its :term:`distance
+quality`.
 
 .. list-table::
    :header-rows: 1
@@ -99,7 +101,7 @@ it is built (:ref:`Chap:ConstructiveSolidGeometry`).
 Shapes
 ------
 
-A *shape* is anything with a signed value at a point and a bounding box: the analytic shapes (a sphere, a
+A :term:`shape` is anything with a signed value at a point and a bounding box: the analytic shapes (a sphere, a
 box, a cylinder, ...), the mesh distance functions, the point and sphere clouds, a composition, and any type
 of your own with the same two members (see :ref:`Chap:ExampleCustomShape`). Shapes are plain values that
 can be copied as a block of memory, so that the same shape is evaluated on the host and, copied to a GPU,
