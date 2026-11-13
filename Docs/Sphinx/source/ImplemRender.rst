@@ -117,7 +117,8 @@ frame; time ``render()`` itself for that, and time your own queries with the ``P
 higher than those of a frame the shape fills.
 
 The viewer draws a colorbar in a cost view's bottom right corner: the scale's colors, ticks at round costs, its
-ends at ``m_costLow`` and ``m_costHigh``, the unit and the rays per second. A program that calls ``render()`` can
+ends reading "<=" ``m_costLow`` and ">=" ``m_costHigh`` (the end colors take the frame's cheapest and dearest
+hundredth too), the unit and the rays per second; a window too narrow for it beside the axes leaves it out. A program that calls ``render()`` can
 draw a matching one with ``Render::costPlace(stats, cost)``, which gives where a cost sits on the frame's scale (0 at
 ``m_costLow``, 1 at ``m_costHigh``), and ``Render::costColor(place)``, the color the frame gives that place.
 

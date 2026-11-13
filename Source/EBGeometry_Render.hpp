@@ -120,7 +120,8 @@ enum class CostUnit : uint8_t
   None,        ///< Not a cost view: the costs are 0.
   Nanoseconds, ///< On the host: each pixel's own ray, timed with the steady clock.
   Cycles       ///< On a device: the clock cycles that passed while the pixel's thread traced its ray, as the device
-               ///< counts them (clock64()), with no conversion to time.
+               ///< counts them (clock64()), with no conversion to time. A pixel keeps its count in 32 bits, so one
+               ///< ray over 2^32 cycles (seconds, far beyond any ray) would wrap.
 };
 
 /**
@@ -764,8 +765,9 @@ struct Stats
   double m_costHigh = 0.0;
 
   /**
-   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the frame's rays per second: m_rays over the time the
-   * tracing took, from the first ray started to the last finished, on the host's threads or the device. It leaves
+   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the frame's rays per second: the rays of the pixels
+   * reached (all of them, m_rays, unless the render was canceled) over the time the tracing took, from the first ray
+   * started to the last finished, on the host's threads or the device. It leaves
    * out the rest of a render (allocating the device's buffers, copying the image back, coloring it), so it measures
    * the tracer, not what a caller of render() waits for. 0 in the other views.
    */

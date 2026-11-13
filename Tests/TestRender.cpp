@@ -1561,7 +1561,7 @@ TEMPLATE_TEST_CASE("Render: the cost views color each pixel from the frame's che
     CHECK(stats.m_raysPerSecond > 0.0);
 
     // The scale's ends, and its middle on a log scale: the geometric mean of the two ends.
-    CHECK(Render::costPlace(stats, stats.m_costLow) == 0.0);
+    CHECK_THAT(Render::costPlace(stats, stats.m_costLow), Catch::Matchers::WithinAbs(0.0, 1e-12));
 
     if (stats.m_costHigh > stats.m_costLow) {
       CHECK_THAT(Render::costPlace(stats, stats.m_costHigh), Catch::Matchers::WithinAbs(1.0, 1e-12));

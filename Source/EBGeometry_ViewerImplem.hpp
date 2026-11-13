@@ -348,16 +348,19 @@ costText(const double a_cost, const CostUnit a_unit, const bool a_unitText = tru
     return std::string(text);
   };
 
+  // The next unit from where the number would round to 1000 ("999.6" is "1 us", not "1000 ns").
+  constexpr double Next = 999.5;
+
   if (a_unit == CostUnit::Nanoseconds) {
-    return (a_cost >= 1e6)   ? shortNumber(1e-6 * a_cost) + (a_unitText ? " ms" : "ms")
-           : (a_cost >= 1e3) ? shortNumber(1e-3 * a_cost) + (a_unitText ? " us" : "us")
-                             : shortNumber(a_cost) + (a_unitText ? " ns" : "ns");
+    return (a_cost >= 1e3 * Next) ? shortNumber(1e-6 * a_cost) + (a_unitText ? " ms" : "ms")
+           : (a_cost >= Next)     ? shortNumber(1e-3 * a_cost) + (a_unitText ? " us" : "us")
+                                  : shortNumber(a_cost) + (a_unitText ? " ns" : "ns");
   }
 
-  const std::string number = (a_cost >= 1e9)   ? shortNumber(1e-9 * a_cost) + "G"
-                             : (a_cost >= 1e6) ? shortNumber(1e-6 * a_cost) + "M"
-                             : (a_cost >= 1e3) ? shortNumber(1e-3 * a_cost) + "k"
-                                               : shortNumber(a_cost);
+  const std::string number = (a_cost >= 1e6 * Next)   ? shortNumber(1e-9 * a_cost) + "G"
+                             : (a_cost >= 1e3 * Next) ? shortNumber(1e-6 * a_cost) + "M"
+                             : (a_cost >= Next)       ? shortNumber(1e-3 * a_cost) + "k"
+                                                      : shortNumber(a_cost);
 
   return a_unitText ? number + " cycles" : number;
 }
@@ -409,8 +412,8 @@ drawColorbar(const Stats&           a_stats,
   const std::string rate = ", " + rateText(a_stats.m_raysPerSecond) + " on the " + (a_onDevice ? "GPU" : "CPU");
 
   // The labels, placed left to right where they fit: the two ends first, then the round costs between them.
-  std::string      labels(Columns, ' ');
-  std::vector<int> ticks;
+  std::string         labels(Columns, ' ');
+  std::vector<double> ticks;
 
   const auto columnOf = [&](const double a_cost) {
     return static_cast<int>(std::lround(costPlace(a_stats, a_cost) * double(Columns - 1)));
@@ -435,6 +438,7 @@ drawColorbar(const Stats&           a_stats,
 
   labels.replace(0, low.size(), low);
 
+  // The two ends' labels are at most 10 characters each, so both fit in the strip's columns.
   if (fits(Columns - static_cast<int>(high.size()), high.size())) {
     labels.replace(std::size_t(Columns) - high.size(), high.size(), high);
   }
@@ -456,7 +460,7 @@ drawColorbar(const Stats&           a_stats,
 
         if (fits(from, text.size())) {
           labels.replace(std::size_t(from), text.size(), text);
-          ticks.push_back(column);
+          ticks.push_back(cost);
         }
       }
     }
@@ -478,8 +482,9 @@ drawColorbar(const Stats&           a_stats,
     }
   }
 
-  for (const int column : ticks) {
-    const int x = margin + static_cast<int>(double(column) / double(Columns - 1) * double(width - 1));
+  // A mark at its cost's own place on the strip (its label is centered on the nearest text column).
+  for (const double cost : ticks) {
+    const int x = margin + static_cast<int>(std::lround(costPlace(a_stats, cost) * double(width - 1)));
 
     for (int y = bottom; y < bottom + 3 * a_scale; y++) {
       for (int dx = 0; dx < a_scale; dx++) {
@@ -1782,10 +1787,13 @@ run(const S&           a_shape,
 
       SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
 
-      const SDL_Rect where{
-        outputWidth - colorbarWidth - 8, outputHeight - colorbarHeight - 8, colorbarWidth, colorbarHeight};
+      // Left out of a window too narrow for it beside the axes.
+      if (colorbarWidth + axesSize + 24 <= outputWidth) {
+        const SDL_Rect where{
+          outputWidth - colorbarWidth - 8, outputHeight - colorbarHeight - 8, colorbarWidth, colorbarHeight};
 
-      SDL_RenderCopy(screen, colorbar, nullptr, &where);
+        SDL_RenderCopy(screen, colorbar, nullptr, &where);
+      }
     }
 
     // The measurement, over the image: a marker at each point and a line between them.
