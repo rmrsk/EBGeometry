@@ -106,9 +106,22 @@ enum class ViewMode : uint8_t
   Depth,       ///< How far from the eye the first surface is, near (bright) to far (dark) across the shape's box;
                ///< the shape alone, cut by the section plane, without the floor or the plane's contour and sheet.
   XRay,        ///< On black, every surface a ray crosses glows faintly (more seen edge-on), with modest highlights.
-  CostHit,     ///< How long each pixel's firstHit() took, one ray through its center (Settings::m_supersampling
-               ///< ignored), on a log scale over the frame (see Stats::m_costLow).
-  CostCrossing ///< How long each pixel's firstCrossing() took, as CostHit.
+  CostHit,     ///< What each pixel's firstHit() cost, one ray through its center (Settings::m_supersampling
+               ///< ignored): nanoseconds on the host, clock cycles on a device (see CostUnit), on a log scale over
+               ///< the frame (see Stats::m_costLow, costPlace(), costColor()).
+  CostCrossing ///< What each pixel's firstCrossing() cost, as CostHit.
+};
+
+/**
+ * @brief What the costs of a cost view count (Stats::m_costLow, Stats::m_costHigh).
+ */
+enum class CostUnit : uint8_t
+{
+  None,        ///< Not a cost view: the costs are 0.
+  Nanoseconds, ///< On the host: each pixel's own ray, timed with the steady clock.
+  Cycles       ///< On a device: the clock cycles that passed while the pixel's thread traced its ray, as the device
+               ///< counts them (clock64()), with no conversion to time. A pixel keeps its count in 32 bits, so one
+               ///< ray over 2^32 cycles (seconds, far beyond any ray) would wrap.
 };
 
 /**
@@ -728,21 +741,57 @@ struct Stats
   bool m_complete = true;
 
   /**
-   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the time in nanoseconds of a pixel's ray (one per
+   * @brief The unit of m_costLow and m_costHigh: nanoseconds on the host, clock cycles on a device, None outside
+   * the cost views.
+   */
+  CostUnit m_costUnit = CostUnit::None;
+
+  /**
+   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the cost (in m_costUnit) of a pixel's ray (one per
    * pixel) that takes the darkest color: the cheapest but for the frame's cheapest hundredth of pixels, which take it
-   * too. On the host a pixel's time is its rays' own. On a device it is the time that passed while its thread
-   * traced them (clock cycles at the device's reported clock rate): the threads of a warp step together, so it
-   * includes waiting for the warp's slowest ray, and the time the device spent on other warps, so that it is
-   * longer than the rays' cost, and alike across each warp's pixels (blocks of 32 along a row).
+   * too.
+   * @details On the host a pixel's cost is its ray's own time. On a device it is the clock cycles that passed while
+   * its thread traced it: the threads of a warp step together, so it includes waiting for the warp's slowest ray,
+   * and the cycles the device spent on other warps, so that it is more than the ray's cost, and alike across each
+   * warp's pixels (blocks of 32 along a row). The cycles are not converted to time: a device does not run at the
+   * clock rate it reports (its boost clock varies), so a time would look more precise than it is.
    */
   double m_costLow = 0.0;
 
   /**
-   * @brief The time in nanoseconds of a pixel that takes the brightest color: the dearest but for the frame's
+   * @brief The cost (in m_costUnit) of a pixel that takes the brightest color: the dearest but for the frame's
    * dearest hundredth, which take it too.
    */
   double m_costHigh = 0.0;
+
+  /**
+   * @brief In ViewMode::CostHit and ViewMode::CostCrossing, the frame's rays per second: the rays of the pixels
+   * reached (all of them, m_rays, unless the render was canceled) over the time the tracing took, from the first ray
+   * started to the last finished, on the host's threads or the device. It leaves
+   * out the rest of a render (allocating the device's buffers, copying the image back, coloring it), so it measures
+   * the tracer, not what a caller of render() waits for. 0 in the other views.
+   */
+  double m_raysPerSecond = 0.0;
 };
+
+/**
+ * @brief Where a cost sits on a cost view's color scale: 0 at a_stats.m_costLow, 1 at a_stats.m_costHigh, on the
+ * log scale the frame's pixels were colored on, clamped to [0, 1]. With costColor(), what a colorbar matching
+ * the image needs.
+ * @param[in] a_stats The frame's Stats, from a render in ViewMode::CostHit or ViewMode::CostCrossing.
+ * @param[in] a_cost  A cost, in a_stats.m_costUnit.
+ * @return The place on the scale; 0 when the frame is not a cost view or its pixels all cost the same.
+ */
+[[nodiscard]] inline double
+costPlace(const Stats& a_stats, double a_cost) noexcept;
+
+/**
+ * @brief The color a cost view gives a place on its scale, dark (0) to bright (1), as it colors the pixels.
+ * @param[in] a_place The place, clamped to [0, 1] (see costPlace()).
+ * @return The color, 0xRRGGBBAA.
+ */
+[[nodiscard]] inline uint32_t
+costColor(double a_place) noexcept;
 
 /**
  * @brief What PixelQuery computes for one pixel.
@@ -1124,14 +1173,16 @@ private:
    * @param[in]  a_results    Results.
    * @param[in]  a_primitives Each pixel's object, or empty when not recorded.
    * @param[out] a_image      Image.
-   * @param[in]  a_perNanosecond How many of the costs' units make a nanosecond (clock cycles on a device).
+   * @param[in]  a_unit       What the costs count, in a cost view.
+   * @param[in]  a_seconds    How long the tracing took, in a cost view.
    * @return The counts.
    */
   inline Stats
   collect(const std::vector<RenderDetail::StoredPixel>& a_results,
           std::vector<uint32_t>&                        a_primitives,
           Image&                                        a_image,
-          double                                        a_perNanosecond) const;
+          CostUnit                                      a_unit,
+          double                                        a_seconds) const;
 
   /**
    * @brief Render with a pixel functor on the host's threads.

@@ -1555,8 +1555,22 @@ TEMPLATE_TEST_CASE("Render: the cost views color each pixel from the frame's che
 
     CHECK(once.m_rays == uint64_t(size) * size);
     CHECK(once.m_hits == shaded.m_hits);
+    CHECK(stats.m_costUnit == Render::CostUnit::Nanoseconds);
     CHECK(stats.m_costLow > 0.0);
     CHECK(stats.m_costHigh >= stats.m_costLow);
+    CHECK(stats.m_raysPerSecond > 0.0);
+
+    // The scale's ends, and its middle on a log scale: the geometric mean of the two ends.
+    CHECK_THAT(Render::costPlace(stats, stats.m_costLow), Catch::Matchers::WithinAbs(0.0, 1e-12));
+
+    if (stats.m_costHigh > stats.m_costLow) {
+      CHECK_THAT(Render::costPlace(stats, stats.m_costHigh), Catch::Matchers::WithinAbs(1.0, 1e-12));
+      CHECK_THAT(Render::costPlace(stats, std::sqrt(stats.m_costLow * stats.m_costHigh)),
+                 Catch::Matchers::WithinAbs(0.5, 1e-12));
+    }
+
+    CHECK(Render::costPlace(stats, 0.5 * stats.m_costLow) == 0.0);
+    CHECK(Render::costPlace(stats, 2.0 * stats.m_costHigh) == (stats.m_costHigh > stats.m_costLow ? 1.0 : 0.0));
 
     // The cheapest pixel takes the ramp's darkest color, the dearest its brightest, and every other pixel lies
     // on the ramp between them.
@@ -1566,6 +1580,18 @@ TEMPLATE_TEST_CASE("Render: the cost views color each pixel from the frame's che
       CHECK(std::count(image.m_pixels.begin(), image.m_pixels.end(), rgba(brightest)) >= 1);
     }
   }
+
+  // The other views have no costs and no rays per second.
+  CHECK(shaded.m_costUnit == Render::CostUnit::None);
+  CHECK(shaded.m_raysPerSecond == 0.0);
+  CHECK(Render::costPlace(shaded, 1.0) == 0.0);
+
+  // The colors of the scale: the ramp's, its ends kept outside [0, 1].
+  CHECK(Render::costColor(0.0) == rgba(darkest));
+  CHECK(Render::costColor(1.0) == rgba(brightest));
+  CHECK(Render::costColor(0.5) == rgba(Render::RenderDetail::ramp<double>(0.5)));
+  CHECK(Render::costColor(-1.0) == rgba(darkest));
+  CHECK(Render::costColor(2.0) == rgba(brightest));
 }
 
 TEMPLATE_TEST_CASE("Render: a hidden primitive is seen through, in the image and in picking",

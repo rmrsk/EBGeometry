@@ -327,6 +327,174 @@ drawText(const std::vector<std::string>& a_lines,
 }
 
 /**
+ * @brief A cost in a cost view's unit, short: "850 ns", "2.5 us", "1.2 ms"; "980 cycles", "12k cycles", "3.4M cycles".
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_cost The cost.
+ * @param[in] a_unit Its unit.
+ * @param[in] a_unitText Whether to append the unit.
+ * @return The text.
+ */
+inline std::string
+costText(const double a_cost, const CostUnit a_unit, const bool a_unitText = true)
+{
+  // One decimal below ten, unless it is zero.
+  const auto shortNumber = [](const double a_value) {
+    char text[32];
+
+    const bool whole = a_value >= 9.95 || std::abs(a_value - std::round(a_value)) < 0.05;
+
+    std::snprintf(text, sizeof(text), whole ? "%.0f" : "%.1f", a_value);
+
+    return std::string(text);
+  };
+
+  // The next unit from where the number would round to 1000 ("999.6" is "1 us", not "1000 ns").
+  constexpr double Next = 999.5;
+
+  if (a_unit == CostUnit::Nanoseconds) {
+    return (a_cost >= 1e3 * Next) ? shortNumber(1e-6 * a_cost) + (a_unitText ? " ms" : "ms")
+           : (a_cost >= Next)     ? shortNumber(1e-3 * a_cost) + (a_unitText ? " us" : "us")
+                                  : shortNumber(a_cost) + (a_unitText ? " ns" : "ns");
+  }
+
+  const std::string number = (a_cost >= 1e6 * Next)   ? shortNumber(1e-9 * a_cost) + "G"
+                             : (a_cost >= 1e3 * Next) ? shortNumber(1e-6 * a_cost) + "M"
+                             : (a_cost >= Next)       ? shortNumber(1e-3 * a_cost) + "k"
+                                                      : shortNumber(a_cost);
+
+  return a_unitText ? number + " cycles" : number;
+}
+
+/**
+ * @brief Rays per second, short: "41 Mrays/s", "2.3 Grays/s".
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_raysPerSecond The rate.
+ * @return The text.
+ */
+inline std::string
+rateText(const double a_raysPerSecond)
+{
+  const bool   giga  = a_raysPerSecond >= 1e9;
+  const double value = giga ? 1e-9 * a_raysPerSecond : 1e-6 * a_raysPerSecond;
+
+  char text[48];
+
+  std::snprintf(text, sizeof(text), (value < 9.95) ? "%.1f %s" : "%.0f %s", value, giga ? "Grays/s" : "Mrays/s");
+
+  return std::string(text);
+}
+
+/**
+ * @brief A cost view's colorbar, on the overlay's dark panel: a title (the unit and the rays per second), the scale's
+ * colors (costColor()) and labeled ticks at round costs (1, 2 and 5 times a power of ten), the ends reading "<=" the
+ * cheapest and ">=" the dearest color's cost.
+ * @details Internal helper; not part of the public API.
+ * @param[in]  a_stats    The frame's Stats, from a cost view.
+ * @param[in]  a_onDevice Whether the frame was rendered on a device.
+ * @param[in]  a_scale    Pixels per glyph pixel.
+ * @param[out] a_pixels   The colorbar, RGBA (0xRRGGBBAA, row by row).
+ * @param[out] a_width    Its width.
+ * @param[out] a_height   Its height.
+ */
+inline void
+drawColorbar(const Stats&           a_stats,
+             const bool             a_onDevice,
+             const int              a_scale,
+             std::vector<uint32_t>& a_pixels,
+             int&                   a_width,
+             int&                   a_height)
+{
+  // The strip and the ticks' labels span this many text columns.
+  constexpr int Columns = 44;
+
+  const std::string per = (a_stats.m_costUnit == CostUnit::Cycles) ? "Cycles per ray, waits included" : "Time per ray";
+
+  const std::string rate = ", " + rateText(a_stats.m_raysPerSecond) + " on the " + (a_onDevice ? "GPU" : "CPU");
+
+  // The labels, placed left to right where they fit: the two ends first, then the round costs between them.
+  std::string         labels(Columns, ' ');
+  std::vector<double> ticks;
+
+  const auto columnOf = [&](const double a_cost) {
+    return static_cast<int>(std::lround(costPlace(a_stats, a_cost) * double(Columns - 1)));
+  };
+  const auto fits = [&](const int a_from, const std::size_t a_length) {
+    if (a_from < 0 || a_from + static_cast<int>(a_length) > Columns) {
+      return false;
+    }
+
+    // Two blank columns on either side.
+    for (int c = Math::max(0, a_from - 2); c < Math::min(Columns, a_from + static_cast<int>(a_length) + 2); c++) {
+      if (labels[std::size_t(c)] != ' ') {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const std::string low  = "<=" + costText(a_stats.m_costLow, a_stats.m_costUnit, false);
+  const std::string high = ">=" + costText(a_stats.m_costHigh, a_stats.m_costUnit, false);
+
+  labels.replace(0, low.size(), low);
+
+  // The two ends' labels are at most 10 characters each, so both fit in the strip's columns.
+  if (fits(Columns - static_cast<int>(high.size()), high.size())) {
+    labels.replace(std::size_t(Columns) - high.size(), high.size(), high);
+  }
+
+  if (a_stats.m_costLow > 0.0 && a_stats.m_costHigh > a_stats.m_costLow) {
+    for (double decade = std::pow(10.0, std::floor(std::log10(a_stats.m_costLow))); decade <= a_stats.m_costHigh;
+         decade *= 10.0) {
+
+      for (const double step : {1.0, 2.0, 5.0}) {
+        const double cost = step * decade;
+
+        if (cost <= a_stats.m_costLow || cost >= a_stats.m_costHigh) {
+          continue;
+        }
+
+        const std::string text   = costText(cost, a_stats.m_costUnit, false);
+        const int         column = columnOf(cost);
+        const int         from   = column - static_cast<int>(text.size()) / 2;
+
+        if (fits(from, text.size())) {
+          labels.replace(std::size_t(from), text.size(), text);
+          ticks.push_back(cost);
+        }
+      }
+    }
+  }
+
+  drawText({per + rate, std::string(Columns, ' '), labels}, a_scale, a_pixels, a_width, a_height);
+
+  // The strip in the second line, a column of pixels per place on the scale, and a mark under it at each labeled tick.
+  const int margin = 6 * a_scale;
+  const int top    = margin + GlyphHeight * a_scale + a_scale;
+  const int bottom = margin + 2 * GlyphHeight * a_scale - 3 * a_scale;
+  const int width  = Columns * GlyphWidth * a_scale;
+
+  for (int x = 0; x < width; x++) {
+    const uint32_t color = costColor(double(x) / double(Math::max(1, width - 1)));
+
+    for (int y = top; y < bottom; y++) {
+      a_pixels[std::size_t(y) * std::size_t(a_width) + std::size_t(margin + x)] = color;
+    }
+  }
+
+  // A mark at its cost's own place on the strip (its label is centered on the nearest text column).
+  for (const double cost : ticks) {
+    const int x = margin + static_cast<int>(std::lround(costPlace(a_stats, cost) * double(width - 1)));
+
+    for (int y = bottom; y < bottom + 3 * a_scale; y++) {
+      for (int dx = 0; dx < a_scale; dx++) {
+        a_pixels[std::size_t(y) * std::size_t(a_width) + std::size_t(x + dx)] = 0xF0F0F0FFU;
+      }
+    }
+  }
+}
+
+/**
  * @brief The scene's x, y and z axes as the camera sees them, drawn from a common origin on a transparent
  * square: x red, y green, z blue, each labeled at its tip, the axes furthest from the viewer drawn first.
  * @details Internal helper; not part of the public API.
@@ -1538,6 +1706,12 @@ run(const S&           a_shape,
   int                   axesSize = 0;
   std::vector<uint32_t> axesPixels;
 
+  // The colorbar of a cost view, in the bottom right corner.
+  SDL_Texture*          colorbar       = nullptr;
+  int                   colorbarWidth  = 0;
+  int                   colorbarHeight = 0;
+  std::vector<uint32_t> colorbarPixels;
+
   // Where a point of the scene is in the window, in its pixels, as PixelQuery casts the rays; false for a point
   // behind a perspective camera.
   const auto project = [&](const Vec3T<T>& a_point, int& a_x, int& a_y) {
@@ -1605,6 +1779,21 @@ run(const S&           a_shape,
       const SDL_Rect where{8, outputHeight - axesSize - 8, axesSize, axesSize};
 
       SDL_RenderCopy(screen, axes, nullptr, &where);
+    }
+
+    if (colorbar != nullptr) {
+      int outputWidth  = 0;
+      int outputHeight = 0;
+
+      SDL_GetRendererOutputSize(screen, &outputWidth, &outputHeight);
+
+      // Left out of a window too narrow for it beside the axes.
+      if (colorbarWidth + axesSize + 24 <= outputWidth) {
+        const SDL_Rect where{
+          outputWidth - colorbarWidth - 8, outputHeight - colorbarHeight - 8, colorbarWidth, colorbarHeight};
+
+        SDL_RenderCopy(screen, colorbar, nullptr, &where);
+      }
     }
 
     // The measurement, over the image: a marker at each point and a line between them.
@@ -2065,18 +2254,15 @@ run(const S&           a_shape,
 
     const bool costView = settings.m_viewMode == ViewMode::CostHit || settings.m_viewMode == ViewMode::CostCrossing;
 
-    // A time in nanoseconds, in the unit that keeps it short.
-    const auto duration = [](const double a_ns) {
-      return (a_ns >= 1e6)   ? fixed(1e-6 * a_ns, 1) + " ms"
-             : (a_ns >= 1e3) ? fixed(1e-3 * a_ns, 1) + " us"
-                             : fixed(a_ns, 0) + " ns";
-    };
-
+    // A cost view: its scale's ends in the frame's unit, and its rays per second (the colorbar shows the scale).
     const std::string view =
       std::string(viewNames[static_cast<int>(settings.m_viewMode)]) +
-      (costView ? ", " + duration(shownStats.m_costLow) + " to " + duration(shownStats.m_costHigh) +
-                    " (dark to bright)" + (onDevice ? ", elapsed on the GPU, waits included" : "")
-                : std::string());
+      ((costView && shownStats.m_costUnit != CostUnit::None)
+         ? ", " + costText(shownStats.m_costLow, shownStats.m_costUnit) + " to " +
+             costText(shownStats.m_costHigh, shownStats.m_costUnit) + " (dark to bright)" +
+             (shownStats.m_costUnit == CostUnit::Cycles ? ", elapsed on the GPU, waits included" : "") + ", " +
+             rateText(shownStats.m_raysPerSecond)
+         : std::string());
 
     // The primitives seen through.
     std::string hidden;
@@ -2939,6 +3125,32 @@ run(const S&           a_shape,
     }
 
     SDL_UpdateTexture(axes, nullptr, axesPixels.data(), 4 * axesSize);
+
+    // The colorbar of the frame shown, in a cost view.
+    if (costView && shownStats.m_costUnit != CostUnit::None) {
+      const int oldWidth  = colorbarWidth;
+      const int oldHeight = colorbarHeight;
+
+      drawColorbar(shownStats, onDevice, scale, colorbarPixels, colorbarWidth, colorbarHeight);
+
+      if (colorbar == nullptr || oldWidth != colorbarWidth || oldHeight != colorbarHeight) {
+        if (colorbar != nullptr) {
+          SDL_DestroyTexture(colorbar);
+        }
+
+        colorbar = SDL_CreateTexture(
+          screen, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, colorbarWidth, colorbarHeight);
+
+        SDL_SetTextureBlendMode(colorbar, SDL_BLENDMODE_BLEND);
+      }
+
+      SDL_UpdateTexture(colorbar, nullptr, colorbarPixels.data(), 4 * colorbarWidth);
+    }
+    else if (colorbar != nullptr) {
+      SDL_DestroyTexture(colorbar);
+
+      colorbar = nullptr;
+    }
   };
 
   const auto show = [&](const Image& a_image, const Stats& a_stats, const double a_seconds, const char* a_what) {
@@ -4671,6 +4883,10 @@ run(const S&           a_shape,
 
   if (axes != nullptr) {
     SDL_DestroyTexture(axes);
+  }
+
+  if (colorbar != nullptr) {
+    SDL_DestroyTexture(colorbar);
   }
 
   SDL_DestroyRenderer(screen);

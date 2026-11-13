@@ -81,32 +81,58 @@ The classes are in namespace ``Render``:
   fused composition, an analytic shape) is one primitive, 0 (see :ref:`Chap:ImplemRays`).
 * `Stats <doxygen/html/structEBGeometry_1_1Render_1_1Stats.html>`__ reports the rays cast, those that hit
   the shape, those that hit it from inside the solid (drawn tinted red), those that were unresolved
-  (drawn as misses), and whether the eye is inside the solid; in a cost view, the times in nanoseconds the
-  darkest and the brightest colors stand for (``m_costLow``, ``m_costHigh``; the frame's cheapest and dearest
-  hundredth of pixels are clamped to them, so that a few interrupted rays do not stretch the scale). On the host
-  a pixel's time is its rays' own. On a device it is the time that passed while its thread traced them: the
-  threads of a warp step together, so a pixel waits for the slowest ray of its warp (the picture shows blocks of
-  32 pixels along a row), and the device also runs other warps meanwhile, so the times are longer than the rays'
-  cost; they still show which parts of a shape are slow (see the figure below). The renderer prints nothing.
+  (drawn as misses), and whether the eye is inside the solid; in a cost view, also what the darkest and the
+  brightest colors stand for and the frame's rays per second (see below). The renderer prints nothing.
 
 The cost views on the host and on a device
 ------------------------------------------
 
-The figure shows a mesh, the xyzrgb dragon of :ref:`Chap:ExampleMeshCSG` as a ``TriMeshSDF``, in the cost view
-of ``firstCrossing()``, rendered on the host (left) and on a GPU (right); the cost view of ``firstHit()`` looks
-alike. On the host each pixel's time is its own ray's, so the picture shows where the work is:
-the mesh's surface, and the boxes of its BVH, which a ray costs more to enter. On a GPU a pixel's time is how
-long its thread was busy: the 32 threads of a warp trace together, so each pixel shows the slowest ray of its
-warp (blocks of 32 pixels along a row), and every ray waits on memory far longer than on a CPU core, which the
-device makes up for by tracing tens of thousands of rays at once. The two scales differ: the colors compare
-pixels within a frame, not the host with the device. For a device's throughput, compare frame times, or time
-your own queries with the ``Performance/`` probes (see :ref:`Chap:PerformanceTesting`).
+The cost views (``ViewMode::CostHit`` and ``ViewMode::CostCrossing``) trace one ray per pixel, through
+``firstHit()`` or ``firstCrossing()``, and color each pixel by what its ray cost, on a log scale over the frame,
+from dark to bright. They show where a shape is slow to trace: its surfaces, and the boxes of its BVHs, which a ray
+costs more to enter.
+
+What a cost counts depends on where the frame was rendered, and ``Stats::m_costUnit`` says which
+(``CostUnit``, with ``costPlace()`` and ``costColor()`` on the page of
+`EBGeometry_Render.hpp <doxygen/html/EBGeometry__Render_8hpp.html>`__):
+
+* On the host, **nanoseconds**: each pixel's own ray, timed on the thread that traced it.
+* On a device, **clock cycles**, as the device counts them, with no conversion to time: a device does not run at the
+  clock rate it reports, so a time would look more precise than it is. A pixel's cycles are those that passed while
+  its thread traced the ray. The 32 threads of a warp trace together, so each pixel includes waiting for the slowest
+  ray of its warp (the picture shows blocks of 32 pixels along a row), and the device runs other warps meanwhile, so
+  the cycles are more than the ray's own cost.
+
+The two units differ, and so do the scales: the colors compare the pixels of one frame, never the host with the
+device. ``Stats::m_costLow`` and ``m_costHigh`` are the costs of the darkest and the brightest colors; the frame's
+cheapest and dearest hundredth of pixels take those colors too, so that a few interrupted rays do not stretch the
+scale.
+
+To compare the host with a device, use **rays per second** instead: ``Stats::m_raysPerSecond``, set in the cost views
+only, is the frame's rays over the time their tracing took. **It times the tracing only**, on the host's threads or
+in the device's launches until they complete, **not the whole** ``render()`` **call**: it leaves out allocating the
+device's buffers, copying the image back and coloring it. It measures the tracer, not the time a caller waits for a
+frame; time ``render()`` itself for that, and time your own queries with the ``Performance/`` probes (see
+:ref:`Chap:PerformanceTesting`). A frame with much background traces many cheap misses, so its rays per second are
+higher than those of a frame the shape fills.
+
+The viewer draws a colorbar in a cost view's bottom right corner: the scale's colors, ticks at round costs, its
+ends reading "<=" ``m_costLow`` and ">=" ``m_costHigh`` (the end colors take the frame's cheapest and dearest
+hundredth too), the unit and the rays per second; a window too narrow for it beside the axes leaves it out. A program that calls ``render()`` can
+draw a matching one with ``Render::costPlace(stats, cost)``, which gives where a cost sits on the frame's scale (0 at
+``m_costLow``, 1 at ``m_costHigh``), and ``Render::costColor(place)``, the color the frame gives that place.
+
+The figure shows the xyzrgb dragon as :ref:`Chap:ExampleMeshSDF` shows it when given that mesh (a ``TriMeshSDF``,
+built in single precision, ``PRECISION=float``), in the cost view of ``firstCrossing()``, rendered on the host (left)
+and on a GPU (right); the cost view of ``firstHit()`` looks alike. M in the viewer steps to the cost views, and the
+example's window shows the same colorbars.
 
 .. figure:: _static/render_cost_firstCrossing.jpg
-   :width: 90%
+   :width: 100%
    :align: center
 
-   The cost of ``firstCrossing()`` per pixel, on the host (left) and on a GPU (right).
+   The cost of ``firstCrossing()`` per pixel, on the host in nanoseconds (left) and on a GPU in clock cycles
+   (right), with each frame's rays per second in its colorbar.
 
 The viewer
 ----------
@@ -125,7 +151,8 @@ again cancels the refinement at once, so the window always answers. The window c
 renders at its size in pixels.
 
 An overlay in the top left corner shows the frame (its size and time, the hits), then each group of keys
-below with the state it changes; H hides it. The axes are drawn in the bottom left corner. The keys are
+below with the state it changes; H hides it. The axes are drawn in the bottom left corner, and in a cost view the
+colorbar in the bottom right. The keys are
 also printed, in the same groups, when the window opens.
 
 A click (the left button, without dragging) picks the object under the cursor: a tape's leaf (so that a

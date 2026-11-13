@@ -2572,6 +2572,35 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   return code;
 }
 
+inline double
+costPlace(const Stats& a_stats, const double a_cost) noexcept
+{
+  // The pixels were colored by log2 of their cost, between those of m_costLow and m_costHigh.
+  if (a_stats.m_costUnit == CostUnit::None || !(a_stats.m_costLow > 0.0) || !(a_stats.m_costHigh > a_stats.m_costLow) ||
+      !(a_cost > 0.0)) {
+    return 0.0;
+  }
+
+  const double place = std::log2(a_cost / a_stats.m_costLow) / std::log2(a_stats.m_costHigh / a_stats.m_costLow);
+
+  return Math::clamp(place, 0.0, 1.0);
+}
+
+inline uint32_t
+costColor(const double a_place) noexcept
+{
+  const double        place = (a_place >= 0.0) ? Math::min(a_place, 1.0) : 0.0;
+  const Vec3T<double> c     = RenderDetail::ramp<double>(place);
+
+  uint32_t color = 0xFFU;
+
+  for (int k = 0; k < 3; k++) {
+    color |= static_cast<uint32_t>(255.0 * c[k] + 0.5) << (24 - 8 * k);
+  }
+
+  return color;
+}
+
 inline bool
 writeImage(const Image& a_image, const std::string& a_filename)
 {
@@ -2996,7 +3025,8 @@ inline Stats
 Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
                      std::vector<uint32_t>&                        a_primitives,
                      Image&                                        a_image,
-                     const double                                  a_perNanosecond) const
+                     const CostUnit                                a_unit,
+                     const double                                  a_seconds) const
 {
   a_image.m_width  = m_settings.m_width;
   a_image.m_height = m_settings.m_height;
@@ -3078,14 +3108,7 @@ Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
     std::vector<uint32_t> colors(Buckets);
 
     for (uint32_t b = 0; b < Buckets; b++) {
-      const double        where = (high > low) ? (double(b) - double(low)) / double(high - low) : 0.0;
-      const Vec3T<double> c     = RenderDetail::ramp<double>(where);
-
-      colors[b] = 0xFFU;
-
-      for (int k = 0; k < 3; k++) {
-        colors[b] |= static_cast<uint32_t>(255.0 * c[k] + 0.5) << (24 - 8 * k);
-      }
+      colors[b] = costColor((high > low) ? (double(b) - double(low)) / double(high - low) : 0.0);
     }
 
     for (uint32_t& pixel : a_image.m_pixels) {
@@ -3097,8 +3120,12 @@ Renderer<T>::collect(const std::vector<RenderDetail::StoredPixel>& a_results,
     // A bucket's cost is that of its lower end: 2^(b / 16).
     const auto costOf = [](const uint32_t a_bucket) { return std::exp2(double(a_bucket) / double(PerDoubling)); };
 
-    stats.m_costLow  = (total == 0U) ? 0.0 : costOf(low) / a_perNanosecond;
-    stats.m_costHigh = (total == 0U) ? 0.0 : costOf(high) / a_perNanosecond;
+    stats.m_costUnit = a_unit;
+    stats.m_costLow  = (total == 0U) ? 0.0 : costOf(low);
+    stats.m_costHigh = (total == 0U) ? 0.0 : costOf(high);
+
+    // The rays traced: those of the pixels reached, which a canceled render does not all reach.
+    stats.m_raysPerSecond = (a_seconds > 0.0) ? double(total) / a_seconds : 0.0;
   }
 
   return stats;
@@ -3190,6 +3217,9 @@ Renderer<T>::renderOnHost(const Q&                 a_query,
 
   pool.reserve(threads - 1U);
 
+  // The tracing only, for Stats::m_raysPerSecond: from the first thread started to the last joined.
+  const auto start = std::chrono::steady_clock::now();
+
   for (uint32_t i = 1; i < threads; i++) {
     pool.emplace_back(work);
   }
@@ -3200,7 +3230,9 @@ Renderer<T>::renderOnHost(const Q&                 a_query,
     thread.join();
   }
 
-  Stats stats = this->collect(results, primitives, a_image, 1.0);
+  const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+
+  Stats stats = this->collect(results, primitives, a_image, CostUnit::Nanoseconds, seconds);
 
   stats.m_complete = !stopped;
 
@@ -3271,6 +3303,18 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
 
   bool stopped = false;
 
+  // The tracing only, for Stats::m_raysPerSecond: each launch until it completes (GPU::parallelFor() waits for the
+  // device), not allocating the buffers or copying the image back.
+  double seconds = 0.0;
+
+  const auto traced = [&seconds](const size_t a_n, const auto& a_frame) {
+    const auto start = std::chrono::steady_clock::now();
+
+    GPU::parallelFor(a_n, a_frame);
+
+    seconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+  };
+
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
   // One launch over the whole frame, into one buffer in device memory that is copied back once at the end.
   // A launch per band of rows, checking the cancel flag between them, waits for each band's slowest block
@@ -3295,7 +3339,7 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
   }
 
   if (a_cancel == nullptr) {
-    GPU::parallelFor(pixels, frame);
+    traced(pixels, frame);
   }
   else if (!launch) {
     stopped = true;
@@ -3364,7 +3408,7 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
       }
     });
 
-    GPU::parallelFor(pixels, frame);
+    traced(pixels, frame);
 
     {
       const std::lock_guard<std::mutex> lock(mutex);
@@ -3412,7 +3456,7 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
                                        width};
 
   if (a_cancel == nullptr) {
-    GPU::parallelFor(pixels, frame);
+    traced(pixels, frame);
   }
   else {
     for (uint32_t row = 0; row < height; row++) {
@@ -3424,7 +3468,7 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
 
       frame.m_first = row * width;
 
-      GPU::parallelFor(width, frame);
+      traced(width, frame);
 
       if (a_rowsDone != nullptr) {
         (*a_rowsDone)++;
@@ -3433,20 +3477,14 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
   }
 #endif
 
-  // A device counts clock cycles: at its clock rate in kHz, a millionth of that many make a nanosecond.
-  double perNanosecond = 1.0;
-
+  // A device counts clock cycles, reported as they are; a build without one times its host loop in nanoseconds.
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  if (m_settings.m_viewMode == ViewMode::CostHit || m_settings.m_viewMode == ViewMode::CostCrossing) {
-    int kiloHertz = 0;
-
-    EBGEOMETRY_GPU_CHECK(GPU::getClockRate(&kiloHertz));
-
-    perNanosecond = (kiloHertz > 0) ? 1e-6 * double(kiloHertz) : 1.0;
-  }
+  constexpr CostUnit unit = CostUnit::Cycles;
+#else
+  constexpr CostUnit unit = CostUnit::Nanoseconds;
 #endif
 
-  Stats stats = this->collect(results, primitives, a_image, perNanosecond);
+  Stats stats = this->collect(results, primitives, a_image, unit, seconds);
 
   stats.m_complete = !stopped;
 
