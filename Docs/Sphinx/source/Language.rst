@@ -162,6 +162,9 @@ A ``view`` block, once per model and usually in the setup file, says how a viewe
 
 * ``camera`` is where the eye is; ``target`` what it looks at (by default the center of the object's box); ``up`` the
   direction that is up in the window (by default ``(0, 1, 0)``). Without a camera, the viewer fits one to the object.
+* Or the camera as a viewer prints it: ``target``, ``yaw`` and ``pitch`` (in degrees) and ``distance``, each over the
+  fitted camera's when left out; not together with ``camera``. ``field_of_view`` (in degrees) and ``orthographic =
+  true`` go with either.
 * ``background = (r, g, b)`` is a plain background in that color, each component from 0 to 1, instead of the sky's
   gradient; ``sky = false`` gives the plain default one, and ``floor = false`` leaves out the floor under the object.
 * ``color.NAME = (r, g, b)`` gives a name a color, each component from 0 to 1: a material's, a region's, a surface
