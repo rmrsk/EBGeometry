@@ -13,7 +13,7 @@ Integrations
    integration.
 
 Each integration mirrors one or more of the :ref:`Chap:Examples` and hands the object it builds to AMReX's
-embedded-boundary grid generation as an implicit function, on a domain around the object's box with
+:cite:`AMReX2019` embedded-boundary grid generation as an implicit function, on a domain around the object's box with
 cubic cells. The geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive
 every evaluation, and the implicit function holds the object by value. Several read a mesh from the ``common-3d-test-models``
 git submodule by default (see :ref:`Sec:Cloning`).

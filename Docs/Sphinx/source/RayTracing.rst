@@ -56,10 +56,13 @@ Meshes
 ------
 
 A mesh is crossed face by face: the ray meets each face's plane at one point, which either lies inside the
-face (a triangle, or a planar convex polygon) or does not. Testing every face would cost as much as the mesh
+face (a triangle, or a planar convex polygon) or does not; a triangle is tested as Möller and Trumbore
+do :cite:`Moller1997`. Testing every face would cost as much as the mesh
 is large, so the mesh's BVH (see :ref:`Chap:BVH`) keeps the test to the faces near the ray. Each box of the
 BVH is keyed by the distance along the ray at which the ray enters it; the walk goes to the nearest box
-first, and skips every box the ray enters beyond the nearest crossing found so far. A ray that crosses
+first, and skips every box the ray enters beyond the nearest crossing found so far. The entry distance is
+widened by its own rounding error, so that rounding never lets a ray miss a box it crosses
+:cite:`Ize2013`. A ray that crosses
 nothing touches only the boxes along its path. ``intersects()`` stops at the first crossing it finds,
 nearest or not.
 

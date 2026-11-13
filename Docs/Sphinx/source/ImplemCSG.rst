@@ -98,7 +98,8 @@ the same way as the mesh distance fields. Its ``signedDistance()`` and accessors
 the host and on a GPU, so a shape can be passed to a kernel by value and evaluated there; the
 constructors run on the host. The :ref:`Chap:ExampleShapes` example constructs every one of them.
 
-The shapes share a few conventions:
+Several of the shapes' exact distances follow Quilez :cite:`QuilezDistance`, and ``PerlinSDF`` is Perlin's
+improved noise :cite:`Perlin2002`. The shapes share a few conventions:
 
 * **Placement first.** Each constructor takes where the shape is (a center, a corner, a tip or a
   point on it) before its sizes.
@@ -122,7 +123,7 @@ The shapes share a few conventions:
   ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
   never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
   except ``PerlinSDF``, which is ``NotADistance``. The ellipsoid's exact distance has no closed form
-  and is found by a short iteration, so it costs more to evaluate than the other shapes. The mesh distance fields are ``Exact``. A BVH
+  and is found by a short iteration :cite:`Eberly`, so it costs more to evaluate than the other shapes. The mesh distance fields are ``Exact``. A BVH
   union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
   member, and treats a type without one as ``Bound``.
 

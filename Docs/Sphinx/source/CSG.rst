@@ -89,7 +89,7 @@ Combining objects
 EBGeometry supports the standard operations for combining implicit functions: union,
 intersection, and difference. Smooth equivalents of each are also available, which smooth the
 transition between the combined objects (controlled by a blending length) instead of leaving a
-sharp crease where the objects meet. See :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleSmoothCSG`.
+sharp crease where the objects meet: a polynomial or an exponential smooth minimum :cite:`QuilezSmin`. See :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleSmoothCSG`.
 
 Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).
 This functionality is motivated by the fact that a CSG union is normally implemented as :math:`\min\left(I_1, I_2, I_3, \ldots,I_N\right)`, which has :math:`\mathcal{O}\left(N\right)` complexity when there are :math:`N` objects.

@@ -5,7 +5,7 @@ The tape
 
 A composed object (see :ref:`Chap:ConstructiveSolidGeometry`) is first *described* as an expression
 tree, and then *compiled* into a tape: a flat program that a small interpreter runs to evaluate the
-object at a point. This page explains what the tape is, how an expression becomes one, and the limits
+object at a point, as libfive does :cite:`libfive,Keeter2020`. This page explains what the tape is, how an expression becomes one, and the limits
 on what one tape can hold, with how to stay within them. The classes and functions are in
 :ref:`Sec:Tape`.
 

@@ -75,14 +75,15 @@ In practice, the above procedure is supplemented by more sophisticated criteria 
 EBGeometry implements top-down construction using a user-supplied partitioning rule (the
 :math:`\mathrm{Partition}` above) and a termination criterion. Several ready-made partitioning
 strategies are provided, splitting at the median bounding-volume centroid, at the spatial midpoint,
-or on primitive centroids; a more expensive strategy based on the Surface Area Heuristic (SAH) typically
-yields the best query performance, at a higher construction cost, and is the recommended default. A
+or on primitive centroids; a more expensive strategy based on the Surface Area Heuristic (SAH)
+:cite:`MacDonald1990`, evaluated over bins of primitives :cite:`Wald2007`, typically yields the best query
+performance, at a higher construction cost, and is the recommended default. A
 clustered SAH build groups nearby primitives first and applies the heuristic to the groups, which builds
 large inputs much faster for trees of nearly the same quality.
 
 Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merges the nodes upward until one reaches a root node.
 In EBGeometry, bottom-up construction is done by means of space-filling curves -- Morton codes,
-Hilbert curves, or nested indices. The Hilbert curve has better spatial locality than Morton (its
+Hilbert curves, or nested indices -- as linear BVHs are built :cite:`Lauterbach2009`. The Hilbert curve has better spatial locality than Morton (its
 consecutive codes are always spatially adjacent), so it tends to produce tighter leaf groupings.
 
 How many primitives a leaf holds is a tuning choice that trades the cost of visiting more nodes

@@ -5,7 +5,7 @@ Sphere tracing
 
 Any shape with a signed value can be ray traced without knowing anything about it but that value and its
 bounding box: walk along the ray, evaluating the value, until it says the surface is reached. This is
-*marching*, and where the value is a distance, *sphere tracing*. It is what a ray query does for every shape
+*marching*, and where the value is a distance, *sphere tracing* :cite:`Hart1996`. It is what a ray query does for every shape
 that cannot be traced exactly (see :ref:`Chap:RayTracing`), for the parts of a composition that cannot (see
 :ref:`Sec:RayMarchedParts`), and for any shape when the query is asked to march.
 
