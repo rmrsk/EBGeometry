@@ -386,6 +386,12 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's in the depth an
 
   const Render::Stats stats = Render::Renderer<T>(cost).renderOnDevice(view, camera, image);
 
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  CHECK(stats.m_costUnit == Render::CostUnit::Cycles);
+#else
+  CHECK(stats.m_costUnit == Render::CostUnit::Nanoseconds);
+#endif
   CHECK(stats.m_costLow > 0.0);
   CHECK(stats.m_costHigh >= stats.m_costLow);
+  CHECK(stats.m_raysPerSecond > 0.0);
 }
