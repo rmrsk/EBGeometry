@@ -1,0 +1,10 @@
+ebg 0
+
+# A wire in a box of air.
+wire = cylinder((0, 0, -1), (0, 0, 1), 0.2)
+air  = box((-1, -1, -1), (1, 1, 1)).label(xmin = "inlet")
+
+object overlay {
+  region gas  = air material air
+  region core = wire material copper
+}

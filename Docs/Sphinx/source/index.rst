@@ -40,6 +40,7 @@ and on GPUs, from the same code, with no dependencies.
    <style>
    section#getting-started,
    section#concepts,
+   section#the-ebg-language,
    section#implementation,
    section#examples,
    section#contributing-and-testing,
@@ -81,6 +82,19 @@ Concepts
    PointCloud.rst
    ConceptsComposition.rst
    ConceptsRays.rst
+
+The .ebg language
+*****************
+
+.. toctree::
+   :maxdepth: 3
+   :caption: The .ebg language
+   :hidden:
+
+   Language.rst
+   LanguageShapes.rst
+   LanguageOperations.rst
+   LanguageReference.rst
 
 Implementation
 **************

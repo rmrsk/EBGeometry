@@ -1,0 +1,5 @@
+ebg 0
+
+material steel { density = 7800 }
+
+view { color.steel = (0.6, 0.6, 0.7) }

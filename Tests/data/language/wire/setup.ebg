@@ -1,0 +1,10 @@
+ebg 0
+
+material air { density = 1.2 }
+
+domain flow {
+  subdomain fluid = gas
+  # where the air enters
+  group inflow = label("inlet") { velocity = (1, 0, 0) }
+  group far = remaining()
+}

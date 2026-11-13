@@ -7,7 +7,8 @@
 // the air and the jacket, with three surface groups. AMReX cuts one implicit function, so one subdomain is
 // cut (subdomain = 0 or 1); each cut cell is labeled with the surface group of the surface there (the boundary
 // condition's id), its role for the domain (a boundary or an interface) and the region on the other side. The same
-// code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See README.md and the Materials example under
+// code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. With eb.model, the object and the domain are read
+// from a .ebg model instead (eb.domain names the domain). See README.md, and the Materials and Language examples under
 // Examples/.
 
 #include <AMReX.H>
@@ -17,8 +18,10 @@
 #include <AMReX_PlotFileUtil.H>
 
 #include "../../../EBGeometry.hpp"
+#include "../../../Source/EBGeometry_Language.hpp"
 
 #include <cmath>
+#include <string>
 
 using namespace amrex;
 
@@ -105,36 +108,64 @@ main(int argc, char* argv[])
     pp.query("max_grid_size", max_grid_size);
     pp.query("subdomain", subdomain);
 
-    // The regions: the air (1), the jacket (2) on top of it, then the core (3); beyond the air's box, the outside (0).
-    const Expr air =
-      EBGeometry::RegionName(EBGeometry::MaterialLabel(
-                               EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))), "air"),
-                             "air");
-    const Expr jacket = EBGeometry::RegionName(
-      EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)),
-                                "PTFE"),
-      "jacket");
-    const Expr core = EBGeometry::RegionName(
-      EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)),
-                                "copper"),
-      "core");
-    const Expr object = EBGeometry::Overlay(air, jacket, core);
+    // A .ebg model to read the object and the domain from (a file, or a folder holding model.ebg and setup.ebg),
+    // and the domain's name; without one, the cable below, built in C++.
+    std::string model;
+    std::string domainName;
+
+    ParmParse eb("eb");
+    eb.query("model", model);
+    eb.query("domain", domainName);
 
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const Tape tape(pool, object);
-
-    // The domain: two subdomains, the air (0) and the jacket (1), coupled through the jacket's outside; the core is
-    // in neither. Its surface groups: every surface of the core (0), the air's box (1), and the interface of the air
-    // and the jacket (2). Built in the tape's pool, for the tape.
     EBGeometry::DomainSetup setup;
 
-    (void)setup.addSubdomain({1});
-    (void)setup.addSubdomain({2});
+    const Expr object = [&]() -> Expr {
+      if (!model.empty()) {
+        try {
+          const auto read = EBGeometry::Language::read<T>(model, pool);
 
-    setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(3));
-    setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 0));
-    setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 2));
+          if (read.getNumDomains() == 0) {
+            amrex::Abort("eb.model = " + model + " has no domain: give it one in its setup to cut a subdomain of it");
+          }
+
+          setup = (domainName.empty() ? read.domain(0) : read.domain(domainName)).setup();
+
+          return read.object();
+        } catch (const EBGeometry::Language::Error& e) {
+          amrex::Abort(e.what());
+        }
+      }
+
+      // The regions: the air (1), the jacket (2) on top of it, then the core (3); beyond the air's box, the outside (0).
+      const Expr air = EBGeometry::RegionName(
+        EBGeometry::MaterialLabel(EBGeometry::BoxSDF<T>(Vec3(T(-1.5), T(-1.5), T(-3)), Vec3(T(1.5), T(1.5), T(3))),
+                                  "air"),
+        "air");
+      const Expr jacket = EBGeometry::RegionName(
+        EBGeometry::MaterialLabel(EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2)), Vec3(T(0), T(0), T(2)), T(1)),
+                                  "PTFE"),
+        "jacket");
+      const Expr core = EBGeometry::RegionName(
+        EBGeometry::MaterialLabel(
+          EBGeometry::CylinderSDF<T>(Vec3(T(0), T(0), T(-2.5)), Vec3(T(0), T(0), T(2.5)), T(0.4)), "copper"),
+        "core");
+
+      // The domain: two subdomains, the air (0) and the jacket (1), coupled through the jacket's outside; the core is
+      // in neither. Its surface groups: every surface of the core (0), the air's box (1), and the interface of the air
+      // and the jacket (2). The domain is built from it below, in the tape's pool, for the tape.
+      (void)setup.addSubdomain({1});
+      (void)setup.addSubdomain({2});
+
+      setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::region(3));
+      setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 0));
+      setup.add(setup.addSurfaceGroup(), EBGeometry::SurfaceSelector::interface(1, 2));
+
+      return EBGeometry::Overlay(air, jacket, core);
+    }();
+
+    const Tape tape(pool, object);
 
     const Domain domain(pool, tape, setup);
 

@@ -1,0 +1,4 @@
+ebg 0
+
+cube  = mesh("../../cube_groups.obj").label(walls = "side")
+plain = mesh("../../cube_groups.obj", groups = false)

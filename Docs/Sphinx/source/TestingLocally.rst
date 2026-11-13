@@ -469,6 +469,14 @@ Test coverage
        object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
        under later regions, outside a mask), and leaving unproved what it cannot prove.
+   * - ``TestLanguage``
+     - The ``.ebg`` language: every built-in shape and operation against the same expression built in C++ (equal
+       distances on a grid), arithmetic, params and overrides, regions, materials, labels and part names in the
+       index, domains (subdomains with properties merged from materials, selectors against the C++ selectors, a
+       domain built for the tape), couplings, a domain's completeness, a model folder with an include and a mesh
+       read once, errors at their line and column (all reported, none aborting, the library's own value checks
+       included), the printer's canonical form (idempotent, the same model) and a table of properties read on a
+       device.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

@@ -14,6 +14,7 @@
 // stay covered together.
 
 #include "EBGeometry.hpp"
+#include "Source/EBGeometry_Language.hpp"
 
 namespace EBGeometry {
 
@@ -146,6 +147,9 @@ namespace EBGeometry {
   template struct Render::Settings<PREC>;                                    \
   template struct Render::PixelQuery<PREC, Tape<PREC>>;                      \
   template class Render::Renderer<PREC>;                                     \
+  template class Language::Model<PREC>;                                      \
+  template class Language::Reader<PREC>;                                     \
+  template class Language::Table<Vec3T<PREC>>;                               \
   template Render::Stats Render::Renderer<PREC>::render<Tape<PREC>>(         \
     const Tape<PREC>&, const Render::Camera<PREC>&, Render::Image&) const;   \
   template Render::Stats Render::Renderer<PREC>::renderOnDevice<Tape<PREC>>( \
@@ -693,6 +697,22 @@ instantiateFunctionTemplates()
 
     DCEL::reconcile(reconcilePool, mesh, schedule);
     DCEL::reconcile(devicePool, mesh, schedule);
+  }
+
+  // The .ebg language.
+  {
+    Pool languagePool(hostMemoryResource());
+
+    const Language::Model<T> model =
+      Language::parse<T>("ebg 0\nobject sphere((0, 0, 0), 1)\n", "model.ebg", languagePool, {{"r", "1"}});
+    const Tape<T> tape(languagePool, model.object());
+
+    (void)Language::read<T>("model.ebg", languagePool);
+    (void)Language::completeness(model, tape, "domain");
+    (void)Language::inventory(model);
+    (void)Language::print(model, true);
+    (void)model.template regions<Vec3T<T>>(
+      languagePool, [](const Language::Properties& a_p) { return a_p.template vector<T>("v", Vec3T<T>::zeros()); });
   }
 }
 
