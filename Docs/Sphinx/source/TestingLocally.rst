@@ -172,6 +172,9 @@ CMake options
    * - ``EBGEOMETRY_VIEWER``
      - ``OFF``
      - ``SDL2`` compiles the interactive window of ``Render::view()`` (see :ref:`Sec:ConfigViewer`).
+   * - ``EBGEOMETRY_BUILD_STUDIO``
+     - ``ON`` with the tests, ``OFF`` otherwise
+     - Build ``ebgstudio`` (see :ref:`Chap:Studio`).
    * - ``EBGEOMETRY_INSTALL``
      - ``ON`` (``OFF`` when another project includes EBGeometry)
      - Generate the install target (``cmake --install``).

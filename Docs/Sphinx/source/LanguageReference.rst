@@ -215,6 +215,6 @@ And when a domain is checked (see :ref:`Chap:LanguageDomains`):
 The canonical form
 ------------------
 
-A model has a canonical form, one statement per line with its comments kept, in which a viewer writes the
-files it edits; ``print()`` (see :ref:`Chap:ImplemLanguage`) writes a model in it, keeping its includes or
-resolving them into one text.
+A model has a canonical form, one statement per line with its comments kept, in which ``ebgstudio``'s window
+writes the files it edits (see :ref:`Chap:StudioViewer`); ``print()`` (see :ref:`Chap:ImplemLanguage`) and
+``ebgstudio print`` write a model in it, keeping its includes or resolving them into one text.

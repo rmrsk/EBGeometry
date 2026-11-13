@@ -8,6 +8,16 @@ by name (``radius = 0.5``); a vector is ``(x, y, z)`` and an angle is in degrees
 pieces of its surface it tells apart, which ``.label(part = "name")`` names one by one (see
 :ref:`Chap:LanguageModels`); a shape listed with one surface is labeled as a whole, ``.label("name")``.
 
+Every shape below is used once in ``Studio/Models/gallery/model.ebg``, laid out as in the figure: open it with
+``ebgstudio Models/gallery/model.ebg`` from ``Studio/`` (see :ref:`Chap:Studio`), or copy a line from it.
+
+.. figure:: _static/language_gallery.jpg
+   :width: 90%
+   :align: center
+
+   ``Studio/Models/gallery``: the bounded shapes (the two front rows), the unbounded ones inside a cube and a mesh (the
+   third row), then the operations of :ref:`Chap:LanguageOperations` (the rows behind).
+
 Each shape is a C++ class of the library, and its name and parameters follow the class's: the class name
 without ``SDF``, in snake_case (``RoundedBoxSDF`` is ``rounded_box``), and the constructor's parameters in
 order, without their ``a_`` prefix.

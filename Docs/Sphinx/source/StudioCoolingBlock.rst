@@ -1,7 +1,7 @@
 .. _Chap:StudioCoolingBlock:
 
-Walkthrough: a cooled block
-===========================
+Tutorial: a cooled block
+========================
 
 This builds ``Studio/Models/cooling_block`` step by step: a steel block heated from below and cooled by water flowing
 through a channel bored along it, with the two computations a program would run on it, the water's flow and the heat in
@@ -50,7 +50,12 @@ written on its own line keeps the shape's line short:
    block = box((0, 0, 0), (length, height, width))
      .label(ymin = "base", ymax = "top", zmin = "side", zmax = "side", xmin = "end", xmax = "end")
 
-``ebgstudio check mine/model.ebg --inventory`` lists the labels and which part has which.
+``ebgstudio check mine/model.ebg --inventory`` lists the labels and which part has which:
+
+.. code-block:: text
+
+   shapes and their parts:
+     box at mine/model.ebg:8:9, parts: xmin="end" xmax="end" ymin="base" ymax="top" zmin="side" zmax="side"
 
 3. The channel, and two regions
 -------------------------------
@@ -90,8 +95,7 @@ program reads (any names; the language gives them no meaning):
 
 A domain is one computation: the regions it runs in (its subdomains) and what it does on each piece of surface that
 bounds them (its surface groups). The flow is a setup of its own, ``mine/flow.ebg``, which names the geometry and the
-materials it needs. The flow runs in the water, enters at the inlet, leaves at the outlet, and sticks to the channel's
-wall:
+materials it needs. The flow runs in the water, enters at the inlet and leaves at the outlet:
 
 .. code-block:: text
 
@@ -106,13 +110,27 @@ wall:
      subdomain fluid = water
      group inlet = label("inlet") { velocity = (inflow, 0, 0), temperature = 290 }
      group outlet = label("outlet") { pressure = 0 }
-     group wall = interface(water, solid) { kind = "no_slip" }
    }
 
-``ebgstudio check mine/flow.ebg --domain flow`` says whether every piece of surface around the water is in a group.
-Instead of writing the groups, they can be made in the window (see :ref:`Chap:StudioViewer`): open ``ebgstudio
-mine/flow.ebg``, click the domain ``flow``, start a surface group, click the channel's inlet and press Enter; the window
-writes ``label("inlet")`` into ``flow.ebg``, the file that holds the domain.
+``ebgstudio check mine/flow.ebg --domain flow`` says whether every piece of surface around the water is in a surface
+group. One is not, and the check names it by the shape it comes from and the regions on its two sides:
+
+.. code-block:: text
+
+   mine/flow.ebg:8:8: error: the cylinder at mine/model.ebg:11 between 'water' and 'solid' is in no surface group of domain 'flow'
+   domain 'flow': incomplete
+
+The channel's wall, where the water meets the steel, needs a condition: the water sticks to it. Add a group to the
+domain:
+
+.. code-block:: text
+
+     group wall = interface(water, solid) { kind = "no_slip" }
+
+and the check reports the domain complete. Instead of writing the group, it can be made in the window (see
+:ref:`Chap:StudioViewer`): open ``ebgstudio mine/flow.ebg``, click the domain ``flow``, start a surface group, click the
+channel's wall and press Enter; the window writes the group into ``flow.ebg``, the file that holds the domain. Its
+panel counts the pieces still in no group, and ``[Next unassigned]`` turns the camera to each.
 
 6. The heat: a second setup
 ---------------------------

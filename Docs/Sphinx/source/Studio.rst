@@ -14,8 +14,9 @@ files.
    ebgstudio check Models/cooling_block/setup.ebg --all-domains   check it, and that its domains are complete
 
 ``Studio/`` holds the program (``main.cpp``, ``Writer.hpp``), its build files, and ``Studio/Models``, the models it
-comes with: starting points to copy, each checked in every CI run. :ref:`Chap:StudioCommands` describes the commands,
-:ref:`Chap:StudioViewer` the window, and :ref:`Chap:StudioCoolingBlock` builds a model step by step.
+comes with: starting points to copy, each checked in every CI run. :ref:`Chap:StudioCoolingBlock` builds a model step
+by step, and is the place to start; :ref:`Chap:StudioCommands` describes the commands and :ref:`Chap:StudioViewer` the
+window.
 
 Getting it
 ----------

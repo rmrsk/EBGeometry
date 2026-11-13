@@ -3,7 +3,7 @@
 The window
 ==========
 
-``ebgstudio MODEL`` opens the model in EBGeometry's viewer (see :ref:`Chap:ImplemRender` for every key), showing its
+``ebgstudio MODEL`` opens the model in EBGeometry's viewer (see :ref:`Chap:Viewer` for every key and the panel), showing its
 regions colored by material, with a panel of its names at the top left: its domains, their subdomains and surface
 groups, the regions, and what is picked. The camera, colors and background are those of the model's ``view`` block
 (see :ref:`Chap:Language`); R goes back to the camera. C prints the current view as a ``view`` block, the camera as
