@@ -1155,6 +1155,62 @@ TEMPLATE_TEST_CASE("Ray: a tape's queries test its box first, and a ray through 
     }
   }
 
+  // An infinite interval: a miss is still a miss, and a hit still the fused composition's.
+  const T infinity = Math::Limits<T>::infinity();
+
+  for (const Case& c : cases) {
+    const Vec3    direction = (c.m_target - c.m_origin) / (c.m_target - c.m_origin).length();
+    const RayT<T> ray{c.m_origin, direction};
+
+    INFO("ray from " << c.m_origin << " toward " << c.m_target << ", tMax infinite");
+
+    const HitT<T> viaTape  = tape.firstHit(ray, T(0), infinity);
+    const HitT<T> viaFused = firstHit(fused, ray, T(0), infinity);
+
+    REQUIRE(viaTape.m_status == viaFused.m_status);
+
+    if (viaFused.hit()) {
+      CHECK_THAT(viaTape.m_t, withinAbsT(viaFused.m_t, looseMargin<T>()));
+    }
+
+    CHECK(regions.firstRegionChange(ray, T(0), infinity).m_hit.m_status == viaFused.m_status);
+  }
+
+  // Boxes the builder grows beyond the shapes' own: an offset's and a smooth union's. A ray grazing the grown
+  // object, outside the plain box, must still reach it. Both are marched in a plain tape and traced in the fused
+  // composition, so the crossings agree to the march's tolerance.
+  const T              grow = T(0.25);
+  const SphereSDF<T>   cap(Vec3(T(0), T(1.2), T(0)), T(0.3));
+  const Tape<T>        offsetTape(pool, Offset(box, grow));
+  const auto           offsetFused = Fused::Offset(box, grow);
+  const Tape<T>        smoothTape(pool, SmoothUnion(box, cap, T(0.3)));
+  const auto           smoothFused = Fused::SmoothUnion(box, cap, T(0.3));
+  const std::vector<T> heights     = {T(1.1), T(1.2), T(1.24), T(1.4)};
+
+  for (const T y : heights) {
+    const RayT<T> ray{Vec3(T(3), y, T(0)), Vec3(T(-1), T(0), T(0))};
+
+    INFO("ray at height " << y);
+
+    const HitT<T> offsetViaTape  = offsetTape.firstHit(ray, T(0), far);
+    const HitT<T> offsetViaFused = firstHit(offsetFused, ray, T(0), far);
+
+    REQUIRE(offsetViaTape.m_status == offsetViaFused.m_status);
+
+    if (offsetViaFused.hit()) {
+      CHECK_THAT(offsetViaTape.m_t, withinAbsT(offsetViaFused.m_t, T(1e-2))); // marched in a plain tape
+    }
+
+    const HitT<T> smoothViaTape  = smoothTape.firstHit(ray, T(0), far);
+    const HitT<T> smoothViaFused = firstHit(smoothFused, ray, T(0), far);
+
+    REQUIRE(smoothViaTape.m_status == smoothViaFused.m_status);
+
+    if (smoothViaFused.hit()) {
+      CHECK_THAT(smoothViaTape.m_t, withinAbsT(smoothViaFused.m_t, T(1e-2)));
+    }
+  }
+
   // A tape as a leaf of another: a ray that misses the inner tape's box leaves it no spans, and finds what else the
   // outer composition holds.
   const SphereSDF<T>     beside(Vec3(T(5), T(0), T(0)), T(0.5));

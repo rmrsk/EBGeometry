@@ -1555,7 +1555,7 @@ private:
    * object runs the whole ray program (each operand's own box test, the span lists, the composition's clauses), and a
    * miss costs several times a bare mesh's (an overlay of two meshes, seen from a camera facing away, measured on the
    * host: 133 ns a ray without the test, 71 ns with it, 72 ns for a bare mesh). An unbounded box (a plane's) is missed
-   * by no ray.
+   * by no ray. A miss is +infinity exactly, so it is rejected whatever a_tMax is, an infinite one included.
    * @param[in] a_ray  The ray, with a unit direction.
    * @param[in] a_tMin Start of the interval.
    * @param[in] a_tMax End of the interval.
@@ -1565,7 +1565,9 @@ private:
   inline bool
   missesBox(const RayT<T>& a_ray, T a_tMin, T a_tMax) const noexcept
   {
-    return BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin).key(m_layout.m_boundingVolume) > a_tMax;
+    const T entry = BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin).key(m_layout.m_boundingVolume);
+
+    return entry > a_tMax || entry == Math::Limits<T>::infinity();
   }
 
   /**
