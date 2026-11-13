@@ -18,7 +18,7 @@ Regions, not one solid
 
 A union makes one solid of its operands, and the core's surface would vanish inside the jacket.
 ``Overlay(air, jacket, core)`` stacks them as regions instead, each on top of the ones before it where they overlap
-(see :ref:`Chap:ClosestPrimitive`). ``MaterialLabel()`` names a region's material. The air is a region like the
+(see :ref:`Chap:Regions`). ``MaterialLabel()`` names a region's material. The air is a region like the
 others, a box around the whole cable, under it: its outer faces bound what a solver computes on. Beyond the box is
 the outside, region 0, with no material.
 

@@ -559,7 +559,7 @@ Family                                Build  Measures
                                              the mesh) on both sides
 ====================================  =====  =====================================================
 
-**Regions** (``Performance/Regions``): the regions of a tape (see :ref:`Chap:ClosestPrimitive`), for a matrix
+**Regions** (``Performance/Regions``): the regions of a tape (see :ref:`Chap:Regions`), for a matrix
 holding 32 particles, each a shell around a grain, one ``Overlay`` of 65 regions. The ``regionByRegion`` case computes
 what ``regionDistances`` does by asking ``signedDistance(point, region)`` for each region, names it, and a comparison
 notes the ratio of their times (what the one pass saves). An assembly of one region, 512 spheres in a union through a
@@ -580,7 +580,7 @@ Family                                Build  Measures
 ``<input>/<operation>``               GPU    each of the above at 262,144 points or rays on both sides
 ====================================  =====  =====================================================
 
-**Domain** (``Performance/Domain``): a domain (see :ref:`Chap:ClosestPrimitive`) with many subdomains and surface
+**Domain** (``Performance/Domain``): a domain (see :ref:`Chap:Regions`) with many subdomains and surface
 groups, over the Regions probe's matrix of 32 particles: the matrix and every shell a subdomain of its own (33
 subdomains, the grains excluded), and 33 selectors (each shell's interface with its grain, and the remaining surfaces)
 dealt into 8 surface groups, so that a surface facing the matrix tries every selector before the remaining surfaces
@@ -670,7 +670,7 @@ measured against scalar host code; the host build's ``host`` cases show what vec
 one core, so against a vectorized host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
 its FP32 rate) is little faster than the CPU's cores. OpenMP is on by default
 for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
-runtime, which is not yet tested, so it is off there unless turned on, and the host side then runs on one
+runtime, which is not tested, so it is off there unless turned on, and the host side then runs on one
 thread. A HIP build compiles its host side with AVX2 and FMA (``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
 
 Running the probes

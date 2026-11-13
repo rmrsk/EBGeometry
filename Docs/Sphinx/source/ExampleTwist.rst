@@ -44,7 +44,7 @@ Using it
 The program prints the original's and the twisted copy's values at three heights; at :math:`y = 0` the
 twist turns nothing and the two differ only by the factor. Like any shape of your own, the twisted
 statue can also go into a tape, listed after ``T`` (see :ref:`Chap:ExampleCustomShape`). The library
-has no built-in twist operation yet (none in the tape, the fused operations or the ray forms), which is
+has no built-in twist operation (none in the tape, the fused operations or the ray forms), which is
 why this example defines its own.
 
 Looking at it

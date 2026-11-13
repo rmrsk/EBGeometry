@@ -83,18 +83,17 @@ Concepts
    :hidden:
 
    GeometryRepresentations.rst
-   DCEL.rst
+   Meshes.rst
    BVH.rst
+   PointCloud.rst
+   CSG.rst
+   Tape.rst
+   LeavesAndSurfaces.rst
+   Regions.rst
    Rays.rst
    RayTracing.rst
    SphereTracing.rst
    Rendering.rst
-   PointCloud.rst
-   Octree.rst
-   CSG.rst
-   Tape.rst
-   ClosestPrimitive.rst
-   Triangles.rst
 
 Implementation
 **************
@@ -109,13 +108,17 @@ Implementation
    RunningOnGPU.rst
    ImplemVec.rst
    ImplemCSG.rst
+   ImplemRegions.rst
+   Parsers.rst
+   ImplemMeshSDF.rst
    ImplemDCEL.rst
    ImplemBVH.rst
+   ImplemBVHTraversal.rst
+   ImplemPointCloud.rst
    ImplemRays.rst
    ImplemRender.rst
-   ImplemPointCloud.rst
+   Viewer.rst
    ImplemOctree.rst
-   Parsers.rst
    SIMDClasses.rst
 
 Examples

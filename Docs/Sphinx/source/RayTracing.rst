@@ -15,13 +15,42 @@ Shapes in closed form
 The simplest shapes are intersected with a line in closed form. A plane gives one linear equation in
 :math:`t`; a sphere, or an infinite cylinder, a quadratic; a box the overlap of three slabs, one per axis.
 A finite cylinder is an infinite cylinder cut by the slab between its caps, and a capsule the hull of a
-cylinder and the two balls at its ends. Each of these is convex, so a ray is inside it over a single
+cylinder and the two balls at its ends. Most of these are convex, so a ray is inside one over a single
 stretch, from where it enters to where it leaves, and its first crossing is the start of that stretch, or
-its end for a ray that starts inside. The round surfaces are solved in a form that does not lose precision
-to cancellation, so that a small ball or a thin cylinder far from the ray's start is hit or missed by its
-geometry, not by rounding, in single precision too.
+its end for a ray that starts inside; a tube, a cylinder with a cylinder bored out of it, leaves up to two
+such stretches. The round surfaces are solved in a form that does not lose precision to cancellation, so
+that a small ball or a thin cylinder far from the ray's start is hit or missed by its geometry, not by
+rounding, in single precision too.
 
-The other analytic shapes (a torus, the cones, a rounded box or cylinder, Perlin noise) are marched.
+.. _Sec:ExactShapes:
+
+The table lists what is traced exactly; everything else is marched (see :ref:`Chap:SphereTracing`).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Geometry
+     - Traced exactly
+   * - Analytic shapes
+     - plane, sphere, box, cylinder, infinite cylinder, capsule, ellipsoid, capped cone, polygon prism, tube,
+       cut sphere, wedge. Marched: torus and capped torus, cone and infinite cone, round cone, rounded box,
+       rounded cylinder, cut hollow sphere, Perlin noise.
+   * - Meshes
+     - all three mesh distance functions, face by face (below).
+   * - Many objects
+     - BVH unions (not smooth ones) and sphere clouds, through their BVH.
+   * - Compositions
+     - union, intersection, difference, complement, and translated, rotated, reflected or scaled shapes, from
+       their parts (below), in a tape and in a fused composition.
+   * - Offsets and shells
+     - of a plane, sphere, box, infinite cylinder, capsule or mesh (below): always in a fused composition, in
+       a tape listing ``TapeFeature::ExactOffsets``.
+   * - Smooth unions and intersections
+     - the plain operation exactly and the blend zone marched, in a fused composition with the polynomial
+       blend (below).
+   * - Shapes of your own
+     - when they are given a ray form (see :ref:`Chap:ImplemRays`).
 
 Meshes
 ------
@@ -46,10 +75,10 @@ holes is traced as it is: the ray crosses whatever faces it meets, and only a cl
 
 .. _Sec:OffsetRays:
 
-Offsets and annuli
+Offsets and shells
 ------------------
 
-An offset by :math:`r` keeps where an object's value is at most :math:`r`, and an annulus of
+An offset by :math:`r` keeps where an object's value is at most :math:`r`, and a shell (``Annular``) of
 half-thickness :math:`d` where it is between :math:`-d` and :math:`d` (see :ref:`Chap:ImplemCSG`): both
 are *level sets* of the object's value. Where the object's level sets have a simple form of their own, a
 ray finds them exactly, with exact normals:
@@ -69,16 +98,16 @@ around a mesh in :ref:`Chap:ExampleShell` is traced this way, entering and leavi
 
    Offsets traced from level sets, drawn in a plane through the ray. (a) A box grown by :math:`r` is a
    box with rounded edges and corners; the ray meets the rounded corner exactly, with the corner's normal.
-   (b) An annulus of a mesh is the union of its faces, each grown into a slab with a rounded rim; the
+   (b) A shell of a mesh is the union of its faces, each grown into a slab with a rounded rim; the
    ray's stretches inside the shell are exact.
 
-A fused composition always traces such an offset or annulus exactly. A tape does when its type asks for it,
+A fused composition always traces such an offset or shell exactly. A tape does when its type asks for it,
 by listing ``TapeFeature::ExactOffsets`` (see :ref:`Sec:TapeFeatures`), and otherwise marches it. An offset
-or annulus of anything else is marched: of a composition, of a finite cylinder (whose grown rim is a
-torus), of a torus, or of another offset or annulus.
+or shell of anything else is marched: of a composition, of a finite cylinder (whose grown rim is a
+torus), of a torus, or of another offset or shell.
 
 Tracing a mesh's grown surface along a whole ray costs much more than finding its first crossing. Under an
-intersection or a difference, an offset or annulus of a mesh is therefore traced only where the other
+intersection or a difference, an offset or shell of a mesh is therefore traced only where the other
 operands leave something to find, as a marched part is (see :ref:`Sec:RayMarchedParts`).
 
 .. _Sec:RaySpans:
@@ -156,7 +185,7 @@ Marched parts of an exact composition
 
 A part that has no exact method of its own is marched, by itself and in its own bounding box, while the
 rest of the composition stays exact. Such parts are a blend (a smooth union or intersection where it is
-not traced as above), an offset or annulus
+not traced as above), an offset or shell
 of anything but the shapes above, an elongation, a repetition, a blur, and a shape of your own without an
 exact method, together with every part inside them: a blend of two balls is marched as a whole, even
 though each ball could be traced.

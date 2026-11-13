@@ -41,7 +41,7 @@ of the next unvisited shell -- no closer point can lie beyond that shell, so the
 resolves in the first shell or two.
 
 The grid trades adaptivity for simplicity. A single global cell size fits a **near-uniform** cloud
-best -- there, building the grid (a counting sort) is cheaper than building a tree, and querying it
+best -- there, building the grid is cheaper than building a tree, and querying it
 costs about the same. For
 a **strongly clustered or multi-scale** cloud a single cell size is a poor compromise (too coarse
 where the cloud is dense, too fine where it is sparse), and the density-adaptive hierarchy is the

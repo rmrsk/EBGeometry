@@ -91,7 +91,7 @@ operand is compiled into a separate *sub-program*, which the operation's clause 
 A sub-program has stacks of its own: when it starts, only its input point is on its point stack, and
 nothing its caller holds counts against it. A sub-program can itself contain one of these operations,
 so calls nest; :numref:`Fig:TapeSubprograms` shows a main program, a blur, and a BVH union inside it.
-Every other operation (the maps, offsets, annuli, elongations, complements, the unions and smooth unions
+Every other operation (the maps, offsets, shells, elongations, complements, the unions and smooth unions
 evaluated as written, and the intersections) is written into the program that contains it.
 
 .. _Fig:TapeSubprograms:
@@ -109,7 +109,7 @@ The limits of a tape
 --------------------
 
 The interpreter has no recursion and allocates no memory while it runs: its stacks are fixed-size
-arrays, and each call level is a separate, fixed copy of the interpreter. This is what keeps it usable
+arrays, and every call level has stacks of its own. This is what keeps it usable
 on a GPU, and it bounds what one tape can hold. Every limit is checked when the tape is constructed,
 in every build (not only with assertions enabled): an expression that exceeds one stops the program
 with a message naming the limit and the amount the expression needs. Nothing is checked during

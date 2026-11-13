@@ -66,7 +66,7 @@ The implicit function derives from ``amrex::GPUable``, so the same code runs on 
 build of AMReX, on GPUs. In a GPU build the pool is frozen and mirrored to device memory in one piece (see
 :ref:`Sec:BuildingGPU`), and the implicit function holds two views of the object, one of each copy; each
 compilation pass uses its own. An analytic shape is a plain value and needs no copy. A SYCL build of AMReX
-is rejected at compile time, since EBGeometry has no SYCL memory resource yet.
+is rejected at compile time, since EBGeometry has no SYCL memory resource.
 
 A mesh's fine features can cut a cell edge more than twice, which ``EB2`` refuses unless it may cover such
 cells, so the integrations set ``eb2.cover_multiple_cuts = 1`` unless the inputs say otherwise.

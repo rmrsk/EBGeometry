@@ -10,11 +10,9 @@ Implicit functions, and by extension also signed distance fields, can be manipul
 Every such transformation takes an implicit function :math:`I` and produces a new implicit
 function :math:`I^\prime`, defined by evaluating :math:`I` at a suitably transformed query point.
 
-.. warning::
-
-   Some of these operations preserve the signed distance property, and others do not.
-
-EBGeometry supports many such transformations, for example:
+The five below (translation, rotation, uniform scaling, complement and reflection) keep an exact signed
+distance exact; most others give a bound (see :ref:`Chap:GeometryRepresentations`), and each operation's
+quality is listed in :ref:`Chap:ImplemCSG`.
 
 Translation
 ~~~~~~~~~~~~
@@ -79,8 +77,8 @@ Reflecting across one of the three coordinate planes (the :math:`yz`-, :math:`xz
    I^\prime(\mathbf{x}) = I\left(\mathbf{r} \odot \mathbf{x}\right).
 
 EBGeometry supports several further transformations beyond these five: offsetting (growing or
-shrinking an object by a distance), shell extraction (hollowing out a solid into a shell of a given
-thickness), elongation (stretching an object by inserting a box at its center), finite repetition
+shrinking an object by a distance), shells (``Annular``: the solid within a given distance of the
+surface), elongation (stretching an object by inserting a box at its center), finite repetition
 (copies of an object on a grid), and blurring and mollification (smoothing a sharp surface by locally
 averaging the function value). They are shown in :ref:`Chap:ExampleTransforms`,
 :ref:`Chap:ExampleRepetition` and :ref:`Chap:ExampleValueOperations`.
@@ -129,5 +127,13 @@ the value from, a difference the leaf of whichever object bounds the result, a b
 operand's, a blur the center of its samples'. This is what tagging a boundary or a material needs, and it is not the same as the
 geometrically nearest primitive, which may be one the composition cut away. A compiled object is one
 shape with one surface, however it is built: in a tape it is one leaf, so a scene of compiled parts
-names the part that decides the value. :ref:`Chap:ClosestPrimitive` explains it, and
+names the part that decides the value. :ref:`Chap:LeavesAndSurfaces` explains it, and
 :ref:`Chap:ExampleSurfaceLabels` uses it to look up what a surface is.
+
+Objects of several materials
+----------------------------
+
+A union is one solid, with one outer surface. An object of several materials, a copper core in a plastic
+jacket, is instead an *overlay*: each operand is a region, the later ones on top where they overlap, and the
+surfaces between them are kept. :ref:`Chap:Regions` describes regions, their materials, and the domains a
+solver computes in.

@@ -19,7 +19,7 @@ Where the value is a signed distance, its magnitude at a point is the distance t
 surface, in any direction. A ball of that radius around the point holds no surface, so the ray can move
 forward by the value without stepping over the surface. Far from the surface the steps are long; as the ray
 nears the surface they shrink, and the march stops where the value falls below the tolerance. The same
-holds inside the object, stepping by the value's magnitude towards where the ray leaves.
+holds inside the object, stepping by the value's magnitude toward where the ray leaves.
 
 .. figure:: /_static/SphereTracing.png
    :width: 70%
@@ -152,9 +152,9 @@ When a shape is marched
 
 A query marches:
 
-* a shape with no exact method: the analytic shapes other than the plane, sphere, box, cylinders and
-  capsule; a smooth union of many shapes in a BVH; the blends, elongations, repetitions, blurs and the
-  offsets that cannot be traced exactly (see :ref:`Sec:OffsetRays`); and a shape of your own without one;
+* a shape with no exact method: those not in :ref:`the table of exact shapes <Sec:ExactShapes>`, such as a torus, a
+  smooth union of many shapes in a BVH, an elongation, a repetition, a blur, and a shape of your own
+  without one;
 * those parts of an exact composition, each by itself, in its own box (see :ref:`Sec:RayMarchedParts`);
 * any shape, when ``m_march`` is set: a reference for an exact answer, or a way round an exact method you
   suspect.
