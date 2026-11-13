@@ -13,19 +13,22 @@ answers.
 
 The reading order:
 
-**Shapes and composition**
+**Start here**
 
 1. `Shapes`: the built-in analytic shapes: constructing them, their signed distance, bounding box and distance quality.
 2. `BasicCSG`: the classic CSG solid, with `Union`, `Intersection` and `Difference`, compiled into a `Tape`.
-3. `SmoothCSG`: smooth unions, intersections and differences, and the two blend kinds.
-4. `Transforms`: one object moved, turned, scaled, mirrored and stretched.
-5. `Repetition`: many copies of a mesh (the happy Buddha) from one `FiniteRepetition`.
-6. `ValueOperations`: `Offset`, `Annular`, `Blur` and `Mollify`.
-7. `FusedCSG`: the classic solid as a fused composition (`Fused::`), against the tape.
+3. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
+
+**Shapes and composition**
+
+4. `SmoothCSG`: smooth unions, intersections and differences, and the two blend kinds.
+5. `Transforms`: one object moved, turned, scaled, mirrored and stretched.
+6. `Repetition`: many copies of a mesh (the happy Buddha) from one `FiniteRepetition`.
+7. `ValueOperations`: `Offset`, `Annular`, `Blur` and `Mollify`.
+8. `FusedCSG`: the classic solid as a fused composition (`Fused::`), against the tape.
 
 **Meshes**
 
-8. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 9. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
 10. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
 

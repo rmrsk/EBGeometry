@@ -5,8 +5,8 @@ Configuration options
 
 This page documents the configuration knobs shared by all three build methods
 (:ref:`Sec:BuildingCMake`, :ref:`Sec:BuildingGNUMake`, :ref:`Sec:BuildingDirectCompile`):
-floating-point precision, the target SIMD instruction set, optional runtime assertions, and the
-optional viewer window.
+floating-point precision, the SIMD instruction set and the branching factor and SIMD width it suits,
+the checks and assertions, and the optional viewer window.
 
 .. contents:: On this page
    :local:
@@ -41,12 +41,40 @@ a preprocessor define so it can be overridden from the build system without edit
 
 See :ref:`Chap:Building` for how to set ``EBGEOMETRY_PRECISION`` from each build method.
 
-SIMD acceleration
---------------------
+.. _Chap:SIMDAcceleration:
 
-See :ref:`Chap:SIMDAcceleration` for a conceptual overview of SIMD acceleration in EBGeometry,
-:ref:`Chap:SIMDClasses` for exactly which classes it applies to and what it means for each, and
-:ref:`Chap:Building` for the compiler/CMake/Makefile flags that enable it for each build method.
+.. _Sec:SIMD:
+
+SIMD acceleration
+-----------------
+
+EBGeometry vectorizes its innermost loops with compiler intrinsics rather than relying on the compiler to
+auto-vectorize scalar code: the test of a point or a ray against the child boxes of a ``BVH::PackedBVH``
+node, and the leaf computations of the triangle groups (``TriMeshSDF``) and point groups
+(``PointCloudBVH``). Everything else in the library is scalar code. :ref:`Chap:SIMDClasses` describes each
+vectorized class.
+
+The instruction set is chosen at **compile time**, from the macros the compiler's flags define; there is
+no run-time dispatch:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - Instruction set
+     - Selected when the compiler defines
+   * - AVX-512F (recent server and workstation CPUs)
+     - ``__AVX512F__``
+   * - AVX (most x86-64 processors)
+     - ``__AVX__``
+   * - SSE 4.1 (older or constrained targets)
+     - ``__SSE4_1__``
+   * - No SIMD (the portable fallback)
+     - none of the above
+
+:ref:`Chap:Building` gives the flags that define them for each build method (``-mavx -mfma``, say, or
+``EBGEOMETRY_SIMD`` with CMake). The instruction set selects code paths only: the branching factor ``K``
+and the SIMD width ``W`` stay 4 on every machine unless chosen otherwise (below).
 
 .. _Sec:DefaultKW:
 

@@ -34,72 +34,27 @@ unattended. Each example folder also has a ``README.md`` with its build and run 
 Reading order
 -------------
 
-The examples build on each other. A new user can read them in this order.
+The examples build on each other, in groups by topic. A new user can read them in this order, starting with the
+first group:
 
-**Shapes and composition**
-
-#. :ref:`Chap:ExampleShapes`: the analytic shapes, their signed distance, bounding box and distance
-   quality.
-#. :ref:`Chap:ExampleBasicCSG`: the classic CSG solid, with unions, intersections and differences,
-   compiled into a ``Tape``.
-#. :ref:`Chap:ExampleSmoothCSG`: smooth unions, intersections and differences, and the blend kinds.
-#. :ref:`Chap:ExampleTransforms`: one object moved, turned, scaled, mirrored and stretched.
-#. :ref:`Chap:ExampleRepetition`: many copies of a mesh from one ``FiniteRepetition``.
-#. :ref:`Chap:ExampleValueOperations`: offsets, shells, blurring and mollifying.
-#. :ref:`Chap:ExampleFusedCSG`: the classic solid as a fused composition, against the tape.
-
-**Meshes**
-
-8. :ref:`Chap:ExampleMeshSDF`: reading a surface mesh into a signed distance function, and the
-   three representations to choose from.
-#. :ref:`Chap:ExampleMeshCSG`: a mesh joined to analytic shapes, the dragon on a table.
-#. :ref:`Chap:ExampleShell`: a thin shell around a mesh (Lucy), cut open.
-
-**Parts, labels and materials**
-
-11. :ref:`Chap:ExampleSurfaceLabels`: which part of an object a query found, and a table of your own indexed
-    by its label.
-#. :ref:`Chap:ExampleMaterials`: several materials in one object, as regions, and each region's own function.
-
-**Many objects and particles**
-
-13. :ref:`Chap:ExampleNestedBVH`: a mesh placed many times, in a tape and in a BVH union of meshes.
-#. :ref:`Chap:ExampleManyObjects`: a BVH union over many primitives, and how much it saves over a
-   plain loop.
-#. :ref:`Chap:ExamplePackedSpheres`: thousands of spheres at random places in a cylinder, joined by a
-   smooth BVH union.
-#. :ref:`Chap:ExamplePointClouds`: closest points and nearest neighbors in a point cloud, with a
-   BVH or a hash grid.
-#. :ref:`Chap:ExampleParticleNeighbors`: moving particles and every particle's nearest neighbors after
-   each step, the grid rebuilt where the particles live.
-#. :ref:`Chap:ExampleSphereClouds`: particles of differing sizes packed in a cylinder, the signed distance to their
-   union and the closest particle; the cylinder with the particles cut out of it, fused and in a tape, and a ray
-   through both.
-#. :ref:`Chap:ExampleParticleContacts`: particles of differing sizes pushed apart in a cylinder until none
-   overlap, rebuilding the cloud each round; their contacts, a contact list, and a near-contact force per particle
-   on a GPU.
-
-**Rays and BVHs**
-
-20. :ref:`Chap:ExampleBVHTraversal`: walking a BVH with a search of your own: the nearest object to
-    a point, the first one a ray hits, whether a segment is blocked.
-#. :ref:`Chap:ExampleRayTracing`: casting rays at a triangle mesh: where a ray or a particle's step
-   first crosses the surface, and the same walk of the BVH written by hand.
-
-**Extending the library**
-
-22. :ref:`Chap:ExampleOctreeBoundingVolume`: estimating a bounding box for a function with no
-    closed-form one.
-#. :ref:`Chap:ExampleCustomShape`: a shape type of your own, and calling EBGeometry from your own
-   kernel.
-#. :ref:`Chap:ExampleTwist`: an operation of your own, a twist, applied to a mesh.
-
-**Tuning**
-
-25. :ref:`Chap:ExampleHostTuning`: the branching factor and SIMD width tuned to the host.
-#. :ref:`Chap:ExampleDeviceTuning`: the block size and register budget of a GPU launch, tuned to the
-   query.
-#. :ref:`Chap:ExampleBuildBVH`: comparing the BVH construction methods by build time.
+#. :ref:`Chap:ExamplesStart`: :ref:`Shapes <Chap:ExampleShapes>`, :ref:`BasicCSG <Chap:ExampleBasicCSG>`,
+   :ref:`MeshSDF <Chap:ExampleMeshSDF>`.
+#. :ref:`Chap:ExamplesComposition`: :ref:`SmoothCSG <Chap:ExampleSmoothCSG>`, :ref:`Transforms
+   <Chap:ExampleTransforms>`, :ref:`Repetition <Chap:ExampleRepetition>`, :ref:`ValueOperations
+   <Chap:ExampleValueOperations>`, :ref:`FusedCSG <Chap:ExampleFusedCSG>`.
+#. :ref:`Chap:ExamplesMeshes`: :ref:`MeshCSG <Chap:ExampleMeshCSG>`, :ref:`Shell <Chap:ExampleShell>`.
+#. :ref:`Chap:ExamplesMaterials`: :ref:`SurfaceLabels <Chap:ExampleSurfaceLabels>`, :ref:`Materials
+   <Chap:ExampleMaterials>`.
+#. :ref:`Chap:ExamplesManyObjects`: :ref:`NestedBVH <Chap:ExampleNestedBVH>`, :ref:`ManyObjects
+   <Chap:ExampleManyObjects>`, :ref:`PackedSpheres <Chap:ExamplePackedSpheres>`, :ref:`PointClouds
+   <Chap:ExamplePointClouds>`, :ref:`ParticleNeighbors <Chap:ExampleParticleNeighbors>`, :ref:`SphereClouds
+   <Chap:ExampleSphereClouds>`, :ref:`ParticleContacts <Chap:ExampleParticleContacts>`.
+#. :ref:`Chap:ExamplesRays`: :ref:`BVHTraversal <Chap:ExampleBVHTraversal>`, :ref:`RayTracing
+   <Chap:ExampleRayTracing>`.
+#. :ref:`Chap:ExamplesExtending`: :ref:`OctreeBoundingVolume <Chap:ExampleOctreeBoundingVolume>`,
+   :ref:`CustomShape <Chap:ExampleCustomShape>`, :ref:`Twist <Chap:ExampleTwist>`.
+#. :ref:`Chap:ExamplesTuning`: :ref:`HostTuning <Chap:ExampleHostTuning>`, :ref:`DeviceTuning
+   <Chap:ExampleDeviceTuning>`, :ref:`BuildBVH <Chap:ExampleBuildBVH>`.
 
 Every example that runs on a device has the same four parts, in this order: the query functor
 ("the code that runs on either side"), the construction of the geometry, its use on the host

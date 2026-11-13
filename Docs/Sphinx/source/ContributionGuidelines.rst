@@ -23,8 +23,8 @@ program goes in the folder whose job it does.
 * **A bug fix** needs a test that fails without the fix.
 * **A new example** is a folder with ``main.cpp``, ``CMakeLists.txt``, ``GNUmakefile`` and ``README.md``
   (copied from the nearest existing example, so that its three build routes and switches keep working), a
-  page ``Example<Name>.rst`` in the Examples section, and a line in the reading order of
-  ``Examples/README.md`` and :ref:`Chap:Examples`. An example that builds a shape ends by opening the viewer
+  page ``Example<Name>.rst`` listed on the page of its topic's group (``Examples<Group>.rst``, see
+  :ref:`Chap:Examples`), and a line in the same group of ``Examples/README.md``'s reading order. An example that builds a shape ends by opening the viewer
   on it, and its page shows the first frame (``Scripts/render-example-figures.sh <Name>``).
 
 Documentation

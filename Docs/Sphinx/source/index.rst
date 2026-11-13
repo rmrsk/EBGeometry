@@ -65,7 +65,6 @@ Getting started
    Quickstart.rst
    Building.rst
    ConfigurationOptions.rst
-   SIMDAcceleration.rst
 
 Concepts
 ********
@@ -123,33 +122,14 @@ Examples
    :hidden:
 
    Examples.rst
-   ExampleShapes.rst
-   ExampleBasicCSG.rst
-   ExampleSmoothCSG.rst
-   ExampleTransforms.rst
-   ExampleRepetition.rst
-   ExampleValueOperations.rst
-   ExampleFusedCSG.rst
-   ExampleMeshSDF.rst
-   ExampleMeshCSG.rst
-   ExampleShell.rst
-   ExampleSurfaceLabels.rst
-   ExampleMaterials.rst
-   ExampleNestedBVH.rst
-   ExampleManyObjects.rst
-   ExamplePackedSpheres.rst
-   ExamplePointClouds.rst
-   ExampleParticleNeighbors.rst
-   ExampleSphereClouds.rst
-   ExampleParticleContacts.rst
-   ExampleBVHTraversal.rst
-   ExampleRayTracing.rst
-   ExampleOctreeBoundingVolume.rst
-   ExampleCustomShape.rst
-   ExampleTwist.rst
-   ExampleHostTuning.rst
-   ExampleDeviceTuning.rst
-   ExampleBuildBVH.rst
+   ExamplesStart.rst
+   ExamplesComposition.rst
+   ExamplesMeshes.rst
+   ExamplesMaterials.rst
+   ExamplesManyObjects.rst
+   ExamplesRays.rst
+   ExamplesExtending.rst
+   ExamplesTuning.rst
    Integrations.rst
 
 Contributing and testing
