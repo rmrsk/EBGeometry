@@ -109,9 +109,10 @@ as a list of instructions referring to them. Evaluating the tape is a single loo
 instructions, with no virtual dispatch and no pointers, which is what lets the same composed object
 be evaluated on a CPU and, copied as a block of memory, on a GPU. While compiling, each node's
 bounding box and how far its value can be trusted as a distance are worked out from its children's,
-and a union of many objects gets a BVH over their boxes. :ref:`Chap:Tape` explains how an expression
-becomes a tape, which operations compile their operand into a separate sub-program, and how the shape
-of an expression (a union nested on the left or on the right, say) uses the tape's fixed limits.
+and a union built with ``Accelerate::BVH`` gets a BVH over its objects' boxes. :ref:`Chap:Tape`
+explains how an expression becomes a tape, which operations compile their operand into a separate
+sub-program, and how the shape of an expression (a union nested on the left or on the right, say) uses
+the tape's fixed limits.
 
 A composed object whose structure is known when the program is written can instead be compiled
 together with the program: each operation becomes a small type, and the composed object's type
