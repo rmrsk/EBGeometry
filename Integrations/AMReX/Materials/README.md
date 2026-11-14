@@ -44,6 +44,13 @@ Options (on the command line or in an inputs file):
 
 * `n_cell = <integer>`: cells along the longest side of the domain around the object, whose cells are cubes (default 128).
 * `max_grid_size = <integer>`: the largest box (default 32).
-* `subdomain = <integer>`: the subdomain to cut, 0 (the air) or 1 (the jacket) (default 0).
+* `subdomain = <integer>`: the subdomain to cut (default 0). For the cable built in C++, 0 is the air and 1 the
+  jacket; with `eb.model`, the subdomains are those of the model's domain, numbered in the order it declares them.
+* `eb.model = <path>`: read the object and the domain from a `.ebg` model (a file: a setup that includes its
+  geometry, say) instead of the cable built in C++; `eb.domain = <name>` names the domain (default: the model's
+  first). The model's errors stop the run with their files, lines and columns. For example, the
+  [`Language`](../../../Examples/Language/README.md) example's cable, its flow domain:
+
+      mpirun -np 8 ./main3d.<something>.ex eb.model=../../../Examples/Language/cable/setup.ebg eb.domain=cfd
 
 It writes a plot file, `plt`, with each cut cell's `condition`, `role` and `across` (-1 elsewhere).

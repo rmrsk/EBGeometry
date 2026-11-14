@@ -156,5 +156,29 @@ The words this guide uses with a meaning of its own, each with the page that exp
       A stretch of a ray inside a shape, from where it enters to where it leaves; compositions are traced from
       their parts' spans. See :ref:`Chap:RayTracing`.
 
+   model
+      A ``.ebg`` file and the files it includes, read together; its geometry is its object. See
+      :ref:`Chap:LanguageModels`.
+
+   setup
+      A model file that includes a geometry and adds what is computed on it: materials, domains,
+      couplings, the view. One geometry can have several setups. See :ref:`Chap:LanguageModels`.
+
+   param
+      A value of a model that can be changed from outside it, without editing the file. See
+      :ref:`Chap:LanguageModels`.
+
+   coupling
+      Two domains joined where they share something: a subdomain each holding the same regions, or a
+      surface group each holding the same surfaces. See :ref:`Chap:LanguageDomains`.
+
+   properties
+      The keys and values a material, subdomain, surface group or coupling carries in a model, whose meaning
+      is the program's. See :ref:`Chap:LanguageDomains`.
+
+   view block
+      The part of a model that says how a viewer opens it (its camera and colors); programs ignore it. See
+      :ref:`Sec:LanguageView`.
+
    tape feature
       Code a tape compiles only when its type lists it, such as exact offsets. See :ref:`Sec:TapeFeatures`.

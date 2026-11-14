@@ -44,7 +44,7 @@ first group:
    <Chap:ExampleValueOperations>`, :ref:`FusedCSG <Chap:ExampleFusedCSG>`.
 #. :ref:`Chap:ExamplesMeshes`: :ref:`MeshCSG <Chap:ExampleMeshCSG>`, :ref:`Shell <Chap:ExampleShell>`.
 #. :ref:`Chap:ExamplesMaterials`: :ref:`SurfaceLabels <Chap:ExampleSurfaceLabels>`, :ref:`Materials
-   <Chap:ExampleMaterials>`.
+   <Chap:ExampleMaterials>`, :ref:`Language <Chap:ExampleLanguage>`.
 #. :ref:`Chap:ExamplesManyObjects`: :ref:`NestedBVH <Chap:ExampleNestedBVH>`, :ref:`ManyObjects
    <Chap:ExampleManyObjects>`, :ref:`PackedSpheres <Chap:ExamplePackedSpheres>`, :ref:`PointClouds
    <Chap:ExamplePointClouds>`, :ref:`ParticleNeighbors <Chap:ExampleParticleNeighbors>`, :ref:`SphereClouds

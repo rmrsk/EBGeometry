@@ -48,7 +48,8 @@ Materials
 A region is named for *which* part of the object it is (the jacket) and labeled with a :term:`material`, *what*
 it is made of (PTFE). Two regions of the same material are still two regions: an inner and an outer
 insulation layer, say, may differ in their conditions though both are PTFE. A material carries no numbers in
-EBGeometry; it is a name a program attaches properties to.
+EBGeometry; it is a name a program attaches properties to, in its own code or in a model file (see
+:ref:`Chap:Language`).
 
 Pieces of surface
 -----------------
