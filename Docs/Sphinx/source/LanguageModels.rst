@@ -36,7 +36,8 @@ vectors take ``+``, ``-``, ``*`` and ``/`` (a vector times or over a number), an
    center = (0, 0, length / 2)
    angle  = 30
 
-A ``param`` is a value that may be changed from outside the file: ``-D length=8`` to ``ebgstudio``, or an
+A ``param`` is a value that may be changed from outside the file: ``-D length=8`` to ``ebgstudio`` (see
+:ref:`Chap:StudioCommands`), or an
 override passed to the reader (see :ref:`Chap:ImplemLanguage`), written as it would be in the file
 (``-D "shift=(0, 2, 0)"``). A plain value may not be overridden, so that a model declares what it exposes:
 

@@ -115,6 +115,10 @@ the file a program reads:
 :ref:`Chap:ExampleLanguage` reads ``cable/setup.ebg`` in C++ (see :ref:`Chap:ImplemLanguage` for the
 calls).
 
+Writing a model is easiest with ``ebgstudio`` (see :ref:`Chap:Studio`) open on it: its window reloads the model
+whenever a file is saved, and ``ebgstudio check`` reports what is wrong, line by line. The tutorial,
+:ref:`Chap:StudioCoolingBlock`, builds a model that way, step by step, and is the place to start.
+
 The pages of this section
 -------------------------
 

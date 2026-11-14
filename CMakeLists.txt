@@ -35,6 +35,9 @@ option(EBGEOMETRY_BUILD_TESTS
 option(EBGEOMETRY_BUILD_EXAMPLES
   "Build the standalone EBGeometry examples" OFF)
 
+option(EBGEOMETRY_BUILD_STUDIO
+  "Build ebgstudio, the command line of the .ebg language (check, print, params, render, view); on with the tests"
+  ${EBGEOMETRY_BUILD_TESTS})
 option(EBGEOMETRY_BUILD_PERFORMANCE
   "Build the performance probes under Performance/ (see Performance/README.md)" OFF)
 
@@ -235,6 +238,14 @@ if(EBGEOMETRY_BUILD_EXAMPLES)
     enable_testing()
   endif()
   add_subdirectory(Examples)
+endif()
+
+# ── ebgstudio ─────────────────────────────────────────────────────────────────
+if(EBGEOMETRY_BUILD_STUDIO)
+  if(NOT EBGEOMETRY_BUILD_TESTS AND NOT EBGEOMETRY_BUILD_EXAMPLES)
+    enable_testing()
+  endif()
+  add_subdirectory(Studio)
 endif()
 
 # ── Performance probes ────────────────────────────────────────────────────────

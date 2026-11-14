@@ -1,0 +1,125 @@
+ebg 0
+
+# Every shape and operation of the language, once each, in rows: each is made around the origin, then moved to its
+# place on a grid. Copy any line as a start.
+#
+#   ebgstudio check Models/gallery/model.ebg --inventory
+#   ebgstudio Models/gallery/model.ebg
+
+param spacing = 3
+
+# ── Bounded shapes ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+sphere_      = sphere((0, 0, 0), 1)
+box_         = box((-0.8, -0.8, -0.8), (0.8, 0.8, 0.8))
+torus_       = torus((0, 0, 0), 0.8, 0.25)
+cylinder_    = cylinder((0, -0.8, 0), (0, 0.8, 0), 0.6)
+capsule_     = capsule((0, -0.6, 0), (0, 0.6, 0), 0.4)
+cone_        = cone((0, 0.8, 0), 1.6, 50)
+rounded_box_ = rounded_box((0, 0, 0), (1.6, 1.6, 1.6), 0.25)
+ellipsoid_   = ellipsoid((0, 0, 0), (1, 0.6, 0.4))
+
+rounded_cylinder_  = rounded_cylinder((0, 0, 0), 0.7, 0.2, 1.6)
+capped_cone_       = capped_cone((0, -0.8, 0), (0, 0.8, 0), 0.8, 0.3)
+round_cone_        = round_cone((0, -0.6, 0), (0, 0.7, 0), 0.6, 0.25)
+polygon_prism_     = polygon_prism((0, -0.8, 0), (0, 0.8, 0), 0.8, 6, (1, 0, 0))
+tube_              = tube((0, -0.8, 0), (0, 0.8, 0), 0.4, 0.8)
+capped_torus_      = capped_torus((0, 0, 0), 0.8, 0.2, 270)
+cut_sphere_        = cut_sphere((0, 0, 0), 1, 0.4)
+cut_hollow_sphere_ = cut_hollow_sphere((0, 0, 0), 1, 0.4, 0.15)
+
+# A mesh, read relative to this file; its face groups (top, bottom) label its parts.
+mesh_ = mesh("octahedron.obj")
+
+# ── Unbounded shapes, shown inside a cube ──────────────────────────────────────────────────────────────────────────
+
+cell = box((-1, -1, -1), (1, 1, 1))
+
+plane_             = intersection(cell, plane((0, 0, 0), (1, 1, 1)))
+infinite_cylinder_ = intersection(cell, infinite_cylinder((0, 0, 0), 0.5, "y"))
+infinite_cone_     = intersection(cell, infinite_cone((0, 0.9, 0), 60))
+wedge_             = intersection(cell, wedge((0, 0.8, 0), 60))
+perlin_            = intersection(sphere((0, 0, 0), 1), perlin(0.3, (2, 2, 2), 0.5, 3))
+
+# ── Combining shapes ───────────────────────────────────────────────────────────────────────────────────────────────
+
+block = box((-0.7, -0.7, -0.7), (0.7, 0.7, 0.7))
+ball  = sphere((0, 0, 0), 0.9)
+
+union_               = union(block, sphere((0.6, 0.6, 0.6), 0.5))
+bvh_union_           = bvh_union(sphere((-0.5, 0, 0), 0.45), sphere((0.5, 0, 0), 0.45), sphere((0, 0.6, 0), 0.45))
+smooth_union_        = smooth_union(sphere((-0.4, 0, 0), 0.5), sphere((0.4, 0, 0), 0.5), smooth = 0.3)
+intersection_        = intersection(block, ball)
+smooth_intersection_ = smooth_intersection(block, ball, smooth = 0.2)
+difference_          = difference(block, ball)
+bvh_difference_      = bvh_difference(block, sphere((0.7, 0.7, 0.7), 0.5), sphere((-0.7, 0.7, 0.7), 0.5))
+smooth_difference_   = smooth_difference(block, ball, smooth = 0.2)
+
+# ── Moving and changing shapes ─────────────────────────────────────────────────────────────────────────────────────
+
+complement_ = intersection(cell, complement(ball))
+translate_  = translate(block, (0, 0.3, 0))
+rotate_     = rotate(block, 30, "y")
+scale_      = scale(ball, 0.6)
+reflect_    = reflect(cone_, "y")
+offset_     = offset(box((-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)), 0.3)
+annular_    = intersection(box((-1, -1, -1), (1, 0.3, 1)), annular(ball, 0.1))
+elongate_   = elongate(sphere((0, 0, 0), 0.5), (0.5, 0, 0))
+
+blur_    = blur(block, 0.2)
+mollify_ = mollify(block, 0.2, 3)
+repeat_  = repeat(sphere((0, 0, 0), 0.25), (0.7, 0.7, 0.7), (1, 1, 1), (1, 1, 1))
+label_   = block.label("painted", xmin = "left")
+
+# ── The gallery: a row of each, the rows one spacing apart ─────────────────────────────────────────────────────────
+
+object bvh_union(
+  translate(sphere_, (0 * spacing, 0, 0)),
+  translate(box_, (1 * spacing, 0, 0)),
+  translate(torus_, (2 * spacing, 0, 0)),
+  translate(cylinder_, (3 * spacing, 0, 0)),
+  translate(capsule_, (4 * spacing, 0, 0)),
+  translate(cone_, (5 * spacing, 0, 0)),
+  translate(rounded_box_, (6 * spacing, 0, 0)),
+  translate(ellipsoid_, (7 * spacing, 0, 0)),
+
+  translate(rounded_cylinder_, (0 * spacing, 0, -spacing)),
+  translate(capped_cone_, (1 * spacing, 0, -spacing)),
+  translate(round_cone_, (2 * spacing, 0, -spacing)),
+  translate(polygon_prism_, (3 * spacing, 0, -spacing)),
+  translate(tube_, (4 * spacing, 0, -spacing)),
+  translate(capped_torus_, (5 * spacing, 0, -spacing)),
+  translate(cut_sphere_, (6 * spacing, 0, -spacing)),
+  translate(cut_hollow_sphere_, (7 * spacing, 0, -spacing)),
+
+  translate(plane_, (0 * spacing, 0, -2 * spacing)),
+  translate(infinite_cylinder_, (1 * spacing, 0, -2 * spacing)),
+  translate(infinite_cone_, (2 * spacing, 0, -2 * spacing)),
+  translate(wedge_, (3 * spacing, 0, -2 * spacing)),
+  translate(perlin_, (4 * spacing, 0, -2 * spacing)),
+  translate(mesh_, (5 * spacing, 0, -2 * spacing)),
+
+  translate(union_, (0 * spacing, 0, -3 * spacing)),
+  translate(bvh_union_, (1 * spacing, 0, -3 * spacing)),
+  translate(smooth_union_, (2 * spacing, 0, -3 * spacing)),
+  translate(intersection_, (3 * spacing, 0, -3 * spacing)),
+  translate(smooth_intersection_, (4 * spacing, 0, -3 * spacing)),
+  translate(difference_, (5 * spacing, 0, -3 * spacing)),
+  translate(bvh_difference_, (6 * spacing, 0, -3 * spacing)),
+  translate(smooth_difference_, (7 * spacing, 0, -3 * spacing)),
+
+  translate(complement_, (0 * spacing, 0, -4 * spacing)),
+  translate(translate_, (1 * spacing, 0, -4 * spacing)),
+  translate(rotate_, (2 * spacing, 0, -4 * spacing)),
+  translate(scale_, (3 * spacing, 0, -4 * spacing)),
+  translate(reflect_, (4 * spacing, 0, -4 * spacing)),
+  translate(offset_, (5 * spacing, 0, -4 * spacing)),
+  translate(annular_, (6 * spacing, 0, -4 * spacing)),
+  translate(elongate_, (7 * spacing, 0, -4 * spacing)),
+
+  translate(blur_, (0 * spacing, 0, -5 * spacing)),
+  translate(mollify_, (1 * spacing, 0, -5 * spacing)),
+  translate(repeat_, (2 * spacing, 0, -5 * spacing)),
+  translate(label_, (3 * spacing, 0, -5 * spacing)))
+
+view { camera = (10.5, 20, 13), target = (10.5, 0, -7) }

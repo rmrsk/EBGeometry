@@ -6,7 +6,8 @@ Operations
 Every built-in operation, with a call to copy. An operation takes shapes and gives one; the method form
 ``a.op(args)`` means ``op(a, args)``, so that a chain reads in order: ``box(lo, hi).rotate(30, "z")``. In the
 calls, ``a`` and ``b`` stand for shapes. :ref:`Chap:ConstructiveSolidGeometry` describes what each does to the
-distance, and which keep it exact.
+distance, and which keep it exact. Every operation below is used once in ``Studio/Models/gallery`` (the rows behind
+the shapes in the figure of :ref:`Chap:LanguageShapes`).
 
 Combining shapes
 ----------------

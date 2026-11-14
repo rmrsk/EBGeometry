@@ -1,0 +1,24 @@
+ebg 0
+
+# A steel block cooled by water: the water flows through a channel bored along the block, from an inlet at one end
+# to an outlet at the other. The geometry is here; what is computed on it is in
+# flow.ebg, heat.ebg and setup.ebg, which include it.
+
+param length    = 4
+param width     = 2
+param height    = 1
+param r_channel = 0.25
+
+# The block, its faces labeled: the heated base, the top and the sides, and its two ends.
+block = box((0, 0, 0), (length, height, width))
+  .label(ymin = "base", ymax = "top", zmin = "side", zmax = "side", xmin = "end", xmax = "end")
+
+# The channel along x through the middle of the block, its caps the inlet and the outlet.
+channel = cylinder((0, height / 2, width / 2), (length, height / 2, width / 2), r_channel)
+  .label(cap1 = "inlet", cap2 = "outlet", side = "bore")
+
+# The water lies on top of the steel: where they overlap, it is water.
+object overlay {
+  region solid = block material steel
+  region water = channel material water
+}

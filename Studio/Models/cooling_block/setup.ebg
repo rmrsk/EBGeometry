@@ -1,0 +1,11 @@
+ebg 0
+
+# Both setups, coupled: the whole model (ebgstudio Models/cooling_block/setup.ebg). The files both include are read
+# once.
+include("flow.ebg")
+include("heat.ebg")
+
+# The heat crosses the channel wall: the solid's cooled face is the water's wall.
+couple wall_heat = surface(heat.cooled, flow.wall) { transfer = "heat" }
+
+view { camera = (6.5, 4, 6), target = (2, 0.5, 1), color.steel = (0.6, 0.62, 0.66), color.water = (0.3, 0.55, 0.9) }

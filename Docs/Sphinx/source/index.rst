@@ -11,6 +11,10 @@ and on GPUs, from the same code, with no dependencies.
 * **Composition:** constructive solid geometry (unions, intersections, differences, smooth blends,
   offsets, repetitions and transforms), compiled into a tape for a scene or fused into compiled code
   for a part, and BVH-accelerated unions of thousands of objects.
+* **Materials and domains:** objects of several regions, each of a material, with the surfaces between
+  them kept, and the domains a solver computes in, with their boundary conditions.
+* **Models as text:** the ``.ebg`` language describes all of it in files a program reads at run time, and
+  ``ebgstudio`` checks a model and shows it in a window, with no code to write.
 * **Queries:** signed distance, normals and bounding boxes; the primitive that decides the value at a
   point; ray and segment hits; closest points and nearest neighbors in point clouds.
 * **Looking at it:** a renderer, on the host or a GPU, for any shape, with an optional interactive
@@ -18,6 +22,10 @@ and on GPUs, from the same code, with no dependencies.
 * **Performance:** packed BVHs with any branching factor and a choice of builds, SIMD on the host
   (SSE to AVX-512), CUDA and HIP on the device, and a performance comparison on every change.
 * **No dependencies:** include ``EBGeometry.hpp`` in any C++17 project, in ``float`` or ``double``.
+
+There are two ways in. **A library user** writing C++ starts with :ref:`Chap:Quickstart` and the
+:ref:`Chap:Examples`. **A modeler** describing geometry, materials and boundary conditions for a solver
+starts with :ref:`Chap:Language` and the :ref:`ebgstudio tutorial <Chap:StudioCoolingBlock>`.
 
 .. important::
 
@@ -41,6 +49,7 @@ and on GPUs, from the same code, with no dependencies.
    section#getting-started,
    section#concepts,
    section#the-ebg-language,
+   section#studio,
    section#implementation,
    section#examples,
    section#contributing-and-testing,
@@ -97,6 +106,19 @@ The .ebg language
    LanguageShapes.rst
    LanguageOperations.rst
    LanguageReference.rst
+
+Studio
+******
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Studio
+   :hidden:
+
+   Studio.rst
+   StudioCoolingBlock.rst
+   StudioCommands.rst
+   StudioViewer.rst
 
 Implementation
 **************

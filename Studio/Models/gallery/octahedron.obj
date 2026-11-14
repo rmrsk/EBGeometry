@@ -1,0 +1,18 @@
+# A regular octahedron, its vertices on the axes at distance 1: the faces above y = 0 in the group top,
+# the faces below in the group bottom.
+v 1 0 0
+v -1 0 0
+v 0 1 0
+v 0 -1 0
+v 0 0 1
+v 0 0 -1
+g top
+f 1 3 5
+f 1 6 3
+f 2 5 3
+f 2 3 6
+g bottom
+f 1 5 4
+f 1 4 6
+f 2 4 5
+f 2 6 4
