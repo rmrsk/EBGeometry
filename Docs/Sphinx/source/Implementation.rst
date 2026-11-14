@@ -3,21 +3,57 @@
 Overview
 ========
 
-EBGeometry is a header-only C++17 library with zero external dependencies, implemented entirely
-under the ``EBGeometry`` namespace (with sub-namespaces such as ``EBGeometry::DCEL``,
-``EBGeometry::BVH``, ``EBGeometry::Fused``, ``EBGeometry::PointCloud``, ``EBGeometry::GPU``,
-``EBGeometry::Render``, ``EBGeometry::SFC`` and ``EBGeometry::Parser`` for the major components). A handful of design choices recur throughout the implementation:
+EBGeometry is a header-only C++17 library with no external dependencies: ``#include <EBGeometry.hpp>``
+gives all of it, in the namespace ``EBGeometry``. The pages of this section describe the classes and calls,
+in the same topics as the concepts. To find one by task:
 
-* **Precision templating.** Every class and function is templated on a floating-point type
-  ``T`` (almost always ``float`` or ``double``). Precision is a compile-time choice: the library
-  has no notion of a "current" precision at runtime, and nothing dispatches on it dynamically.
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - To
+     - Read
+   * - keep geometry in memory that can be copied to a GPU
+     - :ref:`Chap:MemoryModel`, :ref:`Chap:RunningOnGPU`
+   * - work with points and vectors
+     - :ref:`Chap:Vector`
+   * - read a mesh from a file, and query it
+     - :ref:`Chap:Parsers`, :ref:`Chap:ImplemMeshSDF`, :ref:`Chap:ImplemDCEL`
+   * - build a BVH over your own primitives, and search it
+     - :ref:`Chap:ImplemBVH`, :ref:`Chap:ImplemBVHTraversal`
+   * - find nearest neighbors in a cloud of points or spheres
+     - :ref:`Chap:ImplemPointCloud`
+   * - use analytic shapes, compose them, and compile a composition
+     - :ref:`Chap:ImplemCSG`
+   * - build objects of several materials, and the domains a solver computes in
+     - :ref:`Chap:ImplemRegions`
+   * - trace rays and particles' steps through a shape
+     - :ref:`Chap:ImplemRays`
+   * - render a shape, and look at it in a window
+     - :ref:`Chap:ImplemRender`, :ref:`Chap:Viewer`
+   * - estimate a bounding box, or a normal, of any function
+     - :ref:`Chap:ImplemOctree`
+   * - see what runs with SIMD instructions
+     - :ref:`Chap:SIMDClasses`
+
+The namespaces follow the components: ``DCEL``, ``BVH``, ``Fused``, ``PointCloud``, ``SphereCloud``,
+``TapeFeature``, ``GPU``, ``Render``, ``SFC`` and ``Parser``. The Doxygen reference
+(`EBGeometry <doxygen/html/namespaceEBGeometry.html>`__) lists every class and function.
+
+Design choices
+--------------
+
+A handful of choices recur throughout the library:
+
+* **Precision templating.** The geometry is templated on a floating-point type ``T``, ``float``
+  or ``double``. Precision is a compile-time choice: the library has no "current" precision at run
+  time, and nothing dispatches on it.
 
 * **Plain value types everywhere, and a compiled tape for composition.** The analytic shapes, the
   surface-mesh distance fields and the BVH unions are plain, trivially copyable value types with no
   virtual functions, so they can be copied to a GPU and evaluated there. Transformations and CSG
-  combinations are described with a value-type expression builder and compiled into a ``Tape``: one
-  array per primitive type and a list of clauses that refer to the primitives by type and index, so
-  that evaluating a composed object needs no virtual dispatch either. See :ref:`Chap:ImplemCSG`.
+  combinations are described with an expression builder and compiled into a ``Tape``, a program
+  over arrays of primitives that needs no virtual dispatch either. See :ref:`Chap:ImplemCSG`.
 
 * **The same acceleration structure for two different problems.** Finding the closest facet in
   a surface mesh, and finding the closest object in a CSG union of many objects, are both,
@@ -51,26 +87,3 @@ under the ``EBGeometry`` namespace (with sub-namespaces such as ``EBGeometry::DC
   at compile time; the always-on ``EBGEOMETRY_REQUIRE`` macro checks what a caller controls, once,
   when an object is built; the opt-in ``EBGEOMETRY_EXPECT`` macro guards internal invariants,
   including on hot paths. See :ref:`Chap:ConfigurationOptions`.
-
-The remaining pages in this section cover each component in more detail:
-
-* :ref:`Chap:MemoryModel` -- the placement-independent ``Pool``/``PODVector`` storage foundation
-  that ``DCEL::MeshT``, ``BVH::PackedBVH`` and the mesh SDFs, point clouds and BVH unions built
-  from them rest on.
-* :ref:`Chap:RunningOnGPU` -- building for a GPU, mirroring a pool to the device, and running
-  queries there with ``GPU::transform``.
-* :ref:`Chap:Vector` -- the ``Vec2T``/``Vec3T`` vector types used throughout the library.
-* :ref:`Chap:ImplemCSG` -- shapes, the analytic shapes, the expression builder for transforms and
-  CSG combinations, the tape that evaluates them, and the BVH unions.
-* :ref:`Chap:ImplemDCEL` -- the half-edge (DCEL) surface mesh representation.
-* :ref:`Chap:ImplemBVH` -- bounding volume hierarchy construction, traversal, and the packed
-  mesh/CSG signed distance function classes built on top of it.
-* :ref:`Chap:ImplemRays` -- ray and segment queries (``firstHit()``, ``intersects()``) on every kind
-  of shape.
-* :ref:`Chap:ImplemRender` -- the renderer and the interactive viewer.
-* :ref:`Chap:ImplemOctree` -- octree subdivision for bounding-box estimates, and normals of any
-  function.
-* :ref:`Chap:ImplemPointCloud` -- point-cloud BVHs and hash grids for nearest-neighbor queries.
-* :ref:`Chap:Parsers` -- reading surface meshes from STL/PLY/OBJ/VTK files.
-* :ref:`Chap:SIMDClasses` -- the three SIMD-accelerated classes, and exactly what is vectorized in
-  each.

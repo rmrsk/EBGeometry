@@ -257,7 +257,8 @@ public:
 
   /**
    * @brief The color a key has, colored by a kind of key: by the name of the region, material, surface label (a
-   * surface's too) or surface group it is.
+   * surface's too) or surface group it is. Colored by region, a region without a color of its own takes its
+   * material's, so that colors given to materials (the usual case) are kept when the coloring turns to regions.
    * @param[in]  a_coloring The kind of key.
    * @param[in]  a_key      The key.
    * @param[out] a_color    Its color, if it has one.
@@ -304,19 +305,20 @@ public:
     }
     }
 
-    if (name == nullptr || name->empty()) {
-      return false;
+    const auto color = (name == nullptr || name->empty()) ? m_colors.end() : m_colors.find(*name);
+
+    if (color != m_colors.end()) {
+      a_color = color->second;
+
+      return true;
     }
 
-    const auto color = m_colors.find(*name);
-
-    if (color == m_colors.end()) {
-      return false;
+    // A region without a color of its own: its material's.
+    if (a_coloring == RegionColoring::Region && this->materialOf(a_key) != None) {
+      return this->colorOf(RegionColoring::Material, this->materialOf(a_key), a_color);
     }
 
-    a_color = color->second;
-
-    return true;
+    return false;
   }
 
   /**
@@ -341,6 +343,52 @@ public:
   materialOf(const uint32_t a_region) const noexcept
   {
     return (a_region < m_regionMaterials.size()) ? m_regionMaterials[a_region] : None;
+  }
+
+  /**
+   * @brief Name a surface (by default it is named by its label): where it comes from, say ("cylinder, model.ebg:6").
+   * @param[in] a_surface The surface.
+   * @param[in] a_name    Its name.
+   */
+  EBGEOMETRY_HOST
+  void
+  setSurface(const uint32_t a_surface, std::string a_name)
+  {
+    if (a_surface >= m_surfaces.size()) {
+      m_surfaces.resize(a_surface + 1U);
+    }
+
+    m_surfaces[a_surface] = std::move(a_name);
+  }
+
+  /**
+   * @brief Pick a surface by its labels rather than its parts: a click on it picks the faces labeled as the one clicked
+   * (a mesh's face group), or the whole surface when the face has no label of its own. For a mesh, whose parts are its
+   * faces, which a model names only through its face groups.
+   * @param[in] a_surface The surface.
+   * @param[in] a_byLabel Whether it is picked by its labels.
+   */
+  EBGEOMETRY_HOST
+  void
+  setPickedByLabel(const uint32_t a_surface, const bool a_byLabel = true)
+  {
+    if (a_surface >= m_pickedByLabel.size()) {
+      m_pickedByLabel.resize(a_surface + 1U, false);
+    }
+
+    m_pickedByLabel[a_surface] = a_byLabel;
+  }
+
+  /**
+   * @brief Whether a surface is picked by its labels (see setPickedByLabel()).
+   * @param[in] a_surface The surface.
+   * @return Whether it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  bool
+  pickedByLabel(const uint32_t a_surface) const noexcept
+  {
+    return a_surface < m_pickedByLabel.size() && m_pickedByLabel[a_surface];
   }
 
   /**
@@ -531,6 +579,11 @@ protected:
    * @brief The surfaces' names.
    */
   std::vector<std::string> m_surfaces;
+
+  /**
+   * @brief Which surfaces are picked by their labels (see setPickedByLabel()).
+   */
+  std::vector<bool> m_pickedByLabel;
 
   /**
    * @brief The surface labels' names.

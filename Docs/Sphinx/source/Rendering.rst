@@ -16,7 +16,7 @@ Entering and leaving
 --------------------
 
 The first crossing along a ray may be where it enters the solid or where it leaves it: a ray that starts
-inside the object (negative :math:`\phi`) first meets the surface on its way out. A ray query reports
+inside the object (where :math:`S < 0`) first meets the surface on its way out. A ray query reports
 the first crossing either way, and says which it is. This matters for what a picture shows. A hole (the
 complement of a ball, say) is solid everywhere but in the ball, so a camera outside the ball sits inside
 the solid, and what it sees first is where its rays leave the solid on the ball's near side. A mesh
@@ -76,15 +76,14 @@ Besides the shaded picture, the renderer has views that show what shading hides:
   glows faintly, more where it is seen edge-on, with modest highlights from the light, and partly hides what
   lies behind it, so cavities, internal walls and parts hidden behind others show through as outlines.
 * **Cost** colors each pixel by what the query for one ray through its center cost, from dark (cheap) to
-  bright (dear), on a log scale over the frame. There are two: the cost of finding the first hit with its normal
-  and primitive, and the cost of finding only where the ray crosses the surface (see :ref:`Chap:Rays`); comparing
-  them shows where a shape spends its time on the normal. Only the camera's rays are measured, without shadows or
-  lighting: in nanoseconds on the host, in clock cycles on a GPU, where threads trace in groups that wait for their
-  slowest ray, so that a pixel's cycles include that wait. The costs are wall-clock, so they include whatever else
-  the machine was doing; they show where a shape is expensive, not a benchmark. A cost view also reports the
-  frame's rays per second, which time the tracing alone (see :ref:`Chap:PerformanceTesting` for measuring).
+  bright (expensive), on a log scale over the frame. There are two: the cost of finding the first hit with its
+  normal and primitive, and the cost of finding only where the ray crosses the surface (see :ref:`Chap:Rays`);
+  comparing them shows where a shape spends its time on the normal. Only the camera's rays are measured, without
+  shadows or lighting. The costs are measured as the picture is made, so they include whatever else the machine
+  was doing: they show where a shape is expensive, and are no benchmark (see :ref:`Chap:PerformanceTesting` for
+  measuring).
 
-.. figure:: _static/render_views.jpg
+.. figure:: /_static/render_views.jpg
    :width: 100%
    :align: center
 
@@ -97,5 +96,16 @@ with a translucent color, wherever it lies along a ray, in front of or behind wh
 inside a dielectric, say. A stretch of a ray inside the solid counts as the part's when the ray enters it
 through that part's surface, so where parts of a union overlap, the overlap counts as the part the ray
 entered first.
+
+Regions and the window
+----------------------
+
+An object made of regions (see :ref:`Chap:Regions`) is drawn as one shape, its outer surface. A *view of
+regions* draws its regions instead: the surfaces between them, colored by region, material, label or surface
+group, with any region hidden or seen through, and a section plane filled by each point's material.
+
+The renderer also has an interactive window, which renders while the camera moves and refines when it rests,
+picks the part under a click, and, for a view of regions, shows the domains and edits their surface groups
+(see :ref:`Chap:Viewer`).
 
 :ref:`Chap:ImplemRender` describes the classes, and :ref:`Chap:ExampleMeshSDF` opens the viewer on a mesh.

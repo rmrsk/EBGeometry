@@ -1,15 +1,25 @@
 .. _Chap:ImplemDCEL:
 
-DCEL
-====
+Half-edge meshes
+================
 
-See :ref:`Chap:DCEL` for the conceptual picture of half-edge meshes (what a DCEL is, and why
-signed distance queries need one) before reading the concrete API below.
+The half-edge mesh (see :ref:`Chap:DCEL` for the concepts) is in the namespace ``EBGeometry::DCEL``. Most
+programs never handle it directly: a file reader builds it and a mesh distance function wraps it (see
+:ref:`Chap:ImplemMeshSDF`). Use it directly to walk a mesh's topology, to move its vertices, or to read
+its faces' data:
 
-The DCEL functionality exists under the namespace ``EBGeometry::DCEL`` and contains the following functionality:
+.. code-block:: c++
 
-*  **Fundamental data types** like vertices, half-edges, polygons, and entire surface grids.
-*  **BVH functionality** for putting DCEL grids into bounding volume hierarchies.
+   Pool pool(hostMemoryResource());
+
+   const DCEL::MeshT<T> mesh = Parser::readIntoDCEL<T>("bunny.ply", pool);
+
+   for (uint32_t i = 0; i < mesh.numFaces(); i++) {
+     const DCEL::FaceT<T>& face = mesh.getFace(i);           // face i: the file's face i
+     face.getNormal();
+   }
+
+   mesh.signedDistance(p);                                    // every face tested: for small meshes only
 
 .. important::
 
@@ -64,7 +74,7 @@ floating-point precision ``T``:
    ``unsignedDistance2()``, that scan every face directly. For anything beyond small meshes, one
    instead wraps a
    ``MeshT<T>`` in one of the BVH-accelerated classes described in
-   :ref:`Chap:MeshSDFClasses`. ``MeshSDF`` keeps the mesh (its arrays, in the same pool) and reads
+   :ref:`Chap:ImplemMeshSDF`. ``MeshSDF`` keeps the mesh (its arrays, in the same pool) and reads
    every face it tests from it, since a face's half-edge index is only meaningful together with
    the mesh it was built from. A mesh is typically never
    constructed by hand -- it is built by a file parser reading vertices and faces from disk, see
@@ -102,8 +112,7 @@ a ``Pool`` on its first ``reserveVertices()``/``reserveEdges()``/``reserveFaces(
 every access through that pool's control block from then on, so there is exactly one accessor of
 each kind (``getVertex(i)``, ``signedDistance(p)``, ...) and no binding, freezing, or base-passing
 step of any sort. A mesh is queryable as soon as it has data, including while the same pool is still
-being built into -- which is what lets ``Soup``/``Parser`` (:ref:`Chap:Parsers`) reconcile and sanity
--check a mesh mid-build, and lets several meshes share one pool without coordinating.
+being built into, and several meshes can share one pool without coordinating.
 
 The mutators (``reserveVertices()``/``reserveEdges()``/``reserveFaces()``,
 ``addVertex()``/``addEdge()``/``addFace()``) still take the ``Pool&`` explicitly, since they reserve
@@ -125,10 +134,9 @@ entirely on the host can cross into another address space by value.
 .. note::
 
    **One ``Pool`` backing many meshes is the normal case.** Building several meshes one after
-   another into the same pool is both safe and cheaper than giving each its own (see
-   :ref:`Chap:Parsers`): a ``grow()`` triggered while building the fifth mesh ``memcpy``\ s
-   everything reserved so far, including the first four, and every mesh keeps resolving correctly
-   against the new base without being told. The pool must simply outlive every mesh in it.
+   another into the same pool is safe, and cheaper than giving each its own (see
+   :ref:`Chap:Parsers`): when the pool moves its block to grow, every mesh in it keeps resolving
+   correctly without being told. The pool must outlive every mesh in it.
 
 Crossing address spaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -142,23 +150,14 @@ contains -- and since every cross-reference is a byte offset, nothing needs patc
 
    hostPool.freeze();
 
-   EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::deviceMemoryResource());
+   EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(hostPool, EBGeometry::GPU::memoryResource());
    const auto       deviceMesh = mesh.rebasedView(devicePool);    // rebase on the host ...
 
    myKernel<<<blocks, threads>>>(deviceMesh, ...);                // ... then copy by value
 
-How the returned view resolves follows from the pool it is given, not from a separate choice by the
-caller. A device-accessible target (``Device``, ``Managed``, ``Mapped``), which must be frozen,
-yields a view holding a plain base address, since a kernel cannot follow a host control block; the
-host may use such a view only if the memory is host-accessible (``Managed``, ``Mapped``), never for
-a ``Device`` pool. A host-only target (``Host``, ``Pinned``) yields a view holding that
-pool's control block, so it stays growth-immune exactly like the original mesh -- this is what makes
-a host-to-host mirror usable, and testable without a GPU.
-
-``rebasedView`` checks that the pool it is handed really is a mirror of the mesh's own pool
-(directly, or through any number of intermediate mirrors) and that the mesh's arrays fit inside it,
-which catches the realistic mistakes: the wrong pool, or a pool mirrored before the mesh's last
-``reserve``. These checks are ``EBGEOMETRY_REQUIRE``\s, so they run in every build.
+The view resolves as every pool handle's does (see :ref:`Chap:MemoryModel`), and ``rebasedView()``
+checks, in every build, that the pool it is handed is a mirror of the mesh's own pool and holds the
+mesh's arrays: the wrong pool, or one mirrored before the mesh's last ``reserve``, aborts.
 
 .. _Sec:ReconcileWherePool:
 
@@ -195,7 +194,7 @@ does building it for a mesh with a broken topology, with ``MeshT::reconcile()``'
    for (int step = 0; step < numSteps; step++) {
      moveMyVertices(devicePool);                              // your own kernels
      DCEL::reconcile(devicePool, mesh, reconcileSchedule);
-     BVH::refit(devicePool, sdf.getRoot(), refitSchedule, FaceBox{devicePool});
+     BVH::refit(devicePool, sdf.getRoot(), refitSchedule, FaceBox{devicePool});   // your functor: a face's box
    }
 
 How the vertices move is up to you: your own kernels, another library, ``GPU::parallelFor()``, or a copy
@@ -232,5 +231,5 @@ primitives in the first place.
 box around the face's vertices, and the tree is built with the requested ``BVH::Construction``
 method (see :ref:`Sec:BuildPresets`). ``TriMeshSDF`` instead cuts each face into
 ``Triangle`` values and builds its BVH over SIMD-width groups of triangles, without keeping the
-mesh. See :ref:`Chap:MeshSDFClasses` for how the two differ, and :ref:`Chap:Parsers` for the
+mesh. See :ref:`Chap:ImplemMeshSDF` for how the two differ, and :ref:`Chap:Parsers` for the
 file-reading entry points that build a ``MeshSDF``/``TriMeshSDF`` from a mesh file directly.

@@ -419,19 +419,24 @@ struct PieceCoverage
 };
 
 /**
- * @brief How a domain's surface groups cover a piece an object may have: exactly, part by part when its selectors tell parts apart.
- * @details Host only. A piece is checked once when no selector depends on the part (a part, or a label
- * that differs between parts); otherwise every part of its shape is (a mesh's faces: one check each). A member of a
- * collection has parts the inventory does not count: it is checked once, as a part no part condition matches, so
- * only selectors without one cover it.
+ * @brief How a domain's surface groups cover a piece an object may have, judged on the parts of it found (a
+ * SurfacePiece's m_parts): a shape's parts need not all lie between the piece's two regions (a channel's side against
+ * the solid it is bored through, its caps against the outside), and a part that does not cannot be in a group there.
+ * @details Host only. As coverageOf(const PossiblePiece&, const SurfaceInventory&, const DomainSetup&), but when its
+ * selectors tell parts apart, only the listed parts are checked; an empty list, or one naming none of the shape's
+ * parts, checks every part.
  * @param[in] a_piece     The piece.
  * @param[in] a_inventory The object's surfaces.
  * @param[in] a_setup     The domain whose surface groups cover it (its setup).
+ * @param[in] a_parts     The parts of it found between its two regions (findSurfacePieces()).
  * @return The coverage.
  */
 [[nodiscard]] EBGEOMETRY_HOST
 inline PieceCoverage
-coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, const DomainSetup& a_setup)
+coverageOf(const PossiblePiece&         a_piece,
+           const SurfaceInventory&      a_inventory,
+           const DomainSetup&           a_setup,
+           const std::vector<uint32_t>& a_parts)
 {
   bool partConditions  = false;
   bool labelConditions = false;
@@ -455,12 +460,32 @@ coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, co
   surface.m_ownerMaterial    = a_inventory.getMaterial(a_piece.m_ownerRegion);
   surface.m_neighborMaterial = a_inventory.getMaterial(a_piece.m_neighborRegion);
 
-  const uint32_t checks  = perPart ? parts : 1U;
+  // The parts checked: every part, or those listed (when they name any of the shape's).
+  std::vector<uint32_t> checked;
+
+  if (perPart) {
+    for (const uint32_t part : a_parts) {
+      if (part < parts) {
+        checked.push_back(part);
+      }
+    }
+
+    if (checked.empty()) {
+      for (uint32_t part = 0; part < parts; part++) {
+        checked.push_back(part);
+      }
+    }
+  }
+  else {
+    checked.push_back(0U);
+  }
+
+  const uint32_t checks  = static_cast<uint32_t>(checked.size());
   uint32_t       covered = 0;
   uint32_t       group   = SurfaceGroups::None;
   bool           mixed   = false;
 
-  for (uint32_t part = 0; part < checks; part++) {
+  for (const uint32_t part : checked) {
     // A collection's member: a part no part condition matches.
     surface.m_part         = (parts == 0U) ? SurfaceSelector::Any - 1U : part;
     surface.m_surfaceLabel = a_inventory.getLabel(a_piece.m_surface, (parts == 0U) ? 0U : part);
@@ -481,6 +506,25 @@ coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, co
   coverage.m_surfaceGroup = (coverage.m_coverage == Coverage::Full && !mixed) ? group : SurfaceGroups::None;
 
   return coverage;
+}
+
+/**
+ * @brief How a domain's surface groups cover a piece an object may have: exactly, part by part when its selectors tell
+ * parts apart.
+ * @details Host only. A piece is checked once when no selector depends on the part (a part, or a label
+ * that differs between parts); otherwise every part of its shape is (a mesh's faces: one check each). A member of a
+ * collection has parts the inventory does not count: it is checked once, as a part no part condition matches, so
+ * only selectors without one cover it. For a piece found, the overload taking its parts judges only those.
+ * @param[in] a_piece     The piece.
+ * @param[in] a_inventory The object's surfaces.
+ * @param[in] a_setup     The domain whose surface groups cover it (its setup).
+ * @return The coverage.
+ */
+[[nodiscard]] EBGEOMETRY_HOST
+inline PieceCoverage
+coverageOf(const PossiblePiece& a_piece, const SurfaceInventory& a_inventory, const DomainSetup& a_setup)
+{
+  return coverageOf(a_piece, a_inventory, a_setup, std::vector<uint32_t>());
 }
 
 } // namespace EBGeometry

@@ -1,35 +1,76 @@
 .. _Chap:Quickstart:
 
+.. _Chap:ObtainingEBGeometry:
+
 Quickstart
 ==========
 
-EBGeometry is header-only: there is nothing to separately compile or link.
-The single entry-point header is :file:`EBGeometry.hpp`, located at the repository root.
-Including it pulls in the entire library:
+.. _Sec:Cloning:
 
-.. code-block:: cpp
+Getting the code
+----------------
 
-   #include "EBGeometry.hpp"
-
-Because the library is header-only, the fastest way to try it is to compile one of the bundled
-examples directly:
+Clone the repository from `GitHub <https://github.com/rmrsk/EBGeometry>`_, with its submodule:
 
 .. code-block:: bash
 
-   cd Examples/Shapes
-   g++ -O3 -std=c++17 -I../.. main.cpp && ./a.out
+   git clone --recurse-submodules https://github.com/rmrsk/EBGeometry.git
 
-This constructs every built-in analytic shape and prints its signed distance at a few points, its
-bounding box and its distance quality (see :ref:`Chap:ExampleShapes`, the first of the examples in
-:ref:`Chap:Examples`'s reading order). It needs no mesh files, so it runs without the submodule
-described below.
+The library itself is header-only and needs nothing else. The submodule,
+`common-3d-test-models <https://github.com/alecjacobson/common-3d-test-models>`_, holds the meshes some
+examples read by default (in ``common-3d-test-models/data/``); a clone without it gets it later with
+``git submodule update --init``.
 
-Every folder under :file:`Examples/<something>` is a pure EBGeometry example: it
-has no third-party dependencies and can be compiled with the one-liner above (see
-:ref:`Chap:Examples`).  Folders under :file:`Integrations/<Platform>/<something>` couple
-EBGeometry to a third-party application code and additionally require that
-platform to be installed -- see :ref:`Chap:Integrations`.
+A first program
+---------------
 
-See :ref:`Chap:ObtainingEBGeometry` for how to clone the repository (including the submodule
-needed to run the bundled examples with their default mesh), and :ref:`Chap:Building` for how to
-point your own build system at EBGeometry.
+There is nothing to build or link: include :file:`EBGeometry.hpp`, from the repository root, and compile
+with C++17.
+
+.. code-block:: cpp
+
+   #include <iostream>
+
+   #include <EBGeometry.hpp>
+
+   using namespace EBGeometry;
+   using T = double;
+
+   int
+   main()
+   {
+     // A box with a ball cut out of one corner.
+     const BoxSDF<T>    box(Vec3T<T>(-1, -1, -1), Vec3T<T>(1, 1, 1));
+     const SphereSDF<T> ball(Vec3T<T>(1, 1, 1), T(0.8));
+
+     // Compile the composition into a tape, whose memory lives in a pool.
+     Pool          pool(hostMemoryResource());
+     const Tape<T> object(pool, Difference(box, ball));
+
+     // Negative inside, positive outside.
+     for (const Vec3T<T>& p : {Vec3T<T>(0, 0, 0), Vec3T<T>(0.9, 0.9, 0.9), Vec3T<T>(2, 0, 0)}) {
+       std::cout << p << ": " << object.signedDistance(p) << '\n';
+     }
+   }
+
+.. code-block:: bash
+
+   g++ -std=c++17 -O3 -I/path/to/EBGeometry main.cpp -o first.ex && ./first.ex
+
+The origin is inside the box, about 0.93 from the ball's surface; the point near the corner is in the hole
+the ball cut; the last is outside, 1 from the box's face. :ref:`Chap:Building` describes adding EBGeometry to
+a CMake or make project.
+
+Where to go next
+----------------
+
+* **The examples** (:ref:`Chap:Examples`) build on each other, from the analytic shapes to meshes, many
+  objects, rays and GPUs, each a short program with a page. The first runs without the submodule:
+
+  .. code-block:: bash
+
+     cd Examples/Shapes
+     make && ./Shapes.ex
+
+* **The concepts** (:ref:`Chap:GeometryRepresentations`) explain what the library computes and how.
+* **The API guide** (:ref:`Chap:Implementation`) lists the classes and calls by task.

@@ -16,7 +16,7 @@ A *shape* is anything EBGeometry can evaluate and compose: a trivially copyable 
 -- and a const ``computeBoundingVolume()`` returning the ``AABBT<T>`` that encloses the object. The
 compile-time trait ``isShape<S>`` checks exactly this, and ``ShapePrecision<S>`` reads ``T`` from the
 box type (see `EBGeometry_Expr.hpp <doxygen/html/EBGeometry__Expr_8hpp.html>`__). The analytic shapes
-(:ref:`Sec:AnalyticShapes`), the mesh distance fields (:ref:`Chap:MeshSDFClasses`), the BVH unions
+(:ref:`Sec:AnalyticShapes`), the mesh distance fields (:ref:`Chap:ImplemMeshSDF`), the BVH unions
 (:ref:`Sec:BVHUnions`) and a compiled ``Tape`` (:ref:`Sec:Tape`) are all shapes, and so is any type
 of your own with those two members. None of them has a base class or a virtual function, so each can
 be passed to a GPU kernel by value.
@@ -41,13 +41,9 @@ A composed object's quality is worked out when it is built (``Expr::getDistanceQ
 ``Tape::getDistanceQuality()``): a smooth union is a bound, for instance, and anything built from
 ``PerlinSDF`` is not a distance.
 
-For a function with no closed-form bounding volume, the free function
-``approximateBoundingVolumeOctree(function, lo, hi, depth, safety)`` estimates a bounding box by
-octree subdivision of a caller-supplied initial box, and ``normal(function, point, delta)`` gives the
-finite-difference normal of a function. Both take anything that gives a value at a point: a shape
-(through its ``signedDistance()``) or a callable such as a lambda. See :ref:`Chap:ImplemOctree` for both. The results are only meaningful when the function is
-reasonably close to a true signed distance, since the safety margin and the normal are interpreted in
-units of distance.
+A function with no closed-form bounding box gets an estimated one from
+``approximateBoundingVolumeOctree()``, and any function a finite-difference normal from ``normal()``
+(see :ref:`Chap:ImplemOctree`).
 
 .. _Sec:AnalyticShapes:
 
@@ -102,7 +98,8 @@ the same way as the mesh distance fields. Its ``signedDistance()`` and accessors
 the host and on a GPU, so a shape can be passed to a kernel by value and evaluated there; the
 constructors run on the host. The :ref:`Chap:ExampleShapes` example constructs every one of them.
 
-The shapes share a few conventions:
+Several of the shapes' exact distances follow Quilez :cite:`QuilezDistance`, and ``PerlinSDF`` is Perlin's
+improved noise :cite:`Perlin2002`. The shapes share a few conventions:
 
 * **Placement first.** Each constructor takes where the shape is (a center, a corner, a tip or a
   point on it) before its sizes.
@@ -126,7 +123,7 @@ The shapes share a few conventions:
   ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
   never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
   except ``PerlinSDF``, which is ``NotADistance``. The ellipsoid's exact distance has no closed form
-  and is found by a short iteration, so it costs more to evaluate than the other shapes. The mesh distance fields are ``Exact``. A BVH
+  and is found by a short iteration :cite:`Eberly`, so it costs more to evaluate than the other shapes. The mesh distance fields are ``Exact``. A BVH
   union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
   member, and treats a type without one as ``Bound``.
 
@@ -205,6 +202,11 @@ The operations, described mathematically in :ref:`Chap:ConstructiveSolidGeometry
      - :math:`a(\mathbf{x})`, unchanged: names the object, and every leaf below it gets the label unless a
        part of it has its own; labeling an object again, through moves too, replaces its label (see
        :ref:`Sec:DecidingLeaf`)
+   * - ``Overlay(a, b, ...)``
+     - :math:`\min_i a_i(\mathbf{x})`, as a union, but each operand a region, later ones on top (see
+       :ref:`Chap:ImplemRegions`)
+   * - ``RegionName(a, name)``, ``MaterialLabel(a, name)``
+     - :math:`a(\mathbf{x})`, unchanged: name a region of an overlay, and its material
 
 The n-ary smooth operations blend only the two extreme values, which differs from folding a binary
 smooth minimum over the list. ``Polynomial`` uses ``SmoothMinOp``/``SmoothMaxOp`` and
@@ -305,16 +307,14 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
 .. _Sec:TapeRays:
 
 A tape also answers ray queries, ``tape.firstHit(...)`` and ``tape.intersects(...)``, the same as the
-free functions on any shape (see :ref:`Chap:ImplemRays`). Beside the clauses, the compiler writes a
-*ray program* for the tape and for each BVH union operand, which traces exactly, from the spans where
+free functions on any shape (see :ref:`Chap:ImplemRays`). The tape traces exactly, from the spans where
 the ray is inside each operand (see :ref:`Sec:RaySpans`), its unions, intersections, complements and
 affine maps over the primitives that have ray forms, and, in a tape with ``TapeFeature::ExactOffsets``, its
-offsets and annuli of primitives whose level sets have a closed form (see :ref:`Sec:OffsetRays`). A BVH
+offsets and shells of primitives whose level sets have a closed form (see :ref:`Sec:OffsetRays`). A BVH
 union walks its BVH along the ray, nearest box first. A subtree with any other operation in it, or a
 primitive without a ray form, is marched as a whole; so is a subtree that would hold more than
-``Tape::RayStackSize`` (4) span lists at once. The ray programs add little to the tape's pool: one
-small entry per expression node. A hit names the leaf crossed (see :ref:`Sec:DecidingLeaf`), or for a marched subtree
-the deciding leaf at the crossing.
+``Tape::RayStackSize`` (4) span lists at once. A hit names the leaf crossed (see :ref:`Sec:DecidingLeaf`),
+or for a marched subtree the deciding leaf at the crossing.
 
 The :ref:`Chap:ExampleBasicCSG` example composes analytic shapes through a tape, and
 :ref:`Chap:ExampleNestedBVH` unions several placements of one mesh with spheres.
@@ -395,7 +395,7 @@ The deciding leaf
 -----------------
 
 A tape's ``closestLeaf(p)`` names the leaf of the composition whose surface its value at ``p``
-comes from, which is not always the geometrically nearest primitive; :ref:`Chap:ClosestPrimitive`
+comes from, which is not always the geometrically nearest primitive; :ref:`Chap:LeavesAndSurfaces`
 explains which leaf each operation passes on and what it is for. It returns a
 `LeafRef <doxygen/html/structEBGeometry_1_1LeafRef.html>`__: the leaf's number in expression
 order (``m_leaf``, ``LeafRef::None`` for none), the primitive's type and index in the tape
@@ -450,7 +450,7 @@ crossing and the drilled surface as a
 .. _Sec:BVHUnions:
 
 BVH-accelerated unions
-______________________
+----------------------
 
 Because a plain CSG union is evaluated as :math:`\min(I_1, \ldots, I_N)`, querying it costs
 :math:`\mathcal{O}(N)` per point for :math:`N` objects. ``BVHUnion`` and ``BVHSmoothUnion``
@@ -480,7 +480,7 @@ kernel:
   order given, so put the most numerous type first. ``BVH::BuildSettings`` chooses the construction method
   and leaf sizes: ``BVHUnion(pool, BVH::BuildSettings{BVH::Construction::BinnedSAH, {}}, spheres, boxes)``.
 * **Bounding boxes that enclose their primitives.** The traversal skips a primitive whose bounding
-  box is further away than the best value found so far. If every box encloses its primitive's
+  box is farther away than the best value found so far. If every box encloses its primitive's
   object (where the primitive's value is not positive), a skipped primitive is positive at the query
   point, so skipping it never changes the union's sign, whatever the primitives' values are. The
   value is then as good a distance as the primitives': with ``Exact`` primitives it equals the plain

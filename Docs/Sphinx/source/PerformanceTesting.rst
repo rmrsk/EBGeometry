@@ -12,6 +12,20 @@ pull request.
    :local:
    :depth: 2
 
+What a pull request does
+------------------------
+
+#. **While it is a draft**, after a change to the library or the probes, run a quick look at the probes the
+   change can reach: one round, judged by nobody, for example
+   ``Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1``.
+#. **Once the code is final**, run the full comparison against its base on the committed branch, with
+   ``--record`` (and with ``--gpu cuda`` when it touches device code), and commit the receipt it writes,
+   ``Performance/receipt.md`` (see `The performance receipt`_).
+#. **Act on the verdict** (see `Reading the verdicts`_): a minor regression is explained or fixed, a major
+   one fixed or explicitly accepted by the maintainer, and a changed answer explained.
+#. **Summarize** the verdicts in the pull request's *Performance* section, pointing to the receipt.
+#. **A new public structure or query** comes with its cases (see `Adding cases`_).
+
 What is in Performance/
 -----------------------
 
@@ -102,8 +116,394 @@ every platform and standard library draws the same points, and the mesh is ``arm
 skipped; a comparison in which a case ran in the baseline but not in the candidate fails (see `Reading
 the verdicts`_).
 
-What the probes measure
+Where the results go
+--------------------
+
+``Scripts/run-performance.sh`` prints a table per probe and saves every result as JSON lines in
+``build/performance/results/<date>-<commit>-<host|cuda|hip>.jsonl``, one file per run. Each JSON line
+holds every repetition's time, the median, minimum and interquartile range, the checksum, pool bytes,
+parameters and, for a paired case, the host/device figures; each probe's first line describes the build
+(commit, compiler, SIMD level, GPU backend, CPU). Results accumulate there until deleted.
+
+A comparison keeps its working files under ``build/performance/compare/``: ``base.jsonl`` and
+``head.jsonl`` (every run of every case, appended round by round), ``report.md`` (the comparison as
+Markdown, the text a pull request carries), and the two source trees and builds, so a case can be rerun
+by hand. The next comparison replaces them. With ``--record``, the comparison also writes its
+*receipt* into the source tree (see `The performance receipt`_).
+
+Host and device
+---------------
+
+A probe is a single source file that compiles for the host, for CUDA or for HIP, and which cases run
+depends on the build:
+
+* **A host build** runs the ``host`` cases, on one core (pinned): builds, refits, the batched queries
+  and the per-point queries, vectorized for the host. These are the host's numbers, and what a host
+  comparison judges.
+* **A CUDA or HIP build** runs only the ``hostdevice`` pairs, and only with a visible GPU: every query
+  that runs on a device, with the same inputs on both sides. Its host side is not what to read host
+  times from (in a CUDA build it is not vectorized: with any host SIMD macro set, GCC's ``immintrin.h``
+  pulls in headers that ``nvcc`` cannot parse), so host-only operations are left to the host build.
+
+Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
+divided into chunks of as many consecutive points as the case's block size (``GPU::DefaultBlockSize``
+unless the case gives another, as LaunchTuning's do): on the device each chunk is one block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
+kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
+thread but one, so that the device is compared with the whole CPU rather than one core.
+(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries faster than one thread
+per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime and the
+operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, which is why
+one hardware thread is left spare.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
+in which a caller querying a box of cells presents them, which keeps neighboring queries in the same
+part of a tree) and, for external queries, once in random order. Besides the device time, a pair records
+
+* ``host_ms``, ``host_threads`` and ``host_over_device``: the host's time, its thread count, and the
+  device's speedup over the host (host time / device time) on this machine;
+* ``max_diff`` and ``mismatches``: how far apart the host and device answers are, and how many inputs
+  they disagree on (a different sign, or a difference beyond a thousand ulps; for the point clouds, a
+  squared distance beyond a thousand ulps, whichever points were found, since equal distances to
+  different points are ties).
+
+The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
+change that speeds up one side and slows down the other shows as a shift in it. In a CUDA build it is
+measured against scalar host code; the host build's ``host`` cases show what vectorization is worth on
+one core, so against a vectorized host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (whose
+double precision runs at a small fraction of its single precision's rate) is little faster than the CPU's cores. OpenMP is on by default
+for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
+runtime, which is not tested, so it is off there unless turned on, and the host side then runs on one
+thread. A HIP build compiles its host side with AVX2 and FMA (``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
+
+Running the probes
+------------------
+
+Everything goes through one script, run from the repository root. It needs only CMake, git and a C++
+compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerformance.cmake``, and
+``--help`` lists every option.
+
+.. code-block:: bash
+
+   Scripts/run-performance.sh                          # build if needed, run every host case
+   Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs (* and ?)
+   Scripts/run-performance.sh '*/double/*' --reps 10   # every double case, 10 repetitions
+   Scripts/run-performance.sh list 'Mesh*'             # the case names
+   Scripts/run-performance.sh --smoke                  # every case at tiny sizes: checks they run
+
+   Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the pairs
+   Scripts/run-performance.sh --gpu cuda 'TriMeshSDF/*'
+
+The probes are built in Release for the host's full instruction set, with every function aligned to a cache
+line under GCC and Clang (``Performance/AlignFunctions.cmake``), incrementally, in
+``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
+A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
+uses every hardware thread but one (``--core <n>`` or ``--no-pin`` changes a host run's pinning; a GPU run refuses ``--core``, since pinned to one core its host side would run on one thread). The output is one table per probe,
+grouped by component and input. A host build shows each case's number of items (for queries), median,
+spread, time per item and pool bytes (the figures in these samples are made up):
+
+.. code-block:: text
+
+   EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU none · host: 1 thread, SIMD avx2
+   times are medians of 3 repetitions; spread = interquartile range / median
+
+   ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3 cases ━━
+       operation  precision      items      median   spread    per item       pool
+     MeshSDF
+       build      float                     110 ms     1.6%                21.0 MB
+       refit      float                    69.9 ms    19.3%
+       query      float        100,000      891 ms     0.8%     8.91 µs    21.0 MB
+
+A GPU build shows, for each pair, the number of inputs, the host's and the device's time per item (so
+pairs of different sizes compare; the totals are in the JSON), the device's speedup, the device's spread
+and whether the answers agree (made-up figures again):
+
+.. code-block:: text
+
+   EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU CUDA · host: 23 threads, SIMD none (nvcc cannot compile host SIMD code)
+   host and device run the same inputs; times per item are medians of 3 repetitions; device spread = the device's interquartile range / median
+
+   ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2 cases ━━
+       operation     precision      items   host/item  device/item   speedup  device spread  answers
+     TriMeshSDF · w4
+       query-morton  float        262,144      382 ns      23.0 ns     16.6x           5.6%    agree
+       query-random  float        262,144      497 ns      42.3 ns     11.8x           1.4%    agree
+
+The facts every probe shares (the commit, compiler, GPU backend, host threads and SIMD level, and how to
+read the columns) are printed once per run; each probe is then a rule with its name and number of cases,
+its column header and its groups. In a terminal, probe and group names are bold, the banner and column
+headers dimmed and host/device disagreements red; piped or redirected output, or ``NO_COLOR`` set, gives
+plain text.
+
+CMake takes the ``nvcc`` on the ``PATH`` (or ``CUDACXX``) unless ``--cuda-compiler`` names one. CUDA
+12.0's ``nvcc`` cannot compile the library (it rejects a braced argument list in
+``EBGeometry_TapeImplem.hpp``); pass a newer one, and the script reconfigures when the compiler changes.
+
+Under the script, each probe is an ordinary program (``build/performance/host/bin/<Probe>.ex``) taking
+``--list``, ``--case <glob>``, ``--reps <n>``, ``--smoke``, ``--json`` (JSON
+instead of the table) and ``--json-out <file>`` (the table, and the JSON appended to a file). The ``perf``
+and ``perf-cuda`` CMake presets build the same probes inside the project, which is what ``ctest --preset
+perf`` and CI's smoke run use. That ``ctest`` run also checks the receipt writer (``PerfReceipt``,
+``Performance/TestReceipt.cmake``): a yellow or red report, semicolons and all, is written whole.
+
+Comparing two commits
+---------------------
+
+.. code-block:: bash
+
+   Scripts/run-performance.sh compare                                 # the working tree against the default baseline
+   Scripts/run-performance.sh compare origin/<base> my-branch         # two commits
+   Scripts/run-performance.sh compare origin/<base> 'PointCloudBVH/*' --rounds 10
+   Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1  # times only, while developing
+   Scripts/run-performance.sh compare origin/<base> --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
+   Scripts/run-performance.sh compare origin/<base> --smoke                   # a quick check, about a minute
+   Scripts/run-performance.sh compare origin/<base> --gpu cuda --test-builds  # also the heaviest tests' builds
+   Scripts/run-performance.sh compare origin/<base> --no-skip                 # also probes whose code is unchanged
+   Scripts/run-performance.sh compare origin/<base> --no-cache                # build both sides afresh
+
+Here ``<base>`` is the branch the pull request targets. The first two arguments that git resolves to
+commits are the baseline (by default, the branch pull requests merge into) and the
+candidate (default: the working tree, uncommitted changes included); anything else is a glob. Each side
+is exported with ``git archive`` and built from its own ``Performance/`` folder, so a pull request that
+changes an API the probes use updates the probes and is still compared case by case; the report names
+any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
+with the candidate's probes.) Both sides are built with the candidate's function alignment, so that code
+added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line.
+A probe that compiles to the same code on both sides can only measure noise, so its cases are not run,
+and the report lists the probe as not run; a pull request that changes one component then runs only the
+probes that component reaches. ``--no-skip`` runs them anyway, and a smoke comparison always runs every
+case. When no probe changed, nothing runs and the verdict is green. A side whose code, compilers and
+settings match one of the last few comparisons' is not built again: its programs and build costs are
+taken from ``build/performance/cache`` (the baseline, until the base branch's code moves on, and both
+sides when a receipt is recorded again after a change to the documentation only). ``--no-cache`` builds
+both sides afresh.
+Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
+that favors the next, alternating between the two sides for ``--rounds``
+rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
+verdict, and keep a comparison of every case to about eight minutes on a desktop, builds included; one
+round (``--rounds 1``) shows the times without judging them, a quick look while a change is developed. A host comparison compares the host cases,
+pinned to one core; with ``--gpu`` it compares the pairs, by their device time (each with its speedup
+beside it), unpinned. The comparison itself is ``Performance/Compare.cmake``,
+whose variables (listed at its top) also set the thresholds.
+
+The report is printed to the terminal and written to ``build/performance/compare/report.md``, followed by
+the command that repeats the comparison and those that rerun a single case by hand (with made-up
+figures here):
+
+.. code-block:: text
+
+   Performance comparison: 0 major, 0 minor, 0 faster, 0 differ, 0 lost, 2 cases
+     base 000723d (gcc 13.3.0, simd avx2, gpu host)
+     head 646c1f1 (gcc 13.3.0, simd avx2, gpu host)
+     thresholds: minor >= 3%, major >= 10% slower, and outside the 95% bootstrap interval over the runs
+
+     case                                                 base     head  change     95% interval   pool  verdict  note
+     PointCloudBVH/uniform/build/double/host           89.5 ms  89.9 ms   +0.5%   [-8.6%, +9.8%]  +0.0%  ~
+     PointCloudBVH/uniform/closest-random/double/host  93.7 ms   100 ms   +7.0%  [-7.1%, +10.2%]      -  ~
+
+   Nothing flagged.
+
+A smoke comparison (``--smoke``) is a check, not a measurement: one round of one repetition at the
+``--smoke`` sizes, in about a minute, most of it building. It reports, for every case, whether it ran on
+each side, whether the two sides' checksums match and, for a pair, whether the host and device answers
+agree, and judges no timings: one repetition of microseconds of work is mostly start-up and kernel
+launch overhead, runs with everything in cache and trees of one leaf, and has no spread to tell a change
+from noise. Its times are shown for information only, with a note when a case's time changes more than
+tenfold (a case that hangs or degenerates). It fails if a case crashed, is missing or was skipped on one side, or if a
+pair's answers differ; a checksum that changed between the commits is reported but does not fail it,
+since a change to a kernel may change a result's last bits. Run it before a long comparison, or after
+changing the probes themselves.
+
+Reading the verdicts
+^^^^^^^^^^^^^^^^^^^^
+
+Every comparison ends with one line that answers whether there is a regression, colored in a terminal,
+and ``report.md`` starts with the same line:
+
+.. code-block:: text
+
+   VERDICT: no regression (0 major, 0 minor across 88 cases)                                          (green)
+   VERDICT: 2 minor regressions; look at them before accepting (see Flagged above)                    (yellow)
+   VERDICT: MAJOR regression in 1 case; do not merge until it is fixed or accepted (see Flagged above) (red)
+   VERDICT (smoke): passed; all 88 cases ran on both sides with the same answers                      (green)
+
+A red verdict (a major regression, host and device answers that differ, a run that crashed, or a case
+that ran in the baseline but not in the candidate; for a smoke comparison, a case that failed or is
+missing on either side) also makes the script exit with status 2. A comparison that cannot reach a verdict at all (``PerfCompare`` reports
+a usage error or an unreadable results file, or crashes) fails too, with a non-zero status of its own;
+it never ends green. The per-case verdicts behind it work as follows.
+
+Each run of a case is a fresh process that times several repetitions. The repetitions of one process
+share its luck (where its memory landed, the clock speed, what else ran on the machine), so they are not
+independent measurements, and the noise that matters is the one between processes. ``PerfCompare``
+therefore reduces each run to the median of its repetitions and works with those: for each case it takes
+the median over each side's runs, their ratio, and a bootstrap 95% confidence interval for the ratio,
+resampling the runs. A change counts only when the interval excludes no change at all, and is only
+judged with at least two runs on each side. With the default two rounds, that means a change is
+flagged only when both of the candidate's runs are slower than both of the baseline's: a coarse
+screen. So every case flagged minor or MAJOR after them runs ``--confirm-rounds`` more rounds (default
+8), and is judged on all of them; the report lists the cases confirmed this way. A flag from one noisy
+round then rarely survives, and one that does is a change. (The first rounds still decide which cases
+get the second look: a change they miss is not looked at again.) ``--confirm-rounds 0`` judges the first
+rounds as they are. With one round, every time is shown and none is judged, and the verdict says so.
+
+==========  =========================================================================================
+``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
+``DIFFER``  a pair whose host and device answers disagree, a new one included: a red flag, and its times
+            are not comparable
+``MAJOR``   at least 10% slower (``MAJOR``), or 10% more pool bytes: a red flag
+``minor``   at least 3% slower (``MINOR``), or 3% more pool bytes: worth a look
+``faster``  at least 3% faster, and no more pool bytes
+``~``       within the thresholds, or within the noise
+==========  =========================================================================================
+
+A differing checksum, or a differing hash of the points found, is noted beside the verdict: the two
+sides did not compute the same answers, so the times may not be comparable. It is flagged and makes the
+verdict yellow (as in a smoke comparison), not red: a change to a kernel may legitimately change a
+result's last bits. Like any yellow verdict, it passes CI only once accepted in the receipt, with the
+reason the answers changed (see `The performance receipt`_). A case whose pool bytes shrink by 3% or more is noted as such (it is never a regression). A
+paired case shows the device's speedup over the host, with the baseline's beside it when the two differ
+by 3% or more. A case that names another with ``Case::relativeTo()`` (the same answers computed another
+way, in any probe) shows that case's time over its own (``tape/fused``, say), with the
+baseline's beside it when the two differ by 3% or more; it is noted, never judged. Flagged cases are
+listed again under the table.
+
+Build costs
+^^^^^^^^^^^
+
+A comparison also reports what each side cost to build, after the timings: a section *Build costs*, in the
+report and in the receipt. It reports and does not judge: its flags do not enter the verdict, and CI does not
+check them.
+
+Every compile goes through ``Performance/Tools/BuildCost.cpp``, set as CMake's compiler launcher. It records
+each compile's CPU time (user and system time of the compiler and every process it ran) and peak memory,
+and, for nvcc, the statistics ptxas prints for every kernel (``-Xptxas -v``, which changes no code):
+registers, cumulative stack, and the bytes spilled to local memory. ``Performance/Tools/BuildCompare.cpp``
+then compares the two sides:
+
+* **Per translation unit** (a probe, or a test file): CPU time and peak memory, base against head, flagged
+  ``minor`` at 10% more and ``MAJOR`` at 25% more (``BUILD_MINOR`` and ``BUILD_MAJOR`` in ``Compare.cmake``),
+  if the growth is also at least 2 s or 100 MB, so that small units do not flag on noise; and the total.
+* **Per device kernel**: every kernel whose registers, stack or spills differ, flagged when its registers
+  change, its spills grow, or its stack grows by more than 10% and 256 bytes. More registers can cost
+  occupancy, spills cost local-memory traffic, and a larger stack more local memory per thread.
+
+CPU time rather than wall time, because the builds run in parallel; but a compile's CPU time still depends
+on the core it runs on. So on Linux the compiles run on one hardware thread of each core, pinned with
+``taskset`` (of each fast core, on a CPU with fast and slow cores), and two builds of the same code then
+agree closely. As many compiles run at once as there are such cores, but no more than the memory holds
+(``--jobs`` sets the number). The section's first line names the machine and how it compiled.
+
+With ``--test-builds``, a comparison also builds the heaviest test targets (``TestRay*``, ``TestTape*`` and
+``TestRender*``) in Debug with assertions on, as a developer and CI's device
+lanes build them, and reports their costs in a second section. It takes several minutes more; run it for a
+pull request that changes the tape or the rays.
+
+The performance receipt
 -----------------------
+
+CI does not time anything: a shared runner is too noisy to judge performance, and has no GPU. What CI
+requires instead is that the comparison was run, locally, on the pull request's own code, once the pull
+request is ready for review (a draft is not checked). The comparison's result is committed with the
+pull request as its *receipt*:
+
+.. code-block:: bash
+
+   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipt.md
+   git add Performance/receipt.md && git commit -m "Performance receipt"
+
+The receipt is one file, ``Performance/receipt.md``, with a section per comparison: the host comparison,
+which ``--record`` writes and CI requires, and, when the change touches device code, a device
+comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
+commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
+stand for the pull request: a smoke check, a subset of the cases (a glob), a working tree whose
+library or probes have uncommitted changes, or a run in which a case was skipped on either side (it
+checks for the ``common-3d-test-models`` submodule before building, since every mesh case needs it). Recording one section keeps the others only if they
+measured the same code against the same base, and drops them otherwise, so the file never carries a
+section that measured other code.
+
+Each section names the code it measured by two fingerprints: hashes of git's tree entries for what a
+comparison measures, the library (``Source/``, ``EBGeometry.hpp``) and the probes (``Performance/``,
+except its ``README.md`` and the receipt). CI's ``Performance-receipt`` job
+(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch. It
+requires the host section, checks every section present (a device section is optional, but once
+recorded it must pass like the host one), and passes only when, for each,
+
+* the pull request's code is the code the section measured. A receipt names the commit before the one
+  that adds it, so a later commit that changes only documentation or CI keeps it valid, while any
+  change to the library or the probes makes it stale. An old receipt never stands for new code: a pull
+  request that changes code and keeps the receipt it inherited fails;
+* the base branch's code is the base the section measured. When the base branch's code moves on (another
+  pull request merged), the pull request is rebased and its comparison recorded again;
+* the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
+  ``**Accepted:**`` line under that section's heading (the reason may wrap over several lines, up to the
+  next blank line) (a minor regression that is expected, answers that
+  changed for a reason, a major regression the maintainer explicitly accepts), where a reader of the
+  rendered receipt sees it. Every verdict is recorded; only green passes on its own, and CI's check
+  then shows a warning with the reason rather than a plain pass. Who accepted it is in git history: the
+  commit that wrote the reason, and the account that pushed it.
+
+A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
+request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
+performance history of the branch, one comparison per change. Device sections appear where a change
+was measured on a GPU; regular device measurement is left to a future nightly run.
+
+What a receipt proves is limited. Its fingerprints tie it to the code it names, so it cannot be
+carried over to other code by mistake, and CI computes them from git, not from the receipt. CI cannot
+check the figures themselves: the receipt records that its author ran the comparison and what it found,
+and it is trusted the way a review is trusted to have been done. It makes the local comparison a
+required, visible part of every change that needs one; it is not a proof that the numbers were measured.
+The same holds for an acceptance: CI cannot tell who wrote the reason on an ``**Accepted:**`` line.
+Git history records the commit that wrote it and the account that pushed it, which identifies an
+outside contributor, but not whether an agent working under the maintainer's account wrote it on the
+maintainer's say-so; that rests on the rule that an agent writes a reason only on the maintainer's
+explicit acceptance (``CLAUDE.md``).
+
+Two pull requests that both pass can still race: once one merges and changes the base's code, the
+other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
+before merging makes CI check it again.
+
+In continuous integration and in pull requests
+----------------------------------------------
+
+Two jobs in ``.github/workflows/CI.yml`` cover ``Performance/``:
+
+* ``Performance-smoke`` builds the probes with warnings as errors and runs every case at its smoke size,
+  on every push and pull request. The GPU lanes also compile the probes for their device.
+* ``Performance-receipt`` checks the pull request's receipt, as above, and puts the result in the job
+  summary. It builds and times nothing. On a draft pull request it only notes that the receipt is
+  checked once the pull request is ready for review.
+
+A minor regression is a question for the author and the reviewer: is it expected, and is it worth
+investigating? It, a changed checksum and a major regression are all merged only once fixed (and
+recorded again) or accepted in the receipt, the major one only by the maintainer's explicit decision.
+The pull request's *Performance* section shows the receipt's table, and the device comparison when the
+change touches device code.
+
+Adding cases
+------------
+
+The probes cover each public structure where its cost lives: its build, its queries, and any update in
+place (a refit), in both precisions, on the host and, where the operation runs there, on the device.
+Some rules of thumb:
+
+* A new public structure or query, or a new device path for an existing one, comes with its cases in the
+  same pull request: a new probe folder, or new cases in the probe of its component.
+* A case measures one operation on one input. Use the sizes users meet (hundreds of thousands of points
+  or triangles), so that one repetition takes at least a few milliseconds, and give it a ``--smoke`` size
+  that runs in well under a second.
+* Spell out every parameter that selects code (``K``, ``W``, the precision, the construction method) and
+  record it with ``param()``; record a checksum that depends on every result, and ``poolBytes()`` where
+  there is a pool. A case that computes the same answers as another case by other means (fused and
+  through a tape) names it with ``relativeTo()``, so that the comparison notes the ratio of their times.
+* Prefer a new case to changing an existing one: a changed case cannot be compared with its old
+  results (the report names the probe files that differ between the sides, not the cases).
+* Keep the whole set to about eight minutes for a comparison with its defaults on a desktop, builds
+  included, so it is run. A case that duplicates another's code path (the same kernel at another size) earns its place only
+  if it has behaved differently.
+
+The probes, one by one
+----------------------
+
+This section is a reference: what each probe measures, case by case.
+
 
 Every family below runs in ``float`` and ``double`` unless noted (the precision is the next-to-last
 part of the name). A host build runs the ``host`` cases; a CUDA or HIP build runs only the
@@ -559,7 +959,7 @@ Family                                Build  Measures
                                              the mesh) on both sides
 ====================================  =====  =====================================================
 
-**Regions** (``Performance/Regions``): the regions of a tape (see :ref:`Chap:ClosestPrimitive`), for a matrix
+**Regions** (``Performance/Regions``): the regions of a tape (see :ref:`Chap:Regions`), for a matrix
 holding 32 particles, each a shell around a grain, one ``Overlay`` of 65 regions. The ``regionByRegion`` case computes
 what ``regionDistances`` does by asking ``signedDistance(point, region)`` for each region, names it, and a comparison
 notes the ratio of their times (what the one pass saves). An assembly of one region, 512 spheres in a union through a
@@ -580,7 +980,7 @@ Family                                Build  Measures
 ``<input>/<operation>``               GPU    each of the above at 262,144 points or rays on both sides
 ====================================  =====  =====================================================
 
-**Domain** (``Performance/Domain``): a domain (see :ref:`Chap:ClosestPrimitive`) with many subdomains and surface
+**Domain** (``Performance/Domain``): a domain (see :ref:`Chap:Regions`) with many subdomains and surface
 groups, over the Regions probe's matrix of 32 particles: the matrix and every shell a subdomain of its own (33
 subdomains, the grains excluded), and 33 selectors (each shell's interface with its grain, and the remaining surfaces)
 dealt into 8 surface groups, so that a surface facing the matrix tries every selector before the remaining surfaces
@@ -589,9 +989,10 @@ hold it.
 ====================================  =====  =====================================================
 Family                                Build  Measures
 ====================================  =====  =====================================================
-``particles/labels``                  host   every label's function at each of 20,000 points in the
-                                             matrix
-``particles/labelAt``                 host   the label of each of those points
+``particles/labels``                  host   every subdomain's function at each of 20,000 points in
+                                             the matrix (``signedDistances()``)
+``particles/labelAt``                 host   the subdomain of each of those points
+                                             (``subdomainAt()``)
 ``particles/surfaceGroups``           host   the surface group of the surface of each point's region
                                              closest to it (found untimed)
 ``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
@@ -615,385 +1016,3 @@ Case                                  Build  Measures
 ``cloud/closestPoint-<setting>``      GPU    the closest of a million points in a ``PointCloudBVH``
                                              to 262,144 points around them
 ====================================  =====  =====================================================
-
-Where the results go
---------------------
-
-``Scripts/run-performance.sh`` prints a table per probe and saves every result as JSON lines in
-``build/performance/results/<date>-<commit>-<host|cuda|hip>.jsonl``, one file per run. Each JSON line
-holds every repetition's time, the median, minimum and interquartile range, the checksum, pool bytes,
-parameters and, for a paired case, the host/device figures; each probe's first line describes the build
-(commit, compiler, SIMD level, GPU backend, CPU). Results accumulate there until deleted.
-
-A comparison keeps its working files under ``build/performance/compare/``: ``base.jsonl`` and
-``head.jsonl`` (every run of every case, appended round by round), ``report.md`` (the comparison as
-Markdown, the text a pull request carries), and the two source trees and builds, so a case can be rerun
-by hand. The next comparison replaces them. With ``--record``, the comparison also writes its
-*receipt* into the source tree (see `The performance receipt`_).
-
-Host and device
----------------
-
-A probe is a single source file that compiles for the host, for CUDA or for HIP, and which cases run
-depends on the build:
-
-* **A host build** runs the ``host`` cases, on one core (pinned): builds, refits, the batched queries
-  and the per-point queries, vectorized for the host. These are the host's numbers, and what a host
-  comparison judges.
-* **A CUDA or HIP build** runs only the ``hostdevice`` pairs, and only with a visible GPU: every query
-  that runs on a device, with the same inputs on both sides. Its host side is not what to read host
-  times from (in a CUDA build it is not vectorized: with any host SIMD macro set, GCC's ``immintrin.h``
-  pulls in headers that ``nvcc`` cannot parse), so host-only operations are left to the host build.
-
-Queries are written as trivially copyable functors, as in the examples. In a pair, the inputs are
-divided into chunks of as many consecutive points as the case's block size (``GPU::DefaultBlockSize``
-unless the case gives another, as LaunchTuning's do): on the device each chunk is one block of threads (``GPU::transform()`` over arrays already in device memory, so the device time is the
-kernel's alone), and on the host the chunks are shared among OpenMP threads, one on every hardware
-thread but one, so that the device is compared with the whole CPU rather than one core.
-(``OMP_NUM_THREADS`` overrides the count. Hyperthreads make the heavier queries faster than one thread
-per core; a thread on every hardware thread, though, leaves nothing for the GPU runtime and the
-operating system, so the loop keeps losing whole scheduler ticks to a preempted thread, which is why
-one hardware thread is left spare.) Each pair runs once with the points in Morton order (``SFC::order<SFC::Morton>``, the order
-in which a caller querying a box of cells presents them, which keeps neighboring queries in the same
-part of a tree) and, for external queries, once in random order. Besides the device time, a pair records
-
-* ``host_ms``, ``host_threads`` and ``host_over_device``: the host's time, its thread count, and the
-  device's speedup over the host (host time / device time) on this machine;
-* ``max_diff`` and ``mismatches``: how far apart the host and device answers are, and how many inputs
-  they disagree on (a different sign, or a difference beyond a thousand ulps; for the point clouds, a
-  squared distance beyond a thousand ulps, whichever points were found, since equal distances to
-  different points are ties).
-
-The speedup is machine-specific, so it means something on one machine, from one commit to the next: a
-change that speeds up one side and slows down the other shows as a shift in it. In a CUDA build it is
-measured against scalar host code; the host build's ``host`` cases show what vectorization is worth on
-one core, so against a vectorized host the device's lead would be correspondingly smaller. In ``double`` a consumer GPU (FP64 at 1/64 of
-its FP32 rate) is little faster than the CPU's cores. OpenMP is on by default
-for CUDA builds (``EBGEOMETRY_PERF_OPENMP``); a HIP build's clang host side would need the LLVM OpenMP
-runtime, which is not yet tested, so it is off there unless turned on, and the host side then runs on one
-thread. A HIP build compiles its host side with AVX2 and FMA (``EBGEOMETRY_PERF_GPU_HOST_FLAGS``).
-
-Running the probes
-------------------
-
-Everything goes through one script, run from the repository root. It needs only CMake, git and a C++
-compiler (``nvcc`` or ``hipcc`` for a GPU); its logic is ``Performance/RunPerformance.cmake``, and
-``--help`` lists every option.
-
-.. code-block:: bash
-
-   Scripts/run-performance.sh                          # build if needed, run every host case
-   Scripts/run-performance.sh 'PointCloudBVH/*'        # a subset: one or more globs (* and ?)
-   Scripts/run-performance.sh '*/double/*' --reps 10   # every double case, 10 repetitions
-   Scripts/run-performance.sh list 'Mesh*'             # the case names
-   Scripts/run-performance.sh --smoke                  # every case at tiny sizes: checks they run
-
-   Scripts/run-performance.sh --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc   # the pairs
-   Scripts/run-performance.sh --gpu cuda 'TriMeshSDF/*'
-
-The probes are built in Release for the host's full instruction set, with every function aligned to a cache
-line under GCC and Clang (``Performance/AlignFunctions.cmake``), incrementally, in
-``build/performance/<host|cuda|hip>/``; each probe with a selected case then runs in a process of its own.
-A host run is pinned to one core when ``taskset`` is available; a GPU run is not, since its host side
-uses every hardware thread but one (``--core <n>`` or ``--no-pin`` changes a host run's pinning; a GPU run refuses ``--core``, since pinned to one core its host side would run on one thread). The output is one table per probe,
-grouped by component and input. A host build shows each case's number of items (for queries), median,
-spread, time per item and pool bytes:
-
-.. code-block:: text
-
-   EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU none · host: 1 thread, SIMD avx2
-   times are medians of 3 repetitions; spread = interquartile range / median
-
-   ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3 cases ━━
-       operation  precision      items      median   spread    per item       pool
-     MeshSDF
-       build      float                     110 ms     1.6%                21.0 MB
-       refit      float                    69.9 ms    19.3%
-       query      float        100,000      891 ms     0.8%     8.91 µs    21.0 MB
-
-A GPU build shows, for each pair, the number of inputs, the host's and the device's time per item (so
-pairs of different sizes compare; the totals are in the JSON), the device's speedup, the device's spread
-and whether the answers agree:
-
-.. code-block:: text
-
-   EBGeometry performance · git c2f2cdb · gcc 13.3.0 · GPU CUDA · host: 23 threads, SIMD none (nvcc cannot compile host SIMD code)
-   host and device run the same inputs; times per item are medians of 3 repetitions; device spread = the device's interquartile range / median
-
-   ━━ Mesh ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2 cases ━━
-       operation     precision      items   host/item  device/item   speedup  device spread  answers
-     TriMeshSDF · w4
-       query-morton  float        262,144      382 ns      23.0 ns     16.6x           5.6%    agree
-       query-random  float        262,144      497 ns      42.3 ns     11.8x           1.4%    agree
-
-The facts every probe shares (the commit, compiler, GPU backend, host threads and SIMD level, and how to
-read the columns) are printed once per run; each probe is then a rule with its name and number of cases,
-its column header and its groups. In a terminal, probe and group names are bold, the banner and column
-headers dimmed and host/device disagreements red; piped or redirected output, or ``NO_COLOR`` set, gives
-plain text.
-
-CMake takes the ``nvcc`` on the ``PATH`` (or ``CUDACXX``) unless ``--cuda-compiler`` names one. CUDA
-12.0's ``nvcc`` cannot compile the library (it rejects a braced argument list in
-``EBGeometry_TapeImplem.hpp``); pass a newer one, and the script reconfigures when the compiler changes.
-
-Under the script, each probe is an ordinary program (``build/performance/host/bin/<Probe>.ex``) taking
-``--list``, ``--case <glob>``, ``--reps <n>``, ``--smoke``, ``--json`` (JSON
-instead of the table) and ``--json-out <file>`` (the table, and the JSON appended to a file). The ``perf``
-and ``perf-cuda`` CMake presets build the same probes inside the project, which is what ``ctest --preset
-perf`` and CI's smoke run use. That ``ctest`` run also checks the receipt writer (``PerfReceipt``,
-``Performance/TestReceipt.cmake``): a yellow or red report, semicolons and all, is written whole.
-
-Comparing two commits
----------------------
-
-.. code-block:: bash
-
-   Scripts/run-performance.sh compare                                 # the working tree against the default baseline
-   Scripts/run-performance.sh compare origin/<base> my-branch         # two commits
-   Scripts/run-performance.sh compare origin/<base> 'PointCloudBVH/*' --rounds 10
-   Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1  # times only, while developing
-   Scripts/run-performance.sh compare origin/<base> --gpu cuda --gpu-arch 86 --cuda-compiler /path/to/nvcc
-   Scripts/run-performance.sh compare origin/<base> --smoke                   # a quick check, about a minute
-   Scripts/run-performance.sh compare origin/<base> --gpu cuda --test-builds  # also the heaviest tests' builds
-   Scripts/run-performance.sh compare origin/<base> --no-skip                 # also probes whose code is unchanged
-   Scripts/run-performance.sh compare origin/<base> --no-cache                # build both sides afresh
-
-Here ``<base>`` is the branch the pull request targets. The first two arguments that git resolves to
-commits are the baseline (by default, the branch pull requests merge into) and the
-candidate (default: the working tree, uncommitted changes included); anything else is a glob. Each side
-is exported with ``git archive`` and built from its own ``Performance/`` folder, so a pull request that
-changes an API the probes use updates the probes and is still compared case by case; the report names
-any probe that differs between the sides. (A baseline from before ``Performance/`` existed is measured
-with the candidate's probes.) Both sides are built with the candidate's function alignment, so that code
-added anywhere in a probe cannot change the time of unchanged code by moving it across a cache line.
-A probe that compiles to the same code on both sides can only measure noise, so its cases are not run,
-and the report lists the probe as not run; a pull request that changes one component then runs only the
-probes that component reaches. ``--no-skip`` runs them anyway, and a smoke comparison always runs every
-case. When no probe changed, nothing runs and the verdict is green. A side whose code, compilers and
-settings match one of the last few comparisons' is not built again: its programs and build costs are
-taken from ``build/performance/cache`` (the baseline, until the base branch's code moves on, and both
-sides when a receipt is recorded again after a change to the documentation only). ``--no-cache`` builds
-both sides afresh.
-Every case then runs in a fresh process, so that one case cannot leave the heap or the caches in a state
-that favors the next, alternating between the two sides for ``--rounds``
-rounds (default 2) of ``--reps`` repetitions (default 3). These defaults are the least that gives a
-verdict, and keep a comparison of every case to about eight minutes on a desktop, builds included; one
-round (``--rounds 1``) shows the times without judging them, a quick look while a change is developed. A host comparison compares the host cases,
-pinned to one core; with ``--gpu`` it compares the pairs, by their device time (each with its speedup
-beside it), unpinned. The comparison itself is ``Performance/Compare.cmake``,
-whose variables (listed at its top) also set the thresholds.
-
-The report is printed to the terminal and written to ``build/performance/compare/report.md``, followed by
-the command that repeats the comparison and those that rerun a single case by hand:
-
-.. code-block:: text
-
-   Performance comparison: 0 major, 0 minor, 0 faster, 0 differ, 0 lost, 2 cases
-     base 000723d (gcc 13.3.0, simd avx2, gpu host)
-     head 646c1f1 (gcc 13.3.0, simd avx2, gpu host)
-     thresholds: minor >= 3%, major >= 10% slower, and outside the 95% bootstrap interval over the runs
-
-     case                                                 base     head  change     95% interval   pool  verdict  note
-     PointCloudBVH/uniform/build/double/host           89.5 ms  89.9 ms   +0.5%   [-8.6%, +9.8%]  +0.0%  ~
-     PointCloudBVH/uniform/closest-random/double/host  93.7 ms   100 ms   +7.0%  [-7.1%, +10.2%]      -  ~
-
-   Nothing flagged.
-
-A smoke comparison (``--smoke``) is a check, not a measurement: one round of one repetition at the
-``--smoke`` sizes, in about a minute, most of it building. It reports, for every case, whether it ran on
-each side, whether the two sides' checksums match and, for a pair, whether the host and device answers
-agree, and judges no timings: one repetition of microseconds of work is mostly start-up and kernel
-launch overhead, runs with everything in cache and trees of one leaf, and has no spread to tell a change
-from noise. Its times are shown for information only, with a note when a case's time changes more than
-tenfold (a case that hangs or degenerates). It fails if a case crashed, is missing or was skipped on one side, or if a
-pair's answers differ; a checksum that changed between the commits is reported but does not fail it,
-since a change to a kernel may change a result's last bits. Run it before a long comparison, or after
-changing the probes themselves.
-
-Reading the verdicts
-^^^^^^^^^^^^^^^^^^^^
-
-Every comparison ends with one line that answers whether there is a regression, colored in a terminal,
-and ``report.md`` starts with the same line:
-
-.. code-block:: text
-
-   VERDICT: no regression (0 major, 0 minor across 88 cases)                                          (green)
-   VERDICT: 2 minor regressions; look at them before accepting (see Flagged above)                    (yellow)
-   VERDICT: MAJOR regression in 1 case; do not merge until it is fixed or accepted (see Flagged above) (red)
-   VERDICT (smoke): passed; all 88 cases ran on both sides with the same answers                      (green)
-
-A red verdict (a major regression, host and device answers that differ, a run that crashed, or a case
-that ran in the baseline but not in the candidate; for a smoke comparison, a case that failed or is
-missing on either side) also makes the script exit with status 2. A comparison that cannot reach a verdict at all (``PerfCompare`` reports
-a usage error or an unreadable results file, or crashes) fails too, with a non-zero status of its own;
-it never ends green. The per-case verdicts behind it work as follows.
-
-Each run of a case is a fresh process that times several repetitions. The repetitions of one process
-share its luck (where its memory landed, the clock speed, what else ran on the machine), so they are not
-independent measurements, and the noise that matters is the one between processes. ``PerfCompare``
-therefore reduces each run to the median of its repetitions and works with those: for each case it takes
-the median over each side's runs, their ratio, and a bootstrap 95% confidence interval for the ratio,
-resampling the runs. A change counts only when the interval excludes no change at all, and is only
-judged with at least two runs on each side. With the default two rounds, that means a change is
-flagged only when both of the candidate's runs are slower than both of the baseline's: a coarse
-screen. So every case flagged minor or MAJOR after them runs ``--confirm-rounds`` more rounds (default
-8), and is judged on all of them; the report lists the cases confirmed this way. A flag from one noisy
-round then rarely survives, and one that does is a change. (The first rounds still decide which cases
-get the second look: a change they miss is not looked at again.) ``--confirm-rounds 0`` judges the first
-rounds as they are. With one round, every time is shown and none is judged, and the verdict says so.
-
-==========  =========================================================================================
-``lost``    ran in the baseline, but was skipped or is missing in the candidate: a red flag
-``DIFFER``  a pair whose host and device answers disagree, a new one included: a red flag, and its times
-            are not comparable
-``MAJOR``   at least 10% slower (``MAJOR``), or 10% more pool bytes: a red flag
-``minor``   at least 3% slower (``MINOR``), or 3% more pool bytes: worth a look
-``faster``  at least 3% faster, and no more pool bytes
-``~``       within the thresholds, or within the noise
-==========  =========================================================================================
-
-A differing checksum, or a differing hash of the points found, is noted beside the verdict: the two
-sides did not compute the same answers, so the times may not be comparable. It is flagged and makes the
-verdict yellow (as in a smoke comparison), not red: a change to a kernel may legitimately change a
-result's last bits. Like any yellow verdict, it passes CI only once accepted in the receipt, with the
-reason the answers changed (see `The performance receipt`_). A case whose pool bytes shrink by 3% or more is noted as such (it is never a regression). A
-paired case shows the device's speedup over the host, with the baseline's beside it when the two differ
-by 3% or more. A case that names another with ``Case::relativeTo()`` (the same answers computed another
-way, in any probe) shows that case's time over its own, for example ``tape/fused 2.78x``, with the
-baseline's beside it when the two differ by 3% or more; it is noted, never judged. Flagged cases are
-listed again under the table.
-
-Build costs
-^^^^^^^^^^^
-
-A comparison also reports what each side cost to build, after the timings: a section *Build costs*, in the
-report and in the receipt. It reports and does not judge: its flags do not enter the verdict, and CI does not
-check them.
-
-Every compile goes through ``Performance/Tools/BuildCost.cpp``, set as CMake's compiler launcher. It records
-each compile's CPU time (user and system time of the compiler and every process it ran) and peak memory,
-and, for nvcc, the statistics ptxas prints for every kernel (``-Xptxas -v``, which changes no code):
-registers, cumulative stack, and the bytes spilled to local memory. ``Performance/Tools/BuildCompare.cpp``
-then compares the two sides:
-
-* **Per translation unit** (a probe, or a test file): CPU time and peak memory, base against head, flagged
-  ``minor`` at 10% more and ``MAJOR`` at 25% more (``BUILD_MINOR`` and ``BUILD_MAJOR`` in ``Compare.cmake``),
-  if the growth is also at least 2 s or 100 MB, so that small units do not flag on noise; and the total.
-* **Per device kernel**: every kernel whose registers, stack or spills differ, flagged when its registers
-  change, its spills grow, or its stack grows by more than 10% and 256 bytes. More registers can cost
-  occupancy, spills cost local-memory traffic, and a larger stack more local memory per thread.
-
-CPU time rather than wall time, because the builds run in parallel; but a compile's CPU time still depends
-on the core it runs on. So on Linux the compiles run on one hardware thread of each core, pinned with
-``taskset`` (of each fast core, on a CPU with fast and slow cores), and two builds of the same code then
-agree closely. As many compiles run at once as there are such cores, but no more than the memory holds
-(``--jobs`` sets the number). The section's first line names the machine and how it compiled.
-
-With ``--test-builds``, a comparison also builds the heaviest test targets (``TestRay*``, ``TestTape*`` and
-``TestRender*``) in Debug with assertions on, as a developer and CI's device
-lanes build them, and reports their costs in a second section. It takes several minutes more; run it for a
-pull request that changes the tape or the rays.
-
-The performance receipt
------------------------
-
-CI does not time anything: a shared runner is too noisy to judge performance, and has no GPU. What CI
-requires instead is that the comparison was run, locally, on the pull request's own code, once the pull
-request is ready for review (a draft is not checked). The comparison's result is committed with the
-pull request as its *receipt*:
-
-.. code-block:: bash
-
-   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipt.md
-   git add Performance/receipt.md && git commit -m "Performance receipt"
-
-The receipt is one file, ``Performance/receipt.md``, with a section per comparison: the host comparison,
-which ``--record`` writes and CI requires, and, when the change touches device code, a device
-comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
-commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
-stand for the pull request: a smoke check, a subset of the cases (a glob), a working tree whose
-library or probes have uncommitted changes, or a run in which a case was skipped on either side (it
-checks for the ``common-3d-test-models`` submodule before building, since every mesh case needs it). Recording one section keeps the others only if they
-measured the same code against the same base, and drops them otherwise, so the file never carries a
-section that measured other code.
-
-Each section names the code it measured by two fingerprints: hashes of git's tree entries for what a
-comparison measures, the library (``Source/``, ``EBGeometry.hpp``) and the probes (``Performance/``,
-except its ``README.md`` and the receipt). CI's ``Performance-receipt`` job
-(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch. It
-requires the host section, checks every section present (a device section is optional, but once
-recorded it must pass like the host one), and passes only when, for each,
-
-* the pull request's code is the code the section measured. A receipt names the commit before the one
-  that adds it, so a later commit that changes only documentation or CI keeps it valid, while any
-  change to the library or the probes makes it stale. An old receipt never stands for new code: a pull
-  request that changes code and keeps the receipt it inherited fails;
-* the base branch's code is the base the section measured. When the base branch's code moves on (another
-  pull request merged), the pull request is rebased and its comparison recorded again;
-* the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
-  ``**Accepted:**`` line under that section's heading (the reason may wrap over several lines, up to the
-  next blank line) (a minor regression that is expected, answers that
-  changed for a reason, a major regression the maintainer explicitly accepts), where a reader of the
-  rendered receipt sees it. Every verdict is recorded; only green passes on its own, and CI's check
-  then shows a warning with the reason rather than a plain pass. Who accepted it is in git history: the
-  commit that wrote the reason, and the account that pushed it.
-
-A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
-request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
-performance history of the branch, one comparison per change. Device sections appear where a change
-was measured on a GPU; regular device measurement is left to a future nightly run.
-
-What a receipt proves is limited. Its fingerprints tie it to the code it names, so it cannot be
-carried over to other code by mistake, and CI computes them from git, not from the receipt. CI cannot
-check the figures themselves: the receipt records that its author ran the comparison and what it found,
-and it is trusted the way a review is trusted to have been done. It makes the local comparison a
-required, visible part of every change that needs one; it is not a proof that the numbers were measured.
-The same holds for an acceptance: CI cannot tell who wrote the reason on an ``**Accepted:**`` line.
-Git history records the commit that wrote it and the account that pushed it, which identifies an
-outside contributor, but not whether an agent working under the maintainer's account wrote it on the
-maintainer's say-so; that rests on the rule that an agent writes a reason only on the maintainer's
-explicit acceptance (``CLAUDE.md``).
-
-Two pull requests that both pass can still race: once one merges and changes the base's code, the
-other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
-before merging makes CI check it again.
-
-In continuous integration and in pull requests
-----------------------------------------------
-
-Two jobs in ``.github/workflows/CI.yml`` cover ``Performance/``:
-
-* ``Performance-smoke`` builds the probes with warnings as errors and runs every case at its smoke size,
-  on every push and pull request. The GPU lanes also compile the probes for their device.
-* ``Performance-receipt`` checks the pull request's receipt, as above, and puts the result in the job
-  summary. It builds and times nothing. On a draft pull request it only notes that the receipt is
-  checked once the pull request is ready for review.
-
-A minor regression is a question for the author and the reviewer: is it expected, and is it worth
-investigating? It, a changed checksum and a major regression are all merged only once fixed (and
-recorded again) or accepted in the receipt, the major one only by the maintainer's explicit decision.
-The pull request's *Performance* section shows the receipt's table, and the device comparison when the
-change touches device code.
-
-Adding cases
-------------
-
-The probes cover each public structure where its cost lives: its build, its queries, and any update in
-place (a refit), in both precisions, on the host and, where the operation runs there, on the device.
-Some rules of thumb:
-
-* A new public structure or query, or a new device path for an existing one, comes with its cases in the
-  same pull request: a new probe folder, or new cases in the probe of its component.
-* A case measures one operation on one input. Use the sizes users meet (hundreds of thousands of points
-  or triangles), so that one repetition takes at least a few milliseconds, and give it a ``--smoke`` size
-  that runs in well under a second.
-* Spell out every parameter that selects code (``K``, ``W``, the precision, the construction method) and
-  record it with ``param()``; record a checksum that depends on every result, and ``poolBytes()`` where
-  there is a pool. A case that computes the same answers as another case by other means (fused and
-  through a tape) names it with ``relativeTo()``, so that the comparison notes the ratio of their times.
-* Prefer a new case to changing an existing one: a changed case cannot be compared with its old
-  results (the report names the probe files that differ between the sides, not the cases).
-* Keep the whole set to about eight minutes for a comparison with its defaults on a desktop, builds
-  included, so it is run. A case that duplicates another's code path (the same kernel at another size) earns its place only
-  if it has behaved differently.

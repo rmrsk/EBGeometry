@@ -33,15 +33,15 @@ debugger output), and turns on both the test suite and the examples.
    # 3b. Run example programs (allow several minutes in Debug mode)
    ctest --preset examples
 
-A successful unit-test run looks like::
+A successful unit-test run ends with::
 
-   100% tests passed, 0 tests failed out of 566
+   100% tests passed, 0 tests failed out of <N>
 
 Most test files are written with Catch2's ``TEMPLATE_TEST_CASE`` so they can run under both
 ``float`` and ``double``, but locally, by default, only ``double`` runs (fast iteration,
-matching whatever the CMake preset otherwise builds) -- the count above is double-only. CI
-additionally configures with ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite
-under both precisions (1021 tests). To do the same locally:
+matching whatever the CMake preset otherwise builds). CI additionally configures with
+``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON`` to run the full suite under both precisions. To do the same
+locally:
 
 .. code-block:: bash
 
@@ -165,6 +165,19 @@ CMake options
      - The default triangle-group width ``TriangleSoA::DefaultWidth<T>()`` becomes the host-tuned
        width for these SIMD flags (8 for ``float`` with ``avx``). Cannot be combined with
        ``EBGEOMETRY_ENABLE_CUDA`` or ``EBGEOMETRY_ENABLE_HIP``. See :ref:`Sec:DefaultKW`.
+   * - ``EBGEOMETRY_ENABLE_CUDA``, ``EBGEOMETRY_ENABLE_HIP``
+     - ``OFF``
+     - Compile the ``[gpu]`` tests and the examples for a device, with CUDA or HIP (see
+       :ref:`Sec:BuildingGPU`).
+   * - ``EBGEOMETRY_VIEWER``
+     - ``OFF``
+     - ``SDL2`` compiles the interactive window of ``Render::view()`` (see :ref:`Sec:ConfigViewer`).
+   * - ``EBGEOMETRY_INSTALL``
+     - ``ON`` (``OFF`` when another project includes EBGeometry)
+     - Generate the install target (``cmake --install``).
+   * - ``EBGEOMETRY_PERF_ARCH_FLAGS``
+     - ``-march=native`` for a standalone host build of the probes
+     - Architecture flags for the performance probes (see :ref:`Chap:PerformanceTesting`).
 
 Selecting individual tests
 -----------------------------
@@ -208,7 +221,7 @@ Test coverage
    * - Test binary
      - What is covered
    * - ``TestVec``
-     - :cpp:class:`Vec2T` and :cpp:class:`Vec3T`: component access through ``operator[]`` only,
+     - ``Vec2T`` and ``Vec3T``: component access through ``operator[]`` only,
        construction (a trivial default constructor, and value initialization giving zero),
        arithmetic, division by a scalar matching each component's own quotient, dot/cross products,
        length, component-wise min/max (a NaN component handled as ``Math::min``/``max`` handle it),
@@ -257,17 +270,17 @@ Test coverage
        handle rebuilt from its layout and a location (its own, or a mirror's) answers exactly like
        the original.
    * - ``TestBoundingVolumes``
-     - :cpp:class:`AABBT`: construction from corners and point clouds, volume, surface area, point
+     - ``AABBT``: construction from corners and point clouds, volume, surface area, point
        distance, intersection predicate, overlapping volume; ``AABBT::merged``, the allocation-free
        union, with the default (empty) box as its identity; and the same queries on a device.
    * - ``TestAnalyticSDF``
-     - :cpp:class:`SphereSDF`, :cpp:class:`BoxSDF`, :cpp:class:`PlaneSDF`,
-       :cpp:class:`CylinderSDF`, :cpp:class:`TorusSDF`, :cpp:class:`RoundedBoxSDF`,
-       :cpp:class:`RoundedCylinderSDF` distances; the y-axis orientation of the torus and both
+     - ``SphereSDF``, ``BoxSDF``, ``PlaneSDF``,
+       ``CylinderSDF``, ``TorusSDF``, ``RoundedBoxSDF``,
+       ``RoundedCylinderSDF`` distances; the y-axis orientation of the torus and both
        cones, and the rounded box fitting its outer size; the ellipsoid against a sphere and a brute-force
        distance, the capped and round cones against a cylinder, ``ConeSDF`` and a capsule, the square prism
        against a box, and the tube, capped torus, cut spheres and wedge against distances worked by hand; every exact shape (all but
-       :cpp:class:`PerlinSDF`) checked as a true signed distance function at random points (unit
+       ``PerlinSDF``) checked as a true signed distance function at random points (unit
        gradient, a step back along the gradient lands on the surface, 1-Lipschitz); every shape's
        ``computeBoundingVolume()`` against its worked-out box, and its surface inside that box at
        random points; the ``distanceQuality`` of every shape, mesh distance field and BVH union;
@@ -277,14 +290,14 @@ Test coverage
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
-       correctness for :cpp:class:`FlatMeshSDF`; agreement between
-       :cpp:class:`FlatMeshSDF` (brute-force) and :cpp:class:`TriMeshSDF`
+       correctness for ``FlatMeshSDF``; agreement between
+       ``FlatMeshSDF`` (brute-force) and ``TriMeshSDF``
        (SIMD BVH); hand-built meshes whose half-edge loop does not close (a cycle that skips the
        first edge, an index past the end) rejected by ``reconcile()`` and reported by
        ``sanityCheck``, and a face with no half-edge or a vertex index past the end rejected by
        ``reconcile()``; ``soupToDCEL`` rejecting a face with fewer than three vertices or an
        out-of-range vertex index, and ``reconcilePairEdgesDCEL`` an out-of-range next edge;
-       :cpp:class:`DCEL::FaceT` point-in-face containment: the winding-number, crossing-number and
+       ``DCEL::FaceT`` point-in-face containment: the winding-number, crossing-number and
        subtended-angle algorithms, and their agreement on convex and concave (notched) polygons and on
        a non-axis-aligned plane; a small face far from the origin keeping its normal in single
        precision; ``DCEL::reconcile()`` after the vertices moved: ``MeshT::reconcile()``'s values byte
@@ -293,18 +306,18 @@ Test coverage
        schedule's and the reconcile's aborts (frozen or wrong pool, broken topology, another mesh,
        coincident positions).
    * - ``TestSFC``
-     - :cpp:class:`Morton`, :cpp:class:`Nested`, and :cpp:class:`Hilbert` space-filling curves:
+     - ``Morton``, ``Nested``, and ``Hilbert`` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
        monotonicity along one axis, injectivity, ``ValidSpan`` boundary
        regression, and (for Hilbert) the consecutive-code adjacency property; ``computeBins``
        binning into cubic cells (a flat cloud keeps a thin slab of bins), and coincident points or a
        vanishing extent giving bin 0.
    * - ``TestTriangle``
-     - :cpp:class:`Triangle`: face normal from vertex ordering, and
+     - ``Triangle``: face normal from vertex ordering, and
        signed-distance correctness for points closest to the face interior,
        an edge, and a vertex.
    * - ``TestPolygonSoup``
-     - :cpp:class:`PolygonSoup`: named vertex and face properties (an unknown name throwing, a
+     - ``PolygonSoup``: named vertex and face properties (an unknown name throwing, a
        property of the wrong size rejected); ``clean()`` merging duplicate vertices, removing
        degenerate faces and repairing a T-junction, carrying the properties along (a merged vertex
        keeping the first one's values), and changing nothing when run again; an index out of range or
@@ -320,25 +333,25 @@ Test coverage
        reader returning a clean soup, and ``readIntoPolygonSoup`` choosing the reader by extension;
        PLY and VTK properties staying aligned with the face ids all three mesh SDFs report after a
        degenerate face and a duplicate vertex are removed, and a VTK array that cannot be aligned
-       being dropped with a warning; the readers taking :cpp:class:`BVH::ConstructionOptions`
+       being dropped with a warning; the readers taking ``BVH::ConstructionOptions``
        building what the constructors build; and mesh distance functions and BVH unions refusing to
        build from no faces.
    * - ``TestBVH``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;
-       :cpp:class:`BVH::TreeBVH`/:cpp:class:`BVH::PackedBVH` ``signedDistance`` agreement with a
+       ``BVH::TreeBVH``/``BVH::PackedBVH`` ``signedDistance`` agreement with a
        brute-force scan across every partitioning strategy (top-down with the default and SAH
        partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
-       :cpp:func:`BVH::PackedBVH::build` building the same tree as the named build for every
-       :cpp:class:`BVH::Construction` value, and rejecting a zero leaf setting; :cpp:class:`MeshSDF`
-       and :cpp:class:`TriMeshSDF` agreement with :cpp:class:`FlatMeshSDF` for every
-       :cpp:class:`BVH::Construction` strategy; each method's :cpp:class:`BVH::ConstructionOptions`
+       ``BVH::PackedBVH::build`` building the same tree as the named build for every
+       ``BVH::Construction`` value, and rejecting a zero leaf setting; ``MeshSDF``
+       and ``TriMeshSDF`` agreement with ``FlatMeshSDF`` for every
+       ``BVH::Construction`` strategy; each method's ``BVH::ConstructionOptions``
        leaf-size setting honoured by both mesh SDFs (the defaults reproducing the constructors
        without options, and a zero setting rejected); signs on two concave meshes (an L-shaped prism
        and a box with a narrow notch, whose concave edges need both adjacent faces' normals) against
        an analytic inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also
-       on polygon faces, and on a device against the host); a :cpp:class:`MeshSDF` seeing its mesh
-       flipped, or moved and refitted, after the build; :cpp:func:`BVH::PackedBVH::traverse` (a
+       on polygon faces, and on a device against the host); a ``MeshSDF`` seeing its mesh
+       flipped, or moved and refitted, after the build; ``BVH::PackedBVH::traverse`` (a
        nearest-point search with a visit callback and ``FarthestFirst`` against brute force at K = 2,
        4 and 8 and on a device against the host; with no bound every primitive once and ``AsStored``
        in stored order; an empty BVH calling nothing; ``BVH::RayQuery`` entry distances against the
@@ -346,18 +359,18 @@ Test coverage
        components, single-box and K-wide paths agreeing; the nearest box a ray enters against brute
        force at K = 2, 4 and 8, and on a device; a missed box never entered under an infinite bound;
        the visit orders and both comparator forms; a visit callback accounting for whole subtrees
-       and stopping the walk; a user query type with a composite key); :cpp:func:`BVH::TreeBVH::traverse` passing an exception
-       from a callback on to the caller; and every :cpp:class:`BVH::PackedBVH` box stored once (a
+       and stopping the walk; a user query type with a composite key); ``BVH::TreeBVH::traverse`` passing an exception
+       from a callback on to the caller; and every ``BVH::PackedBVH`` box stored once (a
        32-byte node at K = 4; any node's box, found through its box slot, equal to the union of its
        primitives or children; a refit through a copy seen by the original; deep and adopted copies
        keeping every box; the adopting constructor rejecting a box count that does not match the
-       nodes); :cpp:func:`BVH::TreeBVH::refit`/:cpp:func:`BVH::PackedBVH::refit` keeping bounding
+       nodes); ``BVH::TreeBVH::refit``/``BVH::PackedBVH::refit`` keeping bounding
        volumes correct after a moving geometry (idempotent on an unchanged cloud, queries still
-       matching a brute-force scan after displacement); :cpp:func:`BVH::refit` through a
-       :cpp:class:`BVH::RefitSchedule` making every box exactly the union of what it encloses, on a host
+       matching a brute-force scan after displacement); ``BVH::refit`` through a
+       ``BVH::RefitSchedule`` making every box exactly the union of what it encloses, on a host
        pool and level by level on a device after the caller's own kernel moved the points (the same
        boxes as the host's sweep), and refusing a frozen pool, a schedule for another BVH (of the same
-       size in the same pool too) and one from another pool; and every :cpp:class:`BVH::TreeBVH` node's
+       size in the same pool too) and one from another pool; and every ``BVH::TreeBVH`` node's
        box exactly the union of what it encloses, after both builds and after a refit. Also the
        build-time checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and
        16, every kind of malformed node array (a leaf with no primitives among them), and a
@@ -368,10 +381,10 @@ Test coverage
        every primitive in an unbounded search at every ``K``, SIMD path or scalar; only interior
        nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
        extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
-       fewest power-of-``K`` leaves; a :cpp:class:`BVH::TreeBVH` root that no ``shared_ptr`` owns,
+       fewest power-of-``K`` leaves; a ``BVH::TreeBVH`` root that no ``shared_ptr`` owns,
        built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
    * - ``TestCSG``
-     - :cpp:func:`SmoothMin`/:cpp:func:`SmoothMax`/:cpp:func:`ExpMin`/:cpp:func:`ExpMax` blending
+     - ``SmoothMin``/``SmoothMax``/``ExpMin``/``ExpMax`` blending
        primitives, including far from the blend region;
        sharp and smooth ``Union``/``Intersection``/``Difference`` expressions compiled into a tape,
        against the formulas computed by hand, with both blend kinds; the boxes and distance qualities
@@ -379,7 +392,7 @@ Test coverage
        operand that is not a distance, and with unbounded operands; ``FiniteRepetition`` tiling,
        boundary clamping, and its value being the minimum over all copies, off-center and
        overlapping ones included. The BVH-accelerated
-       :cpp:class:`BVHUnion`/:cpp:class:`BVHSmoothUnion` over spheres (against a brute-force scan,
+       ``BVHUnion``/``BVHSmoothUnion`` over spheres (against a brute-force scan,
        for every build strategy and blend, and with each method's leaf-size setting) and over
        translated
        ``TriMeshSDF`` objects, including a union of unions; primitives whose values are not
@@ -395,7 +408,7 @@ Test coverage
        against its formula applied by hand and against an equivalent shape built directly; chains of
        maps folded into one; transformed boxes; and every rejected argument.
    * - ``TestTape``
-     - :cpp:class:`Tape` itself: a trivially copyable pool handle and a shape; every analytic shape
+     - ``Tape`` itself: a trivially copyable pool handle and a shape; every analytic shape
        evaluating exactly as the shape; a mesh distance field (all three kinds) unioned with a sphere
        equal to the smaller distance everywhere; a union of many objects of different types matching
        brute force with and without a BVH; user primitive types, including a BVH union and a tape
@@ -498,10 +511,10 @@ Test coverage
        (one with a BVH union and a difference), a mesh in a fused difference, a marched shell and a
        smooth union against the host.
    * - ``TestRayOffsets``
-     - The ray queries of offsets and annuli: of a sphere, box, capsule, plane, infinite cylinder and a
+     - The ray queries of offsets and shells: of a sphere, box, capsule, plane, infinite cylinder and a
        scaled ball, fused and in a tape, and of the three mesh SDFs (the unit cube grown, shrunk and as
-       a wall, from outside, from inside it and towards a corner), against crossings and normals worked
-       by hand, and a shell of a shell marched; and on a device, offsets and annuli of the meshes and of
+       a wall, from outside, from inside it and toward a corner), against crossings and normals worked
+       by hand, and a shell of a shell marched; and on a device, offsets and shells of the meshes and of
        a scaled box, fused and in tapes, against the host.
    * - ``TestIncludeFused``, ``TestIncludeBVHUnion``
      - A file that includes only the shapes and ``EBGeometry_Fused.hpp`` (or ``EBGeometry_BVHUnion.hpp``)
@@ -527,24 +540,24 @@ Test coverage
        and colors set, in the depth and x-ray views and with a hidden primitive; the cost view; and a
        canceled device render skipping its pixels' work.
    * - ``TestFunctionQueries``
-     - :cpp:func:`approximateBoundingVolumeOctree` against an independent recursive subdivision of
+     - ``approximateBoundingVolumeOctree`` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
        empty, inverted or missed initial box, a depth beyond ``MaxOctreeDepth`` rejected, and the
        same box from a shape, a tape and a lambda;
-       :cpp:func:`normal` against a sphere's exact normal; and both on a device.
+       ``normal`` against a sphere's exact normal; and both on a device.
    * - ``TestTriangleSoA``
-     - :cpp:class:`TriangleSoAT`: ``signedDistance`` agreement with the minimum over the individual
-       packed :cpp:class:`Triangle` instances (including padding when fewer than ``W`` triangles are
+     - ``TriangleSoAT``: ``signedDistance`` agreement with the minimum over the individual
+       packed ``Triangle`` instances (including padding when fewer than ``W`` triangles are
        packed), per-lane ``signedDistances`` consistency, a zero normal giving a negative distance
        on the SIMD and scalar paths alike at ``W`` = 4, 8 and 16, and bounding-volume construction
-       from the packed data; :cpp:class:`TriangleAoSoA`: closest-triangle face-id retrieval
+       from the packed data; ``TriangleAoSoA``: closest-triangle face-id retrieval
        (``signedDistance(point, uint32_t&)``) and per-lane ``getFaceId`` with padding.
    * - ``TestPointSoA``
-     - :cpp:class:`PointSoAT`: minimum and maximum distances and per-lane distances against the
+     - ``PointSoAT``: minimum and maximum distances and per-lane distances against the
        closest and farthest packed point, unaffected by padding, for ``W`` = 4 and 8; the bounding
        volume of the packed points; the default width; and rejection of a bad count or a null array.
    * - ``TestPointAoSoA``
-     - :cpp:class:`PointAoSoA`: distances agreeing exactly with a plain ``PointSoAT``, per-lane
+     - ``PointAoSoA``: distances agreeing exactly with a plain ``PointSoAT``, per-lane
        point ids with padding and the valid-point count, the bounding volume, the default width,
        rejection of bad input, and the device query surface against the host.
    * - ``TestPointCloud``
@@ -552,7 +565,7 @@ Test coverage
        (order, ties, the excluded point, the pruning bound), and the brute-force references against
        an independent scan, including self-queries, fewer points than requested, and an empty cloud.
    * - ``TestPointCloudBVH``
-     - :cpp:class:`PointCloudBVH`: nearest-neighbor, k-nearest-neighbor, all-points and
+     - ``PointCloudBVH``: nearest-neighbor, k-nearest-neighbor, all-points and
        closest-point queries against brute force, edge cases (padded lanes reported once even when
        ``k`` exceeds the cloud), ``rebasedView``/``deepCopy``, device queries against the host,
        ``build()`` in device-accessible memory giving the host's tree array for array (over leaf
@@ -564,7 +577,7 @@ Test coverage
        The query functors it shares with ``TestPointCloudHashGrid`` are in
        :file:`Tests/TestPointCloudQueries.hpp`.
    * - ``TestPointCloudHashGrid``
-     - :cpp:class:`PointCloudHashGrid`: the same queries against brute force, edge cases (far
+     - ``PointCloudHashGrid``: the same queries against brute force, edge cases (far
        queries, a lattice where many points tie on cell faces, a cloud far from the origin where the
        stopping rule's rounding slack is tightest, extreme cell sizes),
        ``rebasedView``/``deepCopy``, device queries against the host, ``build`` in device-accessible
@@ -575,7 +588,7 @@ Test coverage
        more than it has, and rejection of a cloud it cannot index, a non-positive target occupancy, a rebuild
        past its room, or a rebase onto an unrelated pool.
    * - ``TestSphereCloudBVH``
-     - :cpp:class:`SphereCloudBVH` and its leaf group ``SphereAoSoA``: the signed distance and the closest sphere
+     - ``SphereCloudBVH`` and its leaf group ``SphereAoSoA``: the signed distance and the closest sphere
        against brute force (inside and outside the spheres), ties to the lower index, radius-0 spheres against
        ``PointCloudBVH``, an empty cloud, the box, the same tree from centers and radii kept apart, ``rebuild()``
        on a frozen pool (the tree of a fresh build, nothing reserved), ``rebasedView``/``deepCopy``, device

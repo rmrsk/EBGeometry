@@ -4,7 +4,7 @@ MeshSDF
 ========
 
 Reads a surface mesh into a signed distance function in each of the three representations described
-in :ref:`Chap:MeshSDFClasses`, times them, and evaluates one on a GPU. The source is at
+in :ref:`Chap:ImplemMeshSDF`, times them, and evaluates one on a GPU. The source is at
 :file:`Examples/MeshSDF/main.cpp`.
 
 .. figure:: /_static/example_MeshSDF.jpg

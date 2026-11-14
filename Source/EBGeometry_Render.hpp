@@ -1049,8 +1049,8 @@ public:
   /**
    * @brief Render a shape on the host, stopping early when asked to (for an interactive viewer).
    * @details As render(const S&, const Camera<T>&, Image&), but every thread checks a_cancel before each
-   * row, and the render returns soon after it is set, with Stats::m_complete false and the rows not
-   * reached left black. a_rowsDone, if given, counts the finished rows as they finish, so another thread
+   * pixel, and the render returns as soon as the pixels being traced are done, with Stats::m_complete false and
+   * the pixels not reached left black. a_rowsDone, if given, counts the finished rows as they finish, so another thread
    * can show the progress.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_shape    Shape.

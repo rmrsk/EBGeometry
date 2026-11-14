@@ -124,18 +124,18 @@ from a ``MemoryResource``.
 bump-allocates a sub-region and returns its byte offset from
 `base() <doxygen/html/classEBGeometry_1_1Pool.html#a14cf86c799ccb7bce96b9abb4fa7555d>`__. Nothing is
 ever individually freed. If the block is too small, ``reserve`` transparently grows it: it allocates
-a new, larger block (geometric doubling), ``memcpy``\ s every byte currently in use into it, and
+a new, larger block, ``memcpy``\ s every byte currently in use into it, and
 **frees the old block** -- so ``base()`` can change on any ``reserve()`` call. A block holds at most
 the largest multiple of the 256-byte base alignment that a ``size_t`` holds. An initial size passed
 to the constructor, or a request that with the bytes already reserved would need more, aborts in
-every build (see :ref:`Sec:AlwaysOnChecks`) rather than wrapping round to a smaller size.
+every build (see :ref:`Sec:AlwaysOnChecks`) rather than wrapping around to a smaller size.
 
 Building and querying are not separate phases. A pool-resident object is usable from the moment its
 storage is reserved, including while the same pool keeps being built into, because it does not
 remember an address: it holds a pointer to the pool's *control block*
 (`PoolControl <doxygen/html/structEBGeometry_1_1PoolControl.html>`__), a small heap-resident record
-holding the current base, and re-reads the base through it on every access. ``grow()`` publishes the
-new base there, so a block move is invisible to every object resolving through it.
+holding the current base, and re-reads the base through it on every access. A pool that grows
+publishes its new base there, so a block move is invisible to every object resolving through it.
 
 .. code-block:: c++
 
@@ -249,9 +249,9 @@ abandoned copy and is silently lost, while the object itself now reads from the 
 ``PODVector`` and ``PODSpan``: placement-independent storage
 ------------------------------------------------------------------
 
-A `PODVector\<T\> <doxygen/html/structEBGeometry_1_1PODVector.html>`__ is a trivially-copyable,
-16-byte descriptor (``uint64_t`` offset + ``uint32_t`` size + ``uint32_t`` capacity -- no pointer
-at all) of a contiguous array of ``T`` living inside a ``Pool``. ``T`` itself must be trivially
+A `PODVector\<T\> <doxygen/html/structEBGeometry_1_1PODVector.html>`__ is a trivially copyable
+descriptor (an offset, a size and a capacity, no pointer) of a contiguous array of ``T`` living inside a
+``Pool``. ``T`` itself must be trivially
 copyable, since it is device-visible storage.
 
 .. code-block:: c++

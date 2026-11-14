@@ -44,7 +44,7 @@ box and a depth, the algorithm is:
 
 The depth is at most ``MaxOctreeDepth`` (24), and a deeper one is rejected. If the initial box is empty or inverted along any axis, does not contain the surface, or
 no cell survives to the deepest level, the function returns the maximal box, from
-``-Vec3T<T>::max()`` to ``Vec3T<T>::max()``, signalling that the initial box needs to be chosen
+``-Vec3T<T>::max()`` to ``Vec3T<T>::max()``, signaling that the initial box needs to be chosen
 more generously or that the function is far from a signed distance.
 
 .. tip::

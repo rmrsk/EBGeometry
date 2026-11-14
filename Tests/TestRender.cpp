@@ -737,6 +737,57 @@ TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render
   CHECK(rows == 0U);
 }
 
+namespace {
+// A shape that is never reached (its value is 1 everywhere in its box) and that sets a cancel flag the first time it
+// is evaluated: a render of it is canceled during its first traced pixel.
+template <class T>
+struct CancelOnFirstUse
+{
+  std::atomic<bool>* m_cancel;
+
+  [[nodiscard]] T
+  signedDistance(const Vec3T<T>& /*a_point*/) const noexcept
+  {
+    *m_cancel = true;
+
+    return T(1);
+  }
+
+  [[nodiscard]] BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(Vec3T<T>(-100, -100, -100), Vec3T<T>(100, 100, 100));
+  }
+};
+} // namespace
+
+TEMPLATE_TEST_CASE("Render: a canceled host render stops within a row, not at its end",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // One thread, so that the first row is the only one started; the camera is inside the shape's box, so every ray is
+  // marched from its start and the first pixel sets the flag.
+  Render::Settings<T> settings = plain<T>(16);
+
+  settings.m_threads = 1U;
+
+  const Render::Renderer<T> renderer(settings);
+  const auto camera = Render::Camera<T>::fit(SphereSDF<T>(Vec3T<T>::zeros(), T(1)).computeBoundingVolume());
+
+  std::atomic<bool>     cancel{false};
+  std::atomic<uint32_t> rows{0};
+
+  Render::Image image;
+
+  const auto stats = renderer.render(CancelOnFirstUse<T>{&cancel}, camera, image, cancel, &rows);
+
+  CHECK(cancel);
+  CHECK_FALSE(stats.m_complete);
+  CHECK(rows == 0U);
+}
+
 TEMPLATE_TEST_CASE("Render: a primitive color set in the table replaces the palette's for that primitive only",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)

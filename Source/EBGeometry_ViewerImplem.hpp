@@ -989,14 +989,22 @@ run(const S&           a_shape,
   };
 
   // The colors the names give the keys of the coloring shown, over the settings' own (see RegionNames::setColor()).
+  //
+  // Colored by region, a region with no color, its own or its material's, takes its material's palette color: the
+  // colors it has colored by material, which numbers materials from 0 where regions start at 1 (0 is the outside).
   const auto applyColors = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
         Vec3T<double> color;
 
-        settings.m_primitiveColors[i] = names.colorOf(settings.m_regions.m_coloring, i, color)
-                                          ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
-                                          : a_settings.m_primitiveColors[i];
+        const bool     named      = names.colorOf(settings.m_regions.m_coloring, i, color);
+        const uint32_t material   = names.materialOf(i);
+        const bool     ofMaterial = !named && settings.m_regions.m_coloring == RegionColoring::Region &&
+                                material != RegionNames::None && !(a_settings.m_primitiveColors[i][0] >= T(0));
+
+        settings.m_primitiveColors[i] = named        ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
+                                        : ofMaterial ? RenderDetail::palette<T>(material)
+                                                     : a_settings.m_primitiveColors[i];
         settings.m_materialColors[i]  = names.colorOf(RegionColoring::Material, i, color)
                                           ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
                                           : a_settings.m_materialColors[i];
@@ -1162,10 +1170,28 @@ run(const S&           a_shape,
 
   std::vector<Picked> selection;
 
-  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background).
+  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background). A
+  // surface picked by its labels (a mesh, see RegionNames::setPickedByLabel()) gives the faces labeled as the one
+  // clicked (its face group), or the whole piece when that face has no label of its own.
   const auto selectorOf = [&](const SurfaceRef<T>& a_piece) {
     if (pickMode == PickMode::Region) {
       return SurfaceSelector::region((a_piece.m_ownerRegion != 0U) ? a_piece.m_ownerRegion : a_piece.m_neighborRegion);
+    }
+
+    if (names.pickedByLabel(a_piece.m_surface)) {
+      const SurfaceInventory& surfaces = names.getInventory();
+
+      SurfaceSelector selector = SurfaceSelector::piece(a_piece);
+
+      if (a_piece.m_surface < surfaces.getNumSurfaces() && surfaces.hasPartLabels(a_piece.m_surface)) {
+        const SurfaceLabelId label = surfaces.getLabel(a_piece.m_surface, a_piece.m_part);
+
+        if (!label.isNone()) {
+          selector.m_label = label.value();
+        }
+      }
+
+      return selector;
     }
 
     return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
@@ -1314,16 +1340,16 @@ run(const S&           a_shape,
     return mask;
   };
 
-  // The section plane's labels from the active domain (RegionSettings::m_sectionLabels): each region's subdomain, or
-  // excluded.
-  const auto sectionLabels = [&]() {
+  // The section plane's subdomains from the active domain (RegionSettings::m_sectionSubdomains): each region's
+  // subdomain, or excluded.
+  const auto sectionSubdomains = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       const bool any = names.getNumDomains() > 0U;
 
       for (uint32_t k = 0; k < 64U; k++) {
         const uint32_t d = any ? names.getDomain(names.getActiveDomain()).subdomainOf(k) : Subdomains::None;
 
-        settings.m_regions.m_sectionLabels[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedLabel;
+        settings.m_regions.m_sectionSubdomains[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedSubdomain;
       }
     }
   };
@@ -2133,19 +2159,37 @@ run(const S&           a_shape,
       frame.m_regions.m_surfaceGroups = a_deviceScheme;
     }
 
-    const Renderer<T> renderer(frame);
+    const auto draw = [&](const auto& a_hostShape, const auto& a_deviceShape, const Settings<T>& a_settings) {
+      const Renderer<T> renderer(a_settings);
 
-    if (a_onDevice && a_job != nullptr) {
-      return renderer.renderOnDevice(a_device, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
-    }
-    if (a_onDevice) {
-      return renderer.renderOnDevice(a_device, a_view, a_image);
-    }
-    if (a_job != nullptr) {
-      return renderer.render(a_host, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      if (a_onDevice && a_job != nullptr) {
+        return renderer.renderOnDevice(a_deviceShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+      if (a_onDevice) {
+        return renderer.renderOnDevice(a_deviceShape, a_view, a_image);
+      }
+      if (a_job != nullptr) {
+        return renderer.render(a_hostShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+
+      return renderer.render(a_hostShape, a_view, a_image);
+    };
+
+    // A cost view of regions times the queries its labels name, firstHit() and firstCrossing() of the object: its
+    // tape's own, through the renderer's path for a tape, not the view's tracing of regions (finding where the region
+    // changes and what is seen there), which costs more and is no query a program calls. The tape's leaves are not the
+    // view's coloring keys, so its primitives are not recorded.
+    if constexpr (hasRegionVisibility<S>) {
+      if (frame.m_viewMode == ViewMode::CostHit || frame.m_viewMode == ViewMode::CostCrossing) {
+        Settings<T> object = frame;
+
+        object.m_recordPrimitives = false;
+
+        return draw(a_host.getTape(), a_device.getTape(), object);
+      }
     }
 
-    return renderer.render(a_host, a_view, a_image);
+    return draw(a_host, a_device, frame);
   };
 
   // The slice view's camera turned square to the plane, from its removed side; its target, distance and field of view
@@ -2588,7 +2632,7 @@ run(const S&           a_shape,
       const bool                byPart  = pickMode == PickMode::Surface;
       const bool                several = chosen.size() > 1U;
 
-      // The probed point: where it is, the region it is in, the active domain's label and functions there, and the
+      // The probed point: where it is, the region it is in, the active domain's subdomain and functions there, and the
       // nearest surface of its region with its surface group.
       if (probed) {
         const auto&    tape = shape.getTape();
@@ -2601,16 +2645,15 @@ run(const S&           a_shape,
           // The active domain built for the readout alone, in a pool of its own.
           Pool           tables(hostMemoryResource());
           const Domain   domain(tables, tape, names.getDomain(names.getActiveDomain()));
-          const uint32_t label = domain.labelAt(probePoint);
-          const uint32_t count = domain.getNumLabels();
+          const uint32_t sub   = domain.subdomainAt(probePoint);
+          const uint32_t count = domain.getNumSubdomainFunctions();
 
           std::vector<T> values(count);
 
           domain.signedDistances(probePoint, values.data(), count);
 
           line("  " + names.domainName(names.getActiveDomain()) + ": " +
-               ((label == Subdomains::None) ? std::string("excluded")
-                                            : "in subdomain " + names.subdomain(label, details)));
+               ((sub == Subdomains::None) ? std::string("excluded") : "in subdomain " + names.subdomain(sub, details)));
 
           for (uint32_t l = 0; l < count; l++) {
             line("    " + ((l + 1U == count) ? std::string("Excluded") : "Subdomain " + names.subdomain(l, details)) +
@@ -3653,7 +3696,7 @@ run(const S&           a_shape,
                     regions.m_sectionDomain  = regions.m_sectionDomain || regions.m_sectionRegions != 0U;
                     regions.m_sectionRegions = 0U;
 
-                    sectionLabels();
+                    sectionSubdomains();
                     pieceIndex = std::size_t(-1);
 
                     applyColors();
@@ -4189,7 +4232,7 @@ run(const S&           a_shape,
               if (names.getNumDomains() > 0U && !regions.m_sectionDomain && regions.m_sectionRegions == 0U) {
                 regions.m_sectionDomain = true;
 
-                sectionLabels();
+                sectionSubdomains();
               }
             }
 
@@ -4414,7 +4457,7 @@ run(const S&           a_shape,
                   regions.m_sectionRegions == 0U) {
                 regions.m_sectionDomain = true;
 
-                sectionLabels();
+                sectionSubdomains();
               }
             }
 
@@ -4594,7 +4637,7 @@ run(const S&           a_shape,
             regions.m_sectionDomain  = next == 1U;
             regions.m_sectionRegions = (next >= 2U) ? subdomainAllRegions(next - 2U) : uint64_t(0);
 
-            sectionLabels();
+            sectionSubdomains();
 
             if ((regions.m_sectionDomain || regions.m_sectionRegions != 0U) && sectionMode == 0) {
               sectionMode   = 2;

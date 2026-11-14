@@ -13,16 +13,12 @@ kernel:
   loops (a Kokkos ``parallel_for``, a CUDA kernel of its own), on data that already
   lives on the device. :ref:`Chap:ExampleCustomShape` shows such a kernel.
 * **Let EBGeometry launch it**, with ``GPU::parallelFor`` or ``GPU::transform``. These are
-  conveniences for batches of queries that a program sets up itself: the examples, the tests, a
-  one-off evaluation of a grid of points.
+  conveniences for batches of queries that a program sets up itself: a one-off evaluation of a grid of
+  points, say, as the examples do.
 
 This page describes the second, and ends with the launch settings (:ref:`Sec:LaunchSettings`), which
 a kernel written by hand can copy. See :ref:`Sec:BuildingGPU` for how to compile for a GPU and
 :ref:`Chap:MemoryModel` for how an object's memory reaches the device.
-
-Every query runs on a device, and the device unit tests pass on a real GPU (CUDA). The continuous
-integration compiles those tests for CUDA and HIP but has no GPU to run them on, so a device run is
-done by hand.
 
 What runs where
 ---------------

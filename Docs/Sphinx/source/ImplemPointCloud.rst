@@ -11,7 +11,7 @@ cloud: ``PointCloudBVH`` (:file:`Source/EBGeometry_PointCloudBVH.hpp`) and ``Poi
 ``allNearestNeighbors`` -- return the same result type, and can be queried on a GPU. They differ in
 the spatial acceleration structure they build: a hierarchical tree, or a uniform grid. See
 :ref:`Chap:PointCloud` for the conceptual picture and the trade-off between the two. A third class,
-``SphereCloudBVH`` (`below <#spherecloudbvh>`__), holds spheres of differing radii and answers for their surfaces
+``SphereCloudBVH`` (see :ref:`Sec:SphereCloudBVH`), holds spheres of differing radii and answers for their surfaces
 and for the contacts between them.
 
 Results and cloud indices
@@ -162,6 +162,8 @@ See the `PointCloudHashGrid doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudHashGrid.html>`__ for the full interface, and
 :ref:`Chap:ExamplePointClouds`, which runs the same queries through both classes.
 
+.. _Sec:SphereCloudBVH:
+
 SphereCloudBVH
 --------------
 
@@ -189,7 +191,7 @@ arrays). The host constructors take either form:
    const SphereCloudBVH<T> cloud(pool, centers, radii);   // or (pool, spheres)
 
    const T   d   = cloud.signedDistance(p);                // < 0 inside a sphere
-   const Hit hit = cloud.closestSphere(p);                 // hit.index, hit.distance
+   const SphereCloud::Hit<T> hit = cloud.closestSphere(p);   // hit.index, hit.distance
 
 A radius of 0 is a point; a negative or non-finite radius, or a non-finite center, is refused.
 
