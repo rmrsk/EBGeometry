@@ -90,8 +90,9 @@ The keys
      - Render on the GPU or the CPU (when the window has a device view).
    * - X; Ctrl + X; Shift + X; N
      - Cut with a section plane across x, then y, then z, through the box's center (a plane the settings turn
-       on comes first); remove the cut; see through the cut face to the surfaces behind it, or make it opaque
-       again; reverse it.
+       on comes first); remove the cut; see through the cut face and the plane to the surfaces behind them, or
+       make them opaque again; keep the other side, then each side with the other ghosted (drawn translucent
+       in front of it), four in turn.
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
    * - U

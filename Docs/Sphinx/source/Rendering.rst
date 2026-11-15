@@ -39,7 +39,9 @@ the object would be everywhere.
 The plane also shows where it slices the object. Where a ray meets the plane before anything else, the
 object's value there says where the point lies: near zero, it is on the object's outline in the plane,
 drawn as a line of constant width on screen; outside, a faint sheet marks the plane, within the object's
-box. So a slice shows both the object's cross-section and, in front of the cut, the rest of its outline.
+box. So a slice shows both the object's cross-section and, in front of the cut, the rest of its outline. The
+removed side can also be drawn translucent ("ghosted") in front of the cut, so that the section is seen in
+place, within the whole object.
 Lines of equal distance can be drawn as well, inside and outside: spaced like a simulation's grid, they
 show which features the grid resolves.
 Reversing the plane's normal removes the other side.

@@ -293,8 +293,8 @@ keys(const bool a_device, const bool a_regions = false)
      "Section",
      {{"X", "Cut across x, then y, then z"},
       {"Ctrl + X", "Remove the cut"},
-      {"Shift + X", "See through the cut face, or make it opaque"},
-      {"N", "Reverse the cut (keep the other side)"},
+      {"Shift + X", "See through the cut face and the plane, or make them opaque"},
+      {"N", "Keep the other side; then each side with the other ghosted (four in turn)"},
       {"Up, Down", "Move the plane in coarse steps"},
       {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
@@ -1238,7 +1238,11 @@ run(const S&           a_shape,
   const Vec3T<T> center        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
   int            sectionMode   = givenSection ? 1 : 0;
   bool           sectionFlip   = false;
+  bool           sectionGhost  = false;
   T              sectionOffset = T(0);
+
+  // The plane's fill as given: Shift and X make it, and the cut face, see-through, and give it back.
+  const T givenFill = a_settings.m_sectionFill;
 
   const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
 
@@ -2183,6 +2187,7 @@ run(const S&           a_shape,
 
     // The arrow keys move the plane towards the removed side, so that more of the shape shows.
     frame.m_section       = sectionMode != 0;
+    frame.m_ghostOpacity  = sectionGhost ? T(0.3) : T(0);
     frame.m_sectionNormal = normal;
     frame.m_sectionPoint  = point + sectionOffset * normal;
 
@@ -2468,7 +2473,8 @@ run(const S&           a_shape,
         std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
           std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
       {{std::string("Cut: ") + sectionNames[sectionMode] +
-          ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") + ", moved " +
+          ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
+                                  std::string(sectionGhost ? ", the other side ghosted" : "") + ", moved " +
                                   fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
                               : std::string()),
         (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
@@ -4692,9 +4698,13 @@ run(const S&           a_shape,
         }
         case SDLK_x: {
           // X turns the plane on across x, then steps it to y, z and x again; Ctrl and X turn it off; Shift and X
-          // make the cut face see-through (the shape's surfaces behind it show), or opaque again.
+          // make the cut face and the plane's fill see-through (the shape's surfaces behind them show), or give them
+          // back.
           if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
-            settings.m_cutOpacity = (settings.m_cutOpacity < T(1)) ? T(1) : T(0.5);
+            const bool opaque = settings.m_cutOpacity >= T(1);
+
+            settings.m_cutOpacity  = opaque ? T(0.5) : T(1);
+            settings.m_sectionFill = opaque ? Math::min(givenFill, T(0.5)) : givenFill;
 
             break;
           }
@@ -4723,7 +4733,9 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_n: {
-          sectionFlip = !sectionFlip;
+          // Four in turn: this side kept, the other kept, then each with the other side ghosted (drawn translucent).
+          sectionGhost = sectionGhost != sectionFlip;
+          sectionFlip  = !sectionFlip;
 
           break;
         }

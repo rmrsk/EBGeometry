@@ -413,6 +413,13 @@ struct Settings
   T m_seenThroughOpacity = T(0.3);
 
   /**
+   * @brief Opacity of the shape on the side the section plane removes (m_section), drawn over what the cut shows: the
+   * first surface a camera ray meets there, translucent, so that the kept side and the plane show through it. 0 (the
+   * default) leaves the removed side out.
+   */
+  T m_ghostOpacity = T(0);
+
+  /**
    * @brief The floor's color.
    */
   Vec3T<T> m_floorColor = Vec3T<T>(T(0.58), T(0.59), T(0.61));

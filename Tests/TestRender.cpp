@@ -330,6 +330,51 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   (void)renderer.render(sphere, camera, shaded);
 
   CHECK(shaded.at(size / 2 + size / 8, size / 2) == seeThrough.at(size / 2 + size / 8, size / 2));
+
+  // Ghosted, the removed half is drawn in front of the cut: fully opaque, it is the uncut sphere's front, pixel for
+  // pixel (without shadows, which the cut changes); translucent, it lies between that and the cut alone.
+  renderer.settings().m_shadows    = false;
+  renderer.settings().m_occlusion  = false;
+  renderer.settings().m_cutOpacity = T(1);
+
+  Render::Image cutAlone;
+  Render::Image ghostOpaque;
+  Render::Image ghostFaint;
+  Render::Image uncut;
+
+  (void)renderer.render(sphere, camera, cutAlone);
+
+  renderer.settings().m_ghostOpacity = T(1);
+
+  (void)renderer.render(sphere, camera, ghostOpaque);
+
+  renderer.settings().m_ghostOpacity = T(0.3);
+
+  (void)renderer.render(sphere, camera, ghostFaint);
+
+  renderer.settings().m_section      = false;
+  renderer.settings().m_ghostOpacity = T(0);
+
+  (void)renderer.render(sphere, camera, uncut);
+
+  const uint32_t center = size / 2;
+
+  CHECK(ghostOpaque.at(center, center) == uncut.at(center, center));
+  CHECK(ghostFaint.at(center, center) != cutAlone.at(center, center));
+  CHECK(ghostFaint.at(center, center) != uncut.at(center, center));
+
+  const Channels faint = channels(ghostFaint.at(center, center));
+  const Channels alone = channels(cutAlone.at(center, center));
+  const Channels front = channels(uncut.at(center, center));
+
+  // Each channel between the two, as a blend of them is (to rounding in the 8-bit image).
+  CHECK(faint.b + 1 >= std::min(alone.b, front.b));
+  CHECK(faint.b <= std::max(alone.b, front.b) + 1);
+  CHECK(faint.r + 1 >= std::min(alone.r, front.r));
+  CHECK(faint.r <= std::max(alone.r, front.r) + 1);
+
+  // Off the sphere, where nothing is removed, ghosting changes nothing.
+  CHECK(ghostFaint.at(0, 0) == cutAlone.at(0, 0));
 }
 
 TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degenerate camera, bad lighting and an "
@@ -437,6 +482,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
       (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
     },
     "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (-0.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_ghostOpacity = T(1.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the opacity of the removed side must be from 0 to 1 (1.5)"));
 
   REQUIRE(abortsWith(
     [&sphere] {
