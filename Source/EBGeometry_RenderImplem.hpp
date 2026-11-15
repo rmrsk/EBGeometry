@@ -1057,11 +1057,50 @@ private:
       }
     }
 
+    // The removed side drawn translucent in front of the cut (Settings::m_ghostOpacity), with the plane in its place.
+    if (m_object.m_on && m_settings.m_ghostOpacity > T(0)) {
+      return this->ghosted(a_ray, a_near, tFront, color);
+    }
+
     if (m_onPlane) {
       color = this->drawOnPlane(a_ray, a_near, tFront, color);
     }
 
     return color;
+  }
+
+  /**
+   * @brief What a camera ray sees with the side the section plane removes drawn translucent (Settings::m_ghostOpacity):
+   * that side's nearest surface in front of what the cut shows, shaded over it, and the plane in the gap where it lies,
+   * behind that surface or in front of it. Out of line on a device, like shadeCutFace(): a second trace of the uncut
+   * shape and a third shading of a surface, which inlined would grow every render kernel, ghosting or not.
+   * @param[in] a_ray    The camera ray.
+   * @param[in] a_near   How far along the ray it starts to see.
+   * @param[in] a_tFront Where the ray meets what the cut shows.
+   * @param[in] a_color  What the cut shows there, without the plane.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  ghosted(const RayT<T>& a_ray, const T a_near, const T a_tFront, Vec3T<T> a_color) const noexcept
+  {
+    // The uncut shape's first crossing; one on the kept side is what the cut shows already.
+    const HitT<T> hit = m_object.shapeHit(a_ray, a_near, a_tFront, m_rays);
+
+    if (!hit.hit() || !(m_object.plane(hit.m_point) > T(0))) {
+      return m_onPlane ? this->drawOnPlane(a_ray, a_near, a_tFront, a_color) : a_color;
+    }
+
+    if (m_onPlane) {
+      a_color = this->drawOnPlane(a_ray, hit.m_t, a_tFront, a_color);
+    }
+
+    const T opacity = m_settings.m_ghostOpacity;
+
+    a_color = opacity * this->shadeSurface(hit, a_ray.m_direction, true) + (T(1) - opacity) * a_color;
+
+    return m_onPlane ? this->drawOnPlane(a_ray, a_near, hit.m_t - T(4) * m_eps, a_color) : a_color;
   }
 
   /**
@@ -2525,6 +2564,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);
   field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
   field("settings", "m_seenThroughOpacity", a_settings.m_seenThroughOpacity, settings.m_seenThroughOpacity);
+  field("settings", "m_ghostOpacity", a_settings.m_ghostOpacity, settings.m_ghostOpacity);
   field("settings", "m_floorColor", a_settings.m_floorColor, settings.m_floorColor);
   field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
@@ -2992,6 +3032,9 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_seenThroughOpacity >= T(0) && m_settings.m_seenThroughOpacity <= T(1),
                      "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (%g)",
                      double(m_settings.m_seenThroughOpacity));
+  EBGEOMETRY_REQUIRE(m_settings.m_ghostOpacity >= T(0) && m_settings.m_ghostOpacity <= T(1),
+                     "Render::Renderer: the opacity of the removed side must be from 0 to 1 (%g)",
+                     double(m_settings.m_ghostOpacity));
   EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
                        m_settings.m_sheetOpacity <= T(1),
                      "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "

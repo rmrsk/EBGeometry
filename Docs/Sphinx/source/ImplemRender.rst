@@ -87,8 +87,9 @@ default.
      - A floor under the shape that catches its shadow, with or without a checkerboard.
    * - ``m_sky``, ``m_skyHorizon``, ``m_skyZenith``, ``m_background``
      - A sky gradient behind the shape, or, with ``m_sky`` false, a plain background.
-   * - ``m_section``, ``m_sectionPoint``, ``m_sectionNormal``
-     - A section plane, removing the part of the shape on the side its normal points to.
+   * - ``m_section``, ``m_sectionPoint``, ``m_sectionNormal``, ``m_ghostOpacity``
+     - A section plane, removing the part of the shape on the side its normal points to; with ``m_ghostOpacity``
+       above 0, that part is drawn translucent in front of the cut instead of left out.
    * - ``m_cutOpacity``, ``m_cutColor``, ``m_contourWidth``, ``m_contourColor``, ``m_sheetOpacity``,
        ``m_sheetColor``, ``m_sheetEdgeColor``
      - How the section is drawn: the cut face (opaque unless ``m_cutOpacity`` is below 1, when the next
