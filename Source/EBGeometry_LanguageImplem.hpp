@@ -2101,7 +2101,8 @@ private:
     }
     case Kind::Shape: {
       if (a_value.m_type == VT::List) {
-        throw Error(a_value.m_span, a_name + ": " + a_what + " is one shape, not a list: " + LanguageDetail::listAdvice);
+        throw Error(a_value.m_span,
+                    a_name + ": " + a_what + " is one shape, not a list: " + LanguageDetail::listAdvice);
       }
       if (a_value.m_type != VT::Shape) {
         refuse("a shape");
@@ -3191,9 +3192,8 @@ private:
     // The pattern's argument, replaced by each file in turn; the options are passed on as they are.
     std::vector<Arg> args = a_args;
 
-    const auto slot = std::find_if(args.begin(), args.end(), [](const Arg& a_arg) {
-      return a_arg.m_key.empty() || a_arg.m_key == "pattern";
-    });
+    const auto slot = std::find_if(
+      args.begin(), args.end(), [](const Arg& a_arg) { return a_arg.m_key.empty() || a_arg.m_key == "pattern"; });
 
     slot->m_key.clear();
 
@@ -3341,7 +3341,8 @@ private:
       const std::string name    = a_group + "_" + a_list.m_elementNames[i];
 
       if (element.m_shape->m_partition) {
-        throw Error(element.m_span, "region '" + name + "': an element of a list in a region line is one solid, not an overlay");
+        throw Error(element.m_span,
+                    "region '" + name + "': an element of a list in a region line is one solid, not an overlay");
       }
 
       try {
@@ -4846,7 +4847,8 @@ private:
 
       if (a_node.m_text == "mesh" || a_node.m_text == "meshes") {
         for (size_t k = 0; k < a_node.m_children.size(); k++) {
-          const bool file = a_node.m_keys[k] == "file" || a_node.m_keys[k] == "pattern" || (k == 0 && a_node.m_keys[k].empty());
+          const bool file =
+            a_node.m_keys[k] == "file" || a_node.m_keys[k] == "pattern" || (k == 0 && a_node.m_keys[k].empty());
 
           if (file && a_node.m_children[k].m_kind == NK::String) {
             m_meshPath = &a_node.m_children[k];
