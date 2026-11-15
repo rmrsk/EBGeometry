@@ -195,7 +195,7 @@ keys(const bool a_device, const bool a_regions = false)
       {"Up, Down", "Move the plane in coarse steps"},
       {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
-      {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
+      {"I", "Lines of equal distance: off, as set, coarse, fine, finer (these follow the zoom)"}}},
     {"Picking and measuring",
      "Picking",
      {{"Click", "Pick what is under the cursor (the background clears it)"},
@@ -1684,9 +1684,31 @@ run(const S&           a_shape,
   T        cursorValue = T(0);
 
   // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a
-  // spacing), every 1/20 of the box's diagonal (2), every 1/50 (3), every 1/100 (4).
+  // spacing), or every 1/20 (2), 1/50 (3) or 1/100 (4) of the view's height at the target.
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
+
+  // The spacing of the lines now. Following the view, zooming in or narrowing the field of view draws them closer, so
+  // that about as many show whatever is looked at. The view's height at the target is 2 distance tan(fov / 2) in either
+  // projection (an orthographic view is as tall as the perspective one there); the spacing is rounded to 1, 2 or 5
+  // times a power of ten, so that its values read well and the lines stay put between those steps.
+  const auto isoSpacing = [&]() {
+    if (isoMode <= 1) {
+      return (isoMode == 0) ? T(0) : givenIso;
+    }
+
+    const T height = T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    const T step   = height / ((isoMode == 2) ? T(20) : (isoMode == 3) ? T(50) : T(100));
+
+    if (!(step > T(0)) || !std::isfinite(step)) {
+      return scale / T(20);
+    }
+
+    const T decade = std::pow(T(10), std::floor(std::log10(step)));
+    const T digit  = step / decade;
+
+    return decade * ((digit < T(1.5)) ? T(1) : (digit < T(3.5)) ? T(2) : (digit < T(7.5)) ? T(5) : T(10));
+  };
 
   // Images saved with W, numbered from 1.
   int saved = 0;
@@ -2048,6 +2070,9 @@ run(const S&           a_shape,
   // the full settings.
   const auto stageSettings = [&](const int a_stage) {
     publishGroups();
+
+    // The lines of equal distance follow the view (the settings keep the spacing in use, for C and the status).
+    settings.m_isoSpacing = isoSpacing();
 
     Settings<T> frame = settings;
 
@@ -4292,16 +4317,12 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_i: {
-          // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
-          // diagonal, every 1/50, every 1/100.
+          // Off, as the settings give them (skipped when they set no spacing), then every 1/20, 1/50 or 1/100 of the
+          // view's height, following it.
           isoMode = (isoMode + 1) % 5;
           isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
 
-          settings.m_isoSpacing = (isoMode == 0)   ? T(0)
-                                  : (isoMode == 1) ? givenIso
-                                                   : scale / ((isoMode == 2)   ? T(20)
-                                                              : (isoMode == 3) ? T(50)
-                                                                               : T(100));
+          settings.m_isoSpacing = isoSpacing();
 
           break;
         }
