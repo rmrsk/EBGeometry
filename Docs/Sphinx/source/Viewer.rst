@@ -47,8 +47,8 @@ To look inside:
   Shift + T makes every surface opaque again. Shift and the wheel step through the surfaces under the cursor,
   front to back, seeing through those in front of the one stepped to.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
-  keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut, and the arrow keys and Ctrl + wheel move it. I draws lines of equal distance on the plane, spaced
-  to the view.
+  keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut, and
+  the arrow keys and Ctrl + wheel move it. I draws lines of equal distance on the plane, spaced to the view.
 * **Slice view.** Z lays the section plane flat on screen, seen square from the removed side; the wheel then
   moves the plane through the object.
 * **Other views.** M cycles the views: shaded, x-ray, and the costs of finding hits and of finding crossings
@@ -107,7 +107,8 @@ The keys
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them, then every 1/20, 1/50 or
        1/100 of the view's height (rounded to 1, 2 or 5 times a power of ten), which follow the zoom and the
-       field of view: zoomed in, they are drawn closer.
+       field of view: zoomed in, they are drawn closer. Where they would crowd together on screen (far along a
+       plane seen at a slant), every second line is left out, as often as needed.
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to. For a view of regions, a click
        picks what the panel's pick mode picks, and Ctrl + click adds to what is picked, or takes out again.
