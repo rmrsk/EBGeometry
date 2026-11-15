@@ -3170,6 +3170,11 @@ private:
     for (std::filesystem::directory_iterator it(folder, ec), end; !ec && it != end; it.increment(ec)) {
       const std::string file = it->path().filename().string();
 
+      // Only an entry the pattern names is tested, so that another one that cannot be read (a stale link) is no error.
+      if (!LanguageDetail::globMatch(name, file)) {
+        continue;
+      }
+
       std::error_code entry;
 
       const bool regular = it->is_regular_file(entry);
@@ -3177,7 +3182,7 @@ private:
       if (entry) {
         throw Error(b.m_values[0]->m_span, "meshes: cannot read '" + it->path().string() + "': " + entry.message());
       }
-      if (regular && LanguageDetail::globMatch(name, file)) {
+      if (regular) {
         files.push_back(file);
       }
     }

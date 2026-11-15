@@ -812,6 +812,11 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
     std::ofstream(a_file, std::ios::binary) << a_text;
   };
 
+  // A stale link the pattern does not name is no error (where links can be made).
+  std::error_code linked;
+
+  fs::create_symlink(folder / "gone.txt", folder / "parts" / "notes.txt", linked);
+
   // A list in a region line is a group of regions, one per file, named after it, in natural order.
   write(folder / "overlay.ebg",
         "ebg 0\nparts = meshes(\"parts/cube-*.obj\", groups = false)\nobject overlay {\n  region air = "
@@ -874,6 +879,14 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
   CHECK_THAT(
     firstError("ebg 0\nobject difference(box((0, 0, 0), (1, 1, 1)), sphere(meshes(\"parts/cube-*.obj\"), 1))\n"),
     Catch::Matchers::ContainsSubstring("a vector"));
+
+  // A stale link the pattern names is: a part would be missing.
+  if (!linked) {
+    fs::create_symlink(folder / "gone.obj", folder / "parts" / "cube-9.obj");
+
+    CHECK_THAT(firstError("ebg 0\nobject bvh_union(meshes(\"parts/cube-*.obj\"))\n"),
+               Catch::Matchers::ContainsSubstring("cannot read"));
+  }
 
   fs::remove_all(folder);
 }
