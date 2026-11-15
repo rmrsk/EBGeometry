@@ -187,16 +187,22 @@ Soup::isZeroArea(const std::vector<EBGeometry::Vec3T<T>>& a_vertices, const std:
     return true;
   }
 
-  // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its (vector) area.
-  Vec3 normal       = Vec3::zeros();
-  T    longestEdge2 = T(0);
+  // Newell's method: the sum of x_i cross x_(i+1) around the polygon is twice its (vector) area. The positions are
+  // taken relative to the polygon's first vertex, as in FaceT::computeNormal(): with absolute positions each term is of
+  // the order of |x|^2 while the sum is of the order of the area, so far from the origin the sum cancels, and in single
+  // precision a well-shaped face 3e-3 across, 5 from the origin, summed to exactly zero and was removed as degenerate.
+  EBGEOMETRY_EXPECT(a_facet[0] < a_vertices.size());
+
+  const Vec3 pivot        = a_vertices[a_facet[0]];
+  Vec3       normal       = Vec3::zeros();
+  T          longestEdge2 = T(0);
 
   for (size_t i = 0; i < N; i++) {
     EBGEOMETRY_EXPECT(a_facet[i] < a_vertices.size());
     EBGEOMETRY_EXPECT(a_facet[(i + 1) % N] < a_vertices.size());
 
-    const Vec3& x0 = a_vertices[a_facet[i]];
-    const Vec3& x1 = a_vertices[a_facet[(i + 1) % N]];
+    const Vec3 x0 = a_vertices[a_facet[i]] - pivot;
+    const Vec3 x1 = a_vertices[a_facet[(i + 1) % N]] - pivot;
 
     normal += x0.cross(x1);
     longestEdge2 = Math::max(longestEdge2, (x1 - x0).length2());

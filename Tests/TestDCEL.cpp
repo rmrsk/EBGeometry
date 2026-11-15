@@ -1427,6 +1427,24 @@ TEMPLATE_TEST_CASE("Soup::containsDegeneratePolygons detects a zero-area facet w
   REQUIRE(Soup::containsDegeneratePolygons(verts, facets));
 }
 
+TEMPLATE_TEST_CASE("Soup::isZeroArea keeps a small, well-shaped facet far from the origin",
+                   "[Soup]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // A face of a mesh file, 3e-3 across and about 5 from the origin: its doubled area is 4.7e-4 times its longest edge
+  // squared, 60 times the zero-area tolerance. In single precision, a Newell normal summed from the vertices' absolute
+  // positions cancels to exactly zero here; taken relative to one vertex it does not.
+  const std::vector<Vec3T<T>>            verts  = {{T(3.05267167f), T(5.25392294f), T(4.7220273f)},
+                                                   {T(3.05496812f), T(5.25439119f), T(4.72036695f)},
+                                                   {T(3.052912f), T(5.25397062f), T(4.72185421f)}};
+  const std::vector<std::vector<size_t>> facets = {{0, 1, 2}};
+
+  REQUIRE_FALSE(Soup::isZeroArea(verts, facets[0]));
+  REQUIRE_FALSE(Soup::containsDegeneratePolygons(verts, facets));
+}
+
 TEMPLATE_TEST_CASE("Soup::removeDegeneratePolygons repairs a T-junction filler and drops collapsed facets",
                    "[Soup]",
                    EBGEOMETRY_TEST_PRECISIONS)
