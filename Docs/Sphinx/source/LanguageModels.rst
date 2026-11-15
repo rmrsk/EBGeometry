@@ -36,9 +36,9 @@ vectors take ``+``, ``-``, ``*`` and ``/`` (a vector times or over a number), an
    center = (0, 0, length / 2)
    angle  = 30
 
-A ``param`` is a value that may be changed from outside the file: ``-D length=8`` to ``ebgstudio``, or an
-override passed to the reader (see :ref:`Chap:ImplemLanguage`), written as it would be in the file
-(``-D "shift=(0, 2, 0)"``). A plain value may not be overridden, so that a model declares what it exposes:
+A ``param`` is a value that may be changed from outside the file: an override passed to the reader (see
+:ref:`Chap:ImplemLanguage`), written as it would be in the file (``(0, 2, 0)`` for ``shift``). A plain value
+may not be overridden, so that a model declares what it exposes:
 
 .. code-block:: text
 
@@ -208,7 +208,7 @@ labeled twice is an error naming both places. The statement's arguments are read
 so a name used in them must be defined before the shape.
 
 Geometry is never named by a number: a number changes when the geometry does, a label does not.
-``ebgstudio check --inventory`` lists every label, every shape's parts, the regions and the materials.
+``Language::inventory()`` (see :ref:`Chap:ImplemLanguage`) lists every label, every shape's parts, the regions and the materials.
 
 Files and includes
 ------------------
