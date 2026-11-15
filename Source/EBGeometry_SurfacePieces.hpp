@@ -460,7 +460,9 @@ coverageOf(const PossiblePiece&         a_piece,
   surface.m_ownerMaterial    = a_inventory.getMaterial(a_piece.m_ownerRegion);
   surface.m_neighborMaterial = a_inventory.getMaterial(a_piece.m_neighborRegion);
 
-  // The parts checked: every part, or those listed (when they name any of the shape's).
+  // The parts checked: every part, or those listed (when they name any of the shape's). A piece findSurfacePieces()
+  // reports lists the parts its samples met, so for a shape with parts it names at least one; an empty or foreign list
+  // (the overload without parts) checks them all.
   std::vector<uint32_t> checked;
 
   if (perPart) {
