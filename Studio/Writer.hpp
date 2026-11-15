@@ -522,6 +522,7 @@ private:
           block += "  " + groupLine(g, nullptr) + "\n";
         }
 
+        // A group with lines can still have lost a selector the language cannot write.
         if (lines[g].empty() || !written[g]) {
           leaveOut(g);
         }
@@ -533,7 +534,9 @@ private:
       const std::string target = this->setupFile();
       const auto        text   = readFile(target);
 
-      if (!text.has_value() && std::filesystem::exists(target)) {
+      std::error_code missing;
+
+      if (!text.has_value() && std::filesystem::exists(target, missing)) {
         m_note = "not written: " + target + " cannot be read";
 
         return std::nullopt;
