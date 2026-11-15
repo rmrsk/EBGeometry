@@ -530,13 +530,14 @@ private:
 
       block += "}\n";
 
-      // A file that is not there is started; one that is there but cannot be read is not replaced.
+      // A file that is not there is started; one that is there, or may be (its folder cannot be read), but cannot be
+      // read is not replaced.
       const std::string target = this->setupFile();
       const auto        text   = readFile(target);
 
-      std::error_code missing;
+      std::error_code unknown;
 
-      if (!text.has_value() && std::filesystem::exists(target, missing)) {
+      if (!text.has_value() && (std::filesystem::exists(target, unknown) || unknown)) {
         m_note = "not written: " + target + " cannot be read";
 
         return std::nullopt;
