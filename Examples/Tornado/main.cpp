@@ -2,17 +2,18 @@
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// A tornado of half a million spheres or more, all of one radius, colored by the speed of the wind where each one sits:
-// how a union of very many spheres scales. The spheres are packed as in SphereClouds, each at the first random position
-// where it overlaps no sphere placed before it, here in the shape of a tornado. They are sorted into 16 bins of wind
-// speed; each bin is a BVHUnion of its spheres, and the bins are the leaves of one tape, a union through a BVH over
-// them, so the viewer gives each bin its own color. See README.md.
+// A property carried on a sphere cloud, at scale: a tornado of half a million spheres or more (try 8 million), each
+// carrying the speed of the wind where it sits. The spheres are packed as in SphereClouds and kept in one
+// SphereCloudBVH; their speeds are an array of the program's own, put in the same pool, indexed by the cloud index the
+// cloud's queries report. A query asks the wind at a point (the speed at the closest sphere), on the host and through
+// GPU::transform, and the window colors each sphere by its speed, through a ray form that looks the speed up for the
+// sphere a ray hits. See README.md.
 //
 //   ./Tornado.ex [--count=<n>] [--radius=<r>]
 //
-// --count is the number of spheres (default 500000; try 8000000) and --radius their radius. By default the radius
-// follows the count, 0.003 at 8 million, so that the tornado looks as dense at any count. A sphere that finds no free
-// position is left out, so the program prints how many it placed.
+// --count is the number of spheres (default 500000) and --radius their radius. By default the radius follows the
+// count, 0.003 at 8 million, so that the tornado looks as dense at any count. A sphere that finds no free position is
+// left out, so the program prints how many it placed.
 
 #include <algorithm>
 #include <chrono>
@@ -33,18 +34,13 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using T      = EBGEOMETRY_PRECISION;
-using Vec3   = EBGeometry::Vec3T<T>;
-using Sphere = EBGeometry::SphereSDF<T>;
-using Bin    = EBGeometry::BVHUnion<T, EBGeometry::BVH::DefaultBranchingRatio<T>(), Sphere>;
-
-// A tape whose leaves are bins: their type is listed among the tape's primitives.
-using Tornado = EBGeometry::Tape<T, Bin>;
+using T    = EBGEOMETRY_PRECISION;
+using Vec3 = EBGeometry::Vec3T<T>;
 
 namespace Math = EBGeometry::Math;
 
-// The bins of wind speed, one color each: as many as the viewer has colors for its leaves.
-constexpr int numBins = int(EBGeometry::Render::Settings<T>::PrimitiveColors);
+// The window's colors: steps of wind speed, one color each, as many as the viewer has colors for primitives.
+constexpr int numColors = int(EBGeometry::Render::Settings<T>::PrimitiveColors);
 
 // The tornado stands along y, height H. Its funnel's wall is centered on radius funnelRadius(h), and its axis sways
 // by up to sway. Over it hangs a cloud base out to cloudRadius; around its foot a debris cloud rises up to
@@ -240,6 +236,115 @@ secondsSince(const std::chrono::steady_clock::time_point a_start)
 
 } // namespace
 
+// ── The code that runs on either side ──────────────────────────────────────────────────────────────────
+//
+// The cloud with a property: the SphereCloudBVH, and each sphere's wind speed in an array in the same pool, at the
+// sphere's cloud index. Both are descriptors (offsets into the pool), so the pair is trivially copyable, and
+// rebasedView() makes it read another copy of the pool (the device's). It is a shape too (a signed distance and a box),
+// which the window draws: its ray form below traces the cloud exactly, through its BVH, and reports the sphere hit by
+// the step of speed it falls in (the viewer colors primitive ids 0 to 15); closestLeaf() does the same for a point.
+struct WindyCloud
+{
+  EBGeometry::SphereCloudBVH<T> m_cloud;
+  EBGeometry::PODVector<T>      m_speeds;
+  T                             m_slowest; // the speed of color 0
+  T                             m_step;    // the speeds one color spans
+
+  // The wind speed at a sphere, by its cloud index.
+  EBGEOMETRY_HOST_DEVICE
+  T
+  speedOf(const std::uint32_t a_sphere) const noexcept
+  {
+    return m_speeds.at(m_cloud.location().base(), a_sphere);
+  }
+
+  // The color a sphere takes: its step of speed, the fastest in the last.
+  EBGEOMETRY_HOST_DEVICE
+  std::uint32_t
+  colorOf(const std::uint32_t a_sphere) const noexcept
+  {
+    return std::uint32_t(Math::clamp(int((speedOf(a_sphere) - m_slowest) / m_step), 0, numColors - 1));
+  }
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3& a_point) const noexcept
+  {
+    return m_cloud.signedDistance(a_point);
+  }
+
+  EBGEOMETRY_HOST_DEVICE
+  EBGeometry::BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return m_cloud.computeBoundingVolume();
+  }
+
+  EBGEOMETRY_HOST_DEVICE
+  EBGeometry::LeafRef<T>
+  closestLeaf(const Vec3& a_point) const noexcept
+  {
+    EBGeometry::LeafRef<T> leaf;
+
+    leaf.m_leaf       = colorOf(m_cloud.closestSphere(a_point).index);
+    leaf.m_localPoint = a_point;
+
+    return leaf;
+  }
+
+  WindyCloud
+  rebasedView(const EBGeometry::Pool& a_pool) const
+  {
+    return WindyCloud{m_cloud.rebasedView(a_pool), m_speeds, m_slowest, m_step};
+  }
+};
+
+// The ray form: the cloud's own, with the sphere hit reported by its color.
+template <>
+struct EBGeometry::RayForm<WindyCloud>
+{
+  EBGEOMETRY_HOST_DEVICE
+  static HitT<T>
+  firstHit(const WindyCloud&    a_shape,
+           const RayT<T>&       a_ray,
+           const T              a_tMin,
+           const T              a_tMax,
+           const RayOptions<T>& a_options) noexcept
+  {
+    HitT<T> hit = RayForm<SphereCloudBVH<T>>::firstHit(a_shape.m_cloud, a_ray, a_tMin, a_tMax, a_options);
+
+    if (hit.hit()) {
+      hit.m_primitive = a_shape.colorOf(hit.m_primitive);
+    }
+
+    return hit;
+  }
+
+  EBGEOMETRY_HOST_DEVICE
+  static CrossingT<T>
+  firstCrossing(const WindyCloud&    a_shape,
+                const RayT<T>&       a_ray,
+                const T              a_tMin,
+                const T              a_tMax,
+                const RayOptions<T>& a_options) noexcept
+  {
+    return RayForm<SphereCloudBVH<T>>::firstCrossing(a_shape.m_cloud, a_ray, a_tMin, a_tMax, a_options);
+  }
+};
+
+// A query for EBGeometry::GPU::transform(): the wind at a point, as the speed at the closest sphere.
+struct WindAt
+{
+  WindyCloud m_tornado;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3& a_point) const noexcept
+  {
+    return m_tornado.speedOf(m_tornado.m_cloud.closestSphere(a_point).index);
+  }
+};
+
 int
 main(int argc, char* argv[])
 {
@@ -311,67 +416,94 @@ main(int argc, char* argv[])
     return 0;
   }
 
-  // ── Sort them by speed ─────────────────────────────────────────────────────────────────────────────
+  // ── Build the cloud and put the property beside it ─────────────────────────────────────────────────
   //
-  // numBins equal steps of speed, from the slowest sphere to the 99th percentile (the fastest few, at the very foot of
-  // the funnel, join the last bin), so that the colors spread over the whole range.
+  // The cloud keeps its own copy of the centers and radii in the pool. The speeds go in the same pool, in the cloud's
+  // order (the order of the arrays it was built from), so that a sphere's cloud index finds its speed, on either side.
+  start = std::chrono::steady_clock::now();
+
+  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+  const std::vector<T>                radii(centers.size(), radius);
+  const EBGeometry::SphereCloudBVH<T> cloud(pool, centers, radii);
+
+  EBGeometry::PODVector<T> speedsInPool;
+
+  speedsInPool.reserveFrom(pool, std::uint32_t(speeds.size()));
+  speedsInPool.assign(pool.base(), speeds.data(), std::uint32_t(speeds.size()));
+
+  // The colors span the speeds from the slowest sphere to the 99th percentile; the fastest few, at the very foot of
+  // the funnel, take the last color.
   std::vector<T> sorted = speeds;
 
   std::sort(sorted.begin(), sorted.end());
 
   const T slowest = sorted.front();
   const T fastest = sorted[std::size_t(T(0.99) * T(sorted.size() - 1))];
-  const T range   = Math::max(fastest - slowest, T(1.E-6));
 
-  std::vector<std::vector<Sphere>> bins(numBins);
+  const WindyCloud tornado{cloud, speedsInPool, slowest, Math::max(fastest - slowest, T(1.E-6)) / T(numColors)};
 
-  for (std::size_t i = 0; i < centers.size(); i++) {
-    const int bin = Math::clamp(int(T(numBins) * (speeds[i] - slowest) / range), 0, numBins - 1);
+  std::cout << "Built the cloud in " << secondsSince(start) << " s; wind speeds from " << slowest << " to "
+            << sorted.back() << '\n';
 
-    bins[std::size_t(bin)].emplace_back(centers[i], radius);
-  }
-
-  // ── Build the tornado ──────────────────────────────────────────────────────────────────────────────
+  // ── Use it on the host ─────────────────────────────────────────────────────────────────────────────
   //
-  // The viewer colors a tape by leaf, one color per leaf; a BVHUnion is one leaf, however many spheres it holds. So
-  // each bin is a BVHUnion of its spheres (a BVH over them), and the bins are the operands of one union, built through
-  // a BVH over the bins' boxes. The tape numbers its leaves in the order of the operands, the bins' order of speed,
-  // and leaf i takes its color from m_primitiveColors[i]. An empty bin is left out, and its color with it.
-  start = std::chrono::steady_clock::now();
+  // A query names a sphere by its cloud index, and the program's own array gives its speed: here at points on the
+  // funnel's wall, from its foot to its mouth.
+  std::vector<Vec3> queries;
 
-  EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-
-  EBGeometry::Render::Settings<T>  settings;
-  std::vector<EBGeometry::Expr<T>> leaves;
-
-  settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
-
-  std::cout << "Bins of wind speed (lowest speed, spheres):\n";
-
-  for (int b = 0; b < numBins; b++) {
-    const std::vector<Sphere>& spheres = bins[std::size_t(b)];
-
-    std::cout << "  " << std::setw(2) << b << ": " << std::setw(6) << slowest + range * T(b) / T(numBins) << ", "
-              << spheres.size() << '\n';
-
-    if (!spheres.empty()) {
-      settings.m_primitiveColors[uint32_t(leaves.size())] = desert(T(b) / T(numBins - 1));
-      leaves.emplace_back(Bin(pool, spheres));
-    }
+  for (const T h : {T(0.5), T(3), T(6), T(9.5)}) {
+    queries.push_back(axisAt(h) + Vec3(funnelRadius(h), h, T(0)));
   }
 
-  const Tornado tornado(pool, EBGeometry::Union(leaves, EBGeometry::Accelerate::BVH));
+  for (const Vec3& q : queries) {
+    const auto hit = cloud.closestSphere(q);
 
-  std::cout << "Built " << leaves.size() << " BVHUnions and the tape in " << secondsSince(start) << " s, box "
-            << tornado.computeBoundingVolume() << '\n';
+    std::cout << "  at height " << q[1] << ": sphere " << std::setw(7) << hit.index << ", wind speed "
+              << speeds[hit.index] << '\n';
+  }
+
+  // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
+  //
+  // Freeze the pool, mirror it into GPU::memoryResource() (device memory in a CUDA or HIP build), and take a
+  // rebasedView() that reads the copy: the cloud and the speeds both. In a plain C++ build the same lines run on the
+  // host.
+  pool.freeze();
+
+  if (EBGeometry::GPU::enabled && !EBGeometry::GPU::deviceAvailable()) {
+    std::cout << "On the device: skipped, no GPU is visible\n";
+  }
+  else {
+    const EBGeometry::Pool devicePool = EBGeometry::Pool::mirror(pool, EBGeometry::GPU::memoryResource());
+
+    std::vector<T> winds(queries.size());
+
+    EBGeometry::GPU::transform(WindAt{tornado.rebasedView(devicePool)}, queries, winds);
+
+    std::cout << "Through GPU::transform (backend: " << EBGeometry::GPU::backendName << "):";
+
+    for (const T wind : winds) {
+      std::cout << ' ' << wind;
+    }
+
+    std::cout << '\n';
+  }
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // A window on the tornado, standing along y (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
-  // view() prints why and returns). It opens colored by leaf, the bins of speed, in the mirror look: a dark backdrop
-  // and a floor that reflects the tornado. B and Shift + B cycle the other looks, Up and Down brighten or dim the
-  // light, Left and Right the ambient light, and X cuts it open. Given the pool, view() renders on the GPU in a GPU
-  // build.
+  // view() prints why and returns), each sphere colored by its speed: rust where the wind is slow, bone white where it
+  // is fast. It opens in the mirror look, a dark backdrop and a floor that reflects the tornado. B and Shift + B cycle
+  // the other looks, Up and Down brighten or dim the light, Left and Right the ambient light, and X cuts it open. Given
+  // the pool, view() renders on the GPU in a GPU build.
+  EBGeometry::Render::Settings<T> settings;
+
+  settings.m_colorBy = EBGeometry::Render::ColorBy::Primitive;
+
+  for (int c = 0; c < numColors; c++) {
+    settings.m_primitiveColors[std::uint32_t(c)] = desert(T(c) / T(numColors - 1));
+  }
+
   EBGeometry::Render::setLook(settings, EBGeometry::Render::Look::Mirror);
 
   const auto camera = EBGeometry::Render::Camera<T>::fit(tornado.computeBoundingVolume(), Vec3(T(0), T(1), T(0)));

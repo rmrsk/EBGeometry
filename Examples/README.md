@@ -47,7 +47,7 @@ The reading order:
 18. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
 19. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
 20. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
-21. `Tornado`: how a union of millions of spheres scales: a tornado of spheres colored by wind speed, sorted into 16 bins, each a `BVHUnion`, joined in a `Tape` through a BVH.
+21. `Tornado`: a property carried on a `SphereCloudBVH` of millions of spheres: each sphere's wind speed in an array beside the cloud, in its pool, queried on the host and through `GPU::transform`, and the spheres colored by it through a ray form of the program's own.
 
 **Rays and BVHs**
 

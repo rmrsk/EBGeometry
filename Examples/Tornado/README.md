@@ -1,11 +1,11 @@
 Examples/Tornado
 ----------------
 
-How a union of very many spheres scales: a tornado of half a million spheres of one radius (try 8 million), packed
-without overlapping and colored by the speed of the wind where each one sits. The spheres are sorted into 16 bins of
-speed; each bin is a `BVHUnion` of its spheres, and the bins are the leaves of one `Tape`, a union through a BVH over
-them. The viewer colors a tape by leaf, so each bin, and with it each band of speed, gets its own color. The window
-shows the tornado.
+A property carried on a sphere cloud, at scale: a tornado of half a million spheres (try 8 million), each carrying the
+speed of the wind where it sits. The spheres are kept in one `SphereCloudBVH`, and their speeds in an array of the
+program's own, put in the same pool and read at the cloud index the cloud's queries report. A query asks the wind at a
+point (the speed at the closest sphere), on the host and through `GPU::transform`. The window colors each sphere by its
+speed, through a ray form that reports the sphere a ray hits by its step of speed.
 
 Building
 --------
@@ -44,7 +44,7 @@ This produces `./Tornado.ex`. Override the defaults on the command line:
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
 
-**For a GPU** (the window renders on the device)
+**For a GPU** (the query and the window run on the device)
 
     make GPU=HIP HIP_ARCH=gfx90a VIEWER=SDL2                                 # or GPU=CUDA
     cmake -S . -B build -DEBGEOMETRY_EXAMPLE_GPU=HIP -DEBGEOMETRY_VIEWER=SDL2   # or CUDA
@@ -71,5 +71,6 @@ Running
 
 `--count` sets the number of spheres and `--radius` their radius. By default the radius follows the count (0.003 at 8
 million), so that the tornado looks as dense at any count. It prints how many spheres it placed (a sphere with no room
-left is left out), the time to place them, each bin's speed and size, and the time to build the unions and the tape.
-Eight million spheres take about 20 seconds and 2 GB in a Release build.
+left is left out) and how long that took, how long the cloud took to build and the range of wind speeds, and the wind
+at four points on the funnel's wall, on the host and through `GPU::transform`. Eight million spheres take about 15
+seconds and 2.5 GB in a Release build.
