@@ -89,7 +89,8 @@ default.
      - A sky gradient behind the shape, or, with ``m_sky`` false, a plain background.
    * - ``m_section``, ``m_sectionPoint``, ``m_sectionNormal``, ``m_ghostOpacity``
      - A section plane, removing the part of the shape on the side its normal points to; with ``m_ghostOpacity``
-       above 0, that part is drawn translucent in front of the cut instead of left out.
+       above 0, that part is drawn translucent in front of the cut instead of left out, and the fill covers only the
+       cut.
    * - ``m_cutOpacity``, ``m_cutColor``, ``m_contourWidth``, ``m_contourColor``, ``m_sheetOpacity``,
        ``m_sheetColor``, ``m_sheetEdgeColor``
      - How the section is drawn: the cut face (opaque unless ``m_cutOpacity`` is below 1, when the next

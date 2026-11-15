@@ -1793,8 +1793,11 @@ private:
       return m_settings.m_contourColor;
     }
 
-    // The fill by what the point is in, in place of the sheet.
-    const T  fill  = RenderDetail::HasSectionKey<S, T>::value ? m_settings.m_sectionFill : T(0);
+    // The fill by what the point is in, in place of the sheet. With the removed side ghosted, only the cut is filled:
+    // filled outside the shape too, the plane was a wall across the box behind the translucent side.
+    const bool filled =
+      RenderDetail::HasSectionKey<S, T>::value && (m_settings.m_ghostOpacity == T(0) || value <= T(0));
+    const T  fill  = filled ? m_settings.m_sectionFill : T(0);
     Vec3T<T> color = a_color;
 
     if (fill > T(0)) {
