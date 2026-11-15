@@ -1940,6 +1940,8 @@ private:
   inline Vec3T<T>
   gridColor(const T a_u, const T a_v, const T a_pixel) const noexcept
   {
+    // A pixel of no width (a zero footprint set by the caller) would divide zero by zero on a line.
+    const T pixel = Math::max(a_pixel, Math::Limits<T>::min());
     const T nu    = std::floor(a_u + T(0.5));
     const T nv    = std::floor(a_v + T(0.5));
     const T du    = std::abs(a_u - nu);
@@ -1947,17 +1949,17 @@ private:
     const T every = T(m_settings.m_floorMajorEvery);
 
     // Lines a cell apart are seen fully at 8 pixels apart or more, and fade out down to 4.
-    const T minorSeen = Math::clamp((T(1) / a_pixel - T(4)) / T(4), T(0), T(1));
-    const T minor     = minorSeen * Math::clamp(T(1) - Math::min(du, dv) / a_pixel, T(0), T(1));
+    const T minorSeen = Math::clamp((T(1) / pixel - T(4)) / T(4), T(0), T(1));
+    const T minor     = minorSeen * Math::clamp(T(1) - Math::min(du, dv) / pixel, T(0), T(1));
 
     T major = T(0);
 
     if (every > T(0)) {
-      const T majorSeen = Math::clamp((every / a_pixel - T(4)) / T(4), T(0), T(1));
+      const T majorSeen = Math::clamp((every / pixel - T(4)) / T(4), T(0), T(1));
       const T onU       = (std::fmod(std::abs(nu), every) < T(0.5)) ? du : Math::Limits<T>::infinity();
       const T onV       = (std::fmod(std::abs(nv), every) < T(0.5)) ? dv : Math::Limits<T>::infinity();
 
-      major = majorSeen * Math::clamp(T(2) - Math::min(onU, onV) / a_pixel, T(0), T(1));
+      major = majorSeen * Math::clamp(T(2) - Math::min(onU, onV) / pixel, T(0), T(1));
     }
 
     const T line = Math::max(T(0.6) * minor, major);
@@ -1968,8 +1970,10 @@ private:
   /**
    * @brief The mirror floor's color at a point: its own lit color, with the shape's reflection, or the backdrop's,
    * over it by the reflectance, rising towards the horizon (Schlick's approximation).
-   * @details Out of line on a device, like shadeCutFace(): its trace and second shading, inlined, would take part in
-   * the register allocation of every render kernel.
+   * @details A reflected ray that hits nothing shows the backdrop behind the floor point (a_under), not the backdrop
+   * in the reflected direction: the gradient and the vignette are images of the screen, which a reflection keeps, and
+   * a mirrored sky does not flip. Out of line on a device, like shadeCutFace(): its trace and second shading, inlined,
+   * would take part in the register allocation of every render kernel.
    * @param[in] a_point     Point on the floor.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_lit       The floor's own lit color there.
