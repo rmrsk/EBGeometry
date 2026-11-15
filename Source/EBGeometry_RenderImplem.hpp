@@ -597,6 +597,13 @@ public:
   static constexpr int SeenThroughLayers = 4;
 
   /**
+   * @brief How close, in pixels, lines of equal distance may lie on screen: where they would lie closer (far along an
+   * oblique plane), every second is left out, as often as needed, so that the lines drawn are still multiples of the
+   * spacing.
+   */
+  static constexpr int IsoGapPixels = 4;
+
+  /**
    * @brief Set up the scene for a shape, a camera's view and settings.
    * @param[in] a_shape    Shape.
    * @param[in] a_view     The camera's view.
@@ -1758,7 +1765,18 @@ private:
     // an interface between two regions), and one step across it saw the field come back up to about where it was.
     const T    f     = sample.m_value;
     const bool lines = m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary);
-    const T    rest  = lines ? f - m_settings.m_isoSpacing * std::floor(f / m_settings.m_isoSpacing + T(0.5)) : T(0);
+
+    // The spacing here: doubled while lines of equal distance could lie closer than IsoGapPixels pixels. A distance
+    // changes by at most 1 per unit length, so lines a spacing apart in value are at least a spacing apart on the plane,
+    // which the screen shows a pixel per width, shortened by the plane's slant to the ray (at most tenfold here).
+    const T gap     = T(IsoGapPixels) * width / Math::max(std::abs(rate), T(0.1));
+    T       spacing = m_settings.m_isoSpacing;
+
+    for (int k = 0; lines && k < 30 && spacing < gap; k++) {
+      spacing *= T(2);
+    }
+
+    const T rest = lines ? f - spacing * std::floor(f / spacing + T(0.5)) : T(0);
 
     // The four steps cost four of the field's evaluations per pixel of the plane. EBGeometry's distances, and the bounds
     // it composes from them, change by at most 1 per unit length, so their slope is at most sqrt(2), and a pixel whose

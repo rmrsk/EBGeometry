@@ -489,8 +489,12 @@ coverageOf(const PossiblePiece&         a_piece,
 
   for (const uint32_t part : checked) {
     // A collection's member: a part no part condition matches.
+    // (The label's part is named before the call: clang-tidy 18's bugprone-argument-comment crashed on the conditional
+    // as an argument.)
+    const uint32_t labeled = (parts == 0U) ? 0U : part;
+
     surface.m_part         = (parts == 0U) ? SurfaceSelector::Any - 1U : part;
-    surface.m_surfaceLabel = a_inventory.getLabel(a_piece.m_surface, (parts == 0U) ? 0U : part);
+    surface.m_surfaceLabel = a_inventory.getLabel(a_piece.m_surface, labeled);
 
     const uint32_t g = a_setup.surfaceGroupOf(surface);
 
