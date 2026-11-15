@@ -1,0 +1,17 @@
+ebg 0
+
+# A cable along z, in a box of air with a cross-flow along x: a copper core inside a PTFE jacket.
+param length = 6
+param r_core = 0.5
+param r_out  = 0.8
+
+conductor  = cylinder((0, 0, -length / 2), (0, 0, length / 2), radius = r_core)
+insulation = tube((0, 0, -length / 2), (0, 0, length / 2), inner_radius = r_core, outer_radius = r_out)
+air_box    = box((-3, -2, -length / 2), (5, 2, length / 2))
+  .label(xmin = "inlet", xmax = "outlet", ymin = "far", ymax = "far", zmin = "ends", zmax = "ends")
+
+object overlay {  # each region lies on top of the ones before it
+  region air    = air_box material air
+  region jacket = insulation material PTFE
+  region core   = conductor material copper
+}

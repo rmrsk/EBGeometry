@@ -1,0 +1,12 @@
+ebg 0
+
+# Two unit cubes read from one mesh file: the first labeled by its face groups (one renamed), the second plain and
+# moved by a param.
+include("shapes.ebg")
+
+param shift = (3, 0, 0)
+
+object overlay {
+  region a = cube material steel
+  region b = translate(plain, shift) material steel
+}

@@ -51,6 +51,7 @@ path = [
   "Examples/**/GNUmakefile",
   "Examples/**/Make.package",
   "Examples/**/*.inputs",
+  "Examples/**/*.ebg",
   "Examples/**/README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"

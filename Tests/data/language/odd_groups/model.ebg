@@ -1,0 +1,5 @@
+ebg 0
+
+object overlay {
+  region r = mesh("../cube_odd_groups.obj").label(side_wall = "outer")
+}

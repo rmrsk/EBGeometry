@@ -27,6 +27,8 @@ in the same topics as the concepts. To find one by task:
      - :ref:`Chap:ImplemCSG`
    * - build objects of several materials, and the domains a solver computes in
      - :ref:`Chap:ImplemRegions`
+   * - read models written in the ``.ebg`` language
+     - :ref:`Chap:ImplemLanguage`
    * - trace rays and particles' steps through a shape
      - :ref:`Chap:ImplemRays`
    * - render a shape, and look at it in a window
@@ -37,7 +39,7 @@ in the same topics as the concepts. To find one by task:
      - :ref:`Chap:SIMDClasses`
 
 The namespaces follow the components: ``DCEL``, ``BVH``, ``Fused``, ``PointCloud``, ``SphereCloud``,
-``TapeFeature``, ``GPU``, ``Render``, ``SFC`` and ``Parser``. The Doxygen reference
+``TapeFeature``, ``GPU``, ``Render``, ``SFC``, ``Parser`` and ``Language``. The Doxygen reference
 (`EBGeometry <doxygen/html/namespaceEBGeometry.html>`__) lists every class and function.
 
 Design choices
