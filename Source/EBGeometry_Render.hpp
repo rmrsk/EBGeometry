@@ -414,7 +414,8 @@ struct Settings
 
   /**
    * @brief Opacity of the shape on the side the section plane removes (m_section), drawn over what the cut shows: the
-   * first surface a camera ray meets there, translucent, so that the kept side and the plane show through it. 0 (the
+   * first surface a camera ray meets there, translucent, so that the kept side and the plane show through it. The
+   * plane's fill (m_sectionFill) then covers only the cut, and outside the shape the plane is the sheet. 0 (the
    * default) leaves the removed side out.
    */
   T m_ghostOpacity = T(0);

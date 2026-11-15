@@ -294,7 +294,7 @@ keys(const bool a_device, const bool a_regions = false)
      {{"X", "Cut across x, then y, then z"},
       {"Ctrl + X", "Remove the cut"},
       {"Shift + X", "See through the cut face and the plane, or make them opaque"},
-      {"N", "Keep the other side; then each side with the other ghosted (four in turn)"},
+      {"N", "Keep the other side; each side with the other ghosted; both sides solid (five in turn)"},
       {"Up, Down", "Move the plane in coarse steps"},
       {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
@@ -1239,6 +1239,7 @@ run(const S&           a_shape,
   int            sectionMode   = givenSection ? 1 : 0;
   bool           sectionFlip   = false;
   bool           sectionGhost  = false;
+  bool           sectionSolid  = false;
   T              sectionOffset = T(0);
 
   // The plane's fill as given: Shift and X make it, and the cut face, see-through, and give it back.
@@ -2212,7 +2213,7 @@ run(const S&           a_shape,
 
     // The arrow keys move the plane towards the removed side, so that more of the shape shows.
     frame.m_section       = sectionMode != 0;
-    frame.m_ghostOpacity  = sectionGhost ? T(0.3) : T(0);
+    frame.m_ghostOpacity  = sectionSolid ? T(1) : (sectionGhost ? T(0.3) : T(0));
     frame.m_sectionNormal = normal;
     frame.m_sectionPoint  = point + sectionOffset * normal;
 
@@ -2498,10 +2499,11 @@ run(const S&           a_shape,
         std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
           std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
       {{std::string("Cut: ") + sectionNames[sectionMode] +
-          ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
-                                  std::string(sectionGhost ? ", the other side ghosted" : "") + ", moved " +
-                                  fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
-                              : std::string()),
+          ((sectionMode != 0)
+             ? std::string(sectionFlip ? ", reversed" : "") +
+                 std::string(sectionSolid ? ", both sides solid" : (sectionGhost ? ", the other side ghosted" : "")) +
+                 ", moved " + fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
+             : std::string()),
         (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
                                        : std::string("No lines of equal distance")},
        {"Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
@@ -4754,9 +4756,18 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_n: {
-          // Four in turn: this side kept, the other kept, then each with the other side ghosted (drawn translucent).
-          sectionGhost = sectionGhost != sectionFlip;
-          sectionFlip  = !sectionFlip;
+          // Five in turn: this side kept, the other kept, each with the other side ghosted (drawn translucent), then
+          // both sides solid (the removed side drawn opaque: the plane shows only outside the shape). The plane stays
+          // where it is: its offset is along the normal, which turns around.
+          if (sectionGhost && sectionFlip && !sectionSolid) {
+            sectionSolid = true;
+          }
+          else {
+            sectionGhost  = !sectionSolid && (sectionGhost != sectionFlip);
+            sectionSolid  = false;
+            sectionFlip   = !sectionFlip;
+            sectionOffset = -sectionOffset;
+          }
 
           break;
         }
