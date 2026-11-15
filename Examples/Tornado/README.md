@@ -70,7 +70,7 @@ Running
     ./Tornado.ex --count=8000000 --radius=0.002   # thinner
 
 `--count` sets the number of spheres and `--radius` their radius. By default the radius follows the count (0.01 at the
-default 500,000), so that the tornado looks as dense at any count. It prints how many spheres it placed (a sphere with no room
-left is left out) and how long that took, how long the cloud took to build and the range of wind speeds, and the wind
-at four points on the funnel's wall, on the host and through `GPU::transform`. Eight million spheres take about 17
-seconds and 2.5 GB in a Release build.
+default 500,000), so that the tornado looks as dense at any count. It prints how many spheres it placed (a sphere with
+no room left is left out) and how long that took, how long the cloud took to build and the range of wind speeds, and
+the wind at four points on the funnel's wall, on the host and through `GPU::transform`. Eight million spheres take
+about 17 seconds and 2.5 GB in a Release build.

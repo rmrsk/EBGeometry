@@ -12,8 +12,8 @@
 //   ./Tornado.ex [--count=<n>] [--radius=<r>]
 //
 // --count is the number of spheres (default 500000) and --radius their radius. By default the radius follows the
-// count, 0.01 at the default count, so that the tornado looks as dense at any count. A sphere that finds no free position is
-// left out, so the program prints how many it placed.
+// count, 0.01 at the default count, so that the tornado looks as dense at any count. A sphere that finds no free
+// position is left out, so the program prints how many it placed.
 
 #include <algorithm>
 #include <chrono>
