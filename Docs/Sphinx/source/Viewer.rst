@@ -92,8 +92,8 @@ The keys
      - The next look of the backdrop and the floor; the previous one. In order: the sky, a dark background, a gradient
        without a floor, only the shadow on a gradient, a light grid, a white studio backdrop, a mirror floor, a dark
        grid, a blueprint. A floor turned off with F stays off.
-   * - [, ]
-     - Fewer or more rays per pixel, from 1 x 1 to 8 x 8.
+   * - Ctrl + Up, Down
+     - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
    * - G
      - Render on the GPU or the CPU (when the window has a device view).
    * - X; Ctrl + X; Shift + X; N

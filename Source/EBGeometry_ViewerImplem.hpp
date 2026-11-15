@@ -292,7 +292,7 @@ keys(const bool a_device, const bool a_regions = false)
       {"B, Shift + B",
        "The next or previous look of the backdrop and the floor (sky, dark, gradient, shadow only, light grid, "
        "studio, mirror, dark grid, blueprint)"},
-      {"[, ]", "Fewer or more rays per pixel (1 to 64)"}}},
+      {"Ctrl + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
     {"Section and contours",
      "Section",
      {{"X", "Cut across x, then y, then z"},
@@ -4829,11 +4829,16 @@ run(const S&           a_shape,
         }
         case SDLK_UP:
         case SDLK_DOWN: {
-          // The light: stronger or weaker, or with Shift held, its highlights. Both in steps of 0.05, kept on them
-          // so that repeated steps do not drift.
+          // The light: stronger or weaker, or with Shift held, its highlights, both in steps of 0.05, kept on them so
+          // that repeated steps do not drift. With Ctrl held, more or fewer rays per pixel, 1 x 1 to 8 x 8 (on the
+          // arrows rather than on keys some layouts reach only through AltGr).
           const T step = (event.key.keysym.sym == SDLK_UP) ? T(1) : T(-1);
 
-          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            settings.m_supersampling = (step > T(0)) ? Math::min(settings.m_supersampling + 1U, 8U)
+                                                     : Math::max(settings.m_supersampling, 2U) - 1U;
+          }
+          else if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
             settings.m_specular = Math::clamp((std::round(settings.m_specular * T(20)) + step) / T(20), T(0), T(1.5));
           }
           else {
@@ -4865,15 +4870,6 @@ run(const S&           a_shape,
         case SDLK_PAGEDOWN: {
           // The section plane, in coarse steps.
           sectionOffset += ((event.key.keysym.sym == SDLK_PAGEUP) ? T(0.02) : T(-0.02)) * scale;
-
-          break;
-        }
-        case SDLK_LEFTBRACKET:
-        case SDLK_RIGHTBRACKET: {
-          // Fewer or more rays per pixel, 1 x 1 to 8 x 8.
-          settings.m_supersampling = (event.key.keysym.sym == SDLK_RIGHTBRACKET)
-                                       ? Math::min(settings.m_supersampling + 1U, 8U)
-                                       : Math::max(settings.m_supersampling, 2U) - 1U;
 
           break;
         }
