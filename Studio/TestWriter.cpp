@@ -191,6 +191,41 @@ TEST_CASE("Writer: surface groups without a domain make a new one, named when as
   CHECK(again.getNumDomains() == 2U);
 }
 
+TEST_CASE("Writer: a group the language cannot write is left out, and the note says so", "[Studio]")
+{
+  const std::string folder = copyOfWire("left-out");
+
+  Pool pool(hostMemoryResource());
+
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
+
+  Studio::Writer<T> writer(folder + "/setup.ebg");
+
+  writer.attach(model);
+
+  // A new domain: one group holding the gas's surfaces, and two empty ones.
+  RegionNames names(model.index());
+  DomainSetup setup;
+
+  const uint32_t walls = setup.addSurfaceGroup();
+  const uint32_t spare = setup.addSurfaceGroup();
+  const uint32_t empty = setup.addSurfaceGroup();
+
+  setup.add(walls, SurfaceSelector::region(1));
+  names.setSurfaceGroup(walls, "walls");
+  names.setSurfaceGroup(spare, "spare");
+  names.setSurfaceGroup(empty, "empty");
+
+  CHECK(writer.edited(names, setup) == "Name the new domain");
+  CHECK(writer.named("heat").empty());
+
+  CHECK_THAT(text(folder + "/setup.ebg"), Catch::Matchers::EndsWith("domain heat {\n  group walls = region(gas)\n}\n"));
+  CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote 1 file(s)"));
+  CHECK_THAT(writer.note(),
+             Catch::Matchers::EndsWith("left out what the language cannot write (an empty group, a "
+                                       "selector) of spare, empty"));
+}
+
 TEST_CASE("Writer: no write over a file changed on disk since it was read", "[Studio]")
 {
   const std::string folder = copyOfWire("changed");

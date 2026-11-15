@@ -42,5 +42,5 @@ Each change is written into the model's files at once, in the language, so that 
   window asks), and the label is written after the shape's call in the file it is in: ``.label(cap1 = "inlet")``.
 * Only the edited domain's block is rewritten, in the canonical form (see :ref:`Chap:StudioCommands`), its subdomains
   and unchanged surface groups as written; a domain made in the window is added at the end of the file opened.
-* Ctrl + Z and Ctrl + Y undo and redo what it wrote. It never writes over a file changed on disk since it was read,
-  and a write that cannot write all its files writes none of them.
+* Ctrl + Z and Ctrl + Y undo and redo what it wrote. Just before writing, it checks that no file changed on disk
+  since it was read, and writes none if one did; a write that cannot write all its files writes none of them.

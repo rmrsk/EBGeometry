@@ -8,8 +8,9 @@
 // writes .label("name") (or .label(part = "name")) after the shape's call in the file that makes it. Only the edited
 // domain's block is rewritten: its subdomain lines and unchanged groups are kept as written, comments included; a
 // changed or new group is written in canonical form, keeping the properties it had. A model without the domain gets
-// it appended to its setup file. Every write keeps the files' previous text, for undo and redo, no write goes over a
-// file that changed on disk since the model was read, and a write changes all its files or none.
+// it appended to its setup file. Every write keeps the files' previous text, for undo and redo; it first checks that no
+// file changed on disk since the model was read (an editor saving between that check and the write is not seen); and it
+// changes all its files or none.
 
 #ifndef EBGEOMETRY_STUDIO_WRITER_HPP
 #define EBGEOMETRY_STUDIO_WRITER_HPP
@@ -227,6 +228,7 @@ private:
   std::string               m_path;
   const Language::Model<T>* m_model = nullptr;
   std::string               m_note;
+  std::string               m_leftOut;
   Pending                   m_pending;
   std::vector<Write>        m_undo;
   std::vector<Write>        m_redo;
@@ -458,11 +460,18 @@ private:
     return m_path;
   }
 
-  // The domain's block, the edit applied: the edits to make.
-  std::vector<Edit>
+  // The domain's block, the edit applied: the edits to make, or none when the block cannot be placed. The groups the
+  // language cannot write (an empty group, a selector) are named in m_leftOut.
+  std::optional<std::vector<Edit>>
   domainEdits()
   {
     std::vector<Edit> edits;
+
+    m_leftOut.clear();
+
+    const auto leaveOut = [this](const uint32_t a_group) {
+      m_leftOut += (m_leftOut.empty() ? "" : ", ") + m_pending.m_names[a_group];
+    };
 
     // The groups' lines, as the edit has them.
     std::vector<std::string> lines(m_pending.m_setup.getNumSurfaceGroups());
@@ -495,7 +504,7 @@ private:
     }
 
     const auto groupLine = [&](const uint32_t a_group, const Language::Syntax::DomainItem* a_old) {
-      std::string line = "group " + m_pending.m_names[a_group] + " = " + (lines[a_group].empty() ? "" : lines[a_group]);
+      std::string line = "group " + m_pending.m_names[a_group] + " = " + lines[a_group];
 
       if (a_old != nullptr && a_old->m_properties.m_written) {
         line += " " + file->m_text.substr(a_old->m_properties.m_span.m_begin,
@@ -512,13 +521,25 @@ private:
         if (!lines[g].empty()) {
           block += "  " + groupLine(g, nullptr) + "\n";
         }
+
+        if (lines[g].empty() || !written[g]) {
+          leaveOut(g);
+        }
       }
 
       block += "}\n";
 
+      // A file that is not there is started; one that is there but cannot be read is not replaced.
       const std::string target = this->setupFile();
       const auto        text   = readFile(target);
-      const uint32_t    end    = text.has_value() ? static_cast<uint32_t>(text->size()) : 0U;
+
+      if (!text.has_value() && std::filesystem::exists(target)) {
+        m_note = "not written: " + target + " cannot be read";
+
+        return std::nullopt;
+      }
+
+      const uint32_t end = text.has_value() ? static_cast<uint32_t>(text->size()) : 0U;
 
       edits.push_back(Edit{target, end, end, text.has_value() ? block : "ebg 0\n" + block});
 
@@ -533,7 +554,21 @@ private:
       return text.substr(a_begin, a_end - a_begin);
     };
 
-    const uint32_t open = static_cast<uint32_t>(text.find('{', statement->m_nameSpan.m_end)) + 1U;
+    // Past the block's opening brace, which the parser requires on the name's line, after blanks only (a comment runs
+    // to the line's end).
+    size_t brace = statement->m_nameSpan.m_end;
+
+    while (brace < statement->m_span.m_end && (text[brace] == ' ' || text[brace] == '\t')) {
+      brace++;
+    }
+
+    if (brace >= statement->m_span.m_end || text[brace] != '{') {
+      m_note = "not written: the opening brace of domain " + m_pending.m_domain + " was not found";
+
+      return std::nullopt;
+    }
+
+    const uint32_t open = static_cast<uint32_t>(brace) + 1U;
 
     std::map<std::string, std::string>                         leading;
     std::map<std::string, const Language::Syntax::DomainItem*> oldGroups;
@@ -607,9 +642,7 @@ private:
 
     for (uint32_t g = 0; g < written.size(); g++) {
       if (!written[g]) {
-        m_note = "group " + m_pending.m_names[g] +
-                 ": what the language cannot write (an empty group, a selector) was "
-                 "left out";
+        leaveOut(g);
       }
     }
 
@@ -678,7 +711,13 @@ private:
   {
     std::vector<Edit> edits = this->labelEdits();
 
-    for (Edit& edit : this->domainEdits()) {
+    const std::optional<std::vector<Edit>> domain = this->domainEdits();
+
+    if (!domain.has_value()) {
+      return;
+    }
+
+    for (const Edit& edit : *domain) {
       edits.push_back(edit);
     }
 
@@ -739,6 +778,10 @@ private:
     m_redo.clear();
 
     m_note = "wrote " + std::to_string(record.m_after.size()) + " file(s); Ctrl+Z undoes";
+
+    if (!m_leftOut.empty()) {
+      m_note += "; left out what the language cannot write (an empty group, a selector) of " + m_leftOut;
+    }
   }
 
   // A file written through a link is its target: the target is replaced, the link kept.
