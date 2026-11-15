@@ -13,8 +13,8 @@ leaves of one `Tape <doxygen/html/classEBGeometry_1_1Tape.html>`__, a union thro
    :width: 60%
    :align: center
 
-   500,000 spheres in a funnel, its cloud base and the debris rising around its foot, colored by wind speed: rust
-   where it is slow, bone white where it is fast.
+   500,000 spheres in a funnel, its cloud base and the debris around its foot, colored by wind speed: rust where it
+   is slow, bone white where it is fast; the floor reflects them.
 
 Packing the spheres
 -------------------
@@ -64,7 +64,9 @@ Looking at it
 -------------
 
 The example ends with ``Render::view(tornado, pool, camera, settings, argc, argv)``, the camera fitted with y up and
-the settings coloring by leaf. X cuts the tornado open.
+the settings coloring by leaf, in the mirror look, ``Render::setLook(settings, Render::Look::Mirror)``: a dark
+backdrop, and a floor that reflects the tornado (see :ref:`Chap:ImplemRender`). B and Shift + B cycle the other looks,
+Up and Down brighten or dim the light, Left and Right the ambient light, and X cuts the tornado open.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why

@@ -259,6 +259,10 @@ main(int argc, char* argv[])
     // Other arguments, such as --no-view, are for Render::view().
   }
 
+  if (count == 0) {
+    return 0;
+  }
+
   if (radius <= T(0)) {
     radius = T(0.003) * std::cbrt(T(8000000) / T(count));
   }
@@ -364,8 +368,12 @@ main(int argc, char* argv[])
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // A window on the tornado, standing along y (built with VIEWER=SDL2; otherwise, with --no-view or without a display,
-  // view() prints why and returns). It opens colored by leaf, the bins of speed; X cuts it open. Given the pool,
-  // view() renders on the GPU in a GPU build.
+  // view() prints why and returns). It opens colored by leaf, the bins of speed, in the mirror look: a dark backdrop
+  // and a floor that reflects the tornado. B and Shift + B cycle the other looks, Up and Down brighten or dim the
+  // light, Left and Right the ambient light, and X cuts it open. Given the pool, view() renders on the GPU in a GPU
+  // build.
+  EBGeometry::Render::setLook(settings, EBGeometry::Render::Look::Mirror);
+
   const auto camera = EBGeometry::Render::Camera<T>::fit(tornado.computeBoundingVolume(), Vec3(T(0), T(1), T(0)));
 
   EBGeometry::Render::view(tornado, pool, camera, settings, argc, argv);
