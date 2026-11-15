@@ -49,7 +49,8 @@ Overriding a name that is not a param is an error naming the params there are. N
 ``double``, and the shapes are built in the precision of the program that reads the model.
 
 There are no loops and no functions of your own: a model reuses by name. Every option is an argument of the
-call it affects; nothing is set globally.
+call it affects; nothing is set globally. The one value that holds several shapes is a list of meshes, read from
+the files of an assembly (see :ref:`Sec:LanguageLists`).
 
 Shapes and operations
 ---------------------
@@ -146,6 +147,37 @@ A ``material`` statement gives a material's properties, the defaults its regions
 
 A material named by a region and never declared has no properties, and one declared but used by no region
 does nothing; both are warnings.
+
+.. _Sec:LanguageLists:
+
+Assemblies: lists of meshes
+---------------------------
+
+An assembly kept as one mesh file per part is read in one line, ``meshes("parts/*.stl")`` (see
+:ref:`Chap:LanguageShapes`), which gives a list: the meshes in the files' natural order, each named after its file
+(``part-17.stl`` is ``part_17``). A list goes where several shapes go, and an operation of one shape applies to each
+element:
+
+.. code-block:: text
+
+   parts = meshes("F18/part*.STL")
+   moved = parts.translate((0, 0, 2))         # a list: every part moved
+
+   object bvh_union(moved)                    # the assembly as one solid
+
+In a region line, a list is a group of regions, one per part, named after the region and the part, with the
+group's material as their default; ``f18`` below names the group and ``f18_part_17`` one of its regions:
+
+.. code-block:: text
+
+   object overlay {
+     region air = box((-20, -20, -5), (20, 20, 10)) material air
+     region f18 = parts material aluminium
+   }
+
+Where two parts overlap, the later file lies on top. A list where one shape is required (the object, a shape's
+argument) is an error. A union of the parts still tells which part a surface point belongs to: each part is a
+leaf of its own (see :ref:`Chap:LeavesAndSurfaces`).
 
 Labels and the parts of shapes
 ------------------------------
