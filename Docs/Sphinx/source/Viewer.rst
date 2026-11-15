@@ -77,20 +77,23 @@ The keys
        its position and the shape's value there, and for a view of regions the region it is in, the active
        domain's subdomain and functions there, and the nearest surface with its surface group. A right click on
        the background clears it.
-   * - Left, Right (Shift + Left, Right)
-     - Weaker or stronger highlights (broader or tighter).
+   * - Up, Down; Left, Right
+     - A stronger or weaker light; less or more ambient light (the light from the sky, which lights the sides the
+       light does not reach).
+   * - Shift + Up, Down; Shift + Left, Right
+     - Stronger or weaker highlights; broader or tighter ones.
    * - M; Shift + M
      - Cycle the view: shaded, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
    * - S, A, F
      - Shadows, ambient occlusion, the floor on or off.
-   * - B
-     - The next look of the backdrop and the floor: the sky, a dark background, a gradient without a floor, only the
-       shadow on a gradient, a light grid, a white studio backdrop, a mirror floor, a dark grid, a blueprint. A floor
-       turned off with F stays off.
-   * - Shift + Up, Down
-     - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
+   * - B; Shift + B
+     - The next look of the backdrop and the floor; the previous one. In order: the sky, a dark background, a gradient
+       without a floor, only the shadow on a gradient, a light grid, a white studio backdrop, a mirror floor, a dark
+       grid, a blueprint. A floor turned off with F stays off.
+   * - [, ]
+     - Fewer or more rays per pixel, from 1 x 1 to 8 x 8.
    * - G
      - Render on the GPU or the CPU (when the window has a device view).
    * - X; Ctrl + X; Shift + X; N
@@ -98,7 +101,7 @@ The keys
        on comes first); remove the cut; see through the cut face and the plane to the surfaces behind them, or
        make them opaque again; keep the other side, then each side with the other ghosted (drawn translucent
        in front of it), then both sides solid (the plane shows outside the shape only), five in turn.
-   * - Ctrl + wheel; Up, Down
+   * - Ctrl + wheel; Page Up, Page Down
      - Move the section plane in fine steps; in coarse ones.
    * - U
      - The axis planes through the origin, drawn over the image: all three, the one facing the camera most, or
