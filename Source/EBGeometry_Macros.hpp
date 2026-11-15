@@ -101,10 +101,14 @@ requireFailed(const char* a_cond, const char* a_file, const int a_line, const ch
 
   const int length = std::vsnprintf(nullptr, 0, a_format, arguments);
 
+  // A message that cannot be formatted is reported by its format, so that the failure still says where it is.
   std::string message(length > 0 ? static_cast<size_t>(length) : 0U, '\0');
 
   if (length > 0) {
     std::vsnprintf(&message[0], message.size() + 1, a_format, again);
+  }
+  else if (length < 0) {
+    message = a_format;
   }
 
   va_end(again);
