@@ -377,6 +377,80 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   CHECK(ghostFaint.at(0, 0) == cutAlone.at(0, 0));
 }
 
+TEMPLATE_TEST_CASE("Render: with the removed side ghosted, the section's fill covers only the cut",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // A ball of steel around one of copper, in a view of regions, whose plane is filled by what each point is in (outside, no
+  // material); the half towards the camera removed.
+  Pool pool(hostMemoryResource());
+
+  const T          radius = T(1);
+  const Tape       tape(pool,
+                  Overlay(MaterialLabel(SphereSDF<T>(Vec3::zeros(), radius), "steel"),
+                          MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(0.5) * radius), "copper")));
+  RegionView<Tape> view(tape);
+
+  Render::Camera<T> camera = Render::Camera<T>::fit(SphereSDF<T>(Vec3::zeros(), radius).computeBoundingVolume());
+
+  camera.m_yaw   = T(0);
+  camera.m_pitch = T(0);
+
+  constexpr uint32_t size = 32;
+
+  Render::Renderer<T> renderer(plain<T>(size));
+
+  renderer.settings().m_section       = true;
+  renderer.settings().m_sectionPoint  = Vec3::zeros();
+  renderer.settings().m_sectionNormal = Vec3(T(0), T(0), T(1));
+
+  const auto render = [&](const T a_ghost, const T a_fill) {
+    renderer.settings().m_ghostOpacity = a_ghost;
+    renderer.settings().m_sectionFill  = a_fill;
+
+    Render::Image image;
+
+    (void)renderer.render(view, camera, image);
+
+    return image;
+  };
+
+  const Render::Image wall      = render(T(0), T(1));
+  const Render::Image sheet     = render(T(0), T(0));
+  const Render::Image ghostWall = render(T(0.3), T(1));
+  const Render::Image ghostOnly = render(T(0.3), T(0));
+
+  // Off the ball, where the plane lies outside the shape: without a ghost the fill is drawn there; with one, the plane
+  // is the sheet, as unfilled.
+  size_t outside = 0;
+  size_t filled  = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const Vec3 d  = pixelRay(camera, size, column, row);
+      const Vec3 oc = camera.eye();
+      const T    b  = dot(oc, d);
+
+      if (std::sqrt(Math::max(T(0), dot(oc, oc) - b * b)) > T(1.05) * radius) {
+        CHECK(ghostWall.at(column, row) == ghostOnly.at(column, row));
+
+        filled += (wall.at(column, row) != sheet.at(column, row)) ? 1 : 0;
+        outside++;
+      }
+    }
+  }
+
+  CHECK(outside > 0U);
+  CHECK(filled > 0U);
+
+  // On the cut, seen through the ghost, the fill is drawn.
+  CHECK(ghostWall.at(size / 2, size / 2) != ghostOnly.at(size / 2, size / 2));
+}
+
 TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degenerate camera, bad lighting and an "
           "unbounded fit",
           "[Render]")
