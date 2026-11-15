@@ -12,7 +12,7 @@
 //   ./Tornado.ex [--count=<n>] [--radius=<r>]
 //
 // --count is the number of spheres (default 500000) and --radius their radius. By default the radius follows the
-// count, 0.003 at 8 million, so that the tornado looks as dense at any count. A sphere that finds no free position is
+// count, 0.01 at the default count, so that the tornado looks as dense at any count. A sphere that finds no free position is
 // left out, so the program prints how many it placed.
 
 #include <algorithm>
@@ -369,7 +369,7 @@ main(int argc, char* argv[])
   }
 
   if (radius <= T(0)) {
-    radius = T(0.003) * std::cbrt(T(8000000) / T(count));
+    radius = T(0.01) * std::cbrt(T(500000) / T(count));
   }
 
   // ── Pack the spheres ───────────────────────────────────────────────────────────────────────────────
