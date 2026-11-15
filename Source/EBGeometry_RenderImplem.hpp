@@ -789,7 +789,20 @@ public:
       (std::abs(m_baseLight[0]) < T(0.9)) ? Vec3T<T>(T(1), T(0), T(0)) : Vec3T<T>(T(0), T(1), T(0)), m_baseLight));
     const Vec3T<T> t2 = cross(m_baseLight, t1);
 
-    m_light = unit(m_baseLight + T(0.04) * ((a_dx - T(0.5)) * t1 + (a_dy - T(0.5)) * t2));
+    m_light = unit(m_baseLight + m_settings.m_lightSize * ((a_dx - T(0.5)) * t1 + (a_dy - T(0.5)) * t2));
+  }
+
+  /**
+   * @brief Where the next camera ray crosses the image, for a backdrop that changes across the view.
+   * @param[in] a_x Across, from -width/height (left) to width/height (right).
+   * @param[in] a_y Up, from -1 (bottom) to 1 (top).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  aimAt(const T a_x, const T a_y) noexcept
+  {
+    m_screenX = a_x;
+    m_screenY = a_y;
   }
 
   /**
@@ -1289,6 +1302,16 @@ private:
    * @brief Unit direction the camera looks in.
    */
   Vec3T<T> m_forward;
+
+  /**
+   * @brief Where the camera ray being shaded crosses the image (see aimAt()).
+   */
+  T m_screenX = T(0);
+
+  /**
+   * @brief See m_screenX.
+   */
+  T m_screenY = T(0);
 
   /**
    * @brief How far behind the plane through the eye orthographic rays start (0 for a perspective camera).
@@ -1852,45 +1875,164 @@ private:
   }
 
   /**
-   * @brief The color of the floor where a camera ray hit it: a faint checkerboard, shadowed by the
-   * shape, fading into the background far away.
+   * @brief The color of the floor where a camera ray hit it, in its style (Settings::m_floorStyle), shadowed by the
+   * shape, fading into the backdrop far away.
+   * @details Out of line on a device: inlined, its styles (the grid, the shadow-only floor's second lighting) took part
+   * in every render kernel's register allocation, and the kernels of TestRenderDevice spilled up to 40% more.
    * @param[in] a_point     Point on the floor.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_t         Distance along the ray.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   inline Vec3T<T>
   shadeFloor(const Vec3T<T>& a_point, const Vec3T<T>& a_direction, const T a_t) const noexcept
   {
-    const T cell  = (m_settings.m_floorCheckerSize > T(0)) ? m_settings.m_floorCheckerSize : m_scale / T(6);
-    const T a     = std::floor(dot(a_point, m_first) / cell);
-    const T b     = std::floor(dot(a_point, m_second) / cell);
-    const T check = (!m_settings.m_floorChecker || std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9);
+    const FloorStyle style = m_settings.m_floorStyle;
+    const Vec3T<T>   under = this->background(a_direction);
 
-    const Vec3T<T> lit = this->light(a_point, m_up, a_direction, check * m_settings.m_floorColor);
+    const T fade = std::exp(-(a_t * a_t) / (m_settings.m_floorFade * m_settings.m_floorFade * m_scale * m_scale));
 
-    const T fade = std::exp(-(a_t * a_t) / (T(36) * m_scale * m_scale));
+    // Only the shape's shadow and occlusion, as a darkening of the backdrop.
+    if (style == FloorStyle::ShadowOnly) {
+      const T lit  = m_settings.m_shadows ? this->shadow(a_point, m_up) : T(1);
+      const T ao   = m_settings.m_occlusion ? this->occlusion(a_point, m_up) : T(1);
+      const T dark = T(1) - (T(0.45) + T(0.55) * lit) * ao;
 
-    return fade * lit + (T(1) - fade) * this->background(a_direction);
+      return (T(1) - fade * dark) * under;
+    }
+
+    const T cell = (m_settings.m_floorCellSize > T(0)) ? m_settings.m_floorCellSize : m_scale / T(6);
+    const T u    = dot(a_point, m_first) / cell;
+    const T v    = dot(a_point, m_second) / cell;
+
+    Vec3T<T> albedo = m_settings.m_floorColor;
+
+    if (style == FloorStyle::Checker) {
+      const T a = std::floor(u);
+      const T b = std::floor(v);
+
+      albedo = ((std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9)) * albedo;
+    }
+    else if (style == FloorStyle::Grid) {
+      albedo = this->gridColor(u, v, (m_footprint + m_footprintPerLength * a_t) / cell);
+    }
+
+    Vec3T<T> lit = this->light(a_point, m_up, a_direction, albedo);
+
+    if (style == FloorStyle::Mirror) {
+      lit = this->mirrored(a_point, a_direction, lit, under);
+    }
+
+    return fade * lit + (T(1) - fade) * under;
   }
 
   /**
-   * @brief The background along a ray that hits nothing.
-   * @param[in] a_direction Unit direction.
+   * @brief The grid floor's albedo at a point: the floor's color, with its lines drawn over it about a pixel wide (the
+   * heavier ones two), each kind left out where its lines would lie within a few pixels of each other.
+   * @param[in] a_u     The point's coordinate along the floor's first axis, in grid cells.
+   * @param[in] a_v     Along the second axis.
+   * @param[in] a_pixel How wide a pixel is there, in grid cells.
    * @return Linear RGB.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline Vec3T<T>
-  background(const Vec3T<T>& a_direction) const noexcept
+  gridColor(const T a_u, const T a_v, const T a_pixel) const noexcept
   {
-    if (!m_settings.m_sky) {
-      return m_settings.m_background;
+    const T nu    = std::floor(a_u + T(0.5));
+    const T nv    = std::floor(a_v + T(0.5));
+    const T du    = std::abs(a_u - nu);
+    const T dv    = std::abs(a_v - nv);
+    const T every = T(m_settings.m_floorMajorEvery);
+
+    // Lines a cell apart are seen fully at 8 pixels apart or more, and fade out down to 4.
+    const T minorSeen = Math::clamp((T(1) / a_pixel - T(4)) / T(4), T(0), T(1));
+    const T minor     = minorSeen * Math::clamp(T(1) - Math::min(du, dv) / a_pixel, T(0), T(1));
+
+    T major = T(0);
+
+    if (every > T(0)) {
+      const T majorSeen = Math::clamp((every / a_pixel - T(4)) / T(4), T(0), T(1));
+      const T onU       = (std::fmod(std::abs(nu), every) < T(0.5)) ? du : Math::Limits<T>::infinity();
+      const T onV       = (std::fmod(std::abs(nv), every) < T(0.5)) ? dv : Math::Limits<T>::infinity();
+
+      major = majorSeen * Math::clamp(T(2) - Math::min(onU, onV) / a_pixel, T(0), T(1));
     }
 
-    const T s = Math::clamp(dot(a_direction, m_up), T(0), T(1));
+    const T line = Math::max(T(0.6) * minor, major);
 
-    return (T(1) - s) * m_settings.m_skyHorizon + s * m_settings.m_skyZenith;
+    return (T(1) - line) * m_settings.m_floorColor + line * m_settings.m_floorLineColor;
+  }
+
+  /**
+   * @brief The mirror floor's color at a point: its own lit color, with the shape's reflection, or the backdrop's,
+   * over it by the reflectance, rising towards the horizon (Schlick's approximation).
+   * @details Out of line on a device, like shadeCutFace(): its trace and second shading, inlined, would take part in
+   * the register allocation of every render kernel.
+   * @param[in] a_point     Point on the floor.
+   * @param[in] a_direction Unit direction of the camera ray.
+   * @param[in] a_lit       The floor's own lit color there.
+   * @param[in] a_under     The backdrop along the camera ray.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  mirrored(const Vec3T<T>& a_point,
+           const Vec3T<T>& a_direction,
+           const Vec3T<T>& a_lit,
+           const Vec3T<T>& a_under) const noexcept
+  {
+    const T        down = -dot(a_direction, m_up);
+    const Vec3T<T> r    = a_direction + T(2) * down * m_up;
+    const HitT<T>  hit  = this->trace(RayT<T>{a_point + T(4) * m_eps * m_up, r}, T(0), m_far);
+
+    const Vec3T<T> seen = hit.hit() ? this->shadeSurface(hit, r, true) : a_under;
+
+    const T grazing = T(1) - Math::clamp(down, T(0), T(1));
+    const T r0      = m_settings.m_floorReflectance;
+    const T k       = r0 + (T(1) - r0) * grazing * grazing * grazing * grazing * grazing;
+
+    return (T(1) - k) * a_lit + k * seen;
+  }
+
+  /**
+   * @brief The backdrop along a ray that hits nothing (Settings::m_backdrop): by the ray's direction (the sky), or by
+   * where it crosses the image (see aimAt()).
+   * @details Out of line on a device, where its callers (a miss, the floor's fade, what the cut face shows through, the
+   * depth view) would each hold a copy of every backdrop.
+   * @param[in] a_direction Unit direction.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  background(const Vec3T<T>& a_direction) const noexcept
+  {
+    switch (m_settings.m_backdrop) {
+    case Backdrop::Plain: {
+      return m_settings.m_background;
+    }
+    case Backdrop::Gradient: {
+      const T s = Math::clamp(T(0.5) - T(0.5) * m_screenY, T(0), T(1));
+
+      return (T(1) - s) * m_settings.m_gradientFrom + s * m_settings.m_gradientTo;
+    }
+    case Backdrop::Vignette: {
+      // From the center to the corners, eased in and out.
+      const T aspect = T(m_settings.m_width) / T(Math::max(m_settings.m_height, 1U));
+      const T r2 = Math::clamp((m_screenX * m_screenX + m_screenY * m_screenY) / (aspect * aspect + T(1)), T(0), T(1));
+      const T s  = r2 * r2 * (T(3) - T(2) * r2);
+
+      return (T(1) - s) * m_settings.m_gradientFrom + s * m_settings.m_gradientTo;
+    }
+    default: {
+      const T s = Math::clamp(dot(a_direction, m_up), T(0), T(1));
+
+      return (T(1) - s) * m_settings.m_skyHorizon + s * m_settings.m_skyZenith;
+    }
+    }
   }
 };
 
@@ -2435,6 +2577,61 @@ literal(const ColorBy a_colorBy)
 }
 
 /**
+ * @brief A backdrop as a C++ literal.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_backdrop Backdrop.
+ * @return The enumerator's qualified name.
+ */
+EBGEOMETRY_HOST
+inline std::string
+literal(const Backdrop a_backdrop)
+{
+  switch (a_backdrop) {
+  case Backdrop::Plain: {
+    return "EBGeometry::Render::Backdrop::Plain";
+  }
+  case Backdrop::Gradient: {
+    return "EBGeometry::Render::Backdrop::Gradient";
+  }
+  case Backdrop::Vignette: {
+    return "EBGeometry::Render::Backdrop::Vignette";
+  }
+  default: {
+    return "EBGeometry::Render::Backdrop::Sky";
+  }
+  }
+}
+
+/**
+ * @brief A floor style as a C++ literal.
+ * @details Internal helper; not part of the public API.
+ * @param[in] a_style Floor style.
+ * @return The enumerator's qualified name.
+ */
+EBGEOMETRY_HOST
+inline std::string
+literal(const FloorStyle a_style)
+{
+  switch (a_style) {
+  case FloorStyle::Grid: {
+    return "EBGeometry::Render::FloorStyle::Grid";
+  }
+  case FloorStyle::Plain: {
+    return "EBGeometry::Render::FloorStyle::Plain";
+  }
+  case FloorStyle::ShadowOnly: {
+    return "EBGeometry::Render::FloorStyle::ShadowOnly";
+  }
+  case FloorStyle::Mirror: {
+    return "EBGeometry::Render::FloorStyle::Mirror";
+  }
+  default: {
+    return "EBGeometry::Render::FloorStyle::Checker";
+  }
+  }
+}
+
+/**
  * @brief A view mode as a C++ literal.
  * @details Internal helper; not part of the public API.
  * @param[in] a_mode View mode.
@@ -2561,7 +2758,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_shadows", a_settings.m_shadows, settings.m_shadows);
   field("settings", "m_occlusion", a_settings.m_occlusion, settings.m_occlusion);
   field("settings", "m_floor", a_settings.m_floor, settings.m_floor);
-  field("settings", "m_sky", a_settings.m_sky, settings.m_sky);
+  field("settings", "m_backdrop", a_settings.m_backdrop, settings.m_backdrop);
   field("settings", "m_colorBy", a_settings.m_colorBy, settings.m_colorBy);
   field("settings", "m_color", a_settings.m_color, settings.m_color);
 
@@ -2596,8 +2793,15 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_skyHorizon", a_settings.m_skyHorizon, settings.m_skyHorizon);
   field("settings", "m_skyZenith", a_settings.m_skyZenith, settings.m_skyZenith);
   field("settings", "m_background", a_settings.m_background, settings.m_background);
-  field("settings", "m_floorChecker", a_settings.m_floorChecker, settings.m_floorChecker);
-  field("settings", "m_floorCheckerSize", a_settings.m_floorCheckerSize, settings.m_floorCheckerSize);
+  field("settings", "m_gradientFrom", a_settings.m_gradientFrom, settings.m_gradientFrom);
+  field("settings", "m_gradientTo", a_settings.m_gradientTo, settings.m_gradientTo);
+  field("settings", "m_floorStyle", a_settings.m_floorStyle, settings.m_floorStyle);
+  field("settings", "m_floorCellSize", a_settings.m_floorCellSize, settings.m_floorCellSize);
+  field("settings", "m_floorLineColor", a_settings.m_floorLineColor, settings.m_floorLineColor);
+  field("settings", "m_floorMajorEvery", a_settings.m_floorMajorEvery, settings.m_floorMajorEvery);
+  field("settings", "m_floorFade", a_settings.m_floorFade, settings.m_floorFade);
+  field("settings", "m_floorReflectance", a_settings.m_floorReflectance, settings.m_floorReflectance);
+  field("settings", "m_lightSize", a_settings.m_lightSize, settings.m_lightSize);
   field("settings", "m_section", a_settings.m_section, settings.m_section);
   field("settings", "m_sectionPoint", a_settings.m_sectionPoint, settings.m_sectionPoint);
   field("settings", "m_sectionNormal", a_settings.m_sectionNormal, settings.m_sectionNormal);
@@ -2631,6 +2835,145 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_volumeOpacity", a_settings.m_volumeOpacity, settings.m_volumeOpacity);
 
   return code;
+}
+
+EBGEOMETRY_HOST
+inline const char*
+lookName(const Look a_look) noexcept
+{
+  switch (a_look) {
+  case Look::Dark: {
+    return "dark";
+  }
+  case Look::Gradient: {
+    return "gradient";
+  }
+  case Look::ShadowOnly: {
+    return "shadow_only";
+  }
+  case Look::LightGrid: {
+    return "light_grid";
+  }
+  case Look::Studio: {
+    return "studio";
+  }
+  case Look::Mirror: {
+    return "mirror";
+  }
+  case Look::DarkGrid: {
+    return "dark_grid";
+  }
+  case Look::Blueprint: {
+    return "blueprint";
+  }
+  default: {
+    return "sky";
+  }
+  }
+}
+
+template <class T>
+EBGEOMETRY_HOST
+inline void
+setLook(Settings<T>& a_settings, const Look a_look) noexcept
+{
+  // Every look starts from the defaults of what it sets (the sky look is the defaults). The colors are linear: a
+  // display shows a value v as about v^(1/2.2).
+  const Settings<T> base;
+
+  a_settings.m_backdrop         = base.m_backdrop;
+  a_settings.m_skyHorizon       = base.m_skyHorizon;
+  a_settings.m_skyZenith        = base.m_skyZenith;
+  a_settings.m_background       = base.m_background;
+  a_settings.m_gradientFrom     = base.m_gradientFrom;
+  a_settings.m_gradientTo       = base.m_gradientTo;
+  a_settings.m_floor            = base.m_floor;
+  a_settings.m_floorStyle       = base.m_floorStyle;
+  a_settings.m_floorColor       = base.m_floorColor;
+  a_settings.m_floorCellSize    = base.m_floorCellSize;
+  a_settings.m_floorLineColor   = base.m_floorLineColor;
+  a_settings.m_floorMajorEvery  = base.m_floorMajorEvery;
+  a_settings.m_floorFade        = base.m_floorFade;
+  a_settings.m_floorReflectance = base.m_floorReflectance;
+  a_settings.m_lightSize        = base.m_lightSize;
+
+  switch (a_look) {
+  case Look::Dark: {
+    a_settings.m_backdrop = Backdrop::Plain;
+
+    break;
+  }
+  case Look::Gradient: {
+    a_settings.m_backdrop     = Backdrop::Gradient;
+    a_settings.m_gradientFrom = Vec3T<T>(T(0.40), T(0.50), T(0.68));
+    a_settings.m_gradientTo   = Vec3T<T>(T(0.93), T(0.95), T(0.97));
+    a_settings.m_floor        = false;
+
+    break;
+  }
+  case Look::ShadowOnly: {
+    a_settings.m_backdrop     = Backdrop::Gradient;
+    a_settings.m_gradientFrom = Vec3T<T>(T(0.89), T(0.90), T(0.91));
+    a_settings.m_gradientTo   = Vec3T<T>(T(0.64), T(0.65), T(0.68));
+    a_settings.m_floorStyle   = FloorStyle::ShadowOnly;
+    a_settings.m_lightSize    = T(0.15);
+
+    break;
+  }
+  case Look::LightGrid: {
+    a_settings.m_backdrop       = Backdrop::Gradient;
+    a_settings.m_gradientFrom   = Vec3T<T>(T(0.72), T(0.75), T(0.79));
+    a_settings.m_gradientTo     = Vec3T<T>(T(0.89), T(0.90), T(0.91));
+    a_settings.m_floorStyle     = FloorStyle::Grid;
+    a_settings.m_floorColor     = Vec3T<T>(T(0.85), T(0.86), T(0.88));
+    a_settings.m_floorLineColor = Vec3T<T>(T(0.45), T(0.48), T(0.54));
+    a_settings.m_lightSize      = T(0.08);
+
+    break;
+  }
+  case Look::Studio: {
+    a_settings.m_backdrop     = Backdrop::Vignette;
+    a_settings.m_gradientFrom = Vec3T<T>(T(0.97), T(0.97), T(0.96));
+    a_settings.m_gradientTo   = Vec3T<T>(T(0.76), T(0.77), T(0.78));
+    a_settings.m_floorStyle   = FloorStyle::ShadowOnly;
+    a_settings.m_floorFade    = T(4);
+    a_settings.m_lightSize    = T(0.25);
+
+    break;
+  }
+  case Look::Mirror: {
+    a_settings.m_backdrop     = Backdrop::Gradient;
+    a_settings.m_gradientFrom = Vec3T<T>(T(0.006), T(0.007), T(0.009));
+    a_settings.m_gradientTo   = Vec3T<T>(T(0.036), T(0.039), T(0.052));
+    a_settings.m_floorStyle   = FloorStyle::Mirror;
+    a_settings.m_floorColor   = Vec3T<T>(T(0.012), T(0.013), T(0.016));
+
+    break;
+  }
+  case Look::DarkGrid: {
+    a_settings.m_backdrop       = Backdrop::Gradient;
+    a_settings.m_gradientFrom   = Vec3T<T>(T(0.047), T(0.052), T(0.061));
+    a_settings.m_gradientTo     = Vec3T<T>(T(0.015), T(0.017), T(0.020));
+    a_settings.m_floorStyle     = FloorStyle::Grid;
+    a_settings.m_floorColor     = Vec3T<T>(T(0.06), T(0.063), T(0.07));
+    a_settings.m_floorLineColor = Vec3T<T>(T(0.20), T(0.22), T(0.26));
+
+    break;
+  }
+  case Look::Blueprint: {
+    a_settings.m_backdrop       = Backdrop::Vignette;
+    a_settings.m_gradientFrom   = Vec3T<T>(T(0.005), T(0.029), T(0.12));
+    a_settings.m_gradientTo     = Vec3T<T>(T(0.0014), T(0.0094), T(0.047));
+    a_settings.m_floorStyle     = FloorStyle::Grid;
+    a_settings.m_floorColor     = Vec3T<T>(T(0.012), T(0.06), T(0.22));
+    a_settings.m_floorLineColor = Vec3T<T>(T(0.22), T(0.43), T(0.89));
+
+    break;
+  }
+  default: {
+    break;
+  }
+  }
 }
 
 inline double
@@ -2756,12 +3099,16 @@ PixelQuery<T, S>::operator()(const uint32_t& a_index) const noexcept
     const T dy = (T(s / n) + T(0.5)) / T(n);
 
     // Screen coordinates: x from -w/h to w/h, y from -1 (bottom) to 1 (top), times tan(fov/2).
-    const T x = (T(2) * (column + dx) - w) / h * tanHalf;
-    const T y = (h - T(2) * (row + dy)) / h * tanHalf;
+    const T sx = (T(2) * (column + dx) - w) / h;
+    const T sy = (h - T(2) * (row + dy)) / h;
+    const T x  = sx * tanHalf;
+    const T y  = sy * tanHalf;
 
     if (n > 1U) {
       shader.jitterLight(dx, dy);
     }
+
+    shader.aimAt(sx, sy);
 
     // Perspective rays leave the eye; orthographic ones are parallel, behind the shape, spread as far as the
     // perspective rays are at the target. One call to shade(): two (one per kind) copied its whole body into
@@ -2848,12 +3195,16 @@ struct InspectQuery
       const T dy = (T(s / n) + T(0.5)) / T(n);
 
       // The rays PixelQuery casts.
-      const T x = (T(2) * (column + dx) - w) / h * view.m_tanHalf;
-      const T y = (h - T(2) * (row + dy)) / h * view.m_tanHalf;
+      const T sx = (T(2) * (column + dx) - w) / h;
+      const T sy = (h - T(2) * (row + dy)) / h;
+      const T x  = sx * view.m_tanHalf;
+      const T y  = sy * view.m_tanHalf;
 
       if (n > 1U) {
         shader.jitterLight(dx, dy);
       }
+
+      shader.aimAt(sx, sy);
 
       const Vec3T<T> origin =
         camera.m_orthographic
@@ -3066,13 +3417,20 @@ Renderer<T>::check(const Camera<T>& a_camera) const
                      "Render::Renderer: the shininess must be at least 1 (%g)",
                      double(m_settings.m_shininess));
   EBGEOMETRY_REQUIRE(m_settings.m_lightIntensity >= T(0) && m_settings.m_ambient >= T(0) &&
-                       m_settings.m_specular >= T(0) && m_settings.m_floorCheckerSize >= T(0),
-                     "Render::Renderer: the light intensity, ambient level, specular strength and checker size "
-                     "must not be negative (%g, %g, %g, %g)",
+                       m_settings.m_specular >= T(0) && m_settings.m_floorCellSize >= T(0) &&
+                       m_settings.m_lightSize >= T(0),
+                     "Render::Renderer: the light intensity, ambient level, specular strength, floor cell size and "
+                     "light size must not be negative (%g, %g, %g, %g, %g)",
                      double(m_settings.m_lightIntensity),
                      double(m_settings.m_ambient),
                      double(m_settings.m_specular),
-                     double(m_settings.m_floorCheckerSize));
+                     double(m_settings.m_floorCellSize),
+                     double(m_settings.m_lightSize));
+  EBGEOMETRY_REQUIRE(m_settings.m_floorFade > T(0) && m_settings.m_floorReflectance >= T(0) &&
+                       m_settings.m_floorReflectance <= T(1),
+                     "Render::Renderer: the floor's fade must be positive and its reflectance from 0 to 1 (%g, %g)",
+                     double(m_settings.m_floorFade),
+                     double(m_settings.m_floorReflectance));
   EBGEOMETRY_REQUIRE(a_camera.m_up.length() > T(0), "Render::Renderer: the camera's up axis must not be zero");
   EBGEOMETRY_REQUIRE(m_settings.m_light.length() > T(0), "Render::Renderer: the light direction must not be zero");
   EBGEOMETRY_REQUIRE(!m_settings.m_section || m_settings.m_sectionNormal.length() > T(0),

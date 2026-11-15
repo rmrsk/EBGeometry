@@ -287,7 +287,9 @@ keys(const bool a_device, const bool a_regions = false)
       {"A", "Ambient occlusion on or off"},
       {"F", "Floor on or off"},
       {"U", "Axis planes through the origin: all three, the one facing you most, or none"},
-      {"B", "Sky on or off"},
+      {"B",
+       "The next look of the backdrop and the floor (sky, dark, gradient, shadow only, light grid, studio, mirror, "
+       "dark grid, blueprint)"},
       {"Shift + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
     {"Section and contours",
      "Section",
@@ -1250,6 +1252,9 @@ run(const S&           a_shape,
   // The slice view (Z): the section plane flat on screen, seen square from the removed side by an orthographic camera,
   // without the floor and shadows; the wheel moves the plane and a drag pans. The camera and the settings it changes,
   // as they were, to go back to.
+  // The look B last set (see setLook()); the settings start as they are given, counted as the first look.
+  uint8_t look = 0;
+
   bool      slicing        = false;
   Camera<T> beforeSlice    = camera;
   bool      sliceFloor     = settings.m_floor;
@@ -1806,20 +1811,53 @@ run(const S&           a_shape,
   T        cursorValue = T(0);
 
   // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a
-  // spacing), or every 1/20 (2), 1/50 (3) or 1/100 (4) of the view's height at the target.
+  // spacing), or every 1/20 (2), 1/50 (3) or 1/100 (4) of the view's height where the plane is looked at.
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
+  // The section plane as the last frame placed it.
+  bool     planeOn     = false;
+  Vec3T<T> planePoint  = Vec3T<T>::zeros();
+  Vec3T<T> planeNormal = Vec3T<T>(T(0), T(0), T(1));
+
   // The spacing of the lines now. Following the view, zooming in or narrowing the field of view draws them closer, so
-  // that about as many show whatever is looked at. The view's height at the target is 2 distance tan(fov / 2) in either
-  // projection (an orthographic view is as tall as the perspective one there); the spacing is rounded to 1, 2 or 5
-  // times a power of ten, so that its values read well and the lines stay put between those steps.
+  // that about as many show whatever is looked at. The view's height at a depth d is 2 d tan(fov / 2); in perspective,
+  // d is where the ray through the middle of the view meets the plane inside the box, as the lines are seen there (at
+  // the target, where the eye ends up close after zooming in, a plane several times farther showed them crowded to the
+  // renderer's least gap), and the target's distance when that ray misses the plane. An orthographic view is as tall
+  // as the perspective one at the target, at any depth. The spacing is rounded to 1, 2 or 5 times a power of ten, so
+  // that its values read well and the lines stay put between those steps.
   const auto isoSpacing = [&]() {
     if (isoMode <= 1) {
       return (isoMode == 0) ? T(0) : givenIso;
     }
 
-    const T height = T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    T depth = camera.m_distance;
+
+    if (!camera.m_orthographic && planeOn) {
+      Vec3T<T> forward;
+      Vec3T<T> right;
+      Vec3T<T> up;
+
+      camera.frame(forward, right, up);
+
+      const Vec3T<T> eye   = camera.eye();
+      const T        along = dot(forward, planeNormal);
+      const T        t     = (along != T(0)) ? dot(planePoint - eye, planeNormal) / along : T(-1);
+      const Vec3T<T> p     = eye + t * forward;
+
+      bool inside = t > T(0) && std::isfinite(t);
+
+      for (int k = 0; k < 3 && inside; k++) {
+        inside = p[k] >= box.getLowCorner()[k] && p[k] <= box.getHighCorner()[k];
+      }
+
+      if (inside) {
+        depth = t;
+      }
+    }
+
+    const T height = T(2) * depth * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
     const T step   = height / ((isoMode == 2) ? T(20) : (isoMode == 3) ? T(50) : T(100));
 
     if (!(step > T(0)) || !std::isfinite(step)) {
@@ -2193,9 +2231,6 @@ run(const S&           a_shape,
   const auto stageSettings = [&](const int a_stage) {
     publishGroups();
 
-    // The lines of equal distance follow the view (the settings keep the spacing in use, for C and the status).
-    settings.m_isoSpacing = isoSpacing();
-
     Settings<T> frame = settings;
 
     Vec3T<T> normal = RenderDetail::unit(a_settings.m_sectionNormal);
@@ -2216,6 +2251,14 @@ run(const S&           a_shape,
     frame.m_ghostOpacity  = sectionSolid ? T(1) : (sectionGhost ? T(0.3) : T(0));
     frame.m_sectionNormal = normal;
     frame.m_sectionPoint  = point + sectionOffset * normal;
+
+    planeOn     = frame.m_section;
+    planePoint  = frame.m_sectionPoint;
+    planeNormal = normal;
+
+    // The lines of equal distance follow the view (the settings keep the spacing in use, for C and the status).
+    settings.m_isoSpacing = isoSpacing();
+    frame.m_isoSpacing    = settings.m_isoSpacing;
 
     // While stepping through the surfaces under the cursor, those in front of the one picked are seen through: for a
     // view of regions drawn translucent, as its keys seen through (T) are; otherwise left out, in the entries of
@@ -2494,7 +2537,7 @@ run(const S&           a_shape,
           fixed(double(settings.m_shininess), 0)}},
       {{view + ", on the " + (onDevice ? "GPU" : "CPU"),
         std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
-          ", floor " + onOff(settings.m_floor) + ", sky " + onOff(settings.m_sky)},
+          ", floor " + onOff(settings.m_floor) + ", look " + lookName(Look(look))},
        {std::string(coloring),
         std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
           std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
@@ -4548,7 +4591,14 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_b: {
-          settings.m_sky = !settings.m_sky;
+          // A floor turned off with F stays off; a look without one (gradient) says nothing of what F wants.
+          const bool floorWanted = settings.m_floor || look == uint8_t(Look::Gradient);
+
+          look = uint8_t((look + 1U) % NumLooks);
+
+          setLook(settings, Look(look));
+
+          settings.m_floor = settings.m_floor && floorWanted;
 
           break;
         }

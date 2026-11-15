@@ -125,6 +125,62 @@ enum class CostUnit : uint8_t
 };
 
 /**
+ * @brief What is drawn behind the shape, where a camera ray hits nothing (Settings::m_backdrop).
+ */
+enum class Backdrop : uint8_t
+{
+  Sky,      ///< Settings::m_skyHorizon to Settings::m_skyZenith by the ray's elevation above the horizon.
+  Plain,    ///< Settings::m_background.
+  Gradient, ///< Settings::m_gradientFrom at the top of the view to Settings::m_gradientTo at its bottom.
+  Vignette  ///< Settings::m_gradientFrom at the center of the view to Settings::m_gradientTo at its corners.
+};
+
+/**
+ * @brief How the floor under the shape is drawn, when there is one (Settings::m_floor, Settings::m_floorStyle).
+ */
+enum class FloorStyle : uint8_t
+{
+  Checker,    ///< Squares of side Settings::m_floorCellSize in Settings::m_floorColor, every second a little darker.
+  Grid,       ///< Settings::m_floorColor with lines in Settings::m_floorLineColor every Settings::m_floorCellSize,
+              ///< every Settings::m_floorMajorEvery-th heavier.
+  Plain,      ///< Settings::m_floorColor.
+  ShadowOnly, ///< The backdrop, darkened where the shape shadows it: no floor is seen, only the shape's shadow.
+  Mirror      ///< Settings::m_floorColor, reflecting the shape by Settings::m_floorReflectance: one more trace per
+              ///< pixel of the floor.
+};
+
+/**
+ * @brief Named combinations of the backdrop and the floor (see setLook()).
+ */
+enum class Look : uint8_t
+{
+  Sky,        ///< The sky and the checkered floor (the defaults).
+  Dark,       ///< A plain dark background and the checkered floor.
+  Gradient,   ///< A blue-gray to white gradient, no floor: the classic look of mechanical CAD.
+  ShadowOnly, ///< A light gray gradient, and only the shape's soft shadow under it.
+  LightGrid,  ///< A light gradient and a pale floor with a grid.
+  Studio,     ///< A seamless white backdrop with a very soft shadow, as in product renderings.
+  Mirror,     ///< A dark gradient and a dark floor that reflects the shape.
+  DarkGrid,   ///< A dark gray gradient and a faint grid.
+  Blueprint   ///< Navy, with light grid lines.
+};
+
+/**
+ * @brief How many looks there are (Look's values are 0 to NumLooks - 1).
+ */
+inline constexpr uint8_t NumLooks = 9;
+
+/**
+ * @brief A look's name, as the .ebg view block writes it: "sky", "dark", "gradient", "shadow_only", "light_grid",
+ * "studio", "mirror", "dark_grid" or "blueprint".
+ * @param[in] a_look The look.
+ * @return Its name.
+ */
+EBGEOMETRY_HOST
+inline const char*
+lookName(Look a_look) noexcept;
+
+/**
  * @brief A direction to look at a box from, for Camera::fit(): along the axes of the plane perpendicular to
  * the up axis (with the default up axis +y, Front looks from +z and Right from +x), or along the up axis.
  */
@@ -306,9 +362,9 @@ struct Settings
   bool m_floor = true;
 
   /**
-   * @brief A sky gradient behind the shape; a plain background without it.
+   * @brief What is drawn behind the shape.
    */
-  bool m_sky = true;
+  Backdrop m_backdrop = Backdrop::Sky;
 
   /**
    * @brief How surfaces are colored.
@@ -470,19 +526,59 @@ struct Settings
   Vec3T<T> m_skyZenith = Vec3T<T>(T(0.32), T(0.45), T(0.66));
 
   /**
-   * @brief The background without the sky (m_sky false).
+   * @brief The background of Backdrop::Plain.
    */
   Vec3T<T> m_background = Vec3T<T>(T(0.16), T(0.17), T(0.19));
 
   /**
-   * @brief A checkerboard on the floor; a plain floor without it.
+   * @brief Backdrop::Gradient's color at the top of the view, Backdrop::Vignette's at its center.
    */
-  bool m_floorChecker = true;
+  Vec3T<T> m_gradientFrom = Vec3T<T>(T(0.40), T(0.50), T(0.68));
 
   /**
-   * @brief The side of the floor's checker squares; 0 takes a sixth of the scene's length scale.
+   * @brief Backdrop::Gradient's color at the bottom of the view, Backdrop::Vignette's at its corners.
    */
-  T m_floorCheckerSize = T(0);
+  Vec3T<T> m_gradientTo = Vec3T<T>(T(0.93), T(0.95), T(0.97));
+
+  /**
+   * @brief How the floor is drawn.
+   */
+  FloorStyle m_floorStyle = FloorStyle::Checker;
+
+  /**
+   * @brief The side of the floor's checker squares, or the spacing of its grid lines; 0 takes a sixth of the scene's
+   * length scale.
+   */
+  T m_floorCellSize = T(0);
+
+  /**
+   * @brief The color of the floor's grid lines (FloorStyle::Grid).
+   */
+  Vec3T<T> m_floorLineColor = Vec3T<T>(T(0.40), T(0.43), T(0.49));
+
+  /**
+   * @brief Every how many grid lines one is heavier (FloorStyle::Grid); 0 draws them all alike.
+   */
+  uint32_t m_floorMajorEvery = 4;
+
+  /**
+   * @brief How far the floor reaches before it has faded into the backdrop, in the scene's length scales (the
+   * diagonal of the shape's box): it is seen at exp(-(t / (m_floorFade scale))^2) along a camera ray at distance t.
+   */
+  T m_floorFade = T(6);
+
+  /**
+   * @brief How much of the shape the floor reflects (FloorStyle::Mirror), from 0 to 1, looking straight down at it;
+   * more towards the horizon.
+   */
+  T m_floorReflectance = T(0.5);
+
+  /**
+   * @brief The light's size: its width as seen from the shape, as a fraction of its distance (about 0.017 a degree).
+   * With supersampling, a pixel's rays each see the light from a different point of a disc of this width, which
+   * softens the edges of the shadows; a preview of one ray per pixel draws them hard.
+   */
+  T m_lightSize = T(0.04);
 
   /**
    * @brief Whether the section plane cuts the shape.
@@ -652,6 +748,21 @@ struct Settings
   inline bool
   hidesAny() const noexcept;
 };
+
+/**
+ * @brief Set the backdrop and the floor to a named look.
+ * @details Sets m_backdrop, its colors (m_skyHorizon, m_skyZenith, m_background, m_gradientFrom, m_gradientTo),
+ * m_floor, m_floorStyle, the floor's colors and lines, m_floorFade, m_floorReflectance and m_lightSize; leaves the
+ * rest (the shape's colors, the light's direction, the section) as it is. Change any of these afterwards to adjust a
+ * look.
+ * @tparam T Floating-point precision.
+ * @param[in,out] a_settings Settings.
+ * @param[in]     a_look     The look.
+ */
+template <class T>
+EBGEOMETRY_HOST
+inline void
+setLook(Settings<T>& a_settings, Look a_look) noexcept;
 
 /**
  * @brief A camera and settings as C++ statements that recreate them, for pasting a view found by hand (in

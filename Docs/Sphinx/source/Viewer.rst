@@ -83,8 +83,12 @@ The keys
      - Cycle the view: shaded, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
-   * - S, A, F, B
-     - Shadows, ambient occlusion, the floor, the sky on or off.
+   * - S, A, F
+     - Shadows, ambient occlusion, the floor on or off.
+   * - B
+     - The next look of the backdrop and the floor: the sky, a dark background, a gradient without a floor, only the
+       shadow on a gradient, a light grid, a white studio backdrop, a mirror floor, a dark grid, a blueprint. A floor
+       turned off with F stays off.
    * - Shift + Up, Down
      - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
    * - G
@@ -106,8 +110,8 @@ The keys
        perspective; R with the camera the window opened with.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them, then every 1/20, 1/50 or
-       1/100 of the view's height (rounded to 1, 2 or 5 times a power of ten), which follow the zoom and the
-       field of view: zoomed in, they are drawn closer. Where they would crowd together on screen (far along a
+       1/100 of the view's height where the plane is looked at (rounded to 1, 2 or 5 times a power of ten), which
+       follow the zoom and the field of view: zoomed in, they are drawn closer. Where they would crowd together on screen (far along a
        plane seen at a slant), every second line is left out, as often as needed.
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to. For a view of regions, a click
