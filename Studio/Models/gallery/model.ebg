@@ -31,6 +31,10 @@ cut_hollow_sphere_ = cut_hollow_sphere((0, 0, 0), 1, 0.4, 0.15)
 # A mesh, read relative to this file; its face groups (top, bottom) label its parts.
 mesh_ = mesh("octahedron.obj")
 
+# Every mesh whose file matches a pattern, as a list (here the one octahedron): it goes where several shapes go, and
+# an operation of one shape moves each of them.
+meshes_ = meshes("octa*.obj")
+
 # ── Unbounded shapes, shown inside a cube ──────────────────────────────────────────────────────────────────────────
 
 cell = box((-1, -1, -1), (1, 1, 1))
@@ -98,6 +102,7 @@ object bvh_union(
   translate(wedge_, (3 * spacing, 0, -2 * spacing)),
   translate(perlin_, (4 * spacing, 0, -2 * spacing)),
   translate(mesh_, (5 * spacing, 0, -2 * spacing)),
+  translate(meshes_, (6 * spacing, 0, -2 * spacing)),
 
   translate(union_, (0 * spacing, 0, -3 * spacing)),
   translate(bvh_union_, (1 * spacing, 0, -3 * spacing)),
