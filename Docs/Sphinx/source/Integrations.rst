@@ -8,12 +8,12 @@ Integrations
    These integrations show how EBGeometry is coupled to a third-party application code. They are not
    built as part of EBGeometry's continuous integration: unlike everything under :ref:`Chap:Examples`,
    which is compiled and run on every pull request, a change to a third-party platform (or to EBGeometry
-   itself) can break them without anyone noticing. All of them were last compiled and run in October 2026,
-   on CPUs and on an NVIDIA GPU (CUDA), against AMReX's development branch (26.09); they have not been run
-   with HIP. Treat them as a starting point for your own integration.
+   itself) can break them without anyone noticing. They are run by hand, on CPUs and on an NVIDIA GPU (CUDA),
+   against AMReX's development branch, and never with HIP. Treat them as a starting point for your own
+   integration.
 
 Each integration mirrors one or more of the :ref:`Chap:Examples` and hands the object it builds to AMReX's
-embedded-boundary grid generation as an implicit function, on a domain around the object's box with
+:cite:`AMReX2019` embedded-boundary grid generation as an implicit function, on a domain around the object's box with
 cubic cells. The geometry lives in an EBGeometry ``Pool`` (see :ref:`Chap:MemoryModel`) that must outlive
 every evaluation, and the implicit function holds the object by value. Several read a mesh from the ``common-3d-test-models``
 git submodule by default (see :ref:`Sec:Cloning`).
@@ -66,7 +66,7 @@ The implicit function derives from ``amrex::GPUable``, so the same code runs on 
 build of AMReX, on GPUs. In a GPU build the pool is frozen and mirrored to device memory in one piece (see
 :ref:`Sec:BuildingGPU`), and the implicit function holds two views of the object, one of each copy; each
 compilation pass uses its own. An analytic shape is a plain value and needs no copy. A SYCL build of AMReX
-is rejected at compile time, since EBGeometry has no SYCL memory resource yet.
+is rejected at compile time, since EBGeometry has no SYCL memory resource.
 
 A mesh's fine features can cut a cell edge more than twice, which ``EB2`` refuses unless it may cover such
 cells, so the integrations set ``eb2.cover_multiple_cuts = 1`` unless the inputs say otherwise.

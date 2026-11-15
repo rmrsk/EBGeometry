@@ -225,9 +225,10 @@ change is not a finished change.
 **Never point users to tests (`Tests/*`) to see a functionality demonstrated.** The unit tests
 exist to verify behavior, not to teach it. When the docs (`.rst` files) or a public header comment
 want to show a user how to *use* something, they must point to an `Examples/` program instead --
-and only to one that actually exists as a page in the Sphinx Examples section (the toctree in
-`Docs/Sphinx/source/index.rst`, e.g. `ExampleShapes.rst`). If no such example exists yet, either
-add one (with its `Example*.rst` page wired into that toctree) or describe the capability inline
+and only to one that actually exists as a page in the Sphinx Examples section (a group page's
+toctree, `Docs/Sphinx/source/Examples<Group>.rst`, e.g. `ExampleShapes.rst` in `ExamplesStart.rst`). If no
+such example exists yet, either add one (with its `Example*.rst` page wired into a group page) or describe
+the capability inline
 without citing any file -- do not fall back to citing a test. (Pointing to `Tests/` is fine only
 in genuinely contribution/testing-oriented docs like `ContributionGuidelines.rst`/
 `TestingLocally.rst`, which are about the tests themselves, not about demonstrating a feature.)
@@ -351,8 +352,9 @@ use (a new capability, not a new overload): an example. A new device path for ex
   `GNUmakefile`, `README.md`, copied from the nearest existing example so all three build routes,
   `PRECISION`, `ASSERTIONS`, `EBGEOMETRY_HOME` and the GPU switch keep working. The folder is picked up
   by CMake and CI automatically.
-- It also needs a page, `Docs/Sphinx/source/Example<Name>.rst`, in the Examples toctree of `index.rst`,
-  and a line in `Examples/README.md`'s reading order. Docs and headers cite examples, never tests.
+- It also needs a page, `Docs/Sphinx/source/Example<Name>.rst`, listed (a line and a toctree entry) on the
+  group page of its topic, `Examples<Group>.rst`, and a line in `Examples/README.md`'s reading order, in the
+  same group. Docs and headers cite examples, never tests.
 - Written to be read: the calls in the order a user writes them, with comments saying why, and printed
   results a reader can follow. It checks nothing (that is the tests' job) and exits 0.
 - An example about device queries has the four parts in order (the query functor, the construction, host

@@ -14,7 +14,7 @@ The question
 All of these are one question: along the points :math:`\mathbf{x}(t) = \mathbf{o} + t\mathbf{d}` of a
 ray, with :math:`\mathbf{d}` of unit length so that :math:`t` is a distance, where in an interval
 :math:`[t_\mathrm{min}, t_\mathrm{max}]` does the ray first cross the surface? A particle's step from
-:math:`\mathbf{a}` to :math:`\mathbf{b}` is the ray from :math:`\mathbf{a}` towards :math:`\mathbf{b}`
+:math:`\mathbf{a}` to :math:`\mathbf{b}` is the ray from :math:`\mathbf{a}` toward :math:`\mathbf{b}`
 over :math:`[0, |\mathbf{b} - \mathbf{a}|]`, so that :math:`t` is the distance from :math:`\mathbf{a}`.
 
 EBGeometry asks it in three ways, all on any shape and all callable on a device (see
@@ -28,6 +28,11 @@ EBGeometry asks it in three ways, all on any shape and all callable on a device 
   can cost as much again as finding the crossing.
 * ``intersects()`` asks only *whether* the ray crosses, and where the shape allows it stops at the first
   crossing it comes across instead of searching for the nearest.
+
+Two more name what was crossed, as their point counterparts do (see :ref:`Chap:LeavesAndSurfaces`):
+``firstSurface()`` finds the crossing with the surface crossed, down to the member of a collection, its part
+and its label, and ``firstRegionChange()`` the first point where the region changes, with the regions on
+either side (see :ref:`Chap:Regions`).
 
 What a crossing reports
 -----------------------
@@ -72,5 +77,6 @@ crossing to within a tolerance, needs a budget of steps, and costs many evaluati
 
 The choice is made per shape, and per part of a composition, from its type (for a tape, when the tape is
 built): a shape that can be traced exactly is, and everything else is marched. A composition with a part that cannot be traced
-exactly marches only that part (see :ref:`Sec:RayMarchedParts`). A query can also be asked to march any
-shape, exact or not: a reference to compare the exact answer with.
+exactly marches only that part (see :ref:`Sec:RayMarchedParts`), and :ref:`the table of exact shapes <Sec:ExactShapes>` lists what is
+traced exactly. A query can also be asked to march any shape, exact or not: a reference to compare the exact
+answer with.

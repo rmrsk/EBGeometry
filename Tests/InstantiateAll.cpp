@@ -545,7 +545,7 @@ instantiateFunctionTemplates()
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
       (void)findSurfacePieces(regions, 4U);
       (void)domain.touches(0U, 1U);
-      (void)domain.labelAt(Vec3T<T>::zeros());
+      (void)domain.subdomainAt(Vec3T<T>::zeros());
       (void)domain.signedDistance(Vec3T<T>::zeros(), Domain<T>::Excluded);
       (void)domain.closestSurface(Vec3T<T>::zeros(), 0U);
       (void)domain.surfaceGroupOf(domain.closestSurface(Vec3T<T>::zeros(), 0U));

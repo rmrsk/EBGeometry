@@ -190,12 +190,12 @@ keys(const bool a_device, const bool a_regions = false)
      "Section",
      {{"X", "Cut across x, then y, then z"},
       {"Ctrl + X", "Remove the cut"},
-      {"Shift + X", "See through the cut face, or make it opaque"},
-      {"N", "Reverse the cut (keep the other side)"},
+      {"Shift + X", "See through the cut face and the plane, or make them opaque"},
+      {"N", "Keep the other side; each side with the other ghosted; both sides solid (five in turn)"},
       {"Up, Down", "Move the plane in coarse steps"},
       {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
-      {"I", "Lines of equal distance: off, as set, coarse, fine, finer"}}},
+      {"I", "Lines of equal distance: off, as set, coarse, fine, finer (these follow the zoom)"}}},
     {"Picking and measuring",
      "Picking",
      {{"Click", "Pick what is under the cursor (the background clears it)"},
@@ -989,14 +989,22 @@ run(const S&           a_shape,
   };
 
   // The colors the names give the keys of the coloring shown, over the settings' own (see RegionNames::setColor()).
+  //
+  // Colored by region, a region with no color, its own or its material's, takes its material's palette color: the
+  // colors it has colored by material, which numbers materials from 0 where regions start at 1 (0 is the outside).
   const auto applyColors = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       for (uint32_t i = 0; i < Settings<T>::PrimitiveColors; i++) {
         Vec3T<double> color;
 
-        settings.m_primitiveColors[i] = names.colorOf(settings.m_regions.m_coloring, i, color)
-                                          ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
-                                          : a_settings.m_primitiveColors[i];
+        const bool     named      = names.colorOf(settings.m_regions.m_coloring, i, color);
+        const uint32_t material   = names.materialOf(i);
+        const bool     ofMaterial = !named && settings.m_regions.m_coloring == RegionColoring::Region &&
+                                material != RegionNames::None && !(a_settings.m_primitiveColors[i][0] >= T(0));
+
+        settings.m_primitiveColors[i] = named        ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
+                                        : ofMaterial ? RenderDetail::palette<T>(material)
+                                                     : a_settings.m_primitiveColors[i];
         settings.m_materialColors[i]  = names.colorOf(RegionColoring::Material, i, color)
                                           ? Vec3T<T>(T(color[0]), T(color[1]), T(color[2]))
                                           : a_settings.m_materialColors[i];
@@ -1109,7 +1117,12 @@ run(const S&           a_shape,
   const Vec3T<T> center        = (std::isfinite(diag) && diag > T(0)) ? box.getCentroid() : camera.m_target;
   int            sectionMode   = givenSection ? 1 : 0;
   bool           sectionFlip   = false;
+  bool           sectionGhost  = false;
+  bool           sectionSolid  = false;
   T              sectionOffset = T(0);
+
+  // The plane's fill as given: Shift and X make it, and the cut face, see-through, and give it back.
+  const T givenFill = a_settings.m_sectionFill;
 
   const char* sectionNames[] = {"Off", "As given", "Across x", "Across y", "Across z"};
 
@@ -1162,10 +1175,28 @@ run(const S&           a_shape,
 
   std::vector<Picked> selection;
 
-  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background).
+  // What the pick mode picks of a piece: its part, or the region on its side (the one inside, not the background). A
+  // surface picked by its labels (a mesh, see RegionNames::setPickedByLabel()) gives the faces labeled as the one
+  // clicked (its face group), or the whole piece when that face has no label of its own.
   const auto selectorOf = [&](const SurfaceRef<T>& a_piece) {
     if (pickMode == PickMode::Region) {
       return SurfaceSelector::region((a_piece.m_ownerRegion != 0U) ? a_piece.m_ownerRegion : a_piece.m_neighborRegion);
+    }
+
+    if (names.pickedByLabel(a_piece.m_surface)) {
+      const SurfaceInventory& surfaces = names.getInventory();
+
+      SurfaceSelector selector = SurfaceSelector::piece(a_piece);
+
+      if (a_piece.m_surface < surfaces.getNumSurfaces() && surfaces.hasPartLabels(a_piece.m_surface)) {
+        const SurfaceLabelId label = surfaces.getLabel(a_piece.m_surface, a_piece.m_part);
+
+        if (!label.isNone()) {
+          selector.m_label = label.value();
+        }
+      }
+
+      return selector;
     }
 
     return SurfaceSelector::piece(a_piece).withPart(a_piece.m_part);
@@ -1314,16 +1345,16 @@ run(const S&           a_shape,
     return mask;
   };
 
-  // The section plane's labels from the active domain (RegionSettings::m_sectionLabels): each region's subdomain, or
-  // excluded.
-  const auto sectionLabels = [&]() {
+  // The section plane's subdomains from the active domain (RegionSettings::m_sectionSubdomains): each region's
+  // subdomain, or excluded.
+  const auto sectionSubdomains = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       const bool any = names.getNumDomains() > 0U;
 
       for (uint32_t k = 0; k < 64U; k++) {
         const uint32_t d = any ? names.getDomain(names.getActiveDomain()).subdomainOf(k) : Subdomains::None;
 
-        settings.m_regions.m_sectionLabels[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedLabel;
+        settings.m_regions.m_sectionSubdomains[k] = (d < 32U) ? uint8_t(d) : RegionSettings::ExcludedSubdomain;
       }
     }
   };
@@ -1654,9 +1685,31 @@ run(const S&           a_shape,
   T        cursorValue = T(0);
 
   // Lines of equal distance on the section plane: off (0), as the settings give them (1, only when they set a
-  // spacing), every 1/20 of the box's diagonal (2), every 1/50 (3), every 1/100 (4).
+  // spacing), or every 1/20 (2), 1/50 (3) or 1/100 (4) of the view's height at the target.
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
+
+  // The spacing of the lines now. Following the view, zooming in or narrowing the field of view draws them closer, so
+  // that about as many show whatever is looked at. The view's height at the target is 2 distance tan(fov / 2) in either
+  // projection (an orthographic view is as tall as the perspective one there); the spacing is rounded to 1, 2 or 5
+  // times a power of ten, so that its values read well and the lines stay put between those steps.
+  const auto isoSpacing = [&]() {
+    if (isoMode <= 1) {
+      return (isoMode == 0) ? T(0) : givenIso;
+    }
+
+    const T height = T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+    const T step   = height / ((isoMode == 2) ? T(20) : (isoMode == 3) ? T(50) : T(100));
+
+    if (!(step > T(0)) || !std::isfinite(step)) {
+      return scale / T(20);
+    }
+
+    const T decade = std::pow(T(10), std::floor(std::log10(step)));
+    const T digit  = step / decade;
+
+    return decade * ((digit < T(1.5)) ? T(1) : (digit < T(3.5)) ? T(2) : (digit < T(7.5)) ? T(5) : T(10));
+  };
 
   // Images saved with W, numbered from 1.
   int saved = 0;
@@ -2019,6 +2072,9 @@ run(const S&           a_shape,
   const auto stageSettings = [&](const int a_stage) {
     publishGroups();
 
+    // The lines of equal distance follow the view (the settings keep the spacing in use, for C and the status).
+    settings.m_isoSpacing = isoSpacing();
+
     Settings<T> frame = settings;
 
     Vec3T<T> normal = RenderDetail::unit(a_settings.m_sectionNormal);
@@ -2036,6 +2092,7 @@ run(const S&           a_shape,
 
     // The arrow keys move the plane towards the removed side, so that more of the shape shows.
     frame.m_section       = sectionMode != 0;
+    frame.m_ghostOpacity  = sectionSolid ? T(1) : (sectionGhost ? T(0.3) : T(0));
     frame.m_sectionNormal = normal;
     frame.m_sectionPoint  = point + sectionOffset * normal;
 
@@ -2133,19 +2190,37 @@ run(const S&           a_shape,
       frame.m_regions.m_surfaceGroups = a_deviceScheme;
     }
 
-    const Renderer<T> renderer(frame);
+    const auto draw = [&](const auto& a_hostShape, const auto& a_deviceShape, const Settings<T>& a_settings) {
+      const Renderer<T> renderer(a_settings);
 
-    if (a_onDevice && a_job != nullptr) {
-      return renderer.renderOnDevice(a_device, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
-    }
-    if (a_onDevice) {
-      return renderer.renderOnDevice(a_device, a_view, a_image);
-    }
-    if (a_job != nullptr) {
-      return renderer.render(a_host, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      if (a_onDevice && a_job != nullptr) {
+        return renderer.renderOnDevice(a_deviceShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+      if (a_onDevice) {
+        return renderer.renderOnDevice(a_deviceShape, a_view, a_image);
+      }
+      if (a_job != nullptr) {
+        return renderer.render(a_hostShape, a_view, a_image, a_job->m_cancel, &a_job->m_rows);
+      }
+
+      return renderer.render(a_hostShape, a_view, a_image);
+    };
+
+    // A cost view of regions times the queries its labels name, firstHit() and firstCrossing() of the object: its
+    // tape's own, through the renderer's path for a tape, not the view's tracing of regions (finding where the region
+    // changes and what is seen there), which costs more and is no query a program calls. The tape's leaves are not the
+    // view's coloring keys, so its primitives are not recorded.
+    if constexpr (hasRegionVisibility<S>) {
+      if (frame.m_viewMode == ViewMode::CostHit || frame.m_viewMode == ViewMode::CostCrossing) {
+        Settings<T> object = frame;
+
+        object.m_recordPrimitives = false;
+
+        return draw(a_host.getTape(), a_device.getTape(), object);
+      }
     }
 
-    return renderer.render(a_host, a_view, a_image);
+    return draw(a_host, a_device, frame);
   };
 
   // The slice view's camera turned square to the plane, from its removed side; its target, distance and field of view
@@ -2303,9 +2378,11 @@ run(const S&           a_shape,
         std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
           std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
       {{std::string("Cut: ") + sectionNames[sectionMode] +
-          ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") + ", moved " +
-                                  fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
-                              : std::string()),
+          ((sectionMode != 0)
+             ? std::string(sectionFlip ? ", reversed" : "") +
+                 std::string(sectionSolid ? ", both sides solid" : (sectionGhost ? ", the other side ghosted" : "")) +
+                 ", moved " + fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
+             : std::string()),
         (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
                                        : std::string("No lines of equal distance")},
        {"Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
@@ -2588,7 +2665,7 @@ run(const S&           a_shape,
       const bool                byPart  = pickMode == PickMode::Surface;
       const bool                several = chosen.size() > 1U;
 
-      // The probed point: where it is, the region it is in, the active domain's label and functions there, and the
+      // The probed point: where it is, the region it is in, the active domain's subdomain and functions there, and the
       // nearest surface of its region with its surface group.
       if (probed) {
         const auto&    tape = shape.getTape();
@@ -2601,16 +2678,15 @@ run(const S&           a_shape,
           // The active domain built for the readout alone, in a pool of its own.
           Pool           tables(hostMemoryResource());
           const Domain   domain(tables, tape, names.getDomain(names.getActiveDomain()));
-          const uint32_t label = domain.labelAt(probePoint);
-          const uint32_t count = domain.getNumLabels();
+          const uint32_t sub   = domain.subdomainAt(probePoint);
+          const uint32_t count = domain.getNumSubdomainFunctions();
 
           std::vector<T> values(count);
 
           domain.signedDistances(probePoint, values.data(), count);
 
           line("  " + names.domainName(names.getActiveDomain()) + ": " +
-               ((label == Subdomains::None) ? std::string("excluded")
-                                            : "in subdomain " + names.subdomain(label, details)));
+               ((sub == Subdomains::None) ? std::string("excluded") : "in subdomain " + names.subdomain(sub, details)));
 
           for (uint32_t l = 0; l < count; l++) {
             line("    " + ((l + 1U == count) ? std::string("Excluded") : "Subdomain " + names.subdomain(l, details)) +
@@ -3653,7 +3729,7 @@ run(const S&           a_shape,
                     regions.m_sectionDomain  = regions.m_sectionDomain || regions.m_sectionRegions != 0U;
                     regions.m_sectionRegions = 0U;
 
-                    sectionLabels();
+                    sectionSubdomains();
                     pieceIndex = std::size_t(-1);
 
                     applyColors();
@@ -4189,7 +4265,7 @@ run(const S&           a_shape,
               if (names.getNumDomains() > 0U && !regions.m_sectionDomain && regions.m_sectionRegions == 0U) {
                 regions.m_sectionDomain = true;
 
-                sectionLabels();
+                sectionSubdomains();
               }
             }
 
@@ -4243,16 +4319,12 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_i: {
-          // Off, as the settings give them (skipped when they set no spacing), every 1/20 of the box's
-          // diagonal, every 1/50, every 1/100.
+          // Off, as the settings give them (skipped when they set no spacing), then every 1/20, 1/50 or 1/100 of the
+          // view's height, following it.
           isoMode = (isoMode + 1) % 5;
           isoMode = (isoMode == 1 && givenIso <= T(0)) ? 2 : isoMode;
 
-          settings.m_isoSpacing = (isoMode == 0)   ? T(0)
-                                  : (isoMode == 1) ? givenIso
-                                                   : scale / ((isoMode == 2)   ? T(20)
-                                                              : (isoMode == 3) ? T(50)
-                                                                               : T(100));
+          settings.m_isoSpacing = isoSpacing();
 
           break;
         }
@@ -4395,9 +4467,13 @@ run(const S&           a_shape,
         }
         case SDLK_x: {
           // X turns the plane on across x, then steps it to y, z and x again; Ctrl and X turn it off; Shift and X
-          // make the cut face see-through (the shape's surfaces behind it show), or opaque again.
+          // make the cut face and the plane's fill see-through (the shape's surfaces behind them show), or give them
+          // back.
           if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
-            settings.m_cutOpacity = (settings.m_cutOpacity < T(1)) ? T(1) : T(0.5);
+            const bool opaque = settings.m_cutOpacity >= T(1);
+
+            settings.m_cutOpacity  = opaque ? T(0.5) : T(1);
+            settings.m_sectionFill = opaque ? Math::min(givenFill, T(0.5)) : givenFill;
 
             break;
           }
@@ -4414,7 +4490,7 @@ run(const S&           a_shape,
                   regions.m_sectionRegions == 0U) {
                 regions.m_sectionDomain = true;
 
-                sectionLabels();
+                sectionSubdomains();
               }
             }
 
@@ -4426,7 +4502,18 @@ run(const S&           a_shape,
           break;
         }
         case SDLK_n: {
-          sectionFlip = !sectionFlip;
+          // Five in turn: this side kept, the other kept, each with the other side ghosted (drawn translucent), then
+          // both sides solid (the removed side drawn opaque: the plane shows only outside the shape). The plane stays
+          // where it is: its offset is along the normal, which turns around.
+          if (sectionGhost && sectionFlip && !sectionSolid) {
+            sectionSolid = true;
+          }
+          else {
+            sectionGhost  = !sectionSolid && (sectionGhost != sectionFlip);
+            sectionSolid  = false;
+            sectionFlip   = !sectionFlip;
+            sectionOffset = -sectionOffset;
+          }
 
           break;
         }
@@ -4594,7 +4681,7 @@ run(const S&           a_shape,
             regions.m_sectionDomain  = next == 1U;
             regions.m_sectionRegions = (next >= 2U) ? subdomainAllRegions(next - 2U) : uint64_t(0);
 
-            sectionLabels();
+            sectionSubdomains();
 
             if ((regions.m_sectionDomain || regions.m_sectionRegions != 0U) && sectionMode == 0) {
               sectionMode   = 2;

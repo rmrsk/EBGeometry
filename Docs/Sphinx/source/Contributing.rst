@@ -1,21 +1,28 @@
 .. _Chap:Contributing:
 
-Overview
-========
+Contributing
+============
 
-This section describes how to build and run the EBGeometry test suite locally,
-what the continuous integration (CI) pipeline checks, and the conventions
-expected of contributions.  It is split into four pages, one per topic:
+Contributions are welcome: open an issue or a discussion to see whether a feature is planned, or fork the
+repository and open a pull request. This section is for contributors:
 
-* :ref:`Chap:TestingLocally` — building and running the Catch2 unit test suite, CMake presets,
-  sanitizers, and a table of what each test binary covers.
-* :ref:`Chap:PerformanceTesting` — the performance probes, and the comparison against its base that
-  every pull request carries.
-* :ref:`Chap:ContinuousIntegration` — what the GitHub Actions CI pipeline checks on every pull
-  request and every merge, and how to reproduce those checks locally with
-  ``pre-commit``.
-* :ref:`Chap:ContributionGuidelines` — code style, static and dynamic assertions, and test
-  coverage expected of new code.
+* :ref:`Chap:ContributionGuidelines`: what a change needs (tests, examples, performance cases,
+  documentation), the code conventions, and how a pull request is reviewed.
+* :ref:`Chap:TestingLocally`: building and running the unit tests, the CMake presets, the sanitizers, and
+  what each test binary covers.
+* :ref:`Chap:PerformanceTesting`: the performance probes, and the comparison against its base that every
+  pull request carries.
+* :ref:`Chap:ContinuousIntegration`: what continuous integration checks on every pull request and every
+  merge, and how to run the same checks locally.
 
-Code that runs on a GPU follows the memory model in :ref:`Chap:MemoryModel`, and the rules in
-:ref:`Sec:WritingDeviceCode` and :ref:`Sec:DeviceCallableClass`.
+A pull request goes through the same steps whoever wrote it:
+
+#. **Draft.** Open it as a draft, filled in from the pull request template, so that a fast tier of
+   continuous integration runs on every push.
+#. **Finish it as a draft.** Code, tests, examples and documentation in the same pull request; then the
+   performance comparison, whose receipt is committed with it (:ref:`Chap:PerformanceTesting`).
+#. **Review.** It is marked ready for review once it is finished, which runs the full continuous
+   integration; a maintainer reviews it and merges it.
+
+``Scripts/run-all-checks.sh`` runs locally nearly everything continuous integration checks, in one
+command (see :ref:`Chap:ContinuousIntegration`).

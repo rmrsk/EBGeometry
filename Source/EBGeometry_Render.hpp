@@ -413,6 +413,14 @@ struct Settings
   T m_seenThroughOpacity = T(0.3);
 
   /**
+   * @brief Opacity of the shape on the side the section plane removes (m_section), drawn over what the cut shows: the
+   * first surface a camera ray meets there, translucent, so that the kept side and the plane show through it. The
+   * plane's fill (m_sectionFill) then covers only the cut, and outside the shape the plane is the sheet. 0 (the
+   * default) leaves the removed side out.
+   */
+  T m_ghostOpacity = T(0);
+
+  /**
    * @brief The floor's color.
    */
   Vec3T<T> m_floorColor = Vec3T<T>(T(0.58), T(0.59), T(0.61));
@@ -504,7 +512,9 @@ struct Settings
 
   /**
    * @brief Spacing of lines of equal signed distance drawn on the section plane, inside and outside the
-   * shape (0: none). Spaced like a simulation grid, they show what the grid resolves.
+   * shape (0: none). Spaced like a simulation grid, they show what the grid resolves. Where they would lie only a few
+   * pixels apart on screen, every second is left out, as often as needed: farther along a plane seen at a slant, fewer
+   * are drawn, and a line can end where the next is left out.
    */
   T m_isoSpacing = T(0);
 
@@ -1049,8 +1059,8 @@ public:
   /**
    * @brief Render a shape on the host, stopping early when asked to (for an interactive viewer).
    * @details As render(const S&, const Camera<T>&, Image&), but every thread checks a_cancel before each
-   * row, and the render returns soon after it is set, with Stats::m_complete false and the rows not
-   * reached left black. a_rowsDone, if given, counts the finished rows as they finish, so another thread
+   * pixel, and the render returns as soon as the pixels being traced are done, with Stats::m_complete false and
+   * the pixels not reached left black. a_rowsDone, if given, counts the finished rows as they finish, so another thread
    * can show the progress.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_shape    Shape.

@@ -24,7 +24,7 @@ Labels
 ------
 
 ``SurfaceLabel(object, "name")`` names a part; every leaf below it gets the label (see
-:ref:`Chap:ClosestPrimitive`). Two queries name the leaf a part of the answer comes from, and the tape's
+:ref:`Chap:LeavesAndSurfaces`). Two queries name the leaf a part of the answer comes from, and the tape's
 ``getSurfaceLabel()`` gives its label:
 
 * ``closestLeaf(p)``, the leaf the value at ``p`` comes from;

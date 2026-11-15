@@ -738,11 +738,12 @@ struct Staging;
  * view of it (see PoolHandle).
  *
  * The compiler works out each sub-expression's bounding box and distance quality (see Expr). A union or
- * smooth union of many objects is evaluated with a BVH over their boxes, pruned as BVHUnion is, unless an
- * object is not a distance. With exact distances the value is the plain minimum; with operands that are
- * only bounds (DistanceQuality::Bound) pruning can skip an operand whose value is below its box's distance,
- * so the value can be larger than the plain minimum, but it keeps the sign and is still a bound. Blur, Mollify,
- * FiniteRepetition and BVH unions evaluate a sub-program several times; they nest
+ * smooth union is evaluated as written, unless it was built with Accelerate::BVH: then with a BVH over its
+ * operands' boxes, pruned as BVHUnion is, unless an operand is not a distance. With exact distances the value
+ * is the plain minimum; with operands that are only bounds (DistanceQuality::Bound) pruning can skip an
+ * operand whose value is below its box's distance, so the value can be larger than the plain minimum, but it
+ * keeps the sign and is still a bound. Blur, Mollify, FiniteRepetition and BVH unions evaluate a sub-program
+ * several times; they nest
  * at most MaxCallDepth deep, and a sub-program needs at most ValueStackSize values and PointStackSize
  * points at once; the constructor rejects an expression that needs more.
  *

@@ -54,7 +54,8 @@ Building the scene
 
 Twelve rotated copies of the octahedron sit on a ring around a sphere, and their union is compiled
 into a ``Tape<T, Octahedron<T>>``. The octahedron is listed after ``T`` because it is not a built-in
-type. A union of thirteen objects is evaluated with a BVH over their boxes.
+type. The union of thirteen objects is built with ``Accelerate::BVH``, so the tape evaluates it with a BVH over
+their boxes.
 
 The tape is compiled straight into memory the device can read: managed memory
 (``managedMemoryResource()``) in a GPU build with a device, which the host and the device can both read, and

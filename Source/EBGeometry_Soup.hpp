@@ -74,8 +74,9 @@ compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::vector<
 
 /**
  * @brief Whether a polygon has zero area to within rounding.
- * @details Uses the polygon's Newell normal, whose length is twice the area of a planar polygon, and
- * compares it against 64 machine epsilons times the square of the polygon's longest edge. This
+ * @details Uses the polygon's Newell normal, whose length is twice the area of a planar polygon (summed
+ * from the positions relative to its first vertex, so that the answer does not depend on where the polygon
+ * is), and compares it against 64 machine epsilons times the square of the polygon's longest edge. This
  * catches exactly collinear vertices after rounding, not merely thin polygons.
  * @tparam T Floating-point precision type for vertex coordinates.
  * @param[in] a_vertices Vertex coordinate list.

@@ -9,7 +9,7 @@ Where EBGeometry came from
 EBGeometry began around 2018 as the geometry part of
 `chombo-discharge <https://github.com/chombo-discharge/chombo-discharge>`_, a code for simulating
 low-temperature plasmas on adaptive Cartesian grids with embedded boundaries
-(`Marskar, 2019 <https://www.sciencedirect.com/science/article/abs/pii/S0021999119302190>`_). There
+(:cite:`Marskar2019`). There
 it turned the electrodes and insulators of high-voltage devices, often given as surface meshes, into
 the signed distance functions from which the embedded boundary is generated.
 
@@ -29,10 +29,10 @@ tracing of compositions, a renderer with an interactive viewer, and point clouds
 Inspiration and acknowledgements
 --------------------------------
 
-**libfive.** The tape is modeled on `libfive <https://libfive.com>`_, Matt Keeter's library for
+**libfive.** The tape is modeled on libfive :cite:`libfive`, Matt Keeter's library for
 functional representations. libfive compiles an expression into a tape: a flat list of clauses that a
 small interpreter evaluates in order, with no tree and no virtual calls, which is what lets it run
-equally well on a GPU (`Keeter, 2020 <https://www.mattkeeter.com/research/mpr/>`_). libfive is a
+equally well on a GPU :cite:`Keeter2020`. libfive is a
 beautifully designed library, and its papers and code are a model of how to explain an idea clearly.
 We are very grateful for it.
 
@@ -45,5 +45,4 @@ EBGeometry, from the half-edge mesh to the SIMD triangle blocks, rests on that r
 is what the ray-tracing community calls a two-level hierarchy, or instancing: a top-level structure
 over objects, each pointing to a bottom-level structure over its own geometry (the TLAS and BLAS of
 DirectX Raytracing and Vulkan). The idea goes back at least to Wald, Benthin and Slusallek's two-level
-hierarchies for ray tracing dynamic scenes
-(`2003 <https://www.sci.utah.edu/~wald/Publications/2003/Dynamic/dynamic.pdf>`_).
+hierarchies for ray tracing dynamic scenes :cite:`Wald2003`.

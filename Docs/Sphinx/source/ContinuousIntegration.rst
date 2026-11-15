@@ -93,7 +93,7 @@ Linux-GNU
 Compiles and runs every example directly with ``g++`` (one job each for ``g++-11`` and
 ``g++-12``; ``g++-12`` alone in the fast tier), using ``-std=c++17 -pedantic -Wall -Wextra -Werror`` plus a large set of additional
 diagnostic flags. ``-Wsign-conversion`` stays a warning (``-Wno-error=sign-conversion``), since the
-library does not pass it yet.
+library does not pass it.
 
 Linux-Intel
 ~~~~~~~~~~~
@@ -283,7 +283,7 @@ A subset of the CI checks can be reproduced locally before pushing using
 
 The hooks configured in ``.pre-commit-config.yaml`` include:
 
-* **clang-format** — formats ``Source/`` and ``Examples/`` C/C++ files (default stage; runs on
+* **clang-format** — formats every C and C++ file in the repository (default stage; runs on
   every ``git commit`` once ``pre-commit install`` has been run).
 * **reuse** — REUSE license/copyright header compliance (default stage).
 * **codespell** — typo detection across ``Source/``, ``Docs/``, ``Examples/`` (except

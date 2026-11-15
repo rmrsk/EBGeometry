@@ -11,8 +11,8 @@ The source code is implemented in :file:`Source/EBGeometry_Parser.hpp`.
 
 .. important::
 
-   EBGeometry is currently limited to reading STL, PLY, OBJ, and legacy VTK polydata (``.vtk``)
-   files, and then reconstructing DCEL grids from those.
+   EBGeometry reads STL, PLY, OBJ and legacy VTK polydata (``.vtk``) files, and builds DCEL meshes
+   from them.
    Scalar data that PLY and VTK files attach to vertices and faces is read along with the geometry,
    and stays aligned with the vertex and face indices of the mesh (see :ref:`Sec:PolygonSoup`).
    It is also possible to build DCEL grids from polygon soups read using third-party codes (see
@@ -27,7 +27,7 @@ file name or a
 ``std::vector<std::string>`` of file names (with a vector-per-file result for the latter): every
 DCEL mesh it builds reserves its vertex/edge/face storage from that Pool. The Pool is
 caller-owned and caller-managed -- EBGeometry never constructs one for you -- so it must outlive
-every mesh (or SDF wrapper retaining one, see :ref:`Chap:MeshSDFClasses`) built into it. One Pool
+every mesh (or SDF wrapper retaining one, see :ref:`Chap:ImplemMeshSDF`) built into it. One Pool
 can back many meshes, built one after another with their arrays laid out contiguously in the same
 block, which is cheaper than giving every mesh its own Pool -- see :ref:`Chap:MemoryModel` for how
 this works internally, and :ref:`Sec:DCELMemoryModel` for what it means in practice. If you
@@ -42,7 +42,7 @@ distance fields is
 
    const auto distanceFields = EBGeometry::Parser::readIntoMeshSDF<float>(files, pool);
 
-This will build a DCEL mesh for each input file and wrap it in a :cpp:class:`MeshSDF`, backed by
+This will build a DCEL mesh for each input file and wrap it in a ``MeshSDF``, backed by
 a SIMD-accelerated ``PackedBVH`` over the mesh's faces.  See :ref:`Chap:PackedBVHParser` for
 further details.
 
@@ -190,12 +190,12 @@ higher-level representation, each doing progressively more work:
 
 #. Into a DCEL mesh, with no signed-distance functionality -- ``readIntoDCEL``, see
    :ref:`Chap:ImplemDCEL`.
-#. Into a bare DCEL signed distance function (:cpp:class:`FlatMeshSDF`, :math:`O(N)` scan, no
+#. Into a bare DCEL signed distance function (``FlatMeshSDF``, :math:`O(N)` scan, no
    BVH) -- ``readIntoFlatMeshSDF``.
 #. Into a signed distance function representation of a DCEL mesh, using a ``PackedBVH`` over
-   DCEL faces (any polygon) -- :cpp:class:`MeshSDF`, via ``readIntoMeshSDF``.
+   DCEL faces (any polygon) -- ``MeshSDF``, via ``readIntoMeshSDF``.
 #. Into a signed distance function representation of a triangle mesh, using a ``PackedBVH`` over
-   SoA triangle groups -- :cpp:class:`TriMeshSDF`, via ``readIntoTriMeshSDF``.
+   SoA triangle groups -- ``TriMeshSDF``, via ``readIntoTriMeshSDF``.
 #. Into a flat, unconnected list of ``Triangle`` objects (each with precomputed vertex
    positions, normals, and edge normals, but no half-edge topology linking them) -- via
    ``readIntoTriangles``. Internally this still parses through a DCEL mesh first and then
@@ -203,7 +203,7 @@ higher-level representation, each doing progressively more work:
    plain values (e.g. to feed your own acceleration structure) rather than any of EBGeometry's
    own SDF wrappers.
 
-See :ref:`Chap:MeshSDFClasses` for how the three SDF classes (options 2-4 above) compare.
+See :ref:`Chap:ImplemMeshSDF` for how the three SDF classes (options 2-4 above) compare.
 
 DCEL representation
 ___________________
@@ -231,7 +231,7 @@ _____________
 To read one or multiple files and also turn it into a bare (BVH-free) signed distance
 representation, use ``readIntoFlatMeshSDF<T>(filename, pool)``, returning a
 ``FlatMeshSDF<T>`` by value (or a ``std::vector`` of them for the multi-file overload). The
-returned ``FlatMeshSDF`` resolves its mesh through ``pool`` (see :ref:`Chap:MeshSDFClasses`), so
+returned ``FlatMeshSDF`` resolves its mesh through ``pool`` (see :ref:`Chap:ImplemMeshSDF`), so
 ``pool`` must outlive it and every copy of it. Repeated calls can share one ``pool`` freely, in any
 combination with the other ``readInto*`` functions.
 
@@ -290,15 +290,8 @@ when some other part of your code wants raw triangle values (for example, to bui
 acceleration structure) rather than any of EBGeometry's own SDF wrappers. For a soup already in
 hand, ``soup.convertToTriangles()`` does the same.
 
-.. note::
-
-   ``readIntoPolygonSoup``, ``readIntoDCEL``, ``readIntoFlatMeshSDF``, ``readIntoMeshSDF``,
-   ``readIntoTriMeshSDF``, and ``readIntoTriangles`` are declared ``inline static`` in the header, so this project's current
-   Doxygen configuration (``EXTRACT_STATIC = NO``) does not extract them into the generated API
-   reference individually -- their exact signatures are documented via the Doxygen comment on
-   each function directly in :file:`Source/EBGeometry_Parser.hpp`. The raw per-format readers
-   above (``readPLY``/``readSTL``/``readOBJ``/``readVTK``, declared without ``static``) do not
-   have this limitation and are linked individually.
+The signatures of every reader are on the
+`Parser namespace's Doxygen page <doxygen/html/namespaceEBGeometry_1_1Parser.html>`__.
 
 .. _Chap:PolySoups:
 
@@ -356,13 +349,8 @@ construct a ``PolygonSoup<T>(id, vertices, faces)`` and call ``convertToDCEL``.
   pseudonormal is zero because the faces around it fold back onto each other; the sign of the
   distance near it would be undefined.
 
-.. note::
-
-   Every function in ``EBGeometry::Soup`` is also declared ``inline static``, so -- for the same
-   reason noted above for the ``readInto*`` family -- none of them currently appear individually
-   in the generated Doxygen API reference; the namespace page exists but is effectively empty.
-   Their exact signatures and contracts are documented via the Doxygen comment on each function
-   directly in :file:`Source/EBGeometry_Soup.hpp`.
+The signatures are on the
+`Soup namespace's Doxygen page <doxygen/html/namespaceEBGeometry_1_1Soup.html>`__.
 
 .. warning::
 

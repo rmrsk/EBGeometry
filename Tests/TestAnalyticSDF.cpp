@@ -10,6 +10,7 @@
 #include <cstring>
 #include <limits>
 #include <random>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -1365,6 +1366,60 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
       (void)w;
     },
     "WedgeSDF: the angle must be in (0, 180) degrees (180)"));
+}
+
+TEST_CASE("ThrowOnRequire: a failed check throws RequireError with its message inside a scope",
+          "[ThrowOnRequire][death]")
+{
+  using T = double;
+
+  const auto badSphere = [] {
+    const SphereSDF<T> sphere(Vec3T<T>(0, 0, 0), T(-1));
+
+    (void)sphere;
+  };
+
+  const std::string expected = "EBGeometry::SphereSDF: the radius must be finite and positive (-1)";
+
+  const auto throwsExpected = [&] {
+    try {
+      badSphere();
+    } catch (const RequireError& e) {
+      return std::string(e.what()) == expected;
+    }
+
+    return false;
+  };
+
+  {
+    const ThrowOnRequire scope;
+
+    REQUIRE(throwsExpected());
+
+    // Scopes nest: closing an inner one leaves the outer one throwing.
+    {
+      const ThrowOnRequire inner;
+
+      REQUIRE(throwsExpected());
+    }
+
+    REQUIRE(throwsExpected());
+
+    // A check that passes throws nothing.
+    REQUIRE_NOTHROW(SphereSDF<T>(Vec3T<T>(0, 0, 0), T(1)));
+
+    // A long message (a long file path, say) is whole.
+    const std::string path(5000, 'p');
+
+    try {
+      EBGEOMETRY_REQUIRE(path.empty(), "Test: cannot read %s", path.c_str());
+    } catch (const RequireError& e) {
+      CHECK(std::string(e.what()) == "EBGeometry::Test: cannot read " + path);
+    }
+  }
+
+  // With every scope closed, the same check aborts with the same message.
+  REQUIRE(abortsWith(badSphere, expected));
 }
 
 namespace {

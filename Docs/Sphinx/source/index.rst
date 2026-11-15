@@ -1,8 +1,3 @@
-.. EBGeometry documentation master file, created by
-   sphinx-quickstart on Mon Mar  7 22:24:17 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 EBGeometry's user documentation
 ===============================
 
@@ -67,12 +62,10 @@ Getting started
    :caption: Getting started
    :hidden:
 
-   ObtainingEBGeometry.rst
    Quickstart.rst
    Building.rst
-   SIMDAcceleration.rst
    ConfigurationOptions.rst
-   History.rst
+   Glossary.rst
 
 Concepts
 ********
@@ -83,18 +76,11 @@ Concepts
    :hidden:
 
    GeometryRepresentations.rst
-   DCEL.rst
+   Meshes.rst
    BVH.rst
-   Rays.rst
-   RayTracing.rst
-   SphereTracing.rst
-   Rendering.rst
    PointCloud.rst
-   Octree.rst
-   CSG.rst
-   Tape.rst
-   ClosestPrimitive.rst
-   Triangles.rst
+   ConceptsComposition.rst
+   ConceptsRays.rst
 
 Implementation
 **************
@@ -105,18 +91,13 @@ Implementation
    :hidden:
 
    Implementation.rst
-   MemoryModel.rst
-   RunningOnGPU.rst
-   ImplemVec.rst
-   ImplemCSG.rst
-   ImplemDCEL.rst
-   ImplemBVH.rst
-   ImplemRays.rst
-   ImplemRender.rst
+   ImplemFoundations.rst
+   ImplemMeshes.rst
+   ImplemBVHs.rst
    ImplemPointCloud.rst
-   ImplemOctree.rst
-   Parsers.rst
-   SIMDClasses.rst
+   ImplemComposition.rst
+   ImplemRaysPictures.rst
+   ImplemUtilities.rst
 
 Examples
 ********
@@ -127,33 +108,14 @@ Examples
    :hidden:
 
    Examples.rst
-   ExampleShapes.rst
-   ExampleBasicCSG.rst
-   ExampleSmoothCSG.rst
-   ExampleTransforms.rst
-   ExampleRepetition.rst
-   ExampleValueOperations.rst
-   ExampleFusedCSG.rst
-   ExampleMeshSDF.rst
-   ExampleMeshCSG.rst
-   ExampleShell.rst
-   ExampleSurfaceLabels.rst
-   ExampleMaterials.rst
-   ExampleNestedBVH.rst
-   ExampleManyObjects.rst
-   ExamplePackedSpheres.rst
-   ExamplePointClouds.rst
-   ExampleParticleNeighbors.rst
-   ExampleSphereClouds.rst
-   ExampleParticleContacts.rst
-   ExampleBVHTraversal.rst
-   ExampleRayTracing.rst
-   ExampleOctreeBoundingVolume.rst
-   ExampleCustomShape.rst
-   ExampleTwist.rst
-   ExampleHostTuning.rst
-   ExampleDeviceTuning.rst
-   ExampleBuildBVH.rst
+   ExamplesStart.rst
+   ExamplesComposition.rst
+   ExamplesMeshes.rst
+   ExamplesMaterials.rst
+   ExamplesManyObjects.rst
+   ExamplesRays.rst
+   ExamplesExtending.rst
+   ExamplesTuning.rst
    Integrations.rst
 
 Contributing and testing
@@ -165,10 +127,11 @@ Contributing and testing
    :hidden:
 
    Contributing.rst
+   ContributionGuidelines.rst
    TestingLocally.rst
    PerformanceTesting.rst
    ContinuousIntegration.rst
-   ContributionGuidelines.rst
+   History.rst
 
 .. toctree::
    :maxdepth: 3

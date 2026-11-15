@@ -105,7 +105,7 @@ public:
 
   /**
    * @brief The field a section plane shows (its contours and lines of equal distance): with a whole domain shown
-   * (RegionSettings::m_sectionDomain), the function of each point's own label (see domainSample()), secondary in the
+   * (RegionSettings::m_sectionDomain), the function of each point's own subdomain (see domainSample()), secondary in the
    * excluded regions; with section
    * regions set (RegionSettings::m_sectionRegions), their function as a subdomain's, what a cut-cell code cuts for it,
    * zero on the subdomain's boundary alone, secondary outside it; without them, the distance to the nearest surface of a visible region
@@ -702,9 +702,9 @@ public:
 
 private:
   /**
-   * @brief The function of a point's own label in a domain (RegionSettings::m_sectionLabels), as
-   * Domain::signedDistances() gives it: half the difference of the smallest function of a region with that label and
-   * of one with another, never positive; in the excluded regions, theirs, secondary.
+   * @brief The function of a point's own subdomain in a domain (RegionSettings::m_sectionSubdomains), as
+   * Domain::signedDistances() gives it: half the difference of the smallest function of a region in that subdomain
+   * and of one in another, never positive; in the excluded regions, theirs, secondary.
    * @param[in] a_point Point.
    * @return The value, and whether the point is in the excluded regions.
    */
@@ -712,28 +712,29 @@ private:
   inline ContourSample<T>
   domainSample(const Vec3T<T>& a_point) const noexcept
   {
-    constexpr uint32_t Labels   = 33U;
-    constexpr uint32_t Excluded = Labels - 1U;
+    constexpr uint32_t Slots    = 33U;
+    constexpr uint32_t Excluded = Slots - 1U;
 
-    T smallest[Labels];
+    T smallest[Slots];
 
-    for (uint32_t l = 0; l < Labels; l++) {
+    for (uint32_t l = 0; l < Slots; l++) {
       smallest[l] = Math::Limits<T>::max();
     }
 
     m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
-      const uint8_t  label = (a_region < 64U) ? m_settings.m_sectionLabels[a_region] : RegionSettings::ExcludedLabel;
-      const uint32_t l     = (label < Excluded) ? uint32_t(label) : Excluded;
+      const uint8_t subdomain =
+        (a_region < 64U) ? m_settings.m_sectionSubdomains[a_region] : RegionSettings::ExcludedSubdomain;
+      const uint32_t l = (subdomain < Excluded) ? uint32_t(subdomain) : Excluded;
 
       smallest[l] = Math::min(smallest[l], a_value);
     });
 
-    // The point's own label has the smallest of all; the other term is the second smallest.
+    // The point's own subdomain has the smallest of all; the other term is the second smallest.
     T        first  = Math::Limits<T>::max();
     T        second = Math::Limits<T>::max();
     uint32_t own    = Excluded;
 
-    for (uint32_t l = 0; l < Labels; l++) {
+    for (uint32_t l = 0; l < Slots; l++) {
       if (smallest[l] < first) {
         second = first;
         first  = smallest[l];

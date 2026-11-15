@@ -4,7 +4,13 @@ BVH
 ===
 
 See :ref:`Chap:BVH` for the conceptual picture of bounding volume hierarchies (node types,
-partitioning, tree pruning during traversal) before reading the concrete API below.
+partitioning, tree pruning during traversal). This page describes building and storing a BVH;
+:ref:`Chap:ImplemBVHTraversal` describes searching one, and :ref:`Chap:ImplemMeshSDF` the mesh distance
+functions built on it.
+
+.. contents:: On this page
+   :local:
+   :depth: 1
 
 The BVH functionality is encapsulated in the namespace ``EBGeometry::BVH``, in three headers:
 
@@ -28,7 +34,7 @@ There are two representations of a BVH:
    <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__.
 *  ``BVH::PackedBVH<T, P, K>``, where the nodes are stored in depth-first order in
    a flat array and contain index offsets to children and primitives rather than pointers. This is
-   the representation used for fast queries, see :ref:`Chap:PackedBVH`. See `the doxygen page
+   the representation used for queries, see :ref:`Chap:PackedBVH`. See `the doxygen page
    for PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__.
 
 The template parameters shared by both are:
@@ -41,7 +47,7 @@ The template parameters shared by both are:
    ``PackedBVH`` holds primitives opaquely, handing them back only to whatever leaf-visit
    callback a caller supplies to ``traverse()`` (see below). Whether
    ``P`` needs a ``signedDistance(Vec3T<T>)`` member (or anything else) is entirely up to that
-   callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:MeshSDFClasses` for
+   callback -- see ``MeshSDF``/``TriMeshSDF::signedDistance()`` in :ref:`Chap:ImplemMeshSDF` for
    the signed-distance case; a callback could equally perform, say, a nearest-neighbor search over
    a point cloud whose primitive carries no ``signedDistance()`` at all.
 *  ``BV`` Bounding volume type (``TreeBVH`` only — ``PackedBVH`` always uses
@@ -51,9 +57,8 @@ The template parameters shared by both are:
 ``TreeBVH`` is the BVH builder node, i.e. it is the class through which we recursively build the
 BVH, see :ref:`Chap:BVHConstruction`. ``TreeBVH`` has no constraint that ``P`` be wrapped in a
 ``shared_ptr`` itself, but the *containers* that hold primitives during construction
-(``PrimitiveList<P>``, ``PrimAndBV<P, BV>``) always wrap each primitive in a
-``std::shared_ptr<const P>``, so that primitives can be safely shared between the tree and any
-higher-level object that still refers to them by pointer (e.g. a ``DCEL::FaceT``).
+(``PrimitiveList<P>``, ``PrimAndBV<P, BV>``) wrap each primitive in a ``std::shared_ptr<const P>``,
+so that the tree and the caller can share them.
 
 Bounding volumes
 ----------------
@@ -124,7 +129,7 @@ default target of one gives the deepest such tree, with at most ``K`` primitives
 The template argument is the space-filling curve that the user wants to apply, from namespace
 ``EBGeometry::SFC`` (:file:`Source/EBGeometry_SFC.hpp`, see `the doxygen API
 <doxygen/html/namespaceEBGeometry_1_1SFC.html>`__).
-Currently, we support Morton codes, Hilbert curves, and nested indices.
+The curves are Morton codes, Hilbert curves and nested indices.
 For Morton curves, one would e.g. call ``bottomUpSortAndPartition<SFC::Morton>``; the Hilbert curve
 (better spatial locality than Morton, since consecutive codes are always spatially adjacent) is
 ``bottomUpSortAndPartition<SFC::Hilbert>``; while for nested indices (which are not recommended) the
@@ -192,15 +197,12 @@ The third, ``buildClusterSAH()``, builds via **ClusterSAH**, a fast approximatio
 
    const auto packed = BVH::PackedBVH<T, P, K>::buildClusterSAH(pool, std::move(primsAndBVs), BVH::ClusterSpec{maxClusterSize});
 
-It first groups the primitives into small, spatially-tight *clusters* (buckets of at most
-``maxClusterSize`` primitives, formed by a cheap density-adaptive midpoint subdivision that stops
-early), then runs binned SAH top-down over those clusters — so SAH partitions roughly
-``N / maxClusterSize`` boxes instead of all ``N`` primitives. The result is near-SAH tree quality at
-a fraction of the single-threaded SAH build cost, and it stays robust across uniform, surface, and
-clustered primitive distributions (a fixed Cartesian grid, by contrast, overcrowds on non-uniform
-data). ``BVH::ClusterSpec::maxClusterSize`` trades build time (larger → fewer, cheaper SAH units)
-against query quality (larger → coarser leaves); the :ref:`Chap:ExampleBuildBVH` example times its
-build against the other strategies.
+It first groups the primitives into small spatial *clusters* of at most ``maxClusterSize``
+primitives, then runs binned SAH over the clusters instead of over every primitive: a tree of nearly
+SAH quality, built several times faster, on uniform, surface and clustered inputs alike.
+``BVH::ClusterSpec::maxClusterSize`` trades build time (larger: fewer, cheaper units) against query
+speed (larger: coarser leaves); the :ref:`Chap:ExampleBuildBVH` example times its build against the
+other strategies.
 
 .. _Sec:BuildPresets:
 
@@ -344,9 +346,8 @@ place, leaving the tree topology (node hierarchy and each leaf's primitive assig
 the cheap way to keep a BVH valid for a geometry whose primitives have *moved* between frames,
 without a full rebuild-and-repack. It takes a single functor mapping one primitive to its current
 bounding volume and unions volumes bottom-up: each leaf's from its primitives, each interior node's
-from its children. ``PackedBVH::refit()`` merges the boxes pairwise, allocating nothing, and writes
-each box where it is stored, in its parent's SoA child-box row that ``traverse()``'s queries
-read (see :ref:`Chap:PackedTraverse`), so every query and every copy of the BVH sees it. Because it
+from its children. ``PackedBVH::refit()`` updates the boxes in place, allocating nothing, so every
+query and every copy of the BVH sees them. Because it
 never re-partitions, a geometry that deforms enough for primitives to migrate across the tree
 accumulates looser bounding volumes over time and should periodically be rebuilt instead; see
 :ref:`Chap:BVH` for that trade-off. For the exact signatures, see the Doxygen references for
@@ -355,7 +356,7 @@ accumulates looser bounding volumes over time and should periodically be rebuilt
 
 Refitting recomputes bounding volumes only, never the primitives themselves. A primitive that
 caches data derived from the geometry has to be brought up to date some other way. ``MeshSDF``
-(:ref:`Chap:MeshSDFClasses`) stores face ids, not faces, so after moving the mesh's vertices,
+(:ref:`Chap:ImplemMeshSDF`) stores face ids, not faces, so after moving the mesh's vertices,
 ``mesh.reconcile()`` recomputes the faces' cached normals, centroids and projection axes in the
 mesh itself, and refitting its BVH (through ``getRoot()``) then updates the boxes. On a device, the mesh
 is reconciled with ``DCEL::reconcile()`` (:ref:`Sec:ReconcileWherePool`). ``TriMeshSDF``'s
@@ -373,7 +374,7 @@ as ``PackedBVH::refit()``. Both give the same boxes.
 A level-by-level refit needs the BVH's nodes grouped by depth, which a
 `BVH::RefitSchedule <doxygen/html/classEBGeometry_1_1BVH_1_1RefitSchedule.html>`__ holds. It is opt-in,
 for the BVHs you refit this way, and built once on the host from the tree's shape, which a refit never
-changes. Build it after the BVH and before freezing the pool: its node list (4 bytes per node) is stored
+changes. Build it after the BVH and before freezing the pool: its node list is stored
 in the BVH's pool, so mirroring the pool carries it to the device. Building it on a frozen pool aborts.
 
 .. code-block:: c++
@@ -430,23 +431,14 @@ The rationale for the ``PackedBVH`` is its tighter memory footprint and depth-fi
 volume is always ``AABBT<T>``), and internally stores two things: a flat, depth-first array of
 nodes, and a global primitive array holding every primitive in leaf order.
 
-Each entry of the node array plays the same role a ``TreeBVH`` node plays, but stores offsets
-into the flat arrays rather than pointers to children: a primitive offset and count identifying its
-range in the global primitive array (used only if the node is a leaf), and the depth-first indices
-of its ``K`` children. A node is a leaf exactly when its primitive count is non-zero; the root node
-is always at index 0 of the node array. See `the doxygen page for PackedBVH::Node
-<doxygen/html/structEBGeometry_1_1BVH_1_1PackedBVH_1_1Node.html>`__ for the exact member list.
-
-A node does not hold its own bounding volume. Every box is stored once: an interior node's ``K``
-children's boxes form that node's row of the SIMD box array that ``traverse()``'s queries read (see
-:ref:`Chap:PackedTraverse`), and the root's box, which no row holds, is stored separately in the same
-pool. Each node keeps its *box slot*, the row and position of its own box, so
-``getBoundingVolume(node)`` returns any node's box and ``getDistanceToBoundingVolume2(node, point)``
-the squared distance to it, without assembling the box. A descent that tests a node's children one at
-a time should use ``getDistanceToChildBoundingVolume2(parent, k, point)`` instead: it reads child
-``k``'s box straight from the parent's row, without loading the child node only to find where its box
-is. A traversal callback that needs a node's box, such as a ``visit`` callback, asks the BVH it
-traverses for it.
+Each node stores offsets into the flat arrays rather than pointers: a leaf its range of primitives,
+an interior node the indices of its ``K`` children; the root is node 0. See `the doxygen page for
+PackedBVH::Node <doxygen/html/structEBGeometry_1_1BVH_1_1PackedBVH_1_1Node.html>`__. A node's box is
+read from the BVH, not the node: ``getBoundingVolume(node)`` returns it, and
+``getDistanceToBoundingVolume2(node, point)`` the squared distance to it. A descent that tests a
+node's children one at a time should use ``getDistanceToChildBoundingVolume2(parent, k, point)``, which
+reads child ``k``'s box without loading the child. A traversal callback that needs a node's box, such as
+a ``visit`` callback, asks the BVH it traverses for it.
 
 Constructing a ``PackedBVH`` from a ``TreeBVH`` is simply a matter of flattening the
 already-partitioned tree, via one of two ``TreeBVH`` member functions. Both return the
@@ -461,7 +453,7 @@ alive.
    per leaf to produce the ``Q`` values that the resulting ``PackedBVH<T, Q, K>`` will store.
    This is how ``TriMeshSDF`` turns a tree of individual ``Triangle<T>`` primitives into a
    ``PackedBVH`` whose leaves hold SIMD-width ``TriangleAoSoA<T, W>`` groups instead — see
-   :ref:`Chap:MeshSDFClasses`.
+   :ref:`Chap:ImplemMeshSDF`.
 
 See `the doxygen page for TreeBVH <doxygen/html/classEBGeometry_1_1BVH_1_1TreeBVH.html>`__ for
 the exact signatures of ``pack()`` and ``packWith()``.
@@ -507,8 +499,8 @@ not ``std::vector``\ s. Every construction entry point therefore takes a ``Pool&
 ``packWith()``, every static build, the adopting constructor, and ``MeshSDF``/``TriMeshSDF``/``PointCloudBVH``,
 which pass along the pool they already take. The pool must outlive the BVH.
 
-What this buys is that a ``PackedBVH`` is trivially copyable -- four 16-byte array descriptors and
-the location of its pool -- so a whole hierarchy crosses to a device as a byte copy with no
+What this buys is that a ``PackedBVH`` is trivially copyable, a few array descriptors and the
+location of its pool, so a whole hierarchy crosses to a device as a byte copy with no
 pointer patching. ``rebasedView(Pool&)`` is the single sanctioned crossing, exactly as for
 ``DCEL::MeshT``: mirror the pool, rebase on the host, then pass the returned value to a kernel.
 
@@ -521,9 +513,8 @@ _________________________________________
 
 ``PackedBVH`` is ``final``. A class that needs a BVH over its own payload holds one by value
 instead, and keeps its own arrays in the same pool so that one ``rebasedView()`` of the held BVH
-rebases everything; ``PointCloudBVH`` (:ref:`Chap:ImplemPointCloud`) is the worked case. Deriving
-was ruled out because ``rebasedView()`` and ``deepCopy()`` return a ``PackedBVH`` by value, which on
-a derived type silently slices away the payload the leaves refer to.
+rebases everything; ``PointCloudBVH`` (:ref:`Chap:ImplemPointCloud`) is the worked case. (A derived
+class would lose its payload: ``rebasedView()`` and ``deepCopy()`` return a ``PackedBVH``.)
 
 Three public members exist for such a class. The adopting constructor
 ``PackedBVH(Pool&, const std::vector<Node>&, const std::vector<BV>&, const std::vector<P>&)`` takes
@@ -531,12 +522,9 @@ a node array, the box of every node and a primitive array built by some other me
 builder of your own that produces the flat arrays directly. The boxes go alongside the nodes because a node
 does not store its own; the constructor puts them in the box rows and assigns every node's box row
 and box slot, whatever the node array held. Every
-constructor, this one included, checks always on rather than only under assertions that the node
-array is a well-formed depth-first pre-order flattening: every child strictly after its parent and
-inside the array, every node but the root with exactly one parent, every leaf's primitives inside
-the primitive array. A malformed array aborts with a diagnostic instead of surfacing later as an
-out-of-bounds read. A leaf with no primitives is one such defect: it reads as an interior node whose
-children are all node 0, which the first check rejects. ``getNodes()`` returns the flat node array
+constructor, this one included, checks in every build that the node array is a well-formed
+depth-first flattening (every leaf holding at least one primitive), and aborts with a message
+otherwise. ``getNodes()`` returns the flat node array
 as a read-only ``PODSpan``, for a class that walks the tree with a traversal of its own. And
 ``traversalStackDepth()`` gives the fixed traversal-stack size for the current compilation pass
 (host or device; see :ref:`Sec:TraversalStack`), which the build and ``rebasedView()`` validate the
@@ -546,37 +534,21 @@ does, can size its own stack with it and inherit the same guarantee.
 Copy and move semantics
 ________________________
 
-``TreeBVH`` and ``PackedBVH`` differ in whether copying is allowed, precisely because of the
-storage-sharing question above:
+*  ``TreeBVH`` can be moved but not copied, since a copy would share the subtrees that partitioning
+   changes. ``deepCopy()`` clones the node hierarchy, sharing the (immutable) primitives: to partition
+   one input two ways, say.
+*  ``PackedBVH`` can be copied and moved, but a copy is **not** a deep copy: it resolves against the
+   same pool memory, and a write through either is seen through the other. That is what makes it
+   trivially copyable, and what lets ``rebasedView()`` give a value a kernel takes directly.
+   ``deepCopy(Pool&)`` gives storage of its own (indices into a caller-owned array, see
+   :ref:`Sec:IndexedPrimitives`, still resolve against that array).
 
-*  ``TreeBVH`` deletes its copy constructor and copy assignment operator. It is a recursive
-   structure of ``shared_ptr``-linked children, so a naive (compiler-generated) copy would only
-   alias the same child subtrees rather than cloning them, which
-   ``topDownSortAndPartition()``/``bottomUpSortAndPartition()`` could then mutate out from under a
-   supposedly independent "copy". Copying is disallowed outright rather than silently doing the
-   wrong thing. Its move constructor and move assignment operator are explicitly defaulted and
-   fully supported. To *replicate* a tree independently -- e.g. to build once and then partition
-   two copies with different strategies, or to keep a pristine copy alongside one you go on to
-   mutate -- use ``deepCopy()``, which recursively clones the node hierarchy (returning a new
-   ``std::shared_ptr<TreeBVH>``) while still sharing the immutable ``std::shared_ptr<const P>``
-   primitives by handle. (Copying a ``std::shared_ptr<TreeBVH>`` is, of course, always fine -- that
-   is shared ownership of the *same* tree, not a replica.)
-*  ``PackedBVH`` allows both copying and moving, but a copy is **not** a deep copy. Its members are
-   four ``PODVector`` descriptors and its pool location, so copying one copies offsets: the copy
-   resolves against the same pool memory as the original, and writing through either is visible
-   through the other. That shallowness is the point -- it is what makes the type trivially copyable,
-   and therefore what lets ``rebasedView()`` produce a value a kernel can consume directly. Use
-   ``deepCopy(Pool&)`` for storage of its own. (When the primitives are indices into a
-   caller-owned array — see :ref:`Sec:IndexedPrimitives` — even a deep copy still shares that array;
-   only the BVH's own arrays are duplicated.)
-
-Both classes' destructors are non-virtual: neither is intended to be subclassed or used
-polymorphically, and ``PackedBVH`` is declared ``final`` to enforce it (see above).
+Neither is meant to be derived from, and ``PackedBVH`` is ``final``.
 
 .. _Sec:PolymorphicPrimitives:
 
-Polymorphic primitives are not currently supported
-___________________________________________________
+Primitives are of concrete types
+________________________________
 
 ``P`` must be a concrete type. ``PackedBVH`` stores ``P`` by value, so an abstract base either fails
 to compile or slices the object to its static type; naming primitives by index instead
@@ -596,485 +568,6 @@ Nesting a BVH inside a BVH -- a ``BVHUnion`` over several ``TriMeshSDF`` objects
 inner object as its layout and pairs it with its own pool location as it evaluates it (see
 :ref:`Chap:MemoryModel`), so the nested hierarchy mirrors to a device as one piece.
 
-Nesting itself is not the expensive part, incidentally. An inner BVH is stored as its layout, its
-four ``PODVector`` descriptors -- 64 bytes for a ``PackedBVH``, whatever the size of the BVH it
-describes -- so the outer array pays that per inner BVH, not the inner BVH's contents, and the two
-share the pool memory those descriptors resolve against. It is only a
-primitive that owns its data *inline* whose size the outer array pays per placement.
-
-Tree traversal
----------------
-
-``TreeBVH`` and ``PackedBVH`` each have a ``traverse()`` member. ``TreeBVH::traverse()`` is a host-only
-walk over the pointer tree, driven by four callbacks (a prune predicate, a child orderer, a leaf
-evaluator and a node-key factory; see the `BVH namespace's doxygen page
-<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__), for querying a tree before it is packed; an
-exception from one of its callbacks reaches the caller. ``PackedBVH::traverse()`` is the walk every query runs, on the host
-and on a device, and the rest of this section is about it.
-
-.. _Chap:PackedTraverse:
-
-``PackedBVH::traverse()``
-_________________________
-
-``PackedBVH`` has no ``signedDistance()`` of its own and does not privilege any one query. It has one
-walk, ``traverse()``, and every search in the library -- the mesh SDFs' distances and closest faces, the
-BVH unions, the point clouds' neighbor searches, the tape's large unions, the ray queries -- is a call of
-it with different pieces slotted in. A new search is written the same way: you supply the pieces, the
-library supplies the walk, on the host and on a device. See :ref:`Chap:BVH` for the idea behind it.
-
-.. code-block:: c++
-
-   bvh.traverse(query, state, leaf, bound);                 // the four pieces every search needs
-   bvh.traverse(query, state, leaf, bound, visit, order);   // and the two optional ones
-
-What the walk does, and where your pieces run
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The walk is depth first, with a small fixed stack instead of recursion. In pseudocode, with the places
-where it calls your pieces marked:
-
-.. code-block:: text
-
-   key = query.key(root box)                                  ← query
-   if key > bound(state): stop                                ← bound
-   node = root
-   loop:
-       if visit(state, node, key) is false: skip node        ← visit (optional)
-       else if node is a leaf:
-           leaf(state, first primitive, count)                ← leaf: the only place primitives are read
-       else:
-           b    = bound(state)                                ← bound, read fresh at every node
-           keys = query.keys(node's K child boxes)            ← query, all K children in one pass
-           kept = the children with key <= b
-           sort kept by order                                 ← order (optional; nearest first by default)
-           descend into the first of kept now; push the rest of kept for later
-           continue
-       pop the next waiting child c of the deepest level:
-           key = query.key(c's box)                           ← query, recomputed bit for bit
-           if key > bound(state):                             ← bound, read fresh again
-               skip c (and, nearest first, the rest of its level, which are no nearer)
-           else: node = c, continue
-       stop when nothing is waiting
-
-.. _Fig:TraversalWalk:
-.. figure:: /_static/TraversalWalk.png
-   :width: 85%
-   :align: center
-
-   A nearest-primitive search walking a small tree (``K = 2``). The numbered events are where the walk
-   calls the pieces the search supplies, colored by piece: the query keys the root with ``key(box)``
-   and both children of a node in one pass with ``keys(row)`` (1--3), the order puts the nearer child
-   first, the leaf callback finds a primitive and so tightens the bound (4), and on the way back the
-   query's ``key(row, k)`` recomputes each waiting child's key for the bound as it is then, which
-   prunes ``L2`` and the whole subtree under ``N2`` (5--6). The panel below shows ``visit`` refusing a
-   node that passed the bound, after adding the caller's summary of its subtree to the state (7).
-
-Three things follow from this shape:
-
-* **The bound is read again at every node.** A leaf you visit early tightens the pruning of every node
-  after it, in any part of the tree -- which is why visiting the most promising child first pays off.
-* **The state is yours.** The walk only passes it to your callbacks; only ``leaf`` (and ``visit``, if you
-  give one) change it, and ``bound`` reads it.
-* **Keys are compared, never stored.** A child that waits on the stack gets its key again when the walk
-  comes back to it, so the comparison sees the bound as it is *then*.
-
-The pieces you supply
-^^^^^^^^^^^^^^^^^^^^^
-
-.. list-table::
-   :header-rows: 1
-   :widths: 13 30 22 35
-
-   * - Piece
-     - Signature
-     - Called
-     - What it is for
-   * - ``query``
-     - a query type (``BVH::PointQuery``, ``BVH::RayQuery``, or your own)
-     - at every interior node (all ``K`` children), at the root, and when a waiting child is resumed
-     - what is tracked through the tree: it gives each box a *key*, how far the box is from the query
-   * - ``state``
-     - any type, passed by reference
-     - --
-     - what the search remembers between leaves: the best value so far, the best primitive, a list of
-       hits
-   * - ``leaf``
-     - ``(State&, size_t offset, size_t count)``
-     - once per leaf reached
-     - test the leaf's primitives, ``getPrimitives()[offset .. offset + count)``, and update the state
-   * - ``bound``
-     - ``(const State&) -> Key``
-     - at every node expanded and every child resumed
-     - how far a box may be and still be entered: a box whose key is above it is skipped with its
-       whole subtree
-   * - ``visit`` (optional)
-     - ``(State&, uint32_t nodeIndex, const Node&, const Key&) -> bool``
-     - for every node about to be entered (root, interior, leaf), after the bound check
-     - decide on the node itself: return ``false`` to skip it and its subtree, after updating the
-       state if you like (prune on your own per-node data, summarize a far subtree, count nodes).
-       Default ``BVH::DescendAll``, which compiles away
-   * - ``order`` (optional)
-     - ``BVH::NearestFirst``, ``BVH::FarthestFirst``, ``BVH::AsStored``, or a comparator
-       ``(keyA, keyB) -> bool`` or ``(keyA, nodeA, keyB, nodeB) -> bool``
-     - when a node's kept children are sorted
-     - which child to visit first. ``NearestFirst`` (default) tightens a nearest-type bound fastest;
-       ``AsStored`` (first slot first, no sort) suits searches that visit everything they reach or stop
-       at the first hit
-
-The rules your pieces follow:
-
-* **They are template parameters** -- lambdas or functors, not ``std::function`` -- so the same call runs
-  in a kernel. On a device, write them as functors with ``EBGEOMETRY_HOST_DEVICE`` call operators, or as
-  lambdas inside such a function. ``traverse()`` is ``noexcept``: an exception from a callback ends the
-  program.
-* **Under** ``NearestFirst`` **the bound may only tighten** during a walk (never grow), since the walk
-  drops the rest of a level once one child is out of it. Every search that narrows in on a best answer
-  does this naturally. A search whose bound can grow should pick another order.
-* **To stop the walk**, make ``bound`` return :math:`-\infty` (below every key): an any-hit search does
-  this after its first hit.
-* **A key of** :math:`+\infty` **is never entered**, whatever the bound: a ray query gives it to a box the
-  ray misses. A bound of :math:`+\infty` therefore means "no bound yet", and a ray search can start
-  there.
-
-Query types
-^^^^^^^^^^^
-
-* ``BVH::PointQuery{p}`` -- the key of a box is the squared distance from ``p`` to it (0 inside it). The
-  bound is a squared distance too. In a function that also runs on a device, write the precision out,
-  ``BVH::PointQuery<T>{p}``: HIP's compiler treats the deduction guide behind ``PointQuery{p}`` as a host
-  function.
-* ``BVH::RayQuery(origin, direction, tMin)`` -- the key of a box is the distance along the ray (unit
-  direction) at which it enters the box, from ``tMin`` on, or :math:`+\infty` if it misses it. A segment
-  from ``a`` to ``b`` is the ray from ``a`` towards ``b`` with the bound starting at ``|b - a|``.
-* **Your own query type** -- anything with ``using Scalar = T``; ``keys(row)`` returning the ``K``
-  children's keys from the node's row of child boxes (``BVH::ChildBoxes``: ``m_lo[axis][child]``,
-  ``m_hi[axis][child]``, laid out for SIMD); ``key(row, k)`` returning one child's key, bit for bit what
-  ``keys()`` gave; and ``key(box)`` for the root. It may declare ``using Key = ...`` for a key that is not
-  a number, such as a distance with a tie-break (it needs ``<=``, ``>`` and, for the nearest/farthest
-  orders, ``<``).
-
-Recipes
-^^^^^^^
-
-The nearest primitive to a point (what the mesh SDFs and point clouds do):
-
-.. code-block:: c++
-
-   struct Best { T d2 = inf; uint32_t id = none; };
-   Best best;
-
-   bvh.traverse(BVH::PointQuery<T>{p}, best,
-                [&](Best& b, size_t offset, size_t count) {          // distance to each primitive
-                  for (size_t i = offset; i < offset + count; i++) {
-                    const T d2 = distance2(prims[i], p);
-                    if (d2 < b.d2) { b = Best{d2, uint32_t(i)}; }
-                  }
-                },
-                [](const Best& b) { return b.d2; });                 // farther boxes cannot do better
-
-The first primitive a ray hits: the same, with a ``RayQuery``, a ray--primitive test in ``leaf`` and the
-nearest hit so far as the bound. Whether *anything* is hit (a shadow ray, a blocked segment): keep a flag,
-return :math:`-\infty` from ``bound`` once it is set, and use ``AsStored``, since any hit will do:
-
-.. code-block:: c++
-
-   bool hit = false;
-
-   bvh.traverse(BVH::RayQuery<T>(a, direction), hit,
-                [&](bool& h, size_t offset, size_t count) { /* h = h || any primitive hit before |b - a| */ },
-                [&](const bool& h) { return h ? -inf : length; },
-                BVH::DescendAll{}, BVH::AsStored{});
-
-Everything within a radius ``r`` of a point: collect in ``leaf``, return ``r * r`` from ``bound`` (it
-never changes), and use ``AsStored``. A far-field approximation: in ``visit``, when a node is far enough
-for its summary (kept in your own array, indexed by ``nodeIndex``), add the summary to the state and
-return ``false``; otherwise return ``true`` and let the walk descend.
-
-The :ref:`Chap:ExampleBVHTraversal` example runs the first three in full, on the host and on a device.
-For the exact signatures, see the Doxygen reference for
-`PackedBVH <doxygen/html/classEBGeometry_1_1BVH_1_1PackedBVH.html>`__ and the `BVH namespace
-<doxygen/html/namespaceEBGeometry_1_1BVH.html>`__.
-
-**SIMD and the same answers everywhere.** ``PointQuery`` computes the ``K`` squared distances in a
-single SIMD batch where the ``(K, T)`` pair has a compiled path (see :ref:`Chap:SIMDClasses`), and
-with a scalar loop otherwise, which is also what device code runs; ``RayQuery`` does the same for its
-slab test. The paths agree bit for bit, so a query answered on a build with no SIMD returns what the
-same query returns on an AVX-512 build or on a device. The one exception is a compiler that contracts
-the scalar path's multiply and add into a fused multiply-add (Clang by default, and GCC in its GNU
-language modes, whenever FMA is enabled, e.g. by ``-march=native``): ``PointQuery``'s paths can then
-differ in the last bit. ``RayQuery`` is robust at the edges: a ray through a face or edge shared by
-two boxes enters at least one of them, and a ray lying in a box's face plane is not counted as
-missing it.
-
-.. _Sec:TraversalStack:
-
-The traversal stack
-___________________
-
-The stack is a fixed-size array, with one entry per level of the tree, so the traversal allocates
-nothing and runs unchanged on a device. That bounds the depth of a tree it can walk: 256 levels on
-the host (``BVH::HostTraversalDepth``) and 32 on a device (``BVH::DeviceTraversalDepth``, smaller since
-device stack memory is per thread), at every ``K``.
-
-Every ``PackedBVH`` is checked against the host depth when it is built, and every device view
-against the device depth when ``rebasedView()`` makes it, in every build: a tree too deep aborts with
-a message giving its depth, rather than overflowing the stack, which in Release would be a silent
-out-of-bounds write.
-
-Splitting the bound from the leaf callback like this is what lets very different searches share one
-walk: a nearest-neighbor search over a point cloud tracks a plain running squared distance as its state
-(no ``abs()``, no square root in the hot path) with a bound that returns the state unchanged, whereas
-``MeshSDF::signedDistance()`` (see :ref:`Chap:MeshSDFClasses`) tracks a signed distance and squares its
-magnitude for the bound (``TriMeshSDF`` tracks a squared unsigned distance on the host and signs the
-winner at the end), and a closest-hit ray search tracks the nearest crossing -- all
-ordinary calls of the same ``traverse()`` with a ``PointQuery`` or a ``RayQuery``, not special cases
-in ``PackedBVH``. The first needs nothing more than a bare point struct with no ``signedDistance()``
-member at all.
-
-Traversal examples
-__________________
-
-Below, we consider two examples for BVH traversal.
-The examples show how we compute the signed distance from a DCEL mesh, and how to perform a *smooth* CSG union where the search for the two closest objects is done by BVH traversal.
-
-Signed distance
-^^^^^^^^^^^^^^^
-
-The DCEL mesh distance fields use a traversal pattern based on
-
-* Only visit bounding volumes that are closer than the minimum distance computed (so far).
-* When visiting a subtree, investigate the closest bounding volume first.
-* When visiting a leaf node, check if the primitives are closer than the minimum distance computed so far.
-
-``MeshSDF::signedDistance()`` implements these rules with ``traverse()`` and a ``PointQuery`` (see
-:ref:`Chap:PackedTraverse`): its leaf callback scans a leaf's faces and keeps the signed distance with
-the smallest magnitude seen so far, and its bound prunes any node whose bounding-volume distance
-already exceeds that magnitude, while the walk visits the closest child first. For
-the full API, see the Doxygen reference for
-`MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
-
-CSG Union
-^^^^^^^^^
-
-Combinations of implicit functions in EBGeometry into aggregate objects can be done by means of CSG unions.
-One such union is known as the *smooth union*, in which the transition between two objects is gradual rather than abrupt.
-
-``BVHSmoothUnion::signedDistance()`` walks its BVH with ``traverse()`` and a ``PointQuery`` (see
-:ref:`Chap:PackedTraverse`) with a state holding the two smallest values seen so far, ``a`` and
-``b`` (``a`` the closest, ``b`` the second-closest): the leaf callback updates both as leaves are
-scanned, and the bound returns ``max(0, b)`` squared -- pruning against the *second*-smallest
-value rather than the nearest, so a primitive that is not the single closest but still contributes to
-the blend is never pruned away. Once traversal completes, the two values are blended with the stored
-smooth-minimum operator. ``BVHUnion::signedDistance()`` is the same pattern with a single running minimum
-and a ``max(0, minDist)``-squared pruning bound. See :ref:`Chap:ImplemCSG` for the CSG combinators
-themselves, and the Doxygen reference for
-`BVHSmoothUnion <doxygen/html/classEBGeometry_1_1BVHSmoothUnion.html>`__ /
-`BVHUnion <doxygen/html/classEBGeometry_1_1BVHUnion.html>`__ for the exact API.
-
-.. _Chap:MeshSDFClasses:
-
-Mesh SDF classes
-----------------
-
-EBGeometry provides three concrete classes for evaluating signed distances to surface meshes.
-They share the same sign convention (negative inside, positive outside) but differ in data layout,
-BVH type, and supported geometry:
-
-.. list-table:: Mesh SDF classes
-   :widths: 22 18 22 18 20
-   :header-rows: 1
-
-   * - Class
-     - Input
-     - BVH type
-     - Traversal
-     - Notes
-   * - ``FlatMeshSDF<T>``
-     - DCEL mesh
-     - None
-     - O(N) scan
-     - Debug / tiny meshes only; no build cost
-   * - ``MeshSDF<T, K>``
-     - DCEL mesh
-     - ``PackedBVH`` over face ids
-     - ``traverse()`` with a ``PointQuery`` (SIMD when ``(K, T)`` matches a compiled ISA path)
-     - Any polygon mesh; not restricted to triangles
-   * - ``TriMeshSDF<T, K, W>``
-     - DCEL mesh or triangle soup
-     - ``PackedBVH`` over ``TriangleAoSoA`` groups
-     - ``traverse()`` with a ``PointQuery``, over SoA-packed leaves
-     - Triangle meshes only; highest throughput
-
-``FlatMeshSDF`` is useful for correctness checks and tiny meshes. See `its doxygen page
-<doxygen/html/classEBGeometry_1_1FlatMeshSDF.html>`__.
-
-``FlatMeshSDF`` is a plain value type that can be evaluated on a GPU. It holds the DCEL mesh
-descriptor by value and nothing else, so it is trivially copyable, and ``signedDistance()``,
-``getClosestFace()`` and ``computeBoundingVolume()`` (the vertex AABB) are callable on both host
-and device. It deliberately
-has no virtual functions: a class with them carries a pointer to
-a host-side function table and can never be passed to a kernel. It is composed with other objects
-through the expression builder and a tape instead (:ref:`Sec:Tape`). As for
-``PackedBVH`` (see :ref:`Chap:MemoryModel`), freeze and mirror the pool, call
-``rebasedView(devicePool)``, and pass the returned ``FlatMeshSDF`` to a kernel; ``deepCopy(pool)``
-gives independent storage. Copies share the pool memory, and a ``FlatMeshSDF`` sees the mesh as it
-was when it was constructed. ``MeshSDF`` and ``TriMeshSDF`` follow the same pattern; see below.
-
-``MeshSDF`` handles arbitrary polygon meshes; its ``signedDistance()`` builds the traversal
-criteria shown above (a leaf callback and a bound) and walks its BVH with ``PackedBVH::traverse()`` and
-a ``PointQuery``, picking up SIMD node pruning
-whenever ``(K, T)`` matches a compiled ISA path and testing the children with a scalar loop
-otherwise. Its BVH stores face ids, four bytes each, and every leaf test reads the face from the
-mesh; see "Primitive storage" below. See `its doxygen page
-<doxygen/html/classEBGeometry_1_1MeshSDF.html>`__.
-
-``MeshSDF`` and ``TriMeshSDF`` are plain value types exactly like ``FlatMeshSDF``: ``MeshSDF``
-holds the mesh descriptor and its ``PackedBVH`` by value, ``TriMeshSDF`` just its ``PackedBVH``,
-all reserved from the one ``Pool`` passed to the constructor. Both are trivially copyable,
-constructed without ``shared_ptr``\ s, and neither has virtual functions.
-``signedDistance()``, ``getClosestFace()``, ``getRoot()`` and ``computeBoundingVolume()`` are
-callable on host and device; ``rebasedView(pool)`` and ``deepCopy(pool)`` return the class itself,
-so a rebased copy is what a kernel receives. All three are shapes, so the expression builder
-composes them with other objects (:ref:`Sec:Tape`).
-
-All three report the face closest to a point with ``getClosestFace(point)``, which returns a
-`ClosestFace <doxygen/html/structEBGeometry_1_1ClosestFace.html>`__: the signed distance, equal to
-what ``signedDistance()`` returns (up to rounding for ``TriMeshSDF``, whose ``signedDistance()``
-reduces each leaf group with SIMD instructions), and the face id, the face's index in the mesh (see :ref:`Sec:FaceIds`). ``MeshSDF`` and ``TriMeshSDF`` run the same
-pruned traversal as ``signedDistance()``, keeping the winning face's id as they go. Where several
-faces are equally close, at a point nearest an edge or vertex they share, the first one found is
-reported. The returned id indexes whatever per-face data the caller keeps, such as a material or
-boundary condition.
-
-``TriMeshSDF`` is the recommended default for triangle meshes: it packs triangles into
-Structure-of-Arrays groups of width ``W`` (via ``TreeBVH::packWith()``, see above) and builds the
-same kind of thin ``traverse()`` wrapper (a ``PointQuery``) as ``MeshSDF``, over ``TriangleAoSoA<T, W>``
-leaves instead of individual faces, so that on a matching ``(K, T)`` combination each BVH leaf
-evaluates ``W`` triangles with a single SIMD register operation. On the host the search works on squared
-unsigned distances throughout, the boxes' and the triangles' (``TriangleAoSoA::nearestLane()``, with
-``TriangleDistance::unsignedDistance2()``), and keeps the nearest group and lane; only that one triangle
-is signed, with its pseudonormal, once per query (``signedDistanceAt()``). This gives the same
-values as signing every triangle, bit for bit, except at near-ties: ranking by squared distance can
-pick a different triangle where two are equally near to rounding, so there a host value may differ in
-the last place from a device's, which still signs every triangle it tests. See `its doxygen page <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, and `the doxygen
-page for TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ for the SoA storage
-itself.
-
-``TriMeshSDF::getClosestFace()`` recovers the nearest triangle's face id through the SIMD SoA path.
-Each leaf group is a ``TriangleAoSoA<T, W>``: a geometry-only ``TriangleSoAT<T, W>`` plus a
-physically separate per-lane ``Array<uint32_t, W>`` of face ids, the index of the mesh face each
-triangle was cut from (the same wrapper relationship ``PointAoSoA`` has with ``PointSoAT``). The hot
-``signedDistance()`` path never reads the id array; only ``getClosestFace()`` does, taking a scalar
-per-lane step to recover the winning lane. A ``TriMeshSDF`` built from a triangle soup reports the
-id each ``Triangle`` carries (``Triangle::setFaceId()``). See `the doxygen page for TriangleAoSoA
-<doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__.
-
-The three mesh SDFs are also ray traced exactly: ``firstHit()`` and ``intersects()`` walk the BVH with a
-``BVH::RayQuery`` and test each leaf's faces, ``TriangleAoSoA::rayCrossing()`` for ``TriMeshSDF``'s
-triangle groups and ``DCEL::FaceT::rayCrossing()`` for ``MeshSDF``'s polygons (``FlatMeshSDF`` tests
-every face), reporting the face id and its normal. See :ref:`Chap:ImplemRays`.
-
-What is actually vectorized in ``TriMeshSDF``/``PackedBVH`` is covered in
-:ref:`Chap:SIMDClasses` -- see that page for the full detail rather than repeating it here.
-
-Primitive storage: Face ids or triangles
-________________________________________
-
-The two classes store very different primitives:
-
-*  ``MeshSDF``'s primitive is a face id, a ``uint32_t`` index into the mesh's face array. A face
-   is only meaningful together with its mesh anyway -- it stores its half-edge as an index into the
-   mesh's edge array -- so ``MeshSDF`` holds the mesh and reads every face it tests from it. The
-   mesh is the only copy of the geometry: flipping the mesh after the build (``MeshT::flip()``)
-   flips every distance, and after moving vertices, ``mesh.reconcile()`` followed by
-   ``getRoot().refit()`` with each face's new bounding box brings the BVH up to date (see `the
-   doxygen page for MeshSDF <doxygen/html/classEBGeometry_1_1MeshSDF.html>`__). The primitive
-   array takes 4 bytes per face, far less than a copy of each face. The price is an indirection:
-   the faces are read in mesh order rather than leaf order, which makes queries somewhat slower
-   than over copies of the faces would be.
-*  ``TriMeshSDF``'s primitive is a ``TriangleAoSoA<T, W>`` group, which is fully self-contained --
-   a plain aggregate of coordinate arrays plus a per-lane face-id array, with no index into
-   anything else, built fresh by ``groupTrianglesIntoSoA()`` during packing. ``TriMeshSDF`` does
-   not keep the mesh, so a change to the mesh after the build is not seen.
-
-Neither is affected by copying the distance field itself: a copy of a ``MeshSDF``/``TriMeshSDF``
-is a copy of its descriptors, which resolve against the same pool memory, so the packed data exists
-exactly once no matter how many copies refer to it -- including copies stored as the primitives of
-a BVH union (:ref:`Sec:BVHUnions`). Placing one mesh at several different positions shares it too:
-``Translate(mesh, shift)`` for each placement, compiled into a tape (see :ref:`Sec:Tape` and
-:ref:`Chap:ExampleNestedBVH`).
-
-Default and host-tuned K and W
-______________________________
-
-``BVH::DefaultBranchingRatio<T>()`` and ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` are the
-template defaults for ``Parser::readIntoTriMeshSDF`` (``TriMeshSDF`` itself has no defaults). Both
-are 4 for ``float`` and ``double``, so a type spelled with them is the same type in every file and
-in both passes of a GPU compile. The one exception is a host-only build that defines
-``EBGEOMETRY_HOST_TUNED_DEFAULTS``, as EBGeometry's own CMake build does when it is the top-level
-project without a GPU backend: there ``TriangleSoA::DefaultWidth<T>()`` is the host-tuned width.
-``BVH::HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` give the values that fill one
-SIMD register under the compiler's flags, for host-only code; see :ref:`Sec:DefaultKW` for when to
-use which and the build switch, and :ref:`Chap:ExampleHostTuning` to measure them on your machine.
-
-.. list-table:: ``HostBranchingRatio<T>()`` and ``TriangleSoA::HostWidth<T>()`` by ISA and precision
-   :widths: 25 25 25 25
-   :header-rows: 1
-
-   * - ISA
-     - Precision
-     - ``HostBranchingRatio<T>()``
-     - ``TriangleSoA::HostWidth<T>()``
-   * - AVX-512F
-     - ``float``
-     - 16
-     - 16
-   * - AVX-512F
-     - ``double``
-     - 8
-     - 8
-   * - AVX (256-bit)
-     - ``float``
-     - 8
-     - 8
-   * - AVX (256-bit)
-     - ``double``
-     - 4
-     - 4
-   * - SSE4.1 / scalar
-     - ``float`` or ``double``
-     - 4
-     - 4
-
-Every other ``(K, T)`` or ``W`` still works: the children, or a triangle group, are then tested with
-narrower registers or a scalar loop, computing the same values. :ref:`Chap:SIMDClasses` describes
-which instructions run for which combination.
-
-Choosing W and K explicitly
-______________________________
-
-``W`` and the BVH branching factor ``K`` are explicit template parameters on ``TriMeshSDF`` and
-``Parser::readIntoTriMeshSDF`` -- the latter defaults to ``BVH::DefaultBranchingRatio<T>()`` and
-``TriangleSoA::DefaultWidth<T>()``, but either can be supplied explicitly (e.g. an 8-wide SoA
-packing together with a 4-ary BVH). ``readIntoTriMeshSDF`` is declared ``inline static``, so it has
-no entry of its own in the Doxygen reference; its exact signature is documented in
-:file:`Source/EBGeometry_Parser.hpp` (see :ref:`Chap:Parsers`).
-
-Rules of thumb:
-
-* Keep ``W`` equal to ``EBGeometry::TriangleSoA::DefaultWidth<T>()`` unless you
-  have a specific reason to deviate, and never deviate for a type that device code also uses.
-* ``a_maxLeafGroups`` (the maximum number of full ``W``-sized SoA groups per BVH
-  leaf, so at most ``a_maxLeafGroups * W`` raw triangles before SoA packing)
-  is ``4`` in ``Parser::readIntoTriMeshSDF``, which builds with
-  ``TriMeshSDF::defaultConstructionOptions(4)`` unless given options of its own (the
-  ``TriMeshSDF`` constructors have no default), while the top-down partitioners are still free
-  to split down to smaller, tighter leaves wherever the geometry calls for it. The
-  space-filling curves take ``a_maxLeafGroups * W`` as their target leaf size. A
-  leaf smaller than ``W`` simply pads its SoA block's unused lanes. To set each
-  method's leaf size separately, see :ref:`Sec:LeafSizes`.
-* ``K = BVH::DefaultBranchingRatio<T>()`` is a good default. With AVX-512F
-  available you can try ``K = 16`` (float) — the child-AABB test is evaluated in
-  a single SIMD batch, and the wider fan-out reduces tree depth — but measure it
-  (:ref:`Chap:ExampleHostTuning`): it is usually markedly slower (see :ref:`Sec:DefaultKW`).
+Nesting costs little: an inner BVH is stored as its layout, a few array descriptors whatever its
+size, and resolves against the shared pool. Only a primitive that holds its data inline costs its size
+per placement.

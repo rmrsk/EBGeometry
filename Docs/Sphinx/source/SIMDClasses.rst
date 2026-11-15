@@ -34,7 +34,7 @@ normals). `TriangleSoAT <doxygen/html/structEBGeometry_1_1TriangleSoAT.html>`__ 
 `TriangleAoSoA <doxygen/html/structEBGeometry_1_1TriangleAoSoA.html>`__ adds the id of the mesh face
 each triangle was cut from, stored apart from the coordinates so that a distance query reads the same
 bytes either way. It is what lets ``TriMeshSDF`` report which face is closest (``getClosestFace()``, see
-:ref:`Chap:MeshSDFClasses`) at no cost to the plain distance query.
+:ref:`Chap:ImplemMeshSDF`) at no cost to the plain distance query.
 
 **What is vectorized:** the whole signed-distance computation, ``signedDistance(point)``, for the
 :math:`W` triangles at once, one triangle per SIMD lane; the result is the signed distance of smallest
@@ -50,7 +50,7 @@ correct, and evaluated one triangle at a time.
 does not depend on compiler flags, so the type is the same in every file and on a GPU -- unless a
 host-only build defines ``EBGEOMETRY_HOST_TUNED_DEFAULTS``, which makes it the host-tuned width.
 ``TriangleSoA::HostWidth<T>()`` is the width that fills one SIMD register under the compiler's flags,
-for host-only code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:MeshSDFClasses` for
+for host-only code. See :ref:`Sec:DefaultKW` for when to use which, and :ref:`Chap:ImplemMeshSDF` for
 how to pass :math:`W` explicitly.
 
 Point groups: ``PointSoAT<T, W>`` / ``PointAoSoA<T, W>``
@@ -105,5 +105,5 @@ value.
 ``BVH::HostBranchingRatio<T>()`` is the host-tuned value, chosen from the same SIMD flags as
 ``TriangleSoA::HostWidth<T>()`` so that the two give a matching :math:`(K, W)` pair.
 ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` does not change this default: a wider :math:`K` is no faster, and
-:math:`K = 16` is markedly slower. See :ref:`Sec:DefaultKW` and :ref:`Chap:MeshSDFClasses`, and
+:math:`K = 16` is markedly slower. See :ref:`Sec:DefaultKW` and :ref:`Chap:ImplemMeshSDF`, and
 :ref:`Chap:ExampleHostTuning` to measure your own case.

@@ -330,6 +330,125 @@ TEMPLATE_TEST_CASE("Render: the section plane removes the shape on one side and 
   (void)renderer.render(sphere, camera, shaded);
 
   CHECK(shaded.at(size / 2 + size / 8, size / 2) == seeThrough.at(size / 2 + size / 8, size / 2));
+
+  // Ghosted, the removed half is drawn in front of the cut: fully opaque, it is the uncut sphere's front, pixel for
+  // pixel (without shadows, which the cut changes); translucent, it lies between that and the cut alone.
+  renderer.settings().m_shadows    = false;
+  renderer.settings().m_occlusion  = false;
+  renderer.settings().m_cutOpacity = T(1);
+
+  Render::Image cutAlone;
+  Render::Image ghostOpaque;
+  Render::Image ghostFaint;
+  Render::Image uncut;
+
+  (void)renderer.render(sphere, camera, cutAlone);
+
+  renderer.settings().m_ghostOpacity = T(1);
+
+  (void)renderer.render(sphere, camera, ghostOpaque);
+
+  renderer.settings().m_ghostOpacity = T(0.3);
+
+  (void)renderer.render(sphere, camera, ghostFaint);
+
+  renderer.settings().m_section      = false;
+  renderer.settings().m_ghostOpacity = T(0);
+
+  (void)renderer.render(sphere, camera, uncut);
+
+  const uint32_t center = size / 2;
+
+  CHECK(ghostOpaque.at(center, center) == uncut.at(center, center));
+  CHECK(ghostFaint.at(center, center) != cutAlone.at(center, center));
+  CHECK(ghostFaint.at(center, center) != uncut.at(center, center));
+
+  const Channels faint = channels(ghostFaint.at(center, center));
+  const Channels alone = channels(cutAlone.at(center, center));
+  const Channels front = channels(uncut.at(center, center));
+
+  // Each channel between the two, as a blend of them is (to rounding in the 8-bit image).
+  CHECK(faint.b + 1 >= std::min(alone.b, front.b));
+  CHECK(faint.b <= std::max(alone.b, front.b) + 1);
+  CHECK(faint.r + 1 >= std::min(alone.r, front.r));
+  CHECK(faint.r <= std::max(alone.r, front.r) + 1);
+
+  // Off the sphere, where nothing is removed, ghosting changes nothing.
+  CHECK(ghostFaint.at(0, 0) == cutAlone.at(0, 0));
+}
+
+TEMPLATE_TEST_CASE("Render: with the removed side ghosted, the section's fill covers only the cut",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // A ball of steel around one of copper, in a view of regions, whose plane is filled by what each point is in (outside, no
+  // material); the half towards the camera removed.
+  Pool pool(hostMemoryResource());
+
+  const T          radius = T(1);
+  const Tape       tape(pool,
+                  Overlay(MaterialLabel(SphereSDF<T>(Vec3::zeros(), radius), "steel"),
+                          MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(0.5) * radius), "copper")));
+  RegionView<Tape> view(tape);
+
+  Render::Camera<T> camera = Render::Camera<T>::fit(SphereSDF<T>(Vec3::zeros(), radius).computeBoundingVolume());
+
+  camera.m_yaw   = T(0);
+  camera.m_pitch = T(0);
+
+  constexpr uint32_t size = 32;
+
+  Render::Renderer<T> renderer(plain<T>(size));
+
+  renderer.settings().m_section       = true;
+  renderer.settings().m_sectionPoint  = Vec3::zeros();
+  renderer.settings().m_sectionNormal = Vec3(T(0), T(0), T(1));
+
+  const auto render = [&](const T a_ghost, const T a_fill) {
+    renderer.settings().m_ghostOpacity = a_ghost;
+    renderer.settings().m_sectionFill  = a_fill;
+
+    Render::Image image;
+
+    (void)renderer.render(view, camera, image);
+
+    return image;
+  };
+
+  const Render::Image wall      = render(T(0), T(1));
+  const Render::Image sheet     = render(T(0), T(0));
+  const Render::Image ghostWall = render(T(0.3), T(1));
+  const Render::Image ghostOnly = render(T(0.3), T(0));
+
+  // Off the ball, where the plane lies outside the shape: without a ghost the fill is drawn there; with one, the plane
+  // is the sheet, as unfilled.
+  size_t outside = 0;
+  size_t filled  = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const Vec3 d  = pixelRay(camera, size, column, row);
+      const Vec3 oc = camera.eye();
+      const T    b  = dot(oc, d);
+
+      if (std::sqrt(Math::max(T(0), dot(oc, oc) - b * b)) > T(1.05) * radius) {
+        CHECK(ghostWall.at(column, row) == ghostOnly.at(column, row));
+
+        filled += (wall.at(column, row) != sheet.at(column, row)) ? 1 : 0;
+        outside++;
+      }
+    }
+  }
+
+  CHECK(outside > 0U);
+  CHECK(filled > 0U);
+
+  // On the cut, seen through the ghost, the fill is drawn.
+  CHECK(ghostWall.at(size / 2, size / 2) != ghostOnly.at(size / 2, size / 2));
 }
 
 TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degenerate camera, bad lighting and an "
@@ -437,6 +556,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
       (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
     },
     "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (-0.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_ghostOpacity = T(1.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the opacity of the removed side must be from 0 to 1 (1.5)"));
 
   REQUIRE(abortsWith(
     [&sphere] {
@@ -734,6 +865,57 @@ TEMPLATE_TEST_CASE("Render: a canceled render stops early and says so", "[Render
   const auto stoppedOnDevice = renderer.renderOnDevice(sphere, camera, image, cancel, &rows);
 
   CHECK_FALSE(stoppedOnDevice.m_complete);
+  CHECK(rows == 0U);
+}
+
+namespace {
+// A shape that is never reached (its value is 1 everywhere in its box) and that sets a cancel flag the first time it
+// is evaluated: a render of it is canceled during its first traced pixel.
+template <class T>
+struct CancelOnFirstUse
+{
+  std::atomic<bool>* m_cancel;
+
+  [[nodiscard]] T
+  signedDistance(const Vec3T<T>& /*a_point*/) const noexcept
+  {
+    *m_cancel = true;
+
+    return T(1);
+  }
+
+  [[nodiscard]] BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(Vec3T<T>(-100, -100, -100), Vec3T<T>(100, 100, 100));
+  }
+};
+} // namespace
+
+TEMPLATE_TEST_CASE("Render: a canceled host render stops within a row, not at its end",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // One thread, so that the first row is the only one started; the camera is inside the shape's box, so every ray is
+  // marched from its start and the first pixel sets the flag.
+  Render::Settings<T> settings = plain<T>(16);
+
+  settings.m_threads = 1U;
+
+  const Render::Renderer<T> renderer(settings);
+  const auto camera = Render::Camera<T>::fit(SphereSDF<T>(Vec3T<T>::zeros(), T(1)).computeBoundingVolume());
+
+  std::atomic<bool>     cancel{false};
+  std::atomic<uint32_t> rows{0};
+
+  Render::Image image;
+
+  const auto stats = renderer.render(CancelOnFirstUse<T>{&cancel}, camera, image, cancel, &rows);
+
+  CHECK(cancel);
+  CHECK_FALSE(stats.m_complete);
   CHECK(rows == 0U);
 }
 
@@ -1214,6 +1396,32 @@ TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a s
 
   CHECK(onLine > 4U);
   CHECK(between > 4U);
+
+  // Lines a tenth of a pixel apart are thinned to a few pixels apart: most of the cut face shows between them.
+  renderer.settings().m_isoSpacing = T(0.1) * pixel;
+
+  Render::Image dense;
+
+  (void)renderer.render(sphere, camera, dense);
+
+  size_t face  = 0;
+  size_t lined = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const T x = -half + (T(column) + T(0.5)) * pixel;
+      const T y = half - (T(row) + T(0.5)) * pixel;
+
+      if (std::sqrt(x * x + y * y) < T(0.9)) {
+        face++;
+        lined += (dense.at(column, row) != bare.at(column, row)) ? 1 : 0;
+      }
+    }
+  }
+
+  CHECK(face > 500U);
+  CHECK(lined < face / 2);
+  CHECK(lined > face / 20);
 }
 
 TEST_CASE("Render: writeImage() writes a binary PPM", "[Render]")

@@ -139,26 +139,43 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
   const Render::Renderer<T> deviceRenderer(deviceSettings);
   const auto                camera = Render::Camera<T>::fit(host.computeBoundingVolume());
 
-  Render::Image onHost;
-  Render::Image onDevice;
+  // The pixels that differ by more than a few levels in a channel.
+  const auto differing = [&](const Render::Renderer<T>& a_host, const Render::Renderer<T>& a_device) {
+    Render::Image onHost;
+    Render::Image onDevice;
 
-  (void)renderer.render(host, camera, onHost);
-  (void)deviceRenderer.renderOnDevice(device, camera, onDevice);
+    (void)a_host.render(host, camera, onHost);
+    (void)a_device.renderOnDevice(device, camera, onDevice);
 
-  REQUIRE(onHost.m_pixels.size() == onDevice.m_pixels.size());
+    REQUIRE(onHost.m_pixels.size() == onDevice.m_pixels.size());
 
-  size_t different = 0;
+    size_t different = 0;
 
-  for (size_t i = 0; i < onHost.m_pixels.size(); i++) {
-    const Channels a = channels(onHost.m_pixels[i]);
-    const Channels b = channels(onDevice.m_pixels[i]);
+    for (size_t i = 0; i < onHost.m_pixels.size(); i++) {
+      const Channels a = channels(onHost.m_pixels[i]);
+      const Channels b = channels(onDevice.m_pixels[i]);
 
-    if (std::abs(a.r - b.r) > 3 || std::abs(a.g - b.g) > 3 || std::abs(a.b - b.b) > 3) {
-      different++;
+      if (std::abs(a.r - b.r) > 3 || std::abs(a.g - b.g) > 3 || std::abs(a.b - b.b) > 3) {
+        different++;
+      }
     }
+
+    return different;
+  };
+
+  const size_t pixels = size_t(settings.m_width) * settings.m_height;
+
+  CHECK(differing(renderer, deviceRenderer) <= pixels / 50);
+
+  // The removed half ghosted, and the plane's fill and the cut face see-through: a second trace and shading of the
+  // uncut view, and the plane drawn behind the ghost.
+  for (Render::Settings<T>* s : {&settings, &deviceSettings}) {
+    s->m_ghostOpacity = T(0.3);
+    s->m_sectionFill  = T(0.5);
+    s->m_cutOpacity   = T(0.5);
   }
 
-  CHECK(different <= onHost.m_pixels.size() / 50);
+  CHECK(differing(Render::Renderer<T>(settings), Render::Renderer<T>(deviceSettings)) <= pixels / 50);
 }
 
 TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, say so, and count "

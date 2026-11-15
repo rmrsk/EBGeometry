@@ -3,17 +3,17 @@
 Bounding volume hierarchies
 =============================
 
-Bounding volume hierarchies (BVHs) are tree structures where the regular nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or analytic shapes) further down in the hierarchy.
+Bounding volume hierarchies (BVHs) are tree structures where the interior nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or analytic shapes) further down in the hierarchy.
 This means that every node in a BVH is associated with a *bounding volume*.
 The bounding volume can, in principle, be any type of volume; EBGeometry uses axis-aligned
 bounding boxes.
 There are two types of nodes in a BVH:
 
-* **Regular/interior nodes.** These do not contain any of the primitives/objects, but store references to subtrees (aka child nodes).
+* **Interior nodes.** These do not contain any of the primitives/objects, but store references to subtrees (their child nodes).
 * **Leaf nodes.** These lie at the bottom of the BVH tree and each of them contains a subset of the geometric primitives.
 
 :numref:`Fig:TrianglesBVH` shows a concept of BVH partitioning of a set of triangles.
-Here, :math:`P` is a regular node whose bounding volume encloses all geometric primitives in its subtree.
+Here, :math:`P` is an interior node whose bounding volume encloses all geometric primitives in its subtree.
 Its bounding volume, an axis-aligned bounding box or AABB for short, is illustrated by a dashed rectangle.
 The interior node :math:`P` stores references to the leaf nodes :math:`L` and :math:`R`.
 As shown in :numref:`Fig:TrianglesBVH`, :math:`L` contains 5 triangles enclosed by another AABB.
@@ -25,7 +25,7 @@ Note that the bounding volume for :math:`P` encloses the bounding volumes of :ma
    :width: 70%
    :align: center
 
-   Example of BVH partitioning for enclosing triangles. The regular node :math:`P` contains two leaf nodes :math:`L` and :math:`R` which contain the primitives (triangles).
+   Example of BVH partitioning for enclosing triangles. The interior node :math:`P` contains two leaf nodes :math:`L` and :math:`R` which contain the primitives (triangles).
 
 There is no fundamental limitation to what type of primitives/objects can be enclosed in BVHs, which makes BVHs useful beyond triangulated data sets.
 For example, analytic signed distance functions can also be embedded in BVHs, provided that we can construct bounding volumes that enclose them.
@@ -33,7 +33,8 @@ For example, analytic signed distance functions can also be embedded in BVHs, pr
 .. important::
 
    EBGeometry is not limited to binary trees, but supports :math:`k`-ary trees, where each
-   regular node has :math:`k` child nodes.
+   interior node has :math:`k` child nodes. The branching factor :math:`k` is a template parameter, chosen
+   for speed (see :ref:`Sec:DefaultKW`).
 
 Construction
 -------------
@@ -41,7 +42,7 @@ Construction
 BVH construction is fairly flexible.
 For example, the child nodes :math:`L` and :math:`R` in :numref:`Fig:TrianglesBVH` could be partitioned in any number of ways, with the only requirement being that each child node gets at least one triangle/primitive.
 
-Although the rules for BVH construction are highly flexible, performant BVHs are completely reliant on having balanced trees with the following heuristic properties:
+Although the rules for BVH construction are highly flexible, fast BVHs depend on trees with the following properties:
 
 * **Tight bounding volumes** that enclose the primitives as tightly as possible.
 * **Minimal overlap** between the bounding volumes.
@@ -65,7 +66,7 @@ Top-down construction can thus be illustrated as a recursive procedure:
       partitionedObjects = Partition(Objects)
 
       forall p in partitionedObjects:
-         child = insertChildNode(newObjects)
+         child = insertChildNode(p)
 
          if(enoughPrimitives(child)):
             child.topDownConstruction(child.objects)
@@ -74,12 +75,15 @@ In practice, the above procedure is supplemented by more sophisticated criteria 
 EBGeometry implements top-down construction using a user-supplied partitioning rule (the
 :math:`\mathrm{Partition}` above) and a termination criterion. Several ready-made partitioning
 strategies are provided, splitting at the median bounding-volume centroid, at the spatial midpoint,
-or on primitive centroids; a more expensive strategy based on the Surface Area Heuristic typically
-yields the best query performance, at a higher construction cost, and is the recommended default.
+or on primitive centroids; a more expensive strategy based on the Surface Area Heuristic (SAH)
+:cite:`MacDonald1990`, evaluated over bins of primitives :cite:`Wald2007`, typically yields the best query
+performance, at a higher construction cost, and is the recommended default. A
+clustered SAH build groups nearby primitives first and applies the heuristic to the groups, which builds
+large inputs much faster for trees of nearly the same quality.
 
 Bottom-up construction is also possible, in which case one constructs the leaf nodes first, and then merges the nodes upward until one reaches a root node.
 In EBGeometry, bottom-up construction is done by means of space-filling curves -- Morton codes,
-Hilbert curves, or nested indices. The Hilbert curve has better spatial locality than Morton (its
+Hilbert curves, or nested indices -- as linear BVHs are built :cite:`Lauterbach2009`. The Hilbert curve has better spatial locality than Morton (its
 consecutive codes are always spatially adjacent), so it tends to produce tighter leaf groupings.
 
 How many primitives a leaf holds is a tuning choice that trades the cost of visiting more nodes
@@ -118,8 +122,8 @@ The trade-off is quality rather than correctness: a refitted tree always *enclos
 (so traversal stays correct), but because the partitioning is frozen, a geometry that deforms enough
 for primitives to drift into what used to be a neighbor's region produces increasingly loose,
 overlapping bounding volumes and slower queries. A periodic rebuild restores tight volumes once the
-deformation has grown large. See :ref:`Chap:ImplemBVH` for the concrete ``refit()`` member functions
-on both BVH representations.
+deformation has grown large. A refit can run where the BVH lives, on a GPU included, level by level from
+the leaves up; :ref:`Chap:ImplemBVH` describes the calls.
 
 Tree traversal
 ---------------
@@ -131,7 +135,7 @@ For the traversal algorithm we consider the following steps:
 * When descending from node :math:`P` we determine that we first investigate the left subtree (node :math:`A`) since its bounding volume is closer than the bounding volumes for the other subtree.
   The other subtree is investigated after we have recursed to the bottom of the :math:`A` subtree.
 * Since :math:`A` is a leaf node, we compute the signed distance from :math:`\mathbf{x}` to the primitives in :math:`A`.
-  This requires us to iterate over all the triangles in :math:`A` -- it is often beneficial to use an SoA layout for the triangles so this calculation can be vectorized.
+  This requires us to iterate over all the triangles in :math:`A`; storing them coordinate by coordinate (a structure of arrays) lets one SIMD instruction handle several at once (see :ref:`Chap:Triangles`).
 * When investigating the other child node of :math:`P`, we find that the distance to the primitives in :math:`A` is shorter than the distance from :math:`\mathbf{x}` to
   the bounding volume that encloses nodes :math:`B` and :math:`C`. This immediately permits us to prune the entire subtree containing :math:`B` and :math:`C`, and there is
   never any need to compute the distance between :math:`\mathbf{x}` and the triangles in this subtree.

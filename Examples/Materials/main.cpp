@@ -141,9 +141,9 @@ main(int argc, char* argv[])
   // The electrostatic domain, its tables in the tape's pool: what a kernel takes (after rebasedView() onto a device).
   const EBGeometry::Domain electrostatic(pool, tape, electrostatics);
 
-  // What a cut-cell code samples at a node: every point has a label (a subdomain, or Excluded where the domain does
-  // not compute, the core), and each label a function negative exactly in it. An edge between two nodes of different
-  // labels crosses a surface, where the functions of both labels change sign.
+  // What a cut-cell code samples at a node: every point is in a subdomain, or Excluded where the domain does not
+  // compute (the core), and each has a function negative exactly in it. An edge between two nodes in different ones
+  // crosses a surface, where both their functions change sign.
   std::cout << "Electrostatics at nodes along x, at z = 1.5 (air, jacket, excluded):\n";
 
   for (const T x : {T(1.2), T(0.8), T(0.2)}) {
@@ -151,10 +151,11 @@ main(int argc, char* argv[])
 
     electrostatic.signedDistances(Vec3(x, T(0), T(1.5)), values);
 
-    const uint32_t label = electrostatic.labelAt(Vec3(x, T(0), T(1.5)));
+    const uint32_t subdomain = electrostatic.subdomainAt(Vec3(x, T(0), T(1.5)));
 
     std::cout << "  x = " << x << ": "
-              << ((label == electrostatic.Excluded) ? std::string("excluded") : "subdomain " + std::to_string(label))
+              << ((subdomain == electrostatic.Excluded) ? std::string("excluded")
+                                                        : "subdomain " + std::to_string(subdomain))
               << "; functions " << values[0] << ", " << values[1] << ", " << values[2] << '\n';
   }
 

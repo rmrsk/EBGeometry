@@ -79,7 +79,7 @@ public:
    * @param[in] a_point  Any point on the plane.
    * @param[in] a_normal Plane normal vector (need not be unit length; it is normalized internally).
    */
-  PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal) noexcept
+  PlaneSDF(const Vec3T<T>& a_point, const Vec3T<T>& a_normal)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_point[0]) && std::isfinite(a_point[1]) && std::isfinite(a_point[2]),
                        "PlaneSDF: the point must be finite (%g, %g, %g)",
@@ -216,7 +216,7 @@ public:
    * @param[in] a_center Sphere center.
    * @param[in] a_radius Sphere radius.
    */
-  SphereSDF(const Vec3T<T>& a_center, const T& a_radius) noexcept
+  SphereSDF(const Vec3T<T>& a_center, const T& a_radius)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
                        "SphereSDF: the center must be finite (%g, %g, %g)",
@@ -369,7 +369,7 @@ public:
    * @param[in] a_hiCorner Upper corner (maximum x, y, z). Each component must be strictly greater
    * than the corresponding component of a_loCorner.
    */
-  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner) noexcept
+  BoxSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_loCorner[0]) && std::isfinite(a_loCorner[1]) && std::isfinite(a_loCorner[2]),
                        "BoxSDF: the low corner must be finite (%g, %g, %g)",
@@ -580,7 +580,7 @@ public:
    * @param[in] a_majorRadius Major (ring) radius.
    * @param[in] a_minorRadius Minor (tube) radius.
    */
-  TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius) noexcept
+  TorusSDF(const Vec3T<T>& a_center, const T& a_majorRadius, const T& a_minorRadius)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
                        "TorusSDF: the center must be finite (%g, %g, %g)",
@@ -776,7 +776,7 @@ public:
    * @param[in] a_center2 Other endpoint (cap center).
    * @param[in] a_radius  Cylinder radius.
    */
-  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius) noexcept
+  CylinderSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T& a_radius)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_center1[0]) && std::isfinite(a_center1[1]) && std::isfinite(a_center1[2]),
                        "CylinderSDF: the first center must be finite (%g, %g, %g)",
@@ -1026,7 +1026,7 @@ public:
    * @param[in] a_radius Cylinder radius.
    * @param[in] a_axis   Coordinate axis index (0 = x, 1 = y, 2 = z).
    */
-  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis) noexcept
+  InfiniteCylinderSDF(const Vec3T<T>& a_center, const T& a_radius, const size_t a_axis)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
                        "InfiniteCylinderSDF: the center must be finite (%g, %g, %g)",
@@ -1202,7 +1202,7 @@ public:
    * @param[in] a_tip2   Outer tip of the other hemispherical cap.
    * @param[in] a_radius Capsule radius (applied to both the tube and the hemispherical caps).
    */
-  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius) noexcept
+  CapsuleSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, const T& a_radius)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_tip1[0]) && std::isfinite(a_tip1[1]) && std::isfinite(a_tip1[2]),
                        "CapsuleSDF: the first tip must be finite (%g, %g, %g)",
@@ -1408,7 +1408,7 @@ public:
    * @param[in] a_angle Full opening angle in degrees (must be in (0°, 180°)). The half-angle
    * `a_angle / 2` is used internally and encoded as `m_c = (sin, cos)` of that half-angle.
    */
-  InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle) noexcept
+  InfiniteConeSDF(const Vec3T<T>& a_tip, const T& a_angle)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_tip[0]) && std::isfinite(a_tip[1]) && std::isfinite(a_tip[2]),
                        "InfiniteConeSDF: the tip must be finite (%g, %g, %g)",
@@ -1534,7 +1534,7 @@ public:
    * @param[in] a_height Cone height (tip to base).
    * @param[in] a_angle  Full opening angle in degrees (must be in (0°, 180°)).
    */
-  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle) noexcept
+  ConeSDF(const Vec3T<T>& a_tip, const T& a_height, const T& a_angle)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_tip[0]) && std::isfinite(a_tip[1]) && std::isfinite(a_tip[2]),
                        "ConeSDF: the tip must be finite (%g, %g, %g)",
@@ -1707,7 +1707,7 @@ public:
    * twice the rounding radius.
    * @param[in] a_curvature Rounding radius of the edges and corners. Must be > 0.
    */
-  RoundedBoxSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_size, const T a_curvature) noexcept
+  RoundedBoxSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_size, const T a_curvature)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
                        "RoundedBoxSDF: the center must be finite (%g, %g, %g)",
@@ -1888,7 +1888,7 @@ public:
   PerlinSDF(const T            a_noiseAmplitude,
             const Vec3T<T>     a_noiseFrequency,
             const T            a_noisePersistence,
-            const unsigned int a_noiseOctaves) noexcept
+            const unsigned int a_noiseOctaves)
   {
     EBGEOMETRY_REQUIRE(
       std::isfinite(a_noiseAmplitude), "PerlinSDF: the noise amplitude must be finite (%g)", double(a_noiseAmplitude));
@@ -2185,7 +2185,7 @@ public:
    * a_curvature < a_radius and 2 * a_curvature < a_height.
    * @param[in] a_height    Total cylinder height. Must be > 0 and > 2 * a_curvature.
    */
-  RoundedCylinderSDF(const Vec3T<T>& a_center, const T a_radius, const T a_curvature, const T a_height) noexcept
+  RoundedCylinderSDF(const Vec3T<T>& a_center, const T a_radius, const T a_curvature, const T a_height)
   {
     EBGEOMETRY_REQUIRE(std::isfinite(a_center[0]) && std::isfinite(a_center[1]) && std::isfinite(a_center[2]),
                        "RoundedCylinderSDF: the center must be finite (%g, %g, %g)",
@@ -2637,7 +2637,7 @@ public:
    * @param[in] a_center Center.
    * @param[in] a_radii  The semi-axes along x, y and z, each finite and positive.
    */
-  EllipsoidSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_radii) noexcept
+  EllipsoidSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_radii)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
                        "EllipsoidSDF: the center must be finite (%g, %g, %g)",
@@ -2797,7 +2797,7 @@ public:
    * @param[in] a_radius1 Radius at a_center1, at least 0.
    * @param[in] a_radius2 Radius at a_center2, at least 0; not both radii may be 0.
    */
-  CappedConeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_radius1, const T a_radius2) noexcept
+  CappedConeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_radius1, const T a_radius2)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
                        "CappedConeSDF: the first center must be finite (%g, %g, %g)",
@@ -3060,7 +3060,7 @@ public:
    * @param[in] a_radius2 Radius of the sphere at a_center2, at least 0; not both radii may be 0, and their
    * difference must be less than the distance between the centers.
    */
-  RoundConeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_radius1, const T a_radius2) noexcept
+  RoundConeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_radius1, const T a_radius2)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
                        "RoundConeSDF: the first center must be finite (%g, %g, %g)",
@@ -3319,7 +3319,7 @@ public:
                   const Vec3T<T>& a_center2,
                   const T         a_radius,
                   const unsigned  a_sides,
-                  const Vec3T<T>& a_vertexDirection) noexcept
+                  const Vec3T<T>& a_vertexDirection)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
                        "PolygonPrismSDF: the first center must be finite (%g, %g, %g)",
@@ -3624,7 +3624,7 @@ public:
    * @param[in] a_innerRadius Inner radius, positive.
    * @param[in] a_outerRadius Outer radius, finite and larger than the inner radius.
    */
-  TubeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_innerRadius, const T a_outerRadius) noexcept
+  TubeSDF(const Vec3T<T>& a_center1, const Vec3T<T>& a_center2, const T a_innerRadius, const T a_outerRadius)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center1),
                        "TubeSDF: the first center must be finite (%g, %g, %g)",
@@ -3860,7 +3860,7 @@ public:
    * @param[in] a_minorRadius Minor (tube) radius, positive and less than the major radius.
    * @param[in] a_angle       The angle the arc sweeps, in degrees, in (0, 360].
    */
-  CappedTorusSDF(const Vec3T<T>& a_center, const T a_majorRadius, const T a_minorRadius, const T a_angle) noexcept
+  CappedTorusSDF(const Vec3T<T>& a_center, const T a_majorRadius, const T a_minorRadius, const T a_angle)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
                        "CappedTorusSDF: the center must be finite (%g, %g, %g)",
@@ -4133,7 +4133,7 @@ public:
    * @param[in] a_radius Radius, finite and positive.
    * @param[in] a_height Height of the cut plane above the center, between -a_radius and a_radius.
    */
-  CutSphereSDF(const Vec3T<T>& a_center, const T a_radius, const T a_height) noexcept
+  CutSphereSDF(const Vec3T<T>& a_center, const T a_radius, const T a_height)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
                        "CutSphereSDF: the center must be finite (%g, %g, %g)",
@@ -4345,7 +4345,7 @@ public:
    * @param[in] a_height    Height of the cut plane above the center, between -a_radius and a_radius.
    * @param[in] a_thickness The shell's thickness, positive and less than twice the radius.
    */
-  CutHollowSphereSDF(const Vec3T<T>& a_center, const T a_radius, const T a_height, const T a_thickness) noexcept
+  CutHollowSphereSDF(const Vec3T<T>& a_center, const T a_radius, const T a_height, const T a_thickness)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_center),
                        "CutHollowSphereSDF: the center must be finite (%g, %g, %g)",
@@ -4561,7 +4561,7 @@ public:
    * @param[in] a_tip   A point on the edge.
    * @param[in] a_angle The opening angle, in degrees, in (0, 180).
    */
-  WedgeSDF(const Vec3T<T>& a_tip, const T a_angle) noexcept
+  WedgeSDF(const Vec3T<T>& a_tip, const T a_angle)
   {
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(a_tip),
                        "WedgeSDF: the tip must be finite (%g, %g, %g)",

@@ -22,7 +22,7 @@ The code that runs on either side
 
 ``firstHit()`` and ``intersects()`` are called like ``signedDistance()``: from your own loop on the
 host, or from your own functor in a kernel. ``CastTowards`` holds the mesh by value and casts one ray
-from a point towards a target. Its direction is of unit length, so that ``t`` is a distance along the
+from a point toward a target. Its direction is of unit length, so that ``t`` is a distance along the
 ray, and it returns the whole ``HitT``, which is trivially copyable:
 
 .. code-block:: c++
@@ -49,7 +49,7 @@ The mesh is read into a ``TriMeshSDF`` in a pool, which must outlive it:
 Using it on the host
 --------------------
 
-A ray from in front of the mesh towards it reports the distance to the crossing, the point, the face
+A ray from in front of the mesh toward it reports the distance to the crossing, the point, the face
 (its index in the file), the face's outward normal, and whether the ray enters the object there. A
 particle's step is a segment: ``intersects(mesh, from, to)`` says whether it crosses the surface,
 stopping at the first crossing it finds, and ``firstHit(mesh, from, to)`` says where, with ``t`` the

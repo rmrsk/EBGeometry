@@ -5,8 +5,8 @@
 // Performance cases for a domain with many subdomains and surface groups: a matrix holding particles, each a shell
 // around a grain (the Regions probe's scene), with the matrix and every shell a subdomain of its own (33 subdomains,
 // one region each, the grains excluded), and 8 surface groups of 33 selectors. labels is what a cut-cell code samples
-// at a node, Domain::signedDistances(); labelAt the label of a point alone; surfaceGroups the surface group of a surface
-// already found (Domain::surfaceGroupOf()), every selector tried for most. In float and double, at random points in
+// at a node, every subdomain's function (Domain::signedDistances()); labelAt the subdomain of a point alone
+// (Domain::subdomainAt()); surfaceGroups the surface group of a surface already found (Domain::surfaceGroupOf()), every selector tried for most. In float and double, at random points in
 // the matrix. A host build runs the host cases; a CUDA or HIP build runs them as host/device pairs, which agree when
 // their values do. In a probe of its own, so that adding it changes no other probe's translation unit (see
 // Performance/Fused). See ../README.md and PerformanceTesting.rst.
@@ -53,7 +53,7 @@ struct Answer
   T m_value;
 };
 
-// A point's labels or label; a surface's group.
+// Every subdomain's function at a point, or its subdomain; a surface's group.
 template <class T, Operation Op>
 struct Query
 {
@@ -70,14 +70,14 @@ struct Query
 
       T sum = T(0);
 
-      for (uint32_t l = 0; l < m_domain.getNumLabels(); l++) {
+      for (uint32_t l = 0; l < m_domain.getNumSubdomainFunctions(); l++) {
         sum += values[l];
       }
 
       return Answer<T>{sum};
     }
     else {
-      return Answer<T>{T(m_domain.labelAt(a_point))};
+      return Answer<T>{T(m_domain.subdomainAt(a_point))};
     }
   }
 
@@ -179,7 +179,7 @@ operationName(const Operation a_op)
     return "labels";
   }
   case Operation::LabelAt: {
-    return "labelAt";
+    return "labelAt"; // a case's name is how comparisons follow it, so it stays as first named
   }
   default: {
     return "surfaceGroups";

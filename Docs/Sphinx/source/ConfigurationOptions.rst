@@ -5,8 +5,8 @@ Configuration options
 
 This page documents the configuration knobs shared by all three build methods
 (:ref:`Sec:BuildingCMake`, :ref:`Sec:BuildingGNUMake`, :ref:`Sec:BuildingDirectCompile`):
-floating-point precision, the target SIMD instruction set, optional runtime assertions, and the
-optional viewer window.
+floating-point precision, the SIMD instruction set and the branching factor and SIMD width it suits,
+the checks and assertions, and the optional viewer window.
 
 .. contents:: On this page
    :local:
@@ -41,12 +41,40 @@ a preprocessor define so it can be overridden from the build system without edit
 
 See :ref:`Chap:Building` for how to set ``EBGEOMETRY_PRECISION`` from each build method.
 
-SIMD acceleration
---------------------
+.. _Chap:SIMDAcceleration:
 
-See :ref:`Chap:SIMDAcceleration` for a conceptual overview of SIMD acceleration in EBGeometry,
-:ref:`Chap:SIMDClasses` for exactly which classes it applies to and what it means for each, and
-:ref:`Chap:Building` for the compiler/CMake/Makefile flags that enable it for each build method.
+.. _Sec:SIMD:
+
+SIMD acceleration
+-----------------
+
+EBGeometry vectorizes its innermost loops with compiler intrinsics rather than relying on the compiler to
+auto-vectorize scalar code: the test of a point or a ray against the child boxes of a ``BVH::PackedBVH``
+node, and the leaf computations of the triangle groups (``TriMeshSDF``) and point groups
+(``PointCloudBVH``). Everything else in the library is scalar code. :ref:`Chap:SIMDClasses` describes each
+vectorized class.
+
+The instruction set is chosen at **compile time**, from the macros the compiler's flags define; there is
+no run-time dispatch:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 60
+
+   * - Instruction set
+     - Selected when the compiler defines
+   * - AVX-512F (recent server and workstation CPUs)
+     - ``__AVX512F__``
+   * - AVX (most x86-64 processors)
+     - ``__AVX__``
+   * - SSE 4.1 (older or constrained targets)
+     - ``__SSE4_1__``
+   * - No SIMD (the portable fallback)
+     - none of the above
+
+:ref:`Chap:Building` gives the flags that define them for each build method (``-mavx -mfma``, say, or
+``EBGEOMETRY_SIMD`` with CMake). The instruction set selects code paths only: the branching factor ``K``
+and the SIMD width ``W`` stay 4 on every machine unless chosen otherwise (below).
 
 .. _Sec:DefaultKW:
 
@@ -109,7 +137,7 @@ branching factor and the point-group width stay 4, since widening them does not 
   since the host and device passes of such a compile see different SIMD flags.
 
 EBGeometry's CMake build sets it through the ``EBGEOMETRY_HOST_TUNED_DEFAULTS`` option, which is on
-when EBGeometry is the top-level project (its tests, examples and benchmarks) and no GPU backend is
+when EBGeometry is the top-level project (its tests, examples and performance probes) and no GPU backend is
 enabled, and off otherwise; asking for it together with a GPU backend is a configure error. Like
 ``EBGEOMETRY_SIMD``, it is not passed on to a project that uses EBGeometry through
 ``find_package``, ``add_subdirectory`` or ``FetchContent``: such a project defines the macro itself
@@ -163,10 +191,10 @@ On failure the program prints what went wrong, the failed condition, the file an
 
 .. code-block:: text
 
-   EBGeometry::BVHUnion: need one bounding volume per primitive (4 primitives, 3 bounding volumes)
-     check: (a_primitives.size() == a_boundingVolumes.size())
-     file: Source/EBGeometry_BVHUnionImplem.hpp
-     line: 92
+   MySDF: the radius must be positive (-1)
+     check: a_radius > T(0)
+     file: my_shape.hpp
+     line: 12
 
 The message argument is a ``printf`` format string literal, starting with the class or function
 that checks, followed by its arguments, so the compiler checks the format against the arguments.
@@ -272,8 +300,8 @@ preconditions that are known at compile time (from the template parameters alone
 Both macros are available in any translation unit that (directly or transitively) includes
 ``EBGeometry_Macros.hpp``, which is pulled in automatically through ``EBGeometry.hpp``. An example combining both is given below. Like the built-in analytic shapes
 (:ref:`Sec:AnalyticShapes`), it is a plain, trivially copyable value type with a
-``signedDistance()`` member rather than a subclass of a virtual base, so it can also be evaluated on
-a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
+``signedDistance()`` and a ``computeBoundingVolume()`` member rather than a subclass of a virtual base,
+so it can also be evaluated on a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
 
 .. code-block:: cpp
 
@@ -297,6 +325,13 @@ a GPU and used as the primitive type of a BVH union (:ref:`Sec:BVHUnions`):
      signedDistance(const EBGeometry::Vec3T<T>& a_point) const noexcept
      {
        return a_point.length() - m_radius;
+     }
+
+     [[nodiscard]] EBGEOMETRY_HOST_DEVICE EBGeometry::BoundingVolumes::AABBT<T>
+     computeBoundingVolume() const noexcept
+     {
+       return EBGeometry::BoundingVolumes::AABBT<T>(-m_radius * EBGeometry::Vec3T<T>::ones(),
+                                                    m_radius * EBGeometry::Vec3T<T>::ones());
      }
 
    private:

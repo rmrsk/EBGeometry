@@ -10,11 +10,9 @@ Implicit functions, and by extension also signed distance fields, can be manipul
 Every such transformation takes an implicit function :math:`I` and produces a new implicit
 function :math:`I^\prime`, defined by evaluating :math:`I` at a suitably transformed query point.
 
-.. warning::
-
-   Some of these operations preserve the signed distance property, and others do not.
-
-EBGeometry supports many such transformations, for example:
+The five below (translation, rotation, uniform scaling, complement and reflection) keep an exact signed
+distance exact; most others give a bound (see :ref:`Chap:GeometryRepresentations`), and each operation's
+quality is listed in :ref:`Chap:ImplemCSG`.
 
 Translation
 ~~~~~~~~~~~~
@@ -79,8 +77,8 @@ Reflecting across one of the three coordinate planes (the :math:`yz`-, :math:`xz
    I^\prime(\mathbf{x}) = I\left(\mathbf{r} \odot \mathbf{x}\right).
 
 EBGeometry supports several further transformations beyond these five: offsetting (growing or
-shrinking an object by a distance), shell extraction (hollowing out a solid into a shell of a given
-thickness), elongation (stretching an object by inserting a box at its center), finite repetition
+shrinking an object by a distance), shells (``Annular``: the solid within a given distance of the
+surface), elongation (stretching an object by inserting a box at its center), finite repetition
 (copies of an object on a grid), and blurring and mollification (smoothing a sharp surface by locally
 averaging the function value). They are shown in :ref:`Chap:ExampleTransforms`,
 :ref:`Chap:ExampleRepetition` and :ref:`Chap:ExampleValueOperations`.
@@ -91,7 +89,7 @@ Combining objects
 EBGeometry supports the standard operations for combining implicit functions: union,
 intersection, and difference. Smooth equivalents of each are also available, which smooth the
 transition between the combined objects (controlled by a blending length) instead of leaving a
-sharp crease where the objects meet. See :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleSmoothCSG`.
+sharp crease where the objects meet: a polynomial or an exponential smooth minimum :cite:`QuilezSmin`. See :ref:`Chap:ExampleBasicCSG` and :ref:`Chap:ExampleSmoothCSG`.
 
 Fast CSG operations are also supported by EBGeometry, e.g. the BVH-accelerated CSG union where one uses the BVH when searching for the relevant geometric primitive(s).
 This functionality is motivated by the fact that a CSG union is normally implemented as :math:`\min\left(I_1, I_2, I_3, \ldots,I_N\right)`, which has :math:`\mathcal{O}\left(N\right)` complexity when there are :math:`N` objects.
@@ -111,9 +109,10 @@ as a list of instructions referring to them. Evaluating the tape is a single loo
 instructions, with no virtual dispatch and no pointers, which is what lets the same composed object
 be evaluated on a CPU and, copied as a block of memory, on a GPU. While compiling, each node's
 bounding box and how far its value can be trusted as a distance are worked out from its children's,
-and a union of many objects gets a BVH over their boxes. :ref:`Chap:Tape` explains how an expression
-becomes a tape, which operations compile their operand into a separate sub-program, and how the shape
-of an expression (a union nested on the left or on the right, say) uses the tape's fixed limits.
+and a union built with ``Accelerate::BVH`` gets a BVH over its objects' boxes. :ref:`Chap:Tape`
+explains how an expression becomes a tape, which operations compile their operand into a separate
+sub-program, and how the shape of an expression (a union nested on the left or on the right, say) uses
+the tape's fixed limits.
 
 A composed object whose structure is known when the program is written can instead be compiled
 together with the program: each operation becomes a small type, and the composed object's type
@@ -129,5 +128,13 @@ the value from, a difference the leaf of whichever object bounds the result, a b
 operand's, a blur the center of its samples'. This is what tagging a boundary or a material needs, and it is not the same as the
 geometrically nearest primitive, which may be one the composition cut away. A compiled object is one
 shape with one surface, however it is built: in a tape it is one leaf, so a scene of compiled parts
-names the part that decides the value. :ref:`Chap:ClosestPrimitive` explains it, and
+names the part that decides the value. :ref:`Chap:LeavesAndSurfaces` explains it, and
 :ref:`Chap:ExampleSurfaceLabels` uses it to look up what a surface is.
+
+Objects of several materials
+----------------------------
+
+A union is one solid, with one outer surface. An object of several materials, a copper core in a plastic
+jacket, is instead an *overlay*: each operand is a region, the later ones on top where they overlap, and the
+surfaces between them are kept. :ref:`Chap:Regions` describes regions, their materials, and the domains a
+solver computes in.

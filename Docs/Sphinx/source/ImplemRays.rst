@@ -26,7 +26,7 @@ a device:
 
 `RayT <doxygen/html/structEBGeometry_1_1RayT.html>`__ is an origin and a direction, which must be of
 unit length so that ``t`` is a distance. A segment from ``from`` to ``to`` is the ray from ``from``
-towards ``to`` over ``[tMin, |to - from|]``, so its ``t`` is the distance from ``from``; a segment of
+toward ``to`` over ``[tMin, |to - from|]``, so its ``t`` is the distance from ``from``; a segment of
 zero length crosses nothing. ``firstHit()`` returns the first crossing in the interval, entering or
 leaving, as a `HitT <doxygen/html/structEBGeometry_1_1HitT.html>`__:
 
@@ -95,7 +95,7 @@ such by ``intersects()`` too, so the caller decides what an undecided ray means.
 Ray forms
 ---------
 
-A shape is ray traced exactly when it has a *ray form*: a specialisation of
+A shape is ray traced exactly when it has a *ray form*: a specialization of
 `RayForm <doxygen/html/structEBGeometry_1_1RayForm.html>`__ for its type. Every other shape is
 marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
 
@@ -138,7 +138,7 @@ marched (see :ref:`Chap:SphereTracing`). The library has ray forms for:
      - The union of the spans of the primitives whose boxes the ray meets, walking its BVH nearest box
        first.
    * - ``Tape``
-     - Its ray program, clause by clause (see :ref:`a tape's ray program <Sec:TapeRays>`). Its ``Offset``
+     - Its compositions, from their parts (see :ref:`a tape's ray tracing <Sec:TapeRays>`). Its ``Offset``
        and ``Annular`` of the shapes above are traced only in a ``Tape<T, TapeFeature::ExactOffsets>``
        (see :ref:`Sec:TapeFeatures`), and marched otherwise. Its smooth unions and intersections are marched.
 
@@ -152,7 +152,7 @@ everywhere.
 A ray form of your own
 ~~~~~~~~~~~~~~~~~~~~~~
 
-To give a shape of your own a ray form, specialise ``RayForm`` in namespace ``EBGeometry``:
+To give a shape of your own a ray form, specialize ``RayForm`` in namespace ``EBGeometry``:
 
 .. code-block:: c++
 
@@ -179,7 +179,7 @@ finds its normal only after the crossing, at a cost of its own (as a composition
 ``firstCrossing()`` calls ``firstHit()`` and drops the normal.
 
 The functions are found by their signatures, so a ``firstHit()`` with a mistyped argument still
-compiles, and the shape is silently marched. Check it where the specialisation is written:
+compiles, and the shape is silently marched. Check it where the specialization is written:
 
 .. code-block:: c++
 

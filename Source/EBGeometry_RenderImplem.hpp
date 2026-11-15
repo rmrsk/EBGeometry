@@ -597,6 +597,13 @@ public:
   static constexpr int SeenThroughLayers = 4;
 
   /**
+   * @brief How close, in pixels, lines of equal distance may lie on screen: where they would lie closer (far along an
+   * oblique plane), every second is left out, as often as needed, so that the lines drawn are still multiples of the
+   * spacing.
+   */
+  static constexpr int IsoGapPixels = 4;
+
+  /**
    * @brief Set up the scene for a shape, a camera's view and settings.
    * @param[in] a_shape    Shape.
    * @param[in] a_view     The camera's view.
@@ -1057,11 +1064,50 @@ private:
       }
     }
 
+    // The removed side drawn translucent in front of the cut (Settings::m_ghostOpacity), with the plane in its place.
+    if (m_object.m_on && m_settings.m_ghostOpacity > T(0)) {
+      return this->ghosted(a_ray, a_near, tFront, color);
+    }
+
     if (m_onPlane) {
       color = this->drawOnPlane(a_ray, a_near, tFront, color);
     }
 
     return color;
+  }
+
+  /**
+   * @brief What a camera ray sees with the side the section plane removes drawn translucent (Settings::m_ghostOpacity):
+   * that side's nearest surface in front of what the cut shows, shaded over it, and the plane in the gap where it lies,
+   * behind that surface or in front of it. Out of line on a device, like shadeCutFace(): a second trace of the uncut
+   * shape and a third shading of a surface, which inlined would grow every render kernel, ghosting or not.
+   * @param[in] a_ray    The camera ray.
+   * @param[in] a_near   How far along the ray it starts to see.
+   * @param[in] a_tFront Where the ray meets what the cut shows.
+   * @param[in] a_color  What the cut shows there, without the plane.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline Vec3T<T>
+  ghosted(const RayT<T>& a_ray, const T a_near, const T a_tFront, Vec3T<T> a_color) const noexcept
+  {
+    // The uncut shape's first crossing; one on the kept side is what the cut shows already.
+    const HitT<T> hit = m_object.shapeHit(a_ray, a_near, a_tFront, m_rays);
+
+    if (!hit.hit() || !(m_object.plane(hit.m_point) > T(0))) {
+      return m_onPlane ? this->drawOnPlane(a_ray, a_near, a_tFront, a_color) : a_color;
+    }
+
+    if (m_onPlane) {
+      a_color = this->drawOnPlane(a_ray, hit.m_t, a_tFront, a_color);
+    }
+
+    const T opacity = m_settings.m_ghostOpacity;
+
+    a_color = opacity * this->shadeSurface(hit, a_ray.m_direction, true) + (T(1) - opacity) * a_color;
+
+    return m_onPlane ? this->drawOnPlane(a_ray, a_near, hit.m_t - T(4) * m_eps, a_color) : a_color;
   }
 
   /**
@@ -1719,7 +1765,18 @@ private:
     // an interface between two regions), and one step across it saw the field come back up to about where it was.
     const T    f     = sample.m_value;
     const bool lines = m_settings.m_isoSpacing > T(0) && (!sample.m_secondary || m_settings.m_isoSecondary);
-    const T    rest  = lines ? f - m_settings.m_isoSpacing * std::floor(f / m_settings.m_isoSpacing + T(0.5)) : T(0);
+
+    // The spacing here: doubled while lines of equal distance could lie closer than IsoGapPixels pixels. A distance
+    // changes by at most 1 per unit length, so lines a spacing apart in value are at least a spacing apart on the plane,
+    // which the screen shows a pixel per width, shortened by the plane's slant to the ray (at most tenfold here).
+    const T gap     = T(IsoGapPixels) * width / Math::max(std::abs(rate), T(0.1));
+    T       spacing = m_settings.m_isoSpacing;
+
+    for (int k = 0; lines && k < 30 && spacing < gap; k++) {
+      spacing *= T(2);
+    }
+
+    const T rest = lines ? f - spacing * std::floor(f / spacing + T(0.5)) : T(0);
 
     // The four steps cost four of the field's evaluations per pixel of the plane. EBGeometry's distances, and the bounds
     // it composes from them, change by at most 1 per unit length, so their slope is at most sqrt(2), and a pixel whose
@@ -1754,8 +1811,11 @@ private:
       return m_settings.m_contourColor;
     }
 
-    // The fill by what the point is in, in place of the sheet.
-    const T  fill  = RenderDetail::HasSectionKey<S, T>::value ? m_settings.m_sectionFill : T(0);
+    // The fill by what the point is in, in place of the sheet. With the removed side ghosted, only the cut is filled:
+    // filled outside the shape too, the plane was a wall across the box behind the translucent side.
+    const bool filled =
+      RenderDetail::HasSectionKey<S, T>::value && (m_settings.m_ghostOpacity == T(0) || value <= T(0));
+    const T  fill  = filled ? m_settings.m_sectionFill : T(0);
     Vec3T<T> color = a_color;
 
     if (fill > T(0)) {
@@ -2525,6 +2585,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_cutColor", a_settings.m_cutColor, settings.m_cutColor);
   field("settings", "m_cutOpacity", a_settings.m_cutOpacity, settings.m_cutOpacity);
   field("settings", "m_seenThroughOpacity", a_settings.m_seenThroughOpacity, settings.m_seenThroughOpacity);
+  field("settings", "m_ghostOpacity", a_settings.m_ghostOpacity, settings.m_ghostOpacity);
   field("settings", "m_floorColor", a_settings.m_floorColor, settings.m_floorColor);
   field("settings", "m_lightFromCamera", a_settings.m_lightFromCamera, settings.m_lightFromCamera);
   field("settings", "m_light", a_settings.m_light, settings.m_light);
@@ -2992,6 +3053,9 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(m_settings.m_seenThroughOpacity >= T(0) && m_settings.m_seenThroughOpacity <= T(1),
                      "Render::Renderer: the opacity of the surfaces seen through must be from 0 to 1 (%g)",
                      double(m_settings.m_seenThroughOpacity));
+  EBGEOMETRY_REQUIRE(m_settings.m_ghostOpacity >= T(0) && m_settings.m_ghostOpacity <= T(1),
+                     "Render::Renderer: the opacity of the removed side must be from 0 to 1 (%g)",
+                     double(m_settings.m_ghostOpacity));
   EBGEOMETRY_REQUIRE(m_settings.m_contourWidth >= T(0) && m_settings.m_sheetOpacity >= T(0) &&
                        m_settings.m_sheetOpacity <= T(1),
                      "Render::Renderer: the contour width must not be negative, and the sheet's opacity must be "
@@ -3176,7 +3240,7 @@ Renderer<T>::renderOnHost(const Q&                 a_query,
 
   const Q& query = a_query;
 
-  // Rows not reached by a canceled render stay black.
+  // Pixels not reached by a canceled render stay black.
   std::vector<RenderDetail::StoredPixel> results(size_t(width) * size_t(height));
   std::vector<uint32_t>                  primitives(m_settings.m_recordPrimitives ? results.size() : 0U, 0xFFFFFFFFU);
 
@@ -3186,13 +3250,15 @@ Renderer<T>::renderOnHost(const Q&                 a_query,
 
   const auto work = [&query, &results, &primitives, &next, &stopped, &a_cancel, a_rowsDone, width, height]() {
     for (uint32_t row = next++; row < height; row = next++) {
-      if (a_cancel.load(std::memory_order_relaxed)) {
-        stopped = true;
-
-        return;
-      }
-
       for (uint32_t column = 0; column < width; column++) {
+        // The flag is read at every pixel, not every row: a row of a full frame with shadows and occlusion can take
+        // far longer than a viewer may wait to stop it (a click during refinement).
+        if (a_cancel.load(std::memory_order_relaxed)) {
+          stopped = true;
+
+          return;
+        }
+
         const uint32_t    index  = row * width + column;
         const PixelResult result = query(index);
 
