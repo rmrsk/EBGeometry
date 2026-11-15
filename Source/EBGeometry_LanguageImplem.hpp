@@ -3171,7 +3171,14 @@ private:
     for (std::filesystem::directory_iterator it(folder, ec), end; !ec && it != end; it.increment(ec)) {
       const std::string file = it->path().filename().string();
 
-      if (it->is_regular_file(ec) && LanguageDetail::globMatch(name, file)) {
+      std::error_code entry;
+
+      const bool regular = it->is_regular_file(entry);
+
+      if (entry) {
+        throw Error(b.m_values[0]->m_span, "meshes: cannot read '" + it->path().string() + "': " + entry.message());
+      }
+      if (regular && LanguageDetail::globMatch(name, file)) {
         files.push_back(file);
       }
     }
@@ -3195,6 +3202,9 @@ private:
 
     const auto slot = std::find_if(
       args.begin(), args.end(), [](const Arg& a_arg) { return a_arg.m_key.empty() || a_arg.m_key == "pattern"; });
+
+    // bind() has required the pattern, so it is among the arguments.
+    EBGEOMETRY_EXPECT(slot != args.end());
 
     slot->m_key.clear();
 
