@@ -95,9 +95,10 @@ axisAt(const T a_h)
 T
 windSpeed(const T a_r, const T a_h)
 {
+  const T r      = Math::max(a_r, T(1.E-6)); // the swirl's 1/r, kept finite on the axis
   const T rc     = funnelRadius(a_h) / T(1.12);
-  const T x      = (a_r * a_r) / (rc * rc);
-  const T swirl  = circulation / (twoPi * a_r) * (T(1) - std::exp(-x));
+  const T x      = (r * r) / (rc * rc);
+  const T swirl  = circulation / (twoPi * r) * (T(1) - std::exp(-x));
   const T up     = updraft * (T(1) - std::exp(-a_h / T(1.5))) * std::exp(-T(0.25) * x);
   const T inward = inflow * std::exp(-a_h / T(0.6)) * std::sqrt(x) * std::exp(T(0.5) * (T(1) - x));
 
@@ -192,6 +193,8 @@ struct Grid
   std::uint64_t
   key(const Vec3& a_center, const long a_di, const long a_dj, const long a_dk) const noexcept
   {
+    // 21 bits per axis: a million cells either side of the origin. Beyond that (a radius far below the default)
+    // distant cells share keys, which slows the test but never changes its answer: it compares true distances.
     const auto u = [this](const T a_x, const long a_d) {
       return std::uint64_t(long(std::floor(a_x / m_cell)) + a_d + (1L << 20)) & ((1ULL << 21) - 1);
     };
@@ -252,6 +255,8 @@ main(int argc, char* argv[])
     else if (arg.rfind("--radius=", 0) == 0) {
       radius = T(std::stod(arg.substr(9)));
     }
+
+    // Other arguments, such as --no-view, are for Render::view().
   }
 
   if (radius <= T(0)) {
@@ -298,6 +303,10 @@ main(int argc, char* argv[])
             << " spheres of radius " << std::setprecision(4) << radius << " in " << std::setprecision(2)
             << secondsSince(start) << " s\n";
 
+  if (centers.empty()) {
+    return 0;
+  }
+
   // ── Sort them by speed ─────────────────────────────────────────────────────────────────────────────
   //
   // numBins equal steps of speed, from the slowest sphere to the 99th percentile (the fastest few, at the very foot of
@@ -308,11 +317,12 @@ main(int argc, char* argv[])
 
   const T slowest = sorted.front();
   const T fastest = sorted[std::size_t(T(0.99) * T(sorted.size() - 1))];
+  const T range   = Math::max(fastest - slowest, T(1.E-6));
 
   std::vector<std::vector<Sphere>> bins(numBins);
 
   for (std::size_t i = 0; i < centers.size(); i++) {
-    const int bin = Math::clamp(int(T(numBins) * (speeds[i] - slowest) / (fastest - slowest)), 0, numBins - 1);
+    const int bin = Math::clamp(int(T(numBins) * (speeds[i] - slowest) / range), 0, numBins - 1);
 
     bins[std::size_t(bin)].emplace_back(centers[i], radius);
   }
@@ -337,8 +347,8 @@ main(int argc, char* argv[])
   for (int b = 0; b < numBins; b++) {
     const std::vector<Sphere>& spheres = bins[std::size_t(b)];
 
-    std::cout << "  " << std::setw(2) << b << ": " << std::setw(6) << slowest + (fastest - slowest) * T(b) / T(numBins)
-              << ", " << spheres.size() << '\n';
+    std::cout << "  " << std::setw(2) << b << ": " << std::setw(6) << slowest + range * T(b) / T(numBins) << ", "
+              << spheres.size() << '\n';
 
     if (!spheres.empty()) {
       settings.m_primitiveColors[uint32_t(leaves.size())] = desert(T(b) / T(numBins - 1));

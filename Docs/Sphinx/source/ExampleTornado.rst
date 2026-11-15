@@ -21,9 +21,9 @@ Packing the spheres
 
 The spheres are placed as in :ref:`Chap:ExampleSphereClouds`, each at the first random position where it overlaps no
 sphere placed before it, here in the shape of a tornado: a funnel that widens and sways as it rises, with spiral bands
-winding up it, under a cloud base and over a sheath of debris rising around its foot. Comparing a new sphere with every
-sphere placed before it costs as the square of the count, far too much for millions, so the program keeps a hash grid of cells one
-diameter wide, and compares it only with the spheres in its own cell and the neighboring ones.
+winding up it, under a cloud base and over an inverted cone of debris around its foot. Comparing a new sphere with every
+sphere placed before it costs as the square of the count, far too much for millions, so the program keeps a hash grid
+of cells one diameter wide, and compares it only with the spheres in its own cell and the neighboring ones.
 
 The wind speed at each sphere comes from a model of a tornado's core (a Burgers-Rott vortex): a swirl that is fastest
 on the funnel's wall and falls off outside it, an updraft up the core, and inflow along the ground. It is kept beside

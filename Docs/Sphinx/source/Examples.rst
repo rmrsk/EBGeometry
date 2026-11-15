@@ -48,7 +48,8 @@ first group:
 #. :ref:`Chap:ExamplesManyObjects`: :ref:`NestedBVH <Chap:ExampleNestedBVH>`, :ref:`ManyObjects
    <Chap:ExampleManyObjects>`, :ref:`PackedSpheres <Chap:ExamplePackedSpheres>`, :ref:`PointClouds
    <Chap:ExamplePointClouds>`, :ref:`ParticleNeighbors <Chap:ExampleParticleNeighbors>`, :ref:`SphereClouds
-   <Chap:ExampleSphereClouds>`, :ref:`ParticleContacts <Chap:ExampleParticleContacts>`, :ref:`Tornado <Chap:ExampleTornado>`.
+   <Chap:ExampleSphereClouds>`, :ref:`ParticleContacts <Chap:ExampleParticleContacts>`, :ref:`Tornado
+   <Chap:ExampleTornado>`.
 #. :ref:`Chap:ExamplesRays`: :ref:`BVHTraversal <Chap:ExampleBVHTraversal>`, :ref:`RayTracing
    <Chap:ExampleRayTracing>`.
 #. :ref:`Chap:ExamplesExtending`: :ref:`OctreeBoundingVolume <Chap:ExampleOctreeBoundingVolume>`,
