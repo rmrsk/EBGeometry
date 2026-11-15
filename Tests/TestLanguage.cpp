@@ -787,6 +787,96 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
   fs::remove_all(folder);
 }
 
+TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a list, in natural order",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  namespace fs = std::filesystem;
+
+  Pool pool(hostMemoryResource());
+
+  const fs::path folder = fs::temp_directory_path() / ("ebgeometry-language-meshes-" + std::to_string(sizeof(T)));
+
+  fs::remove_all(folder);
+  fs::create_directories(folder / "parts");
+
+  // Three copies of one cube, numbered so that text order (1, 10, 2) and natural order (1, 2, 10) differ, and a file
+  // the pattern does not match.
+  for (const char* name : {"cube-1.obj", "cube-2.obj", "cube-10.obj", "other.obj"}) {
+    fs::copy_file(dataFile("language/cube_odd_groups.obj"), folder / "parts" / name);
+  }
+
+  const auto write = [&](const fs::path& a_file, const std::string& a_text) {
+    std::ofstream(a_file, std::ios::binary) << a_text;
+  };
+
+  // A list in a region line is a group of regions, one per file, named after it, in natural order.
+  write(folder / "overlay.ebg",
+        "ebg 0\nparts = meshes(\"parts/cube-*.obj\", groups = false)\nobject overlay {\n  region air = "
+        "box((-5, -5, -5), (5, 5, 5))\n  region asm = parts material steel\n}\nmaterial steel { density = 7850 }\n");
+
+  const auto overlay = Language::read<T>((folder / "overlay.ebg").string(), pool);
+  const auto& index  = overlay.index();
+
+  REQUIRE(index.getNumRegions() == 5U);
+  CHECK(index.getRegion(1).m_name == "air");
+  CHECK(index.getRegion(2).m_name == "asm_cube_1");
+  CHECK(index.getRegion(3).m_name == "asm_cube_2");
+  CHECK(index.getRegion(4).m_name == "asm_cube_10");
+  CHECK(index.getRegion(2).m_material == index.getRegion(4).m_material);
+  CHECK(index.getRegion(1).m_material != index.getRegion(2).m_material);
+
+  // An operation of several shapes takes a list's elements as operands; one of one shape applies to each element.
+  write(folder / "union.ebg",
+        "ebg 0\nparts = meshes(\"parts/cube-?.obj\", groups = false).translate((10, 0, 0))\nobject bvh_union(parts, "
+        "sphere((0, 0, 0), 1))\n");
+
+  const auto     unioned = Language::read<T>((folder / "union.ebg").string(), pool);
+  const auto     box     = unioned.object().computeBoundingVolume();
+  const Tape<T>  tape(pool, unioned.object());
+  const Vec3T<T> moved(T(10.5), T(0.5), T(0.5));
+
+  CHECK(unioned.index().getNumRegions() == 2U);
+  CHECK(box.getHighCorner()[0] > T(10));
+  CHECK(tape.signedDistance(moved) < T(0));
+  CHECK(tape.signedDistance(Vec3T<T>::zeros()) < T(0));
+
+  // Flattened from a file in another folder, the pattern still names the files.
+  fs::create_directories(folder / "sub");
+  write(folder / "sub" / "lists.ebg", "ebg 0\nparts = meshes(\"../parts/cube-*.obj\", groups = false)\n");
+  write(folder / "flat.ebg", "ebg 0\ninclude(\"sub/lists.ebg\")\nobject bvh_union(parts)\n");
+
+  const std::string flattened = Language::print(Language::read<T>((folder / "flat.ebg").string(), pool), true);
+
+  CHECK_THAT(flattened, Catch::Matchers::ContainsSubstring("meshes(\"parts/cube-*.obj\""));
+
+  // The errors: a pattern matching nothing, a wildcard in the folder, and a list where one shape goes.
+  const auto firstError = [&](const std::string& a_text) {
+    write(folder / "error.ebg", a_text);
+
+    try {
+      (void)Language::read<T>((folder / "error.ebg").string(), pool);
+    } catch (const Language::Error& e) {
+      return e.diagnostics().front().m_message;
+    }
+
+    return std::string("no error");
+  };
+
+  CHECK_THAT(firstError("ebg 0\nobject bvh_union(meshes(\"parts/none-*.obj\"))\n"),
+             Catch::Matchers::ContainsSubstring("matches"));
+  CHECK_THAT(firstError("ebg 0\nobject bvh_union(meshes(\"p*/cube-1.obj\"))\n"),
+             Catch::Matchers::ContainsSubstring("only the file name"));
+  CHECK_THAT(firstError("ebg 0\nobject meshes(\"parts/cube-*.obj\")\n"),
+             Catch::Matchers::ContainsSubstring("not a list"));
+  CHECK_THAT(firstError("ebg 0\nobject difference(box((0, 0, 0), (1, 1, 1)), sphere(meshes(\"parts/cube-*.obj\"), 1))\n"),
+             Catch::Matchers::ContainsSubstring("a vector"));
+
+  fs::remove_all(folder);
+}
+
 TEMPLATE_TEST_CASE("Language: a label statement labels a named shape wherever it is written",
                    "[Language]",
                    EBGEOMETRY_TEST_PRECISIONS)

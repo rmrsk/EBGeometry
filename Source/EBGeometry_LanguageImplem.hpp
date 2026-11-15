@@ -64,6 +64,7 @@ builtinNames()
                                               "cut_hollow_sphere",
                                               "wedge",
                                               "mesh",
+                                              "meshes",
                                               "union",
                                               "bvh_union",
                                               "smooth_union",
@@ -331,7 +332,8 @@ struct Value
     Vector,
     String,
     Bool,
-    Shape
+    Shape,
+    List
   };
 
   /**
@@ -358,6 +360,17 @@ struct Value
    * @brief A shape.
    */
   std::shared_ptr<const Shape<T>> m_shape;
+
+  /**
+   * @brief A list's elements, each a shape (from meshes(), or an operation applied to each element of one).
+   */
+  std::vector<Value> m_elements;
+
+  /**
+   * @brief A list's element names, one per element: its file's name without the extension, made a name of the
+   * language (letters, digits and underscores). A region holding the list names its regions by them.
+   */
+  std::vector<std::string> m_elementNames;
 
   /**
    * @brief Where it is written.
@@ -391,11 +404,117 @@ valueTypeName(const typename Value<T>::Type a_type) noexcept
   case Value<T>::Type::Shape: {
     return "a shape";
   }
+  case Value<T>::Type::List: {
+    return "a list of shapes";
+  }
   default: {
     return "invalid";
   }
   }
 }
+
+/**
+ * @brief Whether a file name matches a pattern of * (any characters, none too) and ? (one character).
+ * @param[in] a_pattern The pattern.
+ * @param[in] a_name    The file name.
+ * @return Whether it matches.
+ */
+inline bool
+globMatch(const std::string& a_pattern, const std::string& a_name)
+{
+  // Two cursors, backtracking to just after the last * on a mismatch.
+  size_t p = 0, n = 0, star = std::string::npos, mark = 0;
+
+  while (n < a_name.size()) {
+    if (p < a_pattern.size() && (a_pattern[p] == '?' || a_pattern[p] == a_name[n])) {
+      p++;
+      n++;
+    }
+    else if (p < a_pattern.size() && a_pattern[p] == '*') {
+      star = p++;
+      mark = n;
+    }
+    else if (star != std::string::npos) {
+      p = star + 1;
+      n = ++mark;
+    }
+    else {
+      return false;
+    }
+  }
+
+  while (p < a_pattern.size() && a_pattern[p] == '*') {
+    p++;
+  }
+
+  return p == a_pattern.size();
+}
+
+/**
+ * @brief Natural order of file names: runs of digits compare as numbers (part-2 before part-10), the rest as text.
+ * @param[in] a_first  A name.
+ * @param[in] a_second Another.
+ * @return Whether the first comes before the second.
+ */
+inline bool
+naturalLess(const std::string& a_first, const std::string& a_second)
+{
+  size_t i = 0, j = 0;
+
+  while (i < a_first.size() && j < a_second.size()) {
+    const bool di = std::isdigit(static_cast<unsigned char>(a_first[i])) != 0;
+    const bool dj = std::isdigit(static_cast<unsigned char>(a_second[j])) != 0;
+
+    if (di && dj) {
+      size_t ei = i, ej = j;
+
+      while (ei < a_first.size() && std::isdigit(static_cast<unsigned char>(a_first[ei])) != 0) {
+        ei++;
+      }
+      while (ej < a_second.size() && std::isdigit(static_cast<unsigned char>(a_second[ej])) != 0) {
+        ej++;
+      }
+
+      // Compare the numbers without their leading zeros: by length, then digit by digit.
+      size_t si = i, sj = j;
+
+      while (si + 1 < ei && a_first[si] == '0') {
+        si++;
+      }
+      while (sj + 1 < ej && a_second[sj] == '0') {
+        sj++;
+      }
+      if (ei - si != ej - sj) {
+        return ei - si < ej - sj;
+      }
+
+      const int c = a_first.compare(si, ei - si, a_second, sj, ej - sj);
+
+      if (c != 0) {
+        return c < 0;
+      }
+
+      i = ei;
+      j = ej;
+    }
+    else {
+      if (a_first[i] != a_second[j]) {
+        return a_first[i] < a_second[j];
+      }
+
+      i++;
+      j++;
+    }
+  }
+
+  return a_first.size() - i < a_second.size() - j;
+}
+
+/**
+ * @brief What to do with a list where one shape goes, in messages.
+ */
+inline constexpr const char* listAdvice =
+  "combine its shapes with union(...) or bvh_union(...), or make each a region of an overlay (region name = list)";
 
 /**
  * @brief Thrown when a value with an error of its own is used: the error is reported once, where it is.
@@ -1379,6 +1498,10 @@ private:
 
         const V value = a_statement.m_name.empty() ? this->eval(a_statement.m_expr) : named->second.m_value;
 
+        if (value.m_type == VT::List) {
+          throw Error(a_statement.m_expr.m_span,
+                      std::string("the object is one shape, not a list: ") + LanguageDetail::listAdvice);
+        }
         if (value.m_type != VT::Shape) {
           throw Error(a_statement.m_expr.m_span,
                       std::string("the object is a shape, not ") + LanguageDetail::valueTypeName<T>(value.m_type));
@@ -1860,7 +1983,15 @@ private:
           throw Error(arg.m_value.m_span, "too many arguments: " + signature);
         }
         if (a_specs[positional].m_kind == Kind::Shapes) {
-          bound.m_shapes.push_back(&arg.m_value);
+          // A list given among the operands is its elements.
+          if (arg.m_value.m_type == VT::List) {
+            for (const V& element : arg.m_value.m_elements) {
+              bound.m_shapes.push_back(&element);
+            }
+          }
+          else {
+            bound.m_shapes.push_back(&arg.m_value);
+          }
         }
         else {
           bound.m_values[positional++] = &arg.m_value;
@@ -1970,6 +2101,9 @@ private:
       break;
     }
     case Kind::Shape: {
+      if (a_value.m_type == VT::List) {
+        throw Error(a_value.m_span, a_name + ": " + a_what + " is one shape, not a list: " + LanguageDetail::listAdvice);
+      }
       if (a_value.m_type != VT::Shape) {
         refuse("a shape");
       }
@@ -2285,6 +2419,36 @@ private:
   V
   call(const Node& a_call, const std::vector<Arg>& a_args)
   {
+    const std::string& name = a_call.m_text;
+
+    // An operation of one shape given a list (first, or as the receiver of a method) applies to each element, and
+    // gives a list of the results with the same element names: parts.translate(v). The operations of several shapes
+    // take a list's elements as their operands instead (see bind()).
+    const bool ofShapes = name == "union" || name == "bvh_union" || name == "intersection" || name == "smooth_union" ||
+                          name == "smooth_intersection";
+
+    if (!ofShapes && !a_args.empty() && a_args[0].m_key.empty() && a_args[0].m_value.m_type == VT::List) {
+      V list;
+
+      list.m_type         = VT::List;
+      list.m_span         = a_call.m_span;
+      list.m_elementNames = a_args[0].m_value.m_elementNames;
+
+      std::vector<Arg> args = a_args;
+
+      for (const V& element : a_args[0].m_value.m_elements) {
+        args[0].m_value = element;
+
+        list.m_elements.push_back(this->call(a_call, args));
+
+        if (list.m_elements.back().m_type != VT::Shape) {
+          throw Error(a_call.m_span, name + " of a list gives a list of shapes; here an element is not a shape");
+        }
+      }
+
+      return list;
+    }
+
     V value;
 
     try {
@@ -2296,10 +2460,15 @@ private:
     std::vector<const V*> operands;
 
     for (const Arg& arg : a_args) {
-      operands.push_back(&arg.m_value);
+      if (arg.m_value.m_type == VT::List) {
+        for (const V& element : arg.m_value.m_elements) {
+          operands.push_back(&element);
+        }
+      }
+      else {
+        operands.push_back(&arg.m_value);
+      }
     }
-
-    const std::string& name = a_call.m_text;
 
     const bool smoothBVH = name == "smooth_union" && [&] {
       for (const Arg& arg : a_args) {
@@ -2614,6 +2783,9 @@ private:
     }
     if (name == "mesh") {
       return this->mesh(a_call, a_args);
+    }
+    if (name == "meshes") {
+      return this->meshes(a_call, a_args);
     }
 
     // Operations.
@@ -2959,6 +3131,100 @@ private:
   }
 
   /**
+   * @brief meshes("folder/part-*.stl", kind, groups, on_defect): every mesh file a pattern matches, as a list.
+   * @details The pattern's file name may hold * (any characters) and ? (one character); its folder is relative to the
+   * file the call is in, and is taken as written. The files are read in natural order (part-2 before part-10), each as
+   * mesh() reads one, with the same options. Each element is named by its file's name without the extension, made a
+   * name of the language: a region holding the list names its regions by them.
+   * @param[in] a_call The call.
+   * @param[in] a_args The arguments.
+   * @return The list.
+   */
+  V
+  meshes(const Node& a_call, const std::vector<Arg>& a_args)
+  {
+    const Bound b = this->bind(a_call,
+                               "meshes",
+                               {{"pattern", Kind::String},
+                                {"kind", Kind::String, true},
+                                {"groups", Kind::Bool, true},
+                                {"on_defect", Kind::String, true}},
+                               a_args);
+
+    const std::filesystem::path pattern(b.m_values[0]->m_string);
+    const std::string           name   = pattern.filename().string();
+    const std::string           parent = pattern.parent_path().string();
+
+    if (name.empty()) {
+      throw Error(b.m_values[0]->m_span, "meshes: the pattern ends in a file name, such as \"parts/*.stl\"");
+    }
+    if (parent.find_first_of("*?") != std::string::npos) {
+      throw Error(b.m_values[0]->m_span, "meshes: only the file name may hold * and ?, not the folder");
+    }
+
+    const std::filesystem::path folder = folderOf(a_call.m_span.m_file) / pattern.parent_path();
+
+    std::vector<std::string> files;
+    std::error_code          ec;
+
+    for (std::filesystem::directory_iterator it(folder, ec), end; !ec && it != end; it.increment(ec)) {
+      const std::string file = it->path().filename().string();
+
+      if (it->is_regular_file(ec) && LanguageDetail::globMatch(name, file)) {
+        files.push_back(file);
+      }
+    }
+
+    if (ec) {
+      throw Error(b.m_values[0]->m_span, "meshes: cannot read the folder '" + folder.string() + "': " + ec.message());
+    }
+    if (files.empty()) {
+      throw Error(b.m_values[0]->m_span, "meshes: no file in '" + folder.string() + "' matches '" + name + "'");
+    }
+
+    std::sort(files.begin(), files.end(), LanguageDetail::naturalLess);
+
+    V list;
+
+    list.m_type = VT::List;
+    list.m_span = a_call.m_span;
+
+    // The pattern's argument, replaced by each file in turn; the options are passed on as they are.
+    std::vector<Arg> args = a_args;
+
+    const auto slot = std::find_if(args.begin(), args.end(), [](const Arg& a_arg) {
+      return a_arg.m_key.empty() || a_arg.m_key == "pattern";
+    });
+
+    slot->m_key.clear();
+
+    for (const std::string& file : files) {
+      slot->m_value.m_string = (pattern.parent_path() / file).generic_string();
+
+      list.m_elements.push_back(this->mesh(a_call, args));
+
+      // The name: the file's stem, made a name of the language as a mesh's face groups are, and unique in the list.
+      std::string element;
+
+      for (const char c : std::filesystem::path(file).stem().string()) {
+        element += (std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '_') ? c : '_';
+      }
+
+      if (element.empty() || std::isdigit(static_cast<unsigned char>(element[0])) != 0 || Syntax::isReserved(element)) {
+        element = "_" + element;
+      }
+
+      while (std::find(list.m_elementNames.begin(), list.m_elementNames.end(), element) != list.m_elementNames.end()) {
+        element += "_";
+      }
+
+      list.m_elementNames.push_back(element);
+    }
+
+    return list;
+  }
+
+  /**
    * @brief label(a, "name") names a shape's surfaces; label(a, part = "name", ...) names a plain shape's parts.
    * @param[in] a_call The call.
    * @param[in] a_args The arguments.
@@ -3058,6 +3324,49 @@ private:
   }
 
   /**
+   * @brief The regions of a list in a region line: an overlay of its elements, each a region named
+   * <group>_<element name>, in the list's order (a later element on top where two overlap).
+   * @param[in] a_list  The list.
+   * @param[in] a_group The region line's name, which names the group.
+   * @return The overlay.
+   */
+  V
+  listOverlay(const V& a_list, const std::string& a_group)
+  {
+    std::vector<Expr<T>>                      operands;
+    std::vector<std::pair<std::string, Span>> names;
+    std::vector<const V*>                     elements;
+
+    for (size_t i = 0; i < a_list.m_elements.size(); i++) {
+      const V&          element = a_list.m_elements[i];
+      const std::string name    = a_group + "_" + a_list.m_elementNames[i];
+
+      if (element.m_shape->m_partition) {
+        throw Error(element.m_span, "region '" + name + "': an element of a list in a region line is one solid, not an overlay");
+      }
+
+      try {
+        operands.push_back(RegionName(realize(*element.m_shape), name));
+      } catch (const RequireError& e) {
+        throw Error(element.m_span, "region '" + name + "': " + checkMessage(e));
+      }
+
+      names.emplace_back(name, a_list.m_span);
+      elements.push_back(&element);
+    }
+
+    V value;
+
+    try {
+      value = composed(Overlay(operands), a_list.m_span, true, names);
+    } catch (const RequireError& e) {
+      throw Error(a_list.m_span, "overlay: " + checkMessage(e));
+    }
+
+    return deepened(std::move(value), elements, false, a_list.m_span);
+  }
+
+  /**
    * @brief overlay { region name = shape [material name] ... }.
    * @param[in] a_node The overlay.
    * @return The partition.
@@ -3070,7 +3379,12 @@ private:
     std::vector<V>                            shapes;
 
     for (const Node& region : a_node.m_children) {
-      const V value = this->eval(region.m_children[0]);
+      V value = this->eval(region.m_children[0]);
+
+      // A list is a group of regions, one per element, named <region>_<element>.
+      if (value.m_type == VT::List) {
+        value = this->listOverlay(value, region.m_text);
+      }
 
       if (value.m_type != VT::Shape) {
         throw Error(value.m_span,
@@ -4531,9 +4845,9 @@ private:
     case NK::Call: {
       a_out += a_node.m_text;
 
-      if (a_node.m_text == "mesh") {
+      if (a_node.m_text == "mesh" || a_node.m_text == "meshes") {
         for (size_t k = 0; k < a_node.m_children.size(); k++) {
-          const bool file = a_node.m_keys[k] == "file" || (k == 0 && a_node.m_keys[k].empty());
+          const bool file = a_node.m_keys[k] == "file" || a_node.m_keys[k] == "pattern" || (k == 0 && a_node.m_keys[k].empty());
 
           if (file && a_node.m_children[k].m_kind == NK::String) {
             m_meshPath = &a_node.m_children[k];

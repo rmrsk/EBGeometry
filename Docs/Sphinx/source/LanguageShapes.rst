@@ -126,6 +126,9 @@ Meshes
      - ``mesh("part.stl")``: file, kind = ``"triangles"`` or ``"polygons"``, groups = ``true``, on_defect = ``"warn"``
        or ``"throw"``
      - its file's face groups
+   * - ``meshes``
+     - ``meshes("parts/*.stl")``: pattern, then the options of ``mesh``
+     - each mesh's own (a list of meshes)
 
 A ``mesh`` reads its file (STL, PLY, OBJ, VTK) relative to the file it is written in, once per model however often it
 is used. ``"triangles"`` makes a `TriMeshSDF <doxygen/html/classEBGeometry_1_1TriMeshSDF.html>`__, ``"polygons"`` a
@@ -133,3 +136,8 @@ is used. ``"triangles"`` makes a `TriMeshSDF <doxygen/html/classEBGeometry_1_1Tr
 ``o``, ...) are its parts, each labeled by its group's name. A mesh with a topology defect (an edge shared by more than
 two faces, faces folding back onto each other) is read with a warning, its distance's sign unreliable near the defect;
 ``on_defect = "throw"`` makes it an error. A face that visits a vertex twice is an error either way.
+
+``meshes`` reads every file whose name matches a pattern, for an assembly kept as one file per part: ``*`` stands for
+any characters and ``?`` for one, in the file's name only (the folder is written out). The files are read in natural
+order (``part-2`` before ``part-10``), each as ``mesh`` reads one, and give a list (see :ref:`Sec:LanguageLists`).
+A pattern that matches no file is an error.
