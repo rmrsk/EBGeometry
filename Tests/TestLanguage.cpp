@@ -817,8 +817,8 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
         "ebg 0\nparts = meshes(\"parts/cube-*.obj\", groups = false)\nobject overlay {\n  region air = "
         "box((-5, -5, -5), (5, 5, 5))\n  region asm = parts material steel\n}\nmaterial steel { density = 7850 }\n");
 
-  const auto overlay = Language::read<T>((folder / "overlay.ebg").string(), pool);
-  const auto& index  = overlay.index();
+  const auto  overlay = Language::read<T>((folder / "overlay.ebg").string(), pool);
+  const auto& index   = overlay.index();
 
   REQUIRE(index.getNumRegions() == 5U);
   CHECK(index.getRegion(1).m_name == "air");
@@ -871,8 +871,9 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
              Catch::Matchers::ContainsSubstring("only the file name"));
   CHECK_THAT(firstError("ebg 0\nobject meshes(\"parts/cube-*.obj\")\n"),
              Catch::Matchers::ContainsSubstring("not a list"));
-  CHECK_THAT(firstError("ebg 0\nobject difference(box((0, 0, 0), (1, 1, 1)), sphere(meshes(\"parts/cube-*.obj\"), 1))\n"),
-             Catch::Matchers::ContainsSubstring("a vector"));
+  CHECK_THAT(
+    firstError("ebg 0\nobject difference(box((0, 0, 0), (1, 1, 1)), sphere(meshes(\"parts/cube-*.obj\"), 1))\n"),
+    Catch::Matchers::ContainsSubstring("a vector"));
 
   fs::remove_all(folder);
 }

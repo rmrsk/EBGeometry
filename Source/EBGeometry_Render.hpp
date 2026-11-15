@@ -512,7 +512,8 @@ struct Settings
 
   /**
    * @brief Spacing of lines of equal signed distance drawn on the section plane, inside and outside the
-   * shape (0: none). Spaced like a simulation grid, they show what the grid resolves.
+   * shape (0: none). Spaced like a simulation grid, they show what the grid resolves. Where they would lie only a few
+   * pixels apart on screen, every second is left out, as often as needed.
    */
   T m_isoSpacing = T(0);
 

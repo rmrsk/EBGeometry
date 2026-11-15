@@ -1396,6 +1396,32 @@ TEMPLATE_TEST_CASE("Render: the section plane draws the shape's contour, and a s
 
   CHECK(onLine > 4U);
   CHECK(between > 4U);
+
+  // Lines a tenth of a pixel apart are thinned to a few pixels apart: most of the cut face shows between them.
+  renderer.settings().m_isoSpacing = T(0.1) * pixel;
+
+  Render::Image dense;
+
+  (void)renderer.render(sphere, camera, dense);
+
+  size_t face  = 0;
+  size_t lined = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const T x = -half + (T(column) + T(0.5)) * pixel;
+      const T y = half - (T(row) + T(0.5)) * pixel;
+
+      if (std::sqrt(x * x + y * y) < T(0.9)) {
+        face++;
+        lined += (dense.at(column, row) != bare.at(column, row)) ? 1 : 0;
+      }
+    }
+  }
+
+  CHECK(face > 500U);
+  CHECK(lined < face / 2);
+  CHECK(lined > face / 20);
 }
 
 TEST_CASE("Render: writeImage() writes a binary PPM", "[Render]")
