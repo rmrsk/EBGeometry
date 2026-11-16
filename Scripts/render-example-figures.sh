@@ -7,9 +7,9 @@
 #
 # Each example is compiled with Render::view() swapped for a stand-in that renders one frame with the
 # same camera and settings and writes it to a file, then run in its own folder (so its default input is
-# found). The examples listed in DEFAULT_LOOK are drawn in the default look (the sky and the checkered floor) instead
-# of the one they open in, so that the pages show them as a user's own first render would. Run it by hand after a change to an example's geometry or to the renderer; nothing runs it
-# automatically.
+# found). The examples listed in DEFAULT_LOOK are drawn in the default look (the sky and the checkered floor)
+# instead of the one they open in, so that the pages show them as a user's own first render would. Run it by hand
+# after a change to an example's geometry or to the renderer; nothing runs it automatically.
 #
 # Requires: a C++17 compiler (CXX, default g++) and ImageMagick's convert. The examples that read a mesh
 # by default (MeshSDF, MeshCSG, Shell, SurfaceLabels, Repetition, Twist) need the common-3d-test-models
@@ -159,6 +159,7 @@ for example in "${examples[@]}"; do
     look=(SNAPSHOT_DEFAULT_LOOK=1)
   fi
 
-  (cd "${ROOT}/Examples/${example}" && env "${look[@]}" SNAPSHOT="${WORK}/${example}.ppm" "${WORK}/${example}.ex" > /dev/null)
+  (cd "${ROOT}/Examples/${example}" &&
+    env "${look[@]}" SNAPSHOT="${WORK}/${example}.ppm" "${WORK}/${example}.ex" > /dev/null)
   convert "${WORK}/${example}.ppm" -resize 640x640 -strip -quality 85 "${OUT}/example_${example}.jpg"
 done

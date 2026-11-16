@@ -1633,12 +1633,12 @@ private:
    * and a little below the scene's horizon.
    * @details In the camera's frame (x right, y up, z towards the viewer), a light at unit (x, y, z) gives
    * (-x, 0, 0.35): the camera's other side, and in front, so that the side the camera sees of a surface the light
-   * leaves dark faces it. Its component along the scene's up axis (CameraView::m_axis) is then set to -0.2 before normalizing, about 20
-   * degrees below the horizon for the default light: below the camera's own horizon would not do, since a camera
-   * pitched down sees an upward-facing floor lit from there, and the floor is to keep its brightness. A camera looking
-   * straight down with the light straight ahead leaves only that component, and the fill comes from straight below.
-   * Further forward (0.6 instead of 0.35) lit surfaces facing the camera as much as the sides, and flattened the
-   * shading; further to the side lights less of what the camera sees.
+   * leaves dark faces it. Its component along the scene's up axis (CameraView::m_axis) is then set to -0.2 before
+   * normalizing, about 20 degrees below the horizon for the default light: below the camera's own horizon would not
+   * do, since a camera pitched down sees an upward-facing floor lit from there, and the floor is to keep its
+   * brightness. A camera looking straight down with the light straight ahead leaves only that component, and the fill
+   * comes from straight below. Further forward (0.6 instead of 0.35) lit surfaces facing the camera as much as the
+   * sides, and flattened the shading; further to the side lights less of what the camera sees.
    * @param[in] a_view  The camera's view.
    * @param[in] a_light Unit direction towards the light, in the scene.
    * @return Unit direction towards the fill light, in the scene.

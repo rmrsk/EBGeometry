@@ -505,7 +505,7 @@ struct Settings
   T m_ambient = T(0.35);
 
   /**
-   * @brief How strongly the fill light lights a surface facing it (0: no fill light).
+   * @brief How strongly the fill light lights a surface facing it, not negative (0: no fill light).
    * @details The fill light lights the sides the light (m_light) leaves dark, which would otherwise get only the
    * ambient term. It comes from the camera's other side: m_light mirrored left to right in the camera's frame, from
    * in front and a little below the scene's horizon (Camera::m_up). That holds with or without m_lightFromCamera, so

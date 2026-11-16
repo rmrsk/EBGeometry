@@ -1186,6 +1186,23 @@ TEMPLATE_TEST_CASE("Render: the fill light lights the side the light leaves dark
   for (uint32_t column = 0; column < size; column++) {
     CHECK(with.at(column, size - 1) == without.at(column, size - 1));
   }
+
+  // Straight down the up axis, with the light straight ahead: the fill comes from straight below, and the upper half of
+  // the sphere, all the camera sees, gets none of it (and no pixel is lost to a direction of zero length).
+  const auto top = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Top);
+
+  settings.m_floor   = false;
+  settings.m_shadows = false;
+  settings.m_light   = Vec3(T(0), T(0), T(1));
+
+  settings.m_fillIntensity = T(0);
+  (void)Render::Renderer<T>(settings).render(sphere, top, without);
+
+  settings.m_fillIntensity = T(1);
+  (void)Render::Renderer<T>(settings).render(sphere, top, with);
+
+  CHECK(with.m_pixels == without.m_pixels);
+  CHECK(channels(with.at(size / 2, size / 2)).r > 100);
 }
 
 TEMPLATE_TEST_CASE("Render: the shoulder rolls lit surfaces off towards white, and 1 clips them",
