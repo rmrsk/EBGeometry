@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Transforms: one object moved, turned, scaled, mirrored and stretched with Translate, Rotate, Scale, Reflect
 // and Elongate (copies of it over a grid are the Repetition example). A transform applies to a whole

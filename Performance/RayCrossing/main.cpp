@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for firstCrossing() (EBGeometry_Ray.hpp): the first crossing without its normal or
 // primitive, against firstHit() on the same rays, both timed here (hit/crossing): the mesh, the CSG solid

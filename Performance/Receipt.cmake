@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # The performance receipt, shared by Compare.cmake (which writes it with RECORD) and CheckReceipt.cmake
 # (which CI runs on a pull request).
@@ -230,7 +230,7 @@ ${report}
   file(WRITE "${path}" "<!--
 SPDX-FileCopyrightText: ${year} Robert Marskar <robert.marskar@sintef.no>
 
-SPDX-License-Identifier: GPL-3.0-or-later
+SPDX-License-Identifier: BSD-3-Clause
 -->
 
 <!-- Written by Scripts/run-performance.sh compare --record and checked by CI (Performance/CheckReceipt.cmake).

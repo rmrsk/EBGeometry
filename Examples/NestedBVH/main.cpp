@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A mesh placed many times, two ways: shared between translated placements in a Tape alongside
 // analytic shapes, and as separate copies under a BVHUnion, which nests one BVH (over the placements)

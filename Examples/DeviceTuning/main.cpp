@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Choosing GPU::transform()'s launch settings: the block size and the threads the CUDA compiler is asked to
 // keep resident on a multiprocessor, which fixes how many registers each thread may use. Each setting is a

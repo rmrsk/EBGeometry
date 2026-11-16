@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Checks the build-cost tools (Tools/BuildCost.cpp, Tools/BuildCompare.cpp). Run by ctest with
 #   cmake -DBUILD_COST=<BuildCost.ex> -DBUILD_COMPARE=<BuildCompare.ex> -DDIR=<an empty directory> -P TestBuildCost.cmake

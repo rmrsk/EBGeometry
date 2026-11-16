@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // BuildCompare: compares what two builds cost, from the records BuildCost wrote for each side, and writes
 // a Markdown section for the comparison's report:

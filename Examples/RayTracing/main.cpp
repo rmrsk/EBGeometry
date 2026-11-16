@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Ray tracing a triangle mesh (a TriMeshSDF): where a ray first crosses its surface, with the face it
 // crosses and the normal there (firstHit()), whether a particle's step from one point to the next crosses

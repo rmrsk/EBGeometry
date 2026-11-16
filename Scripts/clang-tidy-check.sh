@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # Run clang-tidy over the library headers via the test/example translation units
 # (a header-only library has no .cpp of its own, so the headers are analyzed

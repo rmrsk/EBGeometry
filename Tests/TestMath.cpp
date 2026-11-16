@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Math::min/max/clamp and Math::Limits, which replace their std:: counterparts under Source/, must
 // behave exactly like them, including for NaN. Array must behave like std::array where the library

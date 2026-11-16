@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Unit tests for the ray queries of mesh SDFs: a TriMeshSDF, MeshSDF and FlatMeshSDF of the unit cube
 // against a slab test (TestRayHelpers.hpp), sliver faces, a fine mesh far from the origin, a segment through an

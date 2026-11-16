@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for ray tracing a difference of a shell and a box: a shell (Annular) around a mesh, traced
 // from the mesh's offset faces (EBGeometry_OffsetRayForms.hpp) or marched only within the box's spans

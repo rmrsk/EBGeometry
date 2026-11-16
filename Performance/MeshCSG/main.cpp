@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for a mesh in a composition, as in Examples/MeshCSG: the armadillo standing on a table (a
 // rounded box on four cylinders), joined by a plain union through a tape, and by a smooth union through a tape

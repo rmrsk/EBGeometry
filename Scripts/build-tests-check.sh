@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # Compile the unit test suite (debug preset) so template-instantiation errors
 # in Source/ headers are caught before push instead of first in CI. Used by

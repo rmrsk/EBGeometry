@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Particles of differing sizes packed in a cylinder, and their contacts: for each particle, the particles that come
 // within a gap of it, through SphereCloudBVH::forEachContact(). Particles seeded at random overlap, so they are first

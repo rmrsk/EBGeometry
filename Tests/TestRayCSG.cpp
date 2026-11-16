@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Unit tests for the ray queries of compositions: the ray-form traits, the span arithmetic against sets of
 // points, compositions (fused, BVH unions and tapes, with mesh SDFs, marched parts and user shapes) against

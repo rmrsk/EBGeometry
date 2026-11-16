@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Fused CSG: the classic solid of the BasicCSG example built with the functions in namespace Fused, whose
 // result is a shape whose type spells out the whole tree. The C++ compiler evaluates it as it would the solid

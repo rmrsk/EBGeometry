@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // PerfCompare: compare two sets of performance results, a baseline and a candidate, each the JSON lines
 // the probes write (Common/Schema.hpp; many runs of each case appended to one file).

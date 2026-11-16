@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A file that includes the shapes and EBGeometry_Fused.hpp, and no other header of the library, must see the
 // ray forms of the fused compositions, the BVH unions and the offsets: firstHit() is a template (declared

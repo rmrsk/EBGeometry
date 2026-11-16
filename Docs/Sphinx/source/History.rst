@@ -26,6 +26,9 @@ from the same code; SIMD paths were added on the host. Compositions are now comp
 evaluated by a small interpreter on either side, or fused into compiled code; ray queries, exact ray
 tracing of compositions, a renderer with an interactive viewer, and point clouds followed.
 
+Also in 2026, the license changed from GPL-3.0-or-later to BSD-3-Clause, so that any code, open or closed, can
+use the library. Releases made before the change remain available under GPL-3.0-or-later.
+
 Inspiration and acknowledgements
 --------------------------------
 

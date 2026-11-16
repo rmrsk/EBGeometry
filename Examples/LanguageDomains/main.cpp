@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A model read from text: a cable in a box of air, written in the .ebg language (cable/model.ebg holds the geometry,
 // cable/setup.ebg the materials and two domains), read at run time instead of composed in C++. The program compiles

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for particles colliding with a boundary: one short step per particle, the first crossing
 // of the boundary on it (firstHit() over the step's length). The boundaries are a shell (Annular) around a

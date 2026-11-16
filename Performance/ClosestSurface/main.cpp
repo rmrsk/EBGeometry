@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for closestSurface(), the surface that decides a tape's value at a point, drilled into a
 // collection leaf: a box with a cloud of spheres cut out of it, the cloud a SphereCloudBVH or a BVHUnion of the

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for EBGeometry_PointAoSoA.hpp (PointAoSoA): the PointSoAT group that carries point ids.
 // Checks both that distance queries agree with a plain PointSoAT built from the same positions (i.e.

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // The offset/rebase proof. A structure of PODVectors is built into a host "source" pool, then
 // mirrored (host-to-host std::memcpy path) into a second pool at a different address. The same POD

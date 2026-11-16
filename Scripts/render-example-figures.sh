@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # Renders the picture on each example's Sphinx page: the first frame the viewer shows when the example
 # calls Render::view(), written to Docs/Sphinx/source/_static/example_<Name>.jpg (tracked in git).

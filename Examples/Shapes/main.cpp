@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // The built-in analytic shapes: how to construct each one, evaluate its signed distance, ask for its
 // bounding box, and see how far its value can be trusted as a distance. Every shape is a small value

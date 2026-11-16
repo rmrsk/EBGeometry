@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for a BVHUnion of several shape types: about 100,000 objects on a lattice, spheres,
 // capsules along the diagonal and randomly oriented finite cylinders interleaved (the three families of

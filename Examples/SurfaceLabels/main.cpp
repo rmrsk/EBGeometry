@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Which part of an object a query found: the armadillo with a cylinder bored through it, standing in a ring of
 // pebbles, each part labeled, and for a point or a ray, which surface the answer comes from: the armadillo's

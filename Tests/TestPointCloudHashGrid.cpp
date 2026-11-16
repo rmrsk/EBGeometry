@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for PointCloudHashGrid: the uniform-grid build and the high-level closest-point /
 // nearest-neighbor query API. Every query is checked against an independent brute-force scan on a

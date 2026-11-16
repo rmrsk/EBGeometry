@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test helpers shared by the render tests (TestRender, TestRenderDevice): small exact-to-check settings, a
 // pixel's color channels, and the ray through a pixel's center.

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Value operations: Offset, Annular, Blur and Mollify change an object's value rather than where it is.
 // Offset grows or shrinks it, Annular hollows it into a shell, and Blur and Mollify average the value around

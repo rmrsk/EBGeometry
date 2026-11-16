@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Many objects in a BVH union, handed to AMReX's EB2 grid generation as an implicit function: spheres of
 // random sizes at random places in a cylinder, joined by a smooth union (the fluid is the space between them),

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // An operation of your own: a twist about the y axis, written as a shape that holds another shape and
 // evaluates it at a point turned back by an angle that grows with height. Here it twists a mesh read from a

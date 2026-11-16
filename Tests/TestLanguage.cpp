@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for the .ebg language (EBGeometry_Language.hpp): every shape and operation against the same expression
 // built in C++, arithmetic, params and overrides, regions and materials, domains with their subdomains, properties and

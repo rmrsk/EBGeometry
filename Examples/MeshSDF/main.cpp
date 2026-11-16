@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Reading a surface mesh into a signed distance function, in each of the three representations
 // EBGeometry offers, and evaluating it on the host and, through the same query, on a GPU. The timings
