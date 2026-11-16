@@ -14,7 +14,7 @@ GPU, and the window colors every sphere by its speed. The source is at :file:`Ex
    :align: center
 
    500,000 spheres in a funnel, its cloud base and the debris around its foot, colored by wind speed: rust where it
-   is slow, bone white where it is fast; the floor reflects them.
+   is slow, bone white where it is fast. The window opens in the mirror look; this is the default one.
 
 Packing the spheres
 -------------------
@@ -98,7 +98,8 @@ Looking at it
 The example ends with ``Render::view(tornado, pool, camera, settings, argc, argv)``, the camera fitted with y up and
 the settings coloring by primitive, in the mirror look, ``Render::setLook(settings, Render::Look::Mirror)``: a dark
 backdrop, and a floor that reflects the tornado (see :ref:`Chap:ImplemRender`). B and Shift + B cycle the other looks,
-Up and Down brighten or dim the light, Left and Right the ambient light, and X cuts the tornado open.
+Up and Down brighten or dim the light, Left and Right the ambient light, Ctrl + Left and Right the fill light, and X
+cuts the tornado open.
 
 The window needs SDL2 and is built with ``make VIEWER=SDL2`` or ``cmake -DEBGEOMETRY_VIEWER=SDL2`` (see
 :ref:`Sec:ConfigViewer`); otherwise, and with ``--no-view`` or without a display, ``view()`` prints why

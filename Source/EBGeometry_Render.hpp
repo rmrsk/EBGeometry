@@ -505,6 +505,26 @@ struct Settings
   T m_ambient = T(0.35);
 
   /**
+   * @brief How strongly the fill light lights a surface facing it, not negative (0: no fill light).
+   * @details The fill light lights the sides the light (m_light) leaves dark, which would otherwise get only the
+   * ambient term. It comes from the camera's other side: m_light mirrored left to right in the camera's frame, from
+   * in front and a little below the scene's horizon (Camera::m_up). That holds with or without m_lightFromCamera, so
+   * it follows the light as it is moved. It casts no shadow and makes no highlights, so it costs no rays. Because it
+   * comes from below, an upward-facing floor gets none of it.
+   */
+  T m_fillIntensity = T(0.35);
+
+  /**
+   * @brief Where the brightness of lit surfaces starts to roll off towards white, from 0 to 1 (1: no roll-off,
+   * clipped at 1).
+   * @details Each component c of the light a surface reflects (the shape's surfaces and the floor; never the
+   * backdrop, whose white stays white) is mapped above s = m_shoulder to c - (c - s)^2 / (4(1 - s)). This curve
+   * continues c with the same slope at s and reaches 1, flat, at 2 - s. Above 2 - s it is 1. Highlights and
+   * surfaces facing the light keep some shading instead of clipping to flat white.
+   */
+  T m_shoulder = T(0.8);
+
+  /**
    * @brief How bright the light's highlights are (0: a matte surface).
    */
   T m_specular = T(0.45);
@@ -615,7 +635,8 @@ struct Settings
   T m_isoSpacing = T(0);
 
   /**
-   * @brief The color of those lines.
+   * @brief The color of those lines: outside the shape, drawn over the sheet (m_sheetOpacity), as strongly as the
+   * sheet is clear.
    */
   Vec3T<T> m_isoColor = Vec3T<T>(T(0.10), T(0.11), T(0.13));
 

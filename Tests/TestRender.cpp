@@ -550,6 +550,30 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
     [&sphere] {
       Render::Settings<T> settings;
 
+      settings.m_fillIntensity = T(-0.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the fill light's intensity must not be negative (-0.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_shoulder = T(1.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the shoulder must be from 0 to 1 (1.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
       settings.m_floorReflectance = T(1.5);
 
       Render::Image image;
@@ -1013,11 +1037,13 @@ TEMPLATE_TEST_CASE("Render: coloring by normal shows the surface's direction", "
 
   Render::Settings<T> settings = plain<T>(size);
 
-  settings.m_light     = Vec3(T(0), T(0), T(1));
-  settings.m_shadows   = false;
-  settings.m_occlusion = false;
-  settings.m_specular  = T(0);
-  settings.m_colorBy   = Render::ColorBy::Normal;
+  // The light at the eye, and no fill light, which would light the center from there too and wash its color out.
+  settings.m_light         = Vec3(T(0), T(0), T(1));
+  settings.m_fillIntensity = T(0);
+  settings.m_shadows       = false;
+  settings.m_occlusion     = false;
+  settings.m_specular      = T(0);
+  settings.m_colorBy       = Render::ColorBy::Normal;
 
   Render::Image image;
 
@@ -1060,6 +1086,7 @@ TEMPLATE_TEST_CASE("Render: the light's intensity, the ambient level, the highli
   // With no light of any kind the surface is black; the background is the color set.
   renderer.settings().m_lightIntensity = T(0);
   renderer.settings().m_ambient        = T(0);
+  renderer.settings().m_fillIntensity  = T(0);
   renderer.settings().m_specular       = T(0);
 
   (void)renderer.render(sphere, camera, dark);
@@ -1089,6 +1116,157 @@ TEMPLATE_TEST_CASE("Render: the light's intensity, the ambient level, the highli
 
   CHECK(green.g == 255);
   CHECK(green.r == 0);
+}
+
+TEMPLATE_TEST_CASE("Render: the fill light lights the side the light leaves dark, and not the floor",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  constexpr uint32_t size = 32;
+
+  // Only the light and the fill light, on a red background: a pixel of the sphere the light does not reach is black
+  // without the fill.
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_shadows    = false;
+  settings.m_occlusion  = false;
+  settings.m_ambient    = T(0);
+  settings.m_specular   = T(0);
+  settings.m_background = Vec3(T(1), T(0), T(0));
+
+  const auto front = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  Render::Image without;
+  Render::Image with;
+
+  settings.m_fillIntensity = T(0);
+  (void)Render::Renderer<T>(settings).render(sphere, front, without);
+
+  settings.m_fillIntensity = T(0.3);
+  (void)Render::Renderer<T>(settings).render(sphere, front, with);
+
+  int dark   = 0;
+  int filled = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const Channels a = channels(without.at(column, row));
+
+      if (a.r + a.g + a.b == 0) {
+        const Channels b = channels(with.at(column, row));
+
+        dark++;
+        filled += (b.r + b.g + b.b > 30) ? 1 : 0;
+      }
+    }
+  }
+
+  CHECK(dark > 20);
+  CHECK(filled == dark);
+
+  // The floor seen from above, as the default camera sees it: the fill light comes from below the horizon, so the
+  // floor's pixels (the bottom row, far from the sphere) are the same with and without it.
+  settings.m_floor   = true;
+  settings.m_shadows = true;
+  settings.m_ambient = T(0.35);
+
+  const auto above = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  settings.m_fillIntensity = T(0);
+  (void)Render::Renderer<T>(settings).render(sphere, above, without);
+
+  settings.m_fillIntensity = T(1);
+  (void)Render::Renderer<T>(settings).render(sphere, above, with);
+
+  for (uint32_t column = 0; column < size; column++) {
+    CHECK(with.at(column, size - 1) == without.at(column, size - 1));
+  }
+
+  // Straight down the up axis, with the light straight ahead: the fill comes from straight below, and the upper half of
+  // the sphere, all the camera sees, gets none of it (and no pixel is lost to a direction of zero length).
+  const auto top = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Top);
+
+  settings.m_floor   = false;
+  settings.m_shadows = false;
+  settings.m_light   = Vec3(T(0), T(0), T(1));
+
+  settings.m_fillIntensity = T(0);
+  (void)Render::Renderer<T>(settings).render(sphere, top, without);
+
+  settings.m_fillIntensity = T(1);
+  (void)Render::Renderer<T>(settings).render(sphere, top, with);
+
+  CHECK(with.m_pixels == without.m_pixels);
+  CHECK(channels(with.at(size / 2, size / 2)).r > 100);
+}
+
+TEMPLATE_TEST_CASE("Render: the shoulder rolls lit surfaces off towards white, and 1 clips them",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  // An odd size, so that the center pixel's ray meets the sphere where its normal faces the camera, square to the up
+  // axis: there, a white surface lit by the ambient term alone reflects c = ambient / 2.
+  constexpr uint32_t size = 33;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_shadows        = false;
+  settings.m_occlusion      = false;
+  settings.m_lightIntensity = T(0);
+  settings.m_fillIntensity  = T(0);
+  settings.m_specular       = T(0);
+  settings.m_colorBy        = Render::ColorBy::Uniform;
+  settings.m_color          = Vec3::ones();
+
+  const auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume(), Render::View::Front);
+
+  // The byte a linear value is encoded to.
+  const auto encoded = [](const double a_c) -> int {
+    return int(255.0 * std::pow(std::min(a_c, 1.0), 1.0 / 2.2) + 0.5);
+  };
+
+  // The center pixel's red channel for a reflected c.
+  const auto center = [&](const T a_c) -> int {
+    settings.m_ambient = T(2) * a_c;
+
+    Render::Image image;
+
+    (void)Render::Renderer<T>(settings).render(sphere, camera, image);
+
+    return channels(image.at(size / 2, size / 2)).r;
+  };
+
+  // The shoulder at 0.8: c - (c - 0.8)^2 / 0.8 from 0.8 to 1.2, and 1 above. Increasing, and white only at 1.2.
+  settings.m_shoulder = T(0.8);
+
+  const int below = center(T(0.7));
+  const int at09  = center(T(0.9));
+  const int at11  = center(T(1.1));
+  const int above = center(T(1.3));
+
+  CHECK(std::abs(below - encoded(0.7)) <= 1);
+  CHECK(std::abs(at09 - encoded(0.9 - 0.01 / 0.8)) <= 1);
+  CHECK(std::abs(at11 - encoded(1.1 - 0.09 / 0.8)) <= 1);
+  CHECK(above == 255);
+  CHECK(below < at09);
+  CHECK(at09 < at11);
+  CHECK(at11 < 255);
+
+  // At 1, no roll-off: the value itself, clipped at white.
+  settings.m_shoulder = T(1);
+
+  CHECK(std::abs(center(T(0.9)) - encoded(0.9)) <= 1);
+  CHECK(center(T(1.1)) == 255);
 }
 
 TEMPLATE_TEST_CASE("Render: the floor's checkerboard can be turned off and resized",
@@ -1393,6 +1571,66 @@ TEMPLATE_TEST_CASE("Render: every look has its own name, and sets the backdrop a
 
   CHECK(std::unique(names.begin(), names.end()) == names.end());
   CHECK(std::unique(codes.begin(), codes.end()) == codes.end());
+}
+
+TEMPLATE_TEST_CASE("Render: on every look, the section plane's lines of equal distance stand out from the plane",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A torus cut in half through its ring, seen from straight above: most of the plane within its box lies outside it,
+  // under the sheet and over the backdrop.
+  const TorusSDF<T> torus(Vec3::zeros(), T(1), T(0.2));
+
+  constexpr uint32_t size = 48;
+
+  const auto camera = Render::Camera<T>::fit(torus.computeBoundingVolume(), Render::View::Top);
+
+  for (uint8_t k = 0; k < Render::NumLooks; k++) {
+    Render::Settings<T> settings;
+
+    Render::setLook(settings, Render::Look(k));
+
+    settings.m_width         = size;
+    settings.m_height        = size;
+    settings.m_supersampling = 1;
+    settings.m_threads       = 3;
+    settings.m_floor         = false;
+    settings.m_section       = true;
+    settings.m_sectionNormal = Vec3(T(0), T(1), T(0));
+    settings.m_contourWidth  = T(0);
+
+    Render::Image without;
+    Render::Image with;
+
+    (void)Render::Renderer<T>(settings).render(torus, camera, without);
+
+    settings.m_isoSpacing = T(0.15);
+
+    (void)Render::Renderer<T>(settings).render(torus, camera, with);
+
+    // The pixels the lines changed, by how much: the median is that of a line outside the torus.
+    std::vector<int> changes;
+
+    for (size_t i = 0; i < with.m_pixels.size(); i++) {
+      const Channels a = channels(without.m_pixels[i]);
+      const Channels b = channels(with.m_pixels[i]);
+      const int      d = std::abs(a.r - b.r) + std::abs(a.g - b.g) + std::abs(a.b - b.b);
+
+      if (d > 0) {
+        changes.push_back(d);
+      }
+    }
+
+    REQUIRE(changes.size() > 20);
+
+    std::sort(changes.begin(), changes.end());
+
+    INFO("look " << Render::lookName(Render::Look(k)));
+    CHECK(changes[changes.size() / 2] > 90);
+  }
 }
 
 TEMPLATE_TEST_CASE("Render: an orthographic camera shows a sphere as a disc of its own radius",

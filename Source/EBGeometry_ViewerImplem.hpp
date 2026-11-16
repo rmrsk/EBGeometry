@@ -279,6 +279,7 @@ keys(const bool a_device, const bool a_regions = false)
       {"Right drag", "Move the light"},
       {"Up, Down", "Stronger or weaker light"},
       {"Left, Right", "Less or more ambient light"},
+      {"Ctrl + Left, Right", "Less or more fill light, on the sides the light leaves dark"},
       {"Shift + Up, Down", "Stronger or weaker highlights"},
       {"Shift + Left, Right", "Broader or tighter highlights"}}},
     {"Rendering",
@@ -2538,7 +2539,7 @@ run(const S&           a_shape,
        {"Target " + point(camera.m_target, 3) + ", near clip " + fixed(double(camera.m_nearClip), 3),
         std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
           point(settings.m_light, 2) + ", intensity " + fixed(double(settings.m_lightIntensity), 2) + ", ambient " +
-          fixed(double(settings.m_ambient), 2),
+          fixed(double(settings.m_ambient), 2) + ", fill " + fixed(double(settings.m_fillIntensity), 2),
         "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
           fixed(double(settings.m_shininess), 0)}},
       {{view + ", on the " + (onDevice ? "GPU" : "CPU"),
@@ -4864,11 +4865,16 @@ run(const S&           a_shape,
         }
         case SDLK_LEFT:
         case SDLK_RIGHT: {
-          // The ambient light: more or less, in steps of 0.05 as the light's; or with Shift held, the highlights
-          // tighter or broader (the specular exponent).
+          // The ambient light: more or less, in steps of 0.05 as the light's; with Ctrl held, the fill light, in the
+          // same steps; or with Shift held, the highlights tighter or broader (the specular exponent).
           const bool more = event.key.keysym.sym == SDLK_RIGHT;
 
-          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            const T steps = std::round(settings.m_fillIntensity * T(20)) + (more ? T(1) : T(-1));
+
+            settings.m_fillIntensity = Math::clamp(steps / T(20), T(0), T(1.5));
+          }
+          else if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
             settings.m_shininess =
               Math::clamp(more ? settings.m_shininess * T(1.5) : settings.m_shininess / T(1.5), T(2), T(512));
           }
@@ -5149,6 +5155,7 @@ run(const S&           a_shape,
           settings.m_light              = a_settings.m_light;
           settings.m_lightIntensity     = a_settings.m_lightIntensity;
           settings.m_ambient            = a_settings.m_ambient;
+          settings.m_fillIntensity      = a_settings.m_fillIntensity;
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
