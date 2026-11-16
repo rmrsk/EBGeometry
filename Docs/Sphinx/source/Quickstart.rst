@@ -72,5 +72,8 @@ Where to go next
      cd Examples/Shapes
      make && ./Shapes.ex
 
+* **The .ebg language** (:ref:`Chap:Language`) describes a model, its materials and its domains as text,
+  with no C++; ``ebgstudio`` checks it and shows it, and its tutorial (:ref:`Chap:StudioCoolingBlock`)
+  builds one step by step.
 * **The concepts** (:ref:`Chap:GeometryRepresentations`) explain what the library computes and how.
 * **The API guide** (:ref:`Chap:Implementation`) lists the classes and calls by task.

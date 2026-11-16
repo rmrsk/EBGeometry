@@ -11,7 +11,9 @@ its own rows (`Fluid`, a density and a viscosity per subdomain) from the subdoma
 group. A query reads the fluid's density by the domain's subdomain there, on the host and, through `GPU::transform`, on a GPU.
 The window shows the regions, colored by material, with the model's names; the panel switches between its domains.
 
-Edit the files and run again: no compiling.
+Edit the files and run again: no compiling. `ebgstudio`, built in `../../Studio` (`make` there), checks the model
+(`ebgstudio check cable/setup.ebg --domain cfd`) and opens it in a window that reloads it on every save
+(`ebgstudio cable/setup.ebg`).
 
 Building
 --------

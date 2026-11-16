@@ -31,3 +31,6 @@ Docs/Sphinx/source/_static/**/*.png
 # Local clang-tidy capture (not part of the project)
 /clang-tidy.log
 __pycache__/
+
+# ebgstudio built in Studio/ with its GNUmakefile.
+Studio/ebgstudio

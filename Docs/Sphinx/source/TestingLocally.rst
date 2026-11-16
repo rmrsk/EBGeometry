@@ -172,6 +172,9 @@ CMake options
    * - ``EBGEOMETRY_VIEWER``
      - ``OFF``
      - ``SDL2`` compiles the interactive window of ``Render::view()`` (see :ref:`Sec:ConfigViewer`).
+   * - ``EBGEOMETRY_BUILD_STUDIO``
+     - ``ON`` with the tests, ``OFF`` otherwise
+     - Build ``ebgstudio`` (see :ref:`Chap:Studio`).
    * - ``EBGEOMETRY_INSTALL``
      - ``ON`` (``OFF`` when another project includes EBGeometry)
      - Generate the install target (``cmake --install``).
@@ -477,6 +480,10 @@ Test coverage
        read once, errors at their line and column (all reported, none aborting, the library's own value checks
        included), the printer's canonical form (idempotent, the same model) and a table of properties read on a
        device.
+   * - ``TestStudioWriter``
+     - ebgstudio's writer of the viewer's edits: a clicked surface named and written by its label, a renamed group
+       keeping its comment and properties, a new domain appended, undo and redo, and no write over a file changed
+       on disk.
    * - ``TestFused``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and

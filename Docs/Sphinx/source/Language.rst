@@ -52,8 +52,8 @@ model is two files, as most models are. The geometry, ``cable/model.ebg``:
 Line by line:
 
 * ``ebg 0`` is the language's version, on the first line of every file.
-* A ``param`` is a value that can be changed from outside the file (an override passed to the
-  reader), so that one file describes a family of cables.
+* A ``param`` is a value that can be changed from outside the file (``-D length=8`` to ``ebgstudio``, or an
+  override passed to the reader), so that one file describes a family of cables.
 * ``conductor``, ``insulation`` and ``air_box`` are shapes, calls of the built-in shapes
   (:ref:`Chap:LanguageShapes`). Arguments are given in order, or by name (``radius = r_core``).
 * ``.label(...)`` names the box's faces: its ``xmin`` face is the inlet, its ``xmax`` face the outlet. The
@@ -114,6 +114,10 @@ the file a program reads:
 
 :ref:`Chap:ExampleLanguage` reads ``cable/setup.ebg`` in C++ (see :ref:`Chap:ImplemLanguage` for the
 calls).
+
+Writing a model is easiest with ``ebgstudio`` (see :ref:`Chap:Studio`) open on it: its window reloads the model
+whenever a file is saved, and ``ebgstudio check`` reports what is wrong, line by line. The tutorial,
+:ref:`Chap:StudioCoolingBlock`, builds a model that way, step by step, and is the place to start.
 
 The pages of this section
 -------------------------

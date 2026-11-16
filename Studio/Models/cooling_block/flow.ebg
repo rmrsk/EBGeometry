@@ -1,0 +1,14 @@
+ebg 0
+
+# The flow of the water through the channel: a setup of its own (ebgstudio Models/cooling_block/flow.ebg).
+include("model.ebg")
+include("materials.ebg")
+
+param inflow = 0.5
+
+domain flow {
+  subdomain fluid = water
+  group inlet = label("inlet") { velocity = (inflow, 0, 0), temperature = 290 }
+  group outlet = label("outlet") { pressure = 0 }
+  group wall = interface(water, solid) { kind = "no_slip" }
+}

@@ -112,8 +112,9 @@ When completeness is checked
 
 A domain is **complete** when every subdomain has properties, every surface it touches (a boundary, or an
 interface between two of its subdomains) is in a surface group, and its couplings join what they say they
-join. A program asks for the domains it computes on, and checks one with ``Language::completeness()`` (see
-:ref:`Chap:ImplemLanguage`); nothing requires every domain of a file to be complete.
+join. A program asks for the domains it computes on (see :ref:`Chap:ImplemLanguage`), and ``ebgstudio check
+channel.ebg --domain flow`` checks one from the command line; nothing requires every domain of a file to be
+complete.
 
 A surface left out is reported by the shape it comes from and the regions on its two sides, at the line of
 the domain. Without the ``wall`` group above:

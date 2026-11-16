@@ -43,7 +43,9 @@ A query reads the fluid's density at a point, by the domain label there, along a
 the host, then the same through ``GPU::transform``, after the pool is mirrored to the device. Last, the window
 shows the regions, colored by material, with the model's names; its panel switches between the two domains.
 
-Editing the files changes the model with no compiling: run the program again.
+Editing the files changes the model with no compiling: run the program again. ``ebgstudio`` (built in
+``Studio/``, see :ref:`Chap:Studio`) checks it, ``ebgstudio check cable/setup.ebg --domain cfd``, and opens it in a
+window that reloads it on every save, ``ebgstudio cable/setup.ebg``.
 
 Building and running
 --------------------

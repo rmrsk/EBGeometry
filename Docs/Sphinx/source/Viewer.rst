@@ -4,9 +4,9 @@ The viewer
 ==========
 
 ``Render::view()`` opens a window on a shape (see :ref:`Chap:ImplemRender` for the calls). Every example
-that builds a shape ends by opening one. This page describes the window: moving around, picking and looking
-inside, and, for an object of regions, the panel that shows its regions and domains and edits their surface
-groups.
+that builds a shape ends by opening one, and ``ebgstudio`` opens one on a model. This page describes the
+window: moving around, picking and looking inside, and, for an object of regions, the panel that shows its
+regions and domains and edits their surface groups.
 
 .. contents:: On this page
    :local:

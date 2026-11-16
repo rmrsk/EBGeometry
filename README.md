@@ -32,6 +32,9 @@ one header and compile with C++17.
   analytic cylinder, blend two shapes smoothly, or union ten thousand parts.
 * **Several materials.** An object can be made of regions, each with its material, and a solver gets
   the implicit function of each region, or of each domain it computes in.
+* **Models as text.** A model, with its regions, materials, boundary conditions and the domains a solver
+  computes in, can be written in the `.ebg` language and read at run time, and checked and looked at with
+  `ebgstudio`, without compiling anything.
 * **Any hardware.** The same query runs on the host (SIMD from SSE to AVX-512) and on NVIDIA and AMD
   GPUs (CUDA and HIP). Build a structure once, mirror its memory to the device, and evaluate it
   there.
@@ -72,6 +75,13 @@ one header and compile with C++17.
   two sides.
 * An implicit function per region and per domain (the regions a solver computes in), and boundary
   conditions tagged on the surfaces.
+
+**Models as text**
+
+* The `.ebg` language: geometry, regions, materials, labels, domains, surface groups and couplings in plain
+  files, with params a program or the command line can change.
+* `ebgstudio`: checks a model line by line, says whether its domains are complete, and opens it in a window
+  that reloads on every save, where surface groups are made by clicking surfaces.
 
 **Queries**
 
@@ -151,6 +161,49 @@ main()
 Compiled as plain C++, `GPU::transform()` runs the same functor in a host loop; compiled with nvcc or
 hipcc, it runs it in a kernel. The [examples](https://rmrsk.github.io/EBGeometry/Examples.html) walk
 through each part of this, one topic at a time.
+
+## As a model file
+
+The same kind of scene, written in the `.ebg` language: a cable in a box of air, a copper core in a plastic jacket,
+and a flow past it.
+
+```text
+ebg 0
+
+param r_core = 0.5
+
+core   = cylinder((0, 0, -3), (0, 0, 3), radius = r_core)
+jacket = tube((0, 0, -3), (0, 0, 3), inner_radius = r_core, outer_radius = 0.8)
+air    = box((-3, -2, -3), (5, 2, 3)).label(xmin = "inlet", xmax = "outlet")
+
+object overlay {                        # each region on top of the ones before it
+  region air    = air material air
+  region jacket = jacket material PTFE
+  region core   = core material copper
+}
+
+material air    { density = 1.2, viscosity = 1.8e-5 }
+material PTFE   { permittivity = 2.1 }
+material copper { conductivity = 5.8e7 }
+
+domain cfd {                            # what a flow solver computes on
+  subdomain fluid = air
+  group inlet  = label("inlet") { velocity = (2, 0, 0) }
+  group outlet = label("outlet") { pressure = 0 }
+  group walls  = remaining() { kind = "no_slip" }
+}
+```
+
+```bash
+cd Studio && make                       # builds ebgstudio
+./ebgstudio check cable.ebg --domain cfd
+./ebgstudio cable.ebg                   # the window; it reloads the model on every save
+```
+
+A program reads it with `Language::read()`, compiles its object into a tape, builds the `cfd` domain for it, and reads
+the properties into tables of its own that run on a GPU beside the geometry. The
+[language guide](https://rmrsk.github.io/EBGeometry/Language.html) and the
+[ebgstudio tutorial](https://rmrsk.github.io/EBGeometry/StudioCoolingBlock.html) start there.
 
 ## How it compares
 

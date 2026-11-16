@@ -61,9 +61,16 @@ check_consumer "${WORK}/build-subdirectory"
 
 echo "== install + find_package"
 # Installed from a top-level configure, whose SIMD default is avx: the installed package must not
-# carry it.
+# carry it. A plain install builds nothing; with EBGEOMETRY_BUILD_STUDIO it builds and installs ebgstudio too.
 cmake -S "${REPO_ROOT}" -B "${WORK}/build-ebgeometry" -DCMAKE_INSTALL_PREFIX="${WORK}/prefix" > /dev/null
 cmake --install "${WORK}/build-ebgeometry" > /dev/null
+test ! -e "${WORK}/prefix/bin/ebgstudio"
+
+cmake -S "${REPO_ROOT}" -B "${WORK}/build-studio" -DCMAKE_INSTALL_PREFIX="${WORK}/prefix-studio" \
+  -DEBGEOMETRY_BUILD_STUDIO=ON > /dev/null
+cmake --build "${WORK}/build-studio" --parallel > /dev/null
+cmake --install "${WORK}/build-studio" > /dev/null
+"${WORK}/prefix-studio/bin/ebgstudio" check "${REPO_ROOT}/Studio/Models/cooling_block/setup.ebg" --all-domains > /dev/null
 
 cat > "${WORK}/consumer/CMakeLists.txt" <<'CMAKE'
 cmake_minimum_required(VERSION 3.16)

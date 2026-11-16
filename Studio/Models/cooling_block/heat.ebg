@@ -1,0 +1,12 @@
+ebg 0
+
+# The heat in the steel, heated from below, cooled by the water, insulated elsewhere: a setup of its own.
+include("model.ebg")
+include("materials.ebg")
+
+domain heat {
+  subdomain metal = solid
+  group heated = label("base") { heat_flux = 5.0e4 }
+  group cooled = interface(solid, water) { kind = "coupled" }
+  group insulated = remaining() { heat_flux = 0 }
+}

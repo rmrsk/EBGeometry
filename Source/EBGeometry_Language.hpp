@@ -440,8 +440,9 @@ private:
 };
 
 /**
- * @brief Values for a model's params, by name, each written as in a file ("0.5", "(1, 0, 0)", "\"steel\""). Overriding a
- * value that is not a param, or a name the model does not define, is an error.
+ * @brief Values for a model's params, by name, each written as in a file ("0.5", "(1, 0, 0)", "\"steel\""): what
+ * `ebgstudio -D name=value` gives. Overriding a value that is not a param, or a name the model does not define, is an
+ * error.
  */
 using Overrides = std::map<std::string, std::string>;
 
@@ -1173,7 +1174,8 @@ partNames(std::string_view a_shape, uint32_t a_sides = 0);
 
 /**
  * @brief Every name a model offers, as text: its surface labels, the parts of each shape written (with their labels),
- * its regions and materials, and its domains with their subdomains and groups.
+ * its regions and materials, and its domains with their subdomains and groups. What `ebgstudio check --inventory`
+ * prints.
  * @tparam T Precision.
  * @param[in] a_model The model.
  * @return The text.
