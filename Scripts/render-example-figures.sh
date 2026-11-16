@@ -7,8 +7,9 @@
 #
 # Each example is compiled with Render::view() swapped for a stand-in that renders one frame with the
 # same camera and settings and writes it to a file, then run in its own folder (so its default input is
-# found). Run it by hand after a change to an example's geometry or to the renderer; nothing runs it
-# automatically.
+# found). The examples listed in DEFAULT_LOOK are drawn in the default look (the sky and the checkered floor)
+# instead of the one they open in, so that the pages show them as a user's own first render would. Run it by hand
+# after a change to an example's geometry or to the renderer; nothing runs it automatically.
 #
 # Requires: a C++17 compiler (CXX, default g++) and ImageMagick's convert. The examples that read a mesh
 # by default (MeshSDF, MeshCSG, Shell, SurfaceLabels, Repetition, Twist) need the common-3d-test-models
@@ -31,15 +32,22 @@ cat > "${WORK}/snapshot.hpp" <<'HPP'
 #include <cstdio>
 #include <cstdlib>
 
-// Stands in for Render::view(): renders the first full frame and writes it as a PPM to $SNAPSHOT.
+// Stands in for Render::view(): renders the first full frame and writes it as a PPM to $SNAPSHOT, in the default look
+// if $SNAPSHOT_DEFAULT_LOOK is set.
 namespace Snapshot {
 template <class S>
 void
 view(const S& a_shape, const EBGeometry::Render::Camera<EBGeometry::ShapePrecision<S>>& a_camera,
      const EBGeometry::Render::Settings<EBGeometry::ShapePrecision<S>>& a_settings, int, char**)
 {
+  EBGeometry::Render::Settings<EBGeometry::ShapePrecision<S>> settings = a_settings;
+
+  if (std::getenv("SNAPSHOT_DEFAULT_LOOK") != nullptr) {
+    EBGeometry::Render::setLook(settings, EBGeometry::Render::Look::Sky);
+  }
+
   EBGeometry::Render::Image image;
-  EBGeometry::Render::Renderer<EBGeometry::ShapePrecision<S>>(a_settings).render(a_shape, a_camera, image);
+  EBGeometry::Render::Renderer<EBGeometry::ShapePrecision<S>>(settings).render(a_shape, a_camera, image);
 
   if (!EBGeometry::Render::writeImage(image, std::getenv("SNAPSHOT"))) {
     std::fprintf(stderr, "render-example-figures: cannot write %s\n", std::getenv("SNAPSHOT"));
@@ -138,6 +146,9 @@ view(const S& a_shape, const S&, int a_argc, char** a_argv)
 } // namespace Snapshot
 HPP
 
+# Examples that open in another look, drawn in the default one for their pages.
+DEFAULT_LOOK=(Tornado)
+
 if [ "$#" -gt 0 ]; then
   examples=("$@")
 else
@@ -154,6 +165,13 @@ for example in "${examples[@]}"; do
   sed 's/EBGeometry::Render::view(/Snapshot::view(/' "${ROOT}/Examples/${example}/main.cpp" > "${WORK}/${example}.cpp"
   "${CXX:-g++}" -std=c++17 -O3 -march=native -I"${ROOT}" -include "${WORK}/snapshot.hpp" \
     "${WORK}/${example}.cpp" -o "${WORK}/${example}.ex" -pthread
-  (cd "${ROOT}/Examples/${example}" && SNAPSHOT="${WORK}/${example}.ppm" "${WORK}/${example}.ex" > /dev/null)
+  look=()
+
+  if [[ " ${DEFAULT_LOOK[*]} " == *" ${example} "* ]]; then
+    look=(SNAPSHOT_DEFAULT_LOOK=1)
+  fi
+
+  (cd "${ROOT}/Examples/${example}" &&
+    env "${look[@]}" SNAPSHOT="${WORK}/${example}.ppm" "${WORK}/${example}.ex" > /dev/null)
   convert "${WORK}/${example}.ppm" -resize 640x640 -strip -quality 85 "${OUT}/example_${example}.jpg"
 done

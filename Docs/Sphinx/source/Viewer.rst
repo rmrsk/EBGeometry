@@ -81,6 +81,9 @@ The keys
    * - Up, Down; Left, Right
      - A stronger or weaker light; less or more ambient light (the light from the sky, which lights the sides the
        light does not reach).
+   * - Ctrl + Left, Right
+     - Less or more fill light (a second, weaker light from the camera's other side, which lights the sides the
+       light leaves dark).
    * - Shift + Up, Down; Shift + Left, Right
      - Stronger or weaker highlights; broader or tighter ones.
    * - M; Shift + M

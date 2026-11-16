@@ -51,7 +51,9 @@ What a pixel shows
 
 For a pixel, the renderer casts one ray (or :math:`n \times n` rays, averaged, which also softens the
 edges of shadows) and, where it meets the surface, combines diffuse and
-specular light from one direction, light from the sky, a shadow and ambient occlusion. The light's
+specular light from one direction, a weaker fill light from the other side (which keeps the sides the light
+does not reach from going dark), light from the sky, a shadow and ambient occlusion. Bright surfaces roll
+off towards white rather than clipping at it. The light's
 direction is by default fixed to the camera, above and beside it, so that the side in view is lit wherever
 the camera goes; it can instead be fixed in the scene. A floor under the
 shape catches its shadow. Surfaces can be colored by the direction of their normal (the default),

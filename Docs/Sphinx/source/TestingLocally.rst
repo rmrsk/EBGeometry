@@ -543,7 +543,9 @@ Test coverage
        closed-form box is; a canceled render stopping before any row;
        faces lying on the bounding box seen from outside; a table color replacing the palette's for its
        primitive only; coloring by normal; the light, ambient, highlight and background settings (an
-       unlit surface black, a background of the color set); the floor's checkerboard off and resized;
+       unlit surface black, a background of the color set); the fill light lighting what the light leaves
+       dark and not the floor; the shoulder rolling bright surfaces off towards white; the section plane's lines of
+       equal distance standing out on every look; the floor's checkerboard off and resized;
        an orthographic camera showing a sphere as a disc of its radius; the near clip; ``Camera::fit``
        from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
        section plane's contour, sheet and lines of equal distance, within the box only; ``writeImage()``
