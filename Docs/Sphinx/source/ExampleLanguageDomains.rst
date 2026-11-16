@@ -26,7 +26,7 @@ Reading it
 ----------
 
 The program reads ``cable/setup.ebg`` with ``Language::read()``, which also reads what it includes; a model with
-errors throws them all, and the program prints them and stops. It then compiles the object into a tape, builds
+errors throws them all, with their files, lines and columns. It then compiles the object into a tape, builds
 the cfd domain for that tape from the model's setup, and checks it with ``completeness()``.
 
 What a solver keeps

@@ -75,7 +75,7 @@ Running
 
     ./LanguageDomains.ex
 
-It prints the model's counts of regions, materials and domains, the cfd domain's subdomains and surface groups and
-whether it is complete, and each surface group with the keys of its properties. Then the fluid's density at points
+It prints whether the cfd domain is complete (and, if not, what is missing, at the lines to change). Then the fluid's
+density at points
 along a line across the cable (y = 0.05, z = 0): the air's on either side, 0 in the cable; first on the host, then the
 same through `GPU::transform`. The window then opens on the regions, colored by material, with the air hidden.
