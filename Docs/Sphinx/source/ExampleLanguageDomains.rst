@@ -19,7 +19,7 @@ The model
 
 ``cable/model.ebg`` holds the geometry: the shapes, the overlay of regions with their materials, and the box's
 faces labeled ``inlet``, ``outlet``, ``far`` and ``ends``. ``cable/setup.ebg`` includes it and holds the
-materials' properties, two domains (electrostatics, in the jacket and the air; and cfd, the air with four
+materials' properties, two domains (electrostatics, in the jacket and the air; and cfd, the air with five
 surface groups) and the couplings between them. Both are shown and explained in :ref:`Chap:Language`.
 
 Reading it
