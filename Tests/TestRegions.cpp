@@ -3034,8 +3034,8 @@ TEMPLATE_TEST_CASE("regionNeighborhood: keeps the regions given and those whose 
   // The object shrinks to what is kept.
   const BoundingVolumes::AABBT<T> box = cell.object().computeBoundingVolume();
 
-  CHECK(box.getLowCorner()[0] >= T(2.5) - looseMargin<T>());
-  CHECK(box.getHighCorner()[0] <= T(3.5) + looseMargin<T>());
+  CHECK(box.getLowCorner()[0] >= T(2.5) - T(looseMargin<T>()));
+  CHECK(box.getHighCorner()[0] <= T(3.5) + T(looseMargin<T>()));
 
   // Through a rotation: a box turned 45 degrees about z, whose corner reaches x = 1, touches the first box's face and
   // is kept with it; moved away, it is dropped.
@@ -3082,7 +3082,9 @@ TEMPLATE_TEST_CASE("regionNeighborhood: the regions given keep their signs, surf
 
   const Tape<T> whole(pool, scene);
 
-  for (const std::vector<uint32_t>& given : {std::vector<uint32_t>{1U}, {2U}, {4U, 6U}}) {
+  const std::vector<std::vector<uint32_t>> givens{{1U}, {2U}, {4U, 6U}};
+
+  for (const std::vector<uint32_t>& given : givens) {
     const auto    neighborhood = regionNeighborhood(scene, given);
     const Tape<T> mine(pool, neighborhood.object());
 
@@ -3104,7 +3106,7 @@ TEMPLATE_TEST_CASE("regionNeighborhood: the regions given keep their signs, surf
         const T a = whole.signedDistance(q, r);
         const T b = mine.signedDistance(q, neighborhood.region(r));
 
-        if (std::abs(a) > looseMargin<T>()) {
+        if (std::abs(a) > T(looseMargin<T>())) {
           CHECK((a < T(0)) == (b < T(0)));
         }
 

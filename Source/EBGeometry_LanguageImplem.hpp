@@ -903,7 +903,7 @@ Model<T>::names() const
     domains.emplace_back(&domain, domain.setup());
   }
 
-  return this->namesFor(*m_index, domains, [](const uint32_t a_surface) { return a_surface; });
+  return this->namesFor(*m_index, domains, [](const uint32_t a_surface) noexcept { return a_surface; });
 }
 
 template <class T>
