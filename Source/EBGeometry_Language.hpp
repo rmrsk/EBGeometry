@@ -14,11 +14,13 @@
 
 // Std includes
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Our includes
@@ -808,6 +810,96 @@ struct ShapeSite
 };
 
 /**
+ * @brief A domain's own object: the regions of its subdomains and their neighbors, with the domain's setup and the
+ * model's names translated to it (see Model::domainObject()).
+ * @details What a solver of one domain, or a view of it alone, compiles instead of the whole object: Tape<T,
+ * UserPrimitives...>(pool, domainObject.object()), then Domain(pool, tape, domainObject.setup()). The subdomains and
+ * surface groups keep the model's numbers (ModelDomain::volumes() and the other tables of the domain still apply); the
+ * regions, surfaces and labels are the smaller object's, mapped to the model's through neighborhood(). Which regions
+ * are kept, and what the bounding boxes have to do with it, is regionNeighborhood()'s rule. Host only.
+ * @tparam T Precision.
+ */
+template <class T>
+class DomainObject
+{
+public:
+  /**
+   * @brief The object, to compile into a tape.
+   * @return The expression.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const Expr<T>&
+  object() const noexcept
+  {
+    return m_neighborhood.object();
+  }
+
+  /**
+   * @brief The domain's setup, for a tape of object().
+   * @return The setup.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const DomainSetup&
+  setup() const noexcept
+  {
+    return m_setup;
+  }
+
+  /**
+   * @brief The regions kept, and the maps of regions and surfaces to the model's.
+   * @return The neighborhood.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const RegionNeighborhood<T>&
+  neighborhood() const noexcept
+  {
+    return m_neighborhood;
+  }
+
+  /**
+   * @brief The model's names for a viewer, for object(): its regions, materials and labels, the domain with the names
+   * of its subdomains and surface groups (the only domain), and the colors of the view block.
+   * @return The names.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const RegionNames&
+  names() const noexcept
+  {
+    return m_names;
+  }
+
+private:
+  template <class U>
+  friend class Model;
+
+  /**
+   * @brief Hold the parts.
+   * @param[in] a_neighborhood The regions kept.
+   * @param[in] a_setup        The domain's setup for them.
+   * @param[in] a_names        The names.
+   */
+  EBGEOMETRY_HOST
+  DomainObject(RegionNeighborhood<T> a_neighborhood, DomainSetup a_setup, RegionNames a_names)
+    : m_neighborhood(std::move(a_neighborhood)), m_setup(std::move(a_setup)), m_names(std::move(a_names))
+  {}
+
+  /**
+   * @brief The regions kept.
+   */
+  RegionNeighborhood<T> m_neighborhood;
+
+  /**
+   * @brief The domain's setup.
+   */
+  DomainSetup m_setup;
+
+  /**
+   * @brief The names.
+   */
+  RegionNames m_names;
+};
+
+/**
  * @brief A model read from a .ebg file and the files it includes: its object, the names of its regions, materials and labels, its
  * materials, domains, couplings and params, and the files it read.
  * @details The caller compiles the object into a tape, Tape<T, UserPrimitives...>(pool, model.object()), picking the
@@ -1003,6 +1095,17 @@ public:
   names() const;
 
   /**
+   * @brief A domain's own object: the regions its subdomains compute in, and their neighbors (see
+   * regionNeighborhood(): regions whose bounding boxes meet theirs), with the domain's setup and the names translated.
+   * @details A domain that computes in no region gets every region. Throws Error for a name no domain has.
+   * @param[in] a_domain The domain's name.
+   * @return The domain's object.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  DomainObject<T>
+  domainObject(std::string_view a_domain) const;
+
+  /**
    * @brief A table with one row per region of the object (region 0, `outside`, first), each filled from its
    * material's properties: what a kernel indexes with Tape::region(). A region without a material, `outside`
    * included, gets empty properties, so the function should give fallbacks.
@@ -1038,6 +1141,19 @@ private:
    * @brief An empty model, which only the reader makes and fills.
    */
   Model() = default;
+
+  /**
+   * @brief Names for a viewer, of the object or of a smaller one made from it.
+   * @param[in] a_index        The index of the object named.
+   * @param[in] a_domains      The domains to name, with their setups for that object.
+   * @param[in] a_wholeSurface The model's surface of each of the object's surfaces.
+   * @return The names.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  RegionNames
+  namesFor(const ExprIndex<T>&                                            a_index,
+           const std::vector<std::pair<const ModelDomain*, DomainSetup>>& a_domains,
+           const std::function<uint32_t(uint32_t)>&                       a_wholeSurface) const;
 
   /**
    * @brief The object.

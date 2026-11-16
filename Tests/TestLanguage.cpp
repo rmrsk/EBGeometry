@@ -1613,3 +1613,73 @@ domain heat {
   CHECK(onDevice[1] == T(1.2));
   CHECK(onDevice[2] == T(20));
 }
+
+TEMPLATE_TEST_CASE("Language: a domain's own object keeps its regions and their neighbors, with its setup and names",
+                   "[Language][RegionNeighborhood]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const std::string root = std::string(EBGEOMETRY_TEST_DATA_DIR) + "/../..";
+
+  Pool pool(hostMemoryResource());
+
+  // The cable: air (1), jacket (2), core (3) and a sensor (4) in the flow, apart from the cable.
+  const auto model = Language::read<T>(root + "/Examples/LanguageDomains/cable/setup.ebg", pool);
+
+  const ExprIndex<T>& index = model.index();
+
+  REQUIRE(index.getNumRegions() == 5U);
+
+  // Conduction, in the core and the jacket: the air around them is kept, the sensor dropped.
+  const auto conduction = model.domainObject("conduction");
+
+  const RegionNeighborhood<T>& kept = conduction.neighborhood();
+
+  CHECK(kept.getNumRegions() == 4U);
+  CHECK(kept.region(index.findRegion("sensor")) == RegionNeighborhood<T>::None);
+  CHECK(kept.wholeRegion(kept.region(index.findRegion("air"))) == index.findRegion("air"));
+
+  // The names: the domain alone, its subdomains and groups as the model names them, the surfaces by their shape calls.
+  const RegionNames& names = conduction.names();
+
+  CHECK(names.getNumDomains() == 1U);
+  CHECK(names.domainName(0) == "conduction");
+
+  const RegionNames whole = model.names();
+
+  for (uint32_t s = 0; s < ExprIndex<T>(conduction.object()).getNumSurfaces(); s++) {
+    CHECK(names.surface(s, false) == whole.surface(kept.wholeSurface(s), false));
+  }
+
+  // Built for the two tapes, the domains agree on the subdomain at every point and the group of every surface.
+  const Tape<T> wholeTape(pool, model.object());
+  const Tape<T> ownTape(pool, conduction.object());
+
+  const Domain a(pool, wholeTape, model.domain("conduction").setup());
+  const Domain b(pool, ownTape, conduction.setup());
+
+  uint32_t grouped = 0;
+
+  for (const Vec3& p : gridPoints<T>(T(1.2), 9)) {
+    const Vec3 q(p[0], p[1], T(2.5) * p[2]);
+
+    CHECK(a.subdomainAt(q) == b.subdomainAt(q));
+
+    const SurfaceRef<T> s = a.closestSurface(q, 0U);
+    const SurfaceRef<T> t = b.closestSurface(q, 0U);
+
+    CHECK(kept.wholeSurface(t.m_surface) == s.m_surface);
+    CHECK(a.surfaceGroupOf(s) == b.surfaceGroupOf(t));
+
+    grouped += (a.surfaceGroupOf(s) != SurfaceGroups::None) ? 1U : 0U;
+  }
+
+  CHECK(grouped > 100U);
+
+  // The flow, in the air, keeps every region: the air's box holds them all.
+  CHECK(model.domainObject("cfd").neighborhood().getNumRegions() == 5U);
+
+  CHECK_THROWS_AS(model.domainObject("heat"), Language::Error);
+}

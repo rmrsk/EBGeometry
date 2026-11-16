@@ -2939,3 +2939,253 @@ TEMPLATE_TEST_CASE(
 
   CHECK(hits > 100U);
 }
+
+namespace {
+
+// A scene of regions for the neighborhoods: a box (1) and a ball inside it (2); a box far away (3); a nested
+// Overlay, moved (a box, 4, and a ball in it, 5), apart from the first box; and a box touching the first one's
+// +x face (6).
+template <class T>
+Expr<T>
+neighbors()
+{
+  using Vec3 = Vec3T<T>;
+
+  const auto box  = RegionName(SurfaceLabel(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), "box"), "box");
+  const auto ball = RegionName(MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(0.5)), "water"), "ball");
+  const auto far  = RegionName(BoxSDF<T>(T(5) * Vec3::ones(), T(6) * Vec3::ones()), "far");
+
+  const auto inner = Overlay(RegionName(BoxSDF<T>(T(-0.5) * Vec3::ones(), T(0.5) * Vec3::ones()), "cell"),
+                             RegionName(SurfaceLabel(SphereSDF<T>(Vec3::zeros(), T(0.2)), "bead"), "bead"));
+
+  const auto moved = Translate(inner, Vec3(T(3), T(0), T(0)));
+  const auto touch = RegionName(BoxSDF<T>(Vec3(T(1), T(-0.5), T(-0.5)), Vec3(T(2), T(0.5), T(0.5))), "touch");
+
+  return Overlay(std::vector<Expr<T>>{toExpr(box), toExpr(ball), toExpr(far), moved, toExpr(touch)});
+}
+
+// Points on a grid filling a cube of a half-side about the origin, off its symmetry planes.
+template <class T>
+std::vector<Vec3T<T>>
+gridPoints(const T a_half, const int a_n)
+{
+  std::vector<Vec3T<T>> points;
+
+  for (int i = 0; i < a_n; i++) {
+    for (int j = 0; j < a_n; j++) {
+      for (int k = 0; k < a_n; k++) {
+        const auto at = [&](const int a_i) { return -a_half + T(2) * a_half * (T(a_i) + T(0.37)) / T(a_n); };
+
+        points.emplace_back(at(i), at(j), at(k));
+      }
+    }
+  }
+
+  return points;
+}
+
+// The regions a neighborhood keeps, as the whole expression numbers them.
+template <class T>
+std::vector<uint32_t>
+keptRegions(const RegionNeighborhood<T>& a_neighborhood)
+{
+  std::vector<uint32_t> regions;
+
+  for (uint32_t r = 0; r < a_neighborhood.getNumRegions(); r++) {
+    regions.push_back(a_neighborhood.wholeRegion(r));
+  }
+
+  return regions;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("regionNeighborhood: keeps the regions given and those whose boxes meet theirs, in their order",
+                   "[Overlay][RegionNeighborhood]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const Expr<T>      scene = neighbors<T>();
+  const ExprIndex<T> index(scene);
+
+  REQUIRE(index.getNumRegions() == 7U);
+
+  // The ball: the box around it; the box touching the first one meets the box, not the ball.
+  const auto ball = regionNeighborhood(scene, {2U});
+
+  CHECK(keptRegions(ball) == std::vector<uint32_t>{0U, 1U, 2U});
+  CHECK(ball.region(1U) == 1U);
+  CHECK(ball.region(3U) == RegionNeighborhood<T>::None);
+  CHECK(ball.region(6U) == RegionNeighborhood<T>::None);
+
+  // The box: the ball inside it, and the box on its face (touching counts).
+  CHECK(keptRegions(regionNeighborhood(scene, {1U})) == std::vector<uint32_t>{0U, 1U, 2U, 6U});
+
+  // The moved cell: its ball, through the map; the nested Overlay is kept as a group, renumbered.
+  const auto         cell = regionNeighborhood(scene, {4U});
+  const ExprIndex<T> cellIndex(cell.object());
+
+  CHECK(keptRegions(cell) == std::vector<uint32_t>{0U, 4U, 5U});
+  CHECK(cellIndex.getNumRegionGroups() == 2U);
+  CHECK(cellIndex.getRegion(cell.region(5U)).m_name == "bead");
+
+  // The object shrinks to what is kept.
+  const BoundingVolumes::AABBT<T> box = cell.object().computeBoundingVolume();
+
+  CHECK(box.getLowCorner()[0] >= T(2.5) - looseMargin<T>());
+  CHECK(box.getHighCorner()[0] <= T(3.5) + looseMargin<T>());
+
+  // With the background, everything; an object with no Overlay is its own neighborhood.
+  CHECK(regionNeighborhood(scene, {0U}).getNumRegions() == 7U);
+
+  const auto one = regionNeighborhood(toExpr(SphereSDF<T>(Vec3::zeros(), T(1))), {1U});
+
+  CHECK(keptRegions(one) == std::vector<uint32_t>{0U, 1U});
+
+  // The surfaces of the kept leaves keep their order; a dropped leaf's have none.
+  for (uint32_t s = 0; s < ExprIndex<T>(ball.object()).getNumSurfaces(); s++) {
+    CHECK(ball.surface(ball.wholeSurface(s)) == s);
+  }
+
+  CHECK(ball.surface(index.getFirstSurface(2U)) == RegionNeighborhood<T>::None);
+
+  REQUIRE(abortsWith([&] { (void)regionNeighborhood(scene, {}); }, "regionNeighborhood: no regions given"));
+  REQUIRE(abortsWith([&] { (void)regionNeighborhood(scene, {7U}); }, "regionNeighborhood: region 7"));
+}
+
+TEMPLATE_TEST_CASE("regionNeighborhood: the regions given keep their signs, surfaces and the regions across them",
+                   "[Overlay][RegionNeighborhood][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // The scene clipped by a slab, a mask whose leaf belongs to no region and is always kept.
+  const Expr<T> scene = Difference(neighbors<T>(), BoxSDF<T>(Vec3(T(-10), T(-10), T(0.7)), Vec3(T(10), T(10), T(10))));
+
+  const Tape<T> whole(pool, scene);
+
+  for (const std::vector<uint32_t>& given : {std::vector<uint32_t>{1U}, {2U}, {4U, 6U}}) {
+    const auto    neighborhood = regionNeighborhood(scene, given);
+    const Tape<T> mine(pool, neighborhood.object());
+
+    REQUIRE(neighborhood.getNumRegions() < 7U);
+
+    uint32_t surfaces = 0;
+
+    for (const Vec3& p : gridPoints<T>(T(4), 24)) {
+      const Vec3 q = p + Vec3(T(1.5), T(0.013), T(-0.021));
+
+      // A point in a region given is in it in both; elsewhere, in a region not given in both.
+      const uint32_t in     = whole.region(q);
+      const uint32_t inMine = neighborhood.wholeRegion(mine.region(q));
+      const bool     isIn   = std::find(given.begin(), given.end(), in) != given.end();
+
+      CHECK((isIn ? inMine == in : std::find(given.begin(), given.end(), inMine) == given.end()));
+
+      for (const uint32_t r : given) {
+        const T a = whole.signedDistance(q, r);
+        const T b = mine.signedDistance(q, neighborhood.region(r));
+
+        if (std::abs(a) > looseMargin<T>()) {
+          CHECK((a < T(0)) == (b < T(0)));
+        }
+
+        // Near the region, its closest surface: the same surface, between the same regions.
+        if (std::abs(a) < T(0.2)) {
+          const SurfaceRef<T> s = whole.closestSurface(q, r);
+          const SurfaceRef<T> t = mine.closestSurface(q, neighborhood.region(r));
+
+          CHECK(neighborhood.wholeSurface(t.m_surface) == s.m_surface);
+          CHECK(neighborhood.wholeRegion(t.m_ownerRegion) == s.m_ownerRegion);
+          CHECK(neighborhood.wholeRegion(t.m_neighborRegion) == s.m_neighborRegion);
+
+          surfaces++;
+        }
+      }
+    }
+
+    CHECK(surfaces > 20U);
+  }
+}
+
+TEMPLATE_TEST_CASE("regionNeighborhood: a setup translates by numbers and names, leaving out what was dropped",
+                   "[Overlay][RegionNeighborhood][Domain]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  const Expr<T>      scene = neighbors<T>();
+  const ExprIndex<T> index(scene);
+  const Tape<T>      whole(pool, scene);
+
+  // A domain in the box and the ball, with a group per kind of selector, two of them naming only what is dropped.
+  DomainSetup setup;
+
+  (void)setup.addSubdomain({1U});
+  (void)setup.addSubdomain({2U});
+
+  const uint32_t walls   = setup.addSurfaceGroup();
+  const uint32_t ball    = setup.addSurfaceGroup();
+  const uint32_t touch   = setup.addSurfaceGroup();
+  const uint32_t labeled = setup.addSurfaceGroup();
+  const uint32_t water   = setup.addSurfaceGroup();
+  const uint32_t rest    = setup.addSurfaceGroup();
+
+  setup.add(walls, SurfaceSelector::interface(1U, 0U));
+  setup.add(ball, SurfaceSelector::surface(index.getFirstSurface(1U)));
+  setup.add(touch, SurfaceSelector::interface(1U, 6U));
+  setup.add(labeled, SurfaceSelector::label(index.findSurfaceLabel("box")));
+  setup.add(labeled, SurfaceSelector::label(index.findSurfaceLabel("bead")));
+  setup.add(water, SurfaceSelector::materials(index.findMaterialLabel("water"), index.findMaterialLabel("water")));
+  setup.add(rest, SurfaceSelector::interface(1U, 3U));
+  setup.add(rest, SurfaceSelector::rest());
+
+  const auto        neighborhood = regionNeighborhood(scene, {1U, 2U});
+  const DomainSetup translated   = neighborhood.setup(setup);
+
+  // The subdomains and the groups keep their numbers; the bead's label and the far box are gone with their regions.
+  CHECK(translated.getNumSubdomains() == 2U);
+  CHECK(translated.getNumSurfaceGroups() == 6U);
+  CHECK(translated.getNumSelectors() == setup.getNumSelectors() - 2U);
+  CHECK(translated.getRegions(0) == std::vector<uint32_t>{neighborhood.region(1U)});
+
+  // Built for the two tapes, the domains agree: the same subdomain at each point, and the same group on each surface.
+  const Tape<T> mine(pool, neighborhood.object());
+  const Domain  a(pool, whole, setup);
+  const Domain  b(pool, mine, translated);
+
+  uint32_t grouped = 0;
+
+  for (const Vec3& p : gridPoints<T>(T(2.5), 20)) {
+    const Vec3 q = p + Vec3(T(0.017), T(-0.011), T(0.023));
+
+    CHECK(a.subdomainAt(q) == b.subdomainAt(q));
+
+    for (const uint32_t r : {1U, 2U}) {
+      if (std::abs(whole.signedDistance(q, r)) < T(0.2)) {
+        const uint32_t group = a.surfaceGroupOf(whole.closestSurface(q, r));
+
+        CHECK(b.surfaceGroupOf(mine.closestSurface(q, neighborhood.region(r))) == group);
+
+        grouped += (group != SurfaceGroups::None) ? 1U : 0U;
+      }
+    }
+  }
+
+  CHECK(grouped > 50U);
+
+  // A subdomain in a region the neighborhood dropped cannot be translated.
+  DomainSetup far;
+
+  (void)far.addSubdomain({3U});
+
+  REQUIRE(abortsWith([&] { (void)neighborhood.setup(far); }, "RegionNeighborhood: region 3 of subdomain 0"));
+}

@@ -897,29 +897,77 @@ template <class T>
 inline RegionNames
 Model<T>::names() const
 {
-  RegionNames names(*m_index);
+  std::vector<std::pair<const ModelDomain*, DomainSetup>> domains;
 
-  for (uint32_t d = 0; d < m_domains.size(); d++) {
-    const ModelDomain& domain = m_domains[d];
+  for (const ModelDomain& domain : m_domains) {
+    domains.emplace_back(&domain, domain.setup());
+  }
 
-    const uint32_t id = names.addDomain(domain.name(), domain.setup());
+  return this->namesFor(*m_index, domains, [](const uint32_t a_surface) { return a_surface; });
+}
 
-    for (uint32_t s = 0; s < domain.getNumSubdomains(); s++) {
-      names.setSubdomain(id, s, domain.subdomainName(s));
-    }
+template <class T>
+inline DomainObject<T>
+Model<T>::domainObject(std::string_view a_domain) const
+{
+  const ModelDomain& domain = this->domain(a_domain);
 
-    for (uint32_t g = 0; g < domain.getNumSurfaceGroups(); g++) {
-      names.setSurfaceGroup(id, g, domain.surfaceGroupName(g));
+  // The regions it computes in; every region for a domain that computes in none.
+  std::vector<uint32_t> regions;
+
+  for (uint32_t s = 0; s < domain.setup().getNumSubdomains(); s++) {
+    for (const uint32_t r : domain.setup().getRegions(s)) {
+      regions.push_back(r);
     }
   }
 
-  if (!m_domains.empty()) {
+  if (regions.empty()) {
+    for (uint32_t r = 1; r < m_index->getNumRegions(); r++) {
+      regions.push_back(r);
+    }
+  }
+
+  RegionNeighborhood<T> neighborhood = regionNeighborhood(*m_object, regions);
+
+  DomainSetup setup = neighborhood.setup(domain.setup());
+
+  const ExprIndex<T> index(neighborhood.object());
+
+  RegionNames names = this->namesFor(index, {{&domain, setup}}, [&neighborhood](const uint32_t a_surface) {
+    return neighborhood.wholeSurface(a_surface);
+  });
+
+  return DomainObject<T>(std::move(neighborhood), std::move(setup), std::move(names));
+}
+
+template <class T>
+inline RegionNames
+Model<T>::namesFor(const ExprIndex<T>&                                            a_index,
+                   const std::vector<std::pair<const ModelDomain*, DomainSetup>>& a_domains,
+                   const std::function<uint32_t(uint32_t)>&                       a_wholeSurface) const
+{
+  RegionNames names(a_index);
+
+  for (const auto& [domain, setup] : a_domains) {
+    const uint32_t id = names.addDomain(domain->name(), setup);
+
+    for (uint32_t s = 0; s < domain->getNumSubdomains(); s++) {
+      names.setSubdomain(id, s, domain->subdomainName(s));
+    }
+
+    for (uint32_t g = 0; g < domain->getNumSurfaceGroups(); g++) {
+      names.setSurfaceGroup(id, g, domain->surfaceGroupName(g));
+    }
+  }
+
+  if (!a_domains.empty()) {
     names.setActiveDomain(0);
   }
 
-  // Each surface by the shape call it comes from, and its label: what a viewer shows a picked surface by.
-  for (uint32_t s = 0; s < m_index->getNumSurfaces(); s++) {
-    const uint32_t       leaf  = m_index->getLeafOfSurface(s);
+  // Each surface by the shape call it comes from, and its label: what a viewer shows a picked surface by. The shape
+  // calls are the model's, so a surface is found in the model's object first.
+  for (uint32_t s = 0; s < a_index.getNumSurfaces(); s++) {
+    const uint32_t       leaf  = m_index->getLeafOfSurface(a_wholeSurface(s));
     const ShapeSite*     site  = this->siteOfLeaf(leaf);
     const SurfaceLabelId label = m_index->getSurfaceLabel(leaf);
 

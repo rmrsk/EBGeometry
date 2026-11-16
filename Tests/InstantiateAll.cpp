@@ -148,6 +148,8 @@ namespace EBGeometry {
   template struct Render::PixelQuery<PREC, Tape<PREC>>;                      \
   template class Render::Renderer<PREC>;                                     \
   template class Language::Model<PREC>;                                      \
+  template class Language::DomainObject<PREC>;                               \
+  template class RegionNeighborhood<PREC>;                                   \
   template class Language::LanguageDetail::Reader<PREC>;                                     \
   template class Language::Table<Vec3T<PREC>>;                               \
   template Render::Stats Render::Renderer<PREC>::render<Tape<PREC>>(         \
@@ -548,6 +550,15 @@ instantiateFunctionTemplates()
       (void)domain.surfaceGroups().surfaceGroupOf(regions.closestSurface(Vec3T<T>::zeros(), 1U));
       (void)ExprIndex<T>(Overlay(expr, expr)).getInterfaces();
       (void)RegionNames(ExprIndex<T>(Overlay(expr, expr))).region(1U);
+      {
+        const RegionNeighborhood<T> neighborhood = regionNeighborhood(Overlay(expr, expr), {1U});
+
+        (void)neighborhood.setup(setup);
+        (void)neighborhood.surface(0U);
+        (void)neighborhood.wholeSurface(0U);
+        (void)neighborhood.region(1U);
+        (void)neighborhood.wholeRegion(1U);
+      }
       (void)findSurfacePieces(regions, 4U);
       (void)domain.touches(0U, 1U);
       (void)domain.subdomainAt(Vec3T<T>::zeros());
@@ -711,6 +722,7 @@ instantiateFunctionTemplates()
     (void)Language::read<T>("model.ebg", languagePool);
     (void)Language::completeness(model, tape, "domain");
     (void)Language::inventory(model);
+    (void)model.domainObject("domain").names();
     (void)Language::print(model, true);
     (void)model.template regions<Vec3T<T>>(
       languagePool, [](const Language::Properties& a_p) { return a_p.template vector<T>("v", Vec3T<T>::zeros()); });
