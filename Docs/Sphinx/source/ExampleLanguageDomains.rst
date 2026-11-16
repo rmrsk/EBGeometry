@@ -1,13 +1,14 @@
-.. _Chap:ExampleLanguage:
+.. _Chap:ExampleLanguageDomains:
 
-Language
-========
+Language domains
+================
 
-``Examples/Language`` reads a model written in the :ref:`Chap:Language` at run time: the cable of
+``Examples/LanguageDomains`` reads a model written in the :ref:`Chap:Language` at run time: the cable of
 :ref:`Chap:Language`'s first model, a copper core inside a PTFE jacket, in a box of air with a flow across it.
-The source is at :file:`Examples/Language/main.cpp`, and the model in :file:`Examples/Language/cable/`.
+The source is at :file:`Examples/LanguageDomains/main.cpp`, and the model in :file:`Examples/LanguageDomains/cable/`. Reading a model and
+compiling its object are shown on their own in :ref:`Chap:ExampleLanguageCSG`.
 
-.. figure:: _static/example_Language.jpg
+.. figure:: _static/example_LanguageDomains.jpg
    :width: 60%
    :align: center
 
@@ -54,7 +55,7 @@ Build it as any example (see :ref:`Chap:Examples`), and run it from its folder, 
 
 .. code-block:: bash
 
-   cd Examples/Language
-   make && ./Language.ex                    # or ./Language.ex path/to/setup.ebg
+   cd Examples/LanguageDomains
+   make && ./LanguageDomains.ex                    # or ./LanguageDomains.ex path/to/setup.ebg
 
 See :ref:`Chap:ImplemLanguage` for the calls.

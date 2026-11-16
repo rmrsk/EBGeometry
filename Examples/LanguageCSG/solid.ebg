@@ -1,0 +1,16 @@
+ebg 0
+
+# The classic CSG solid: a cube rounded off by a ball, drilled through along all three axes. The same solid as the
+# BasicCSG example builds in C++, here read at run time: edit a number and run again, no compiling.
+param half    = 1     # half the cube's side
+param r_ball  = 1.35  # the ball's radius
+param r_drill = 0.55  # the drills' radius
+param length  = 1.5   # how far the drills reach from the center
+
+cube   = box((-half, -half, -half), (half, half, half))
+ball   = sphere((0, 0, 0), radius = r_ball)
+drills = union(cylinder((-length, 0, 0), (length, 0, 0), radius = r_drill),
+               cylinder((0, -length, 0), (0, length, 0), radius = r_drill),
+               cylinder((0, 0, -length), (0, 0, length), radius = r_drill))
+
+object difference(intersection(cube, ball), drills)

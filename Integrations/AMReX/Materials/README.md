@@ -49,8 +49,8 @@ Options (on the command line or in an inputs file):
 * `eb.model = <path>`: read the object and the domain from a `.ebg` model (a file: a setup that includes its
   geometry, say) instead of the cable built in C++; `eb.domain = <name>` names the domain (default: the model's
   first). The model's errors stop the run with their files, lines and columns. For example, the
-  [`Language`](../../../Examples/Language/README.md) example's cable, its flow domain:
+  [`LanguageDomains`](../../../Examples/LanguageDomains/README.md) example's cable, its flow domain:
 
-      mpirun -np 8 ./main3d.<something>.ex eb.model=../../../Examples/Language/cable/setup.ebg eb.domain=cfd
+      mpirun -np 8 ./main3d.<something>.ex eb.model=../../../Examples/LanguageDomains/cable/setup.ebg eb.domain=cfd
 
 It writes a plot file, `plt`, with each cut cell's `condition`, `role` and `across` (-1 elsewhere).

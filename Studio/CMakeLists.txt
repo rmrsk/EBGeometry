@@ -189,7 +189,7 @@ add_test(NAME ebgstudio-params-cubes COMMAND ebgstudio params "${_studio_data}/c
 add_test(NAME ebgstudio-render-cubes
          COMMAND ebgstudio render "${_studio_data}/cubes/setup.ebg" -o "${CMAKE_CURRENT_BINARY_DIR}/cubes.ppm" --size 64 64)
 add_test(NAME ebgstudio-check-example
-         COMMAND ebgstudio check "${_studio_repo}/Examples/Language/cable/setup.ebg" --domain cfd --domain electrostatics)
+         COMMAND ebgstudio check "${_studio_repo}/Examples/LanguageDomains/cable/setup.ebg" --domain cfd --domain electrostatics)
 set_tests_properties(ebgstudio-check-cubes ebgstudio-print-cubes ebgstudio-params-cubes ebgstudio-render-cubes
                      ebgstudio-check-example PROPERTIES LABELS "unit;studio")
 

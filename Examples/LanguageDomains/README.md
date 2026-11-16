@@ -1,5 +1,5 @@
-Examples/Language
------------------
+Examples/LanguageDomains
+------------------------
 
 A model read from text. A cable, a copper core inside a PTFE jacket, in a box of air with a flow across it, written
 in the .ebg language: `cable/model.ebg` holds the geometry (the shapes, the overlay of regions and their materials,
@@ -31,7 +31,7 @@ documentation for more detail on each approach.
     cmake -S . -B build
     cmake --build build
 
-The binary is `Language.ex`, in this same directory (same as the other two methods below). Build
+The binary is `LanguageDomains.ex`, in this same directory (same as the other two methods below). Build
 in single precision, against a library in a different location, or with `EBGEOMETRY_EXPECT()`
 runtime assertions enabled, with cache variables:
 
@@ -41,13 +41,13 @@ runtime assertions enabled, with cache variables:
 
     make
 
-This produces `./Language.ex`. Override the defaults on the command line:
+This produces `./LanguageDomains.ex`. Override the defaults on the command line:
 
     make PRECISION=float EBGEOMETRY_HOME=/path/to/EBGeometry ASSERTIONS=ON
 
 **Directly with a compiler**
 
-    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o Language.ex -pthread
+    g++ -std=c++17 -O3 -march=native -I../.. main.cpp -o LanguageDomains.ex -pthread
 
 Add `-DEBGEOMETRY_PRECISION=float` for single precision, or `-DEBGEOMETRY_ENABLE_ASSERTIONS` to enable
 `EBGEOMETRY_EXPECT()` runtime assertion checks.
@@ -73,7 +73,7 @@ Without it, `view()` prints a line saying how to build it and returns. Drag to o
 Running
 -------
 
-    ./Language.ex
+    ./LanguageDomains.ex
 
 It prints the model's counts of regions, materials and domains, the cfd domain's subdomains and surface groups and
 whether it is complete, and each surface group with the keys of its properties. Then the fluid's density at points

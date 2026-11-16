@@ -38,13 +38,14 @@ The examples build on each other, in groups by topic. A new user can read them i
 first group:
 
 #. :ref:`Chap:ExamplesStart`: :ref:`Shapes <Chap:ExampleShapes>`, :ref:`BasicCSG <Chap:ExampleBasicCSG>`,
+   :ref:`LanguageCSG <Chap:ExampleLanguageCSG>`,
    :ref:`MeshSDF <Chap:ExampleMeshSDF>`.
 #. :ref:`Chap:ExamplesComposition`: :ref:`SmoothCSG <Chap:ExampleSmoothCSG>`, :ref:`Transforms
    <Chap:ExampleTransforms>`, :ref:`Repetition <Chap:ExampleRepetition>`, :ref:`ValueOperations
    <Chap:ExampleValueOperations>`, :ref:`FusedCSG <Chap:ExampleFusedCSG>`.
 #. :ref:`Chap:ExamplesMeshes`: :ref:`MeshCSG <Chap:ExampleMeshCSG>`, :ref:`Shell <Chap:ExampleShell>`.
 #. :ref:`Chap:ExamplesMaterials`: :ref:`SurfaceLabels <Chap:ExampleSurfaceLabels>`, :ref:`Materials
-   <Chap:ExampleMaterials>`, :ref:`Language <Chap:ExampleLanguage>`.
+   <Chap:ExampleMaterials>`, :ref:`LanguageDomains <Chap:ExampleLanguageDomains>`.
 #. :ref:`Chap:ExamplesManyObjects`: :ref:`NestedBVH <Chap:ExampleNestedBVH>`, :ref:`ManyObjects
    <Chap:ExampleManyObjects>`, :ref:`PackedSpheres <Chap:ExamplePackedSpheres>`, :ref:`PointClouds
    <Chap:ExamplePointClouds>`, :ref:`ParticleNeighbors <Chap:ExampleParticleNeighbors>`, :ref:`SphereClouds

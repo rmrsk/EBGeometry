@@ -112,7 +112,7 @@ the file a program reads:
   surface group each (the cable's surface).
 * ``view`` says how a viewer opens the model; programs ignore it.
 
-:ref:`Chap:ExampleLanguage` reads ``cable/setup.ebg`` in C++ (see :ref:`Chap:ImplemLanguage` for the
+:ref:`Chap:ExampleLanguageDomains` reads ``cable/setup.ebg`` in C++ (see :ref:`Chap:ImplemLanguage` for the
 calls).
 
 Writing a model is easiest with ``ebgstudio`` (see :ref:`Chap:Studio`) open on it: its window reloads the model
