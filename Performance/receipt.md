@@ -98,3 +98,93 @@ These probes compiled to the same code on both sides and were not run (270 cases
 The probes differ between the sides (each side ran its own): Performance/DomainObject/main.cpp, Performance/Common/Inputs.hpp
 
 <!-- END receipt host -->
+
+<!-- BEGIN receipt cuda -->
+<!--receipt
+version: 3
+side: cuda
+verdict: green
+base: 4bf90e9
+base-fingerprint: 30b6edfbe4d67af90dcaf2ebe131bc7df88464b1
+head: dbfebb7
+head-fingerprint: 68cd8f483a104437773ea71e1de1076b013ffcc6
+cases: 8
+rounds: 2
+reps: 3
+date: 2026-11-17
+-->
+
+## Device comparison (CUDA): green
+
+**Accepted:** -
+
+`dbfebb7` against `4bf90e9` (origin/main), 2026-11-17.
+
+**VERDICT: no regression (0 major, 0 minor across 8 cases)**
+
+Performance comparison: 0 major, 0 minor, 0 faster, 0 differ, 0 lost, 8 cases
+
+- base: ? (?, simd ?, gpu ?, allocator ?)
+- head: dbfebb7 (gcc 13.3.0, simd none, gpu CUDA, allocator glibc, heap only, freed memory returned before each repetition)
+- CPU: 12th Gen Intel(R) Core(TM) i9-12900K
+- Thresholds: minor >= 3%, major >= 10% slower, and outside the 95% bootstrap interval over the runs
+
+| case | base | head | change | 95% interval | pool | verdict | note |
+|---|---:|---:|---:|---:|---:|---|---|
+| `DomainObject/partsWhole/labels/float/hostdevice` | - | - | - | - | - | new |  |
+| `DomainObject/partsWhole/labelAt/float/hostdevice` | - | - | - | - | - | new |  |
+| `DomainObject/partsOwn/labels/float/hostdevice` | - | - | - | - | - | new | own/whole 46.40x |
+| `DomainObject/partsOwn/labelAt/float/hostdevice` | - | - | - | - | - | new | own/whole 58.82x |
+| `DomainObject/partsWhole/labels/double/hostdevice` | - | - | - | - | - | new |  |
+| `DomainObject/partsWhole/labelAt/double/hostdevice` | - | - | - | - | - | new |  |
+| `DomainObject/partsOwn/labels/double/hostdevice` | - | - | - | - | - | new | own/whole 50.57x |
+| `DomainObject/partsOwn/labelAt/double/hostdevice` | - | - | - | - | - | new | own/whole 48.20x |
+
+### Build costs: Probe builds (Release)
+
+Machine: 16 cores, 24 hardware threads, 63 GB. Compiled on hardware threads 0,2,4,6,8,10,12,14 (one per fast core), 8 at a time.
+
+Reported, not judged: these flags do not enter the verdict. CPU time of each compile (user and system, every process the compiler ran) and its peak memory; minor at 10% more, MAJOR at 25% (and at least 2 s or 100 MB). Total CPU 4754.0 s → 4748.5 s (-0.1%), the largest peak 6080 MB → 6080 MB; 0 unit(s) flagged.
+
+| unit | CPU base | CPU head | change | peak base | peak head | change | flag |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `BVH` | 12.8 s | 12.8 s | +0.2% | 599 MB | 600 MB | +0.2% | ~ |
+| `BVHRefit` | 6.6 s | 6.6 s | +0.2% | 505 MB | 505 MB | +0.1% | ~ |
+| `BVHUnion` | 24.6 s | 24.5 s | -0.6% | 1024 MB | 1025 MB | +0.1% | ~ |
+| `BVHUnionMixed` | 10.9 s | 10.8 s | -0.7% | 624 MB | 625 MB | +0.1% | ~ |
+| `ClosestPrimitive` | 127.9 s | 126.5 s | -1.1% | 1346 MB | 1347 MB | +0.0% | ~ |
+| `ClosestSurface` | 191.9 s | 189.5 s | -1.2% | 1844 MB | 1844 MB | -0.0% | ~ |
+| `Domain` | 57.9 s | 59.5 s | +2.6% | 993 MB | 994 MB | +0.0% | ~ |
+| `DomainObject` | - | 57.1 s | | - | 948 MB | | new |
+| `Fused` | 52.6 s | 54.5 s | +3.8% | 1157 MB | 1157 MB | +0.0% | ~ |
+| `LaunchTuning` | 538.1 s | 537.6 s | -0.1% | 3806 MB | 3806 MB | +0.0% | ~ |
+| `Mesh` | 20.0 s | 20.1 s | +0.5% | 801 MB | 801 MB | +0.0% | ~ |
+| `MeshCSG` | 396.4 s | 398.3 s | +0.5% | 6080 MB | 6080 MB | -0.0% | ~ |
+| `MeshReconcile` | 10.1 s | 10.4 s | +3.2% | 511 MB | 512 MB | +0.1% | ~ |
+| `PointCloud` | 12.5 s | 12.2 s | -2.1% | 570 MB | 570 MB | +0.1% | ~ |
+| `PointCloudBVHBuild` | 7.2 s | 7.3 s | +0.1% | 505 MB | 506 MB | +0.2% | ~ |
+| `PointCloudHashGridBuild` | 6.5 s | 6.6 s | +1.1% | 505 MB | 506 MB | +0.2% | ~ |
+| `Ray` | 189.2 s | 188.2 s | -0.5% | 3703 MB | 3703 MB | -0.0% | ~ |
+| `RayCSG` | 223.8 s | 219.6 s | -1.9% | 4086 MB | 4086 MB | +0.0% | ~ |
+| `RayCrossing` | 434.9 s | 436.7 s | +0.4% | 4017 MB | 4017 MB | -0.0% | ~ |
+| `RayParticles` | 673.4 s | 674.3 s | +0.1% | 5632 MB | 5632 MB | -0.0% | ~ |
+| `RayShell` | 409.9 s | 414.2 s | +1.0% | 5345 MB | 5346 MB | +0.0% | ~ |
+| `Regions` | 359.9 s | 359.0 s | -0.3% | 3835 MB | 3835 MB | -0.0% | ~ |
+| `Render` | 254.4 s | 255.6 s | +0.5% | 5896 MB | 5896 MB | +0.0% | ~ |
+| `Shapes` | 25.9 s | 25.7 s | -0.8% | 591 MB | 592 MB | +0.1% | ~ |
+| `SphereCloudBVH` | 8.6 s | 8.5 s | -1.1% | 505 MB | 506 MB | +0.1% | ~ |
+| `SphereCloudRays` | 188.7 s | 187.7 s | -0.5% | 4093 MB | 4093 MB | -0.0% | ~ |
+| `SphereContacts` | 8.2 s | 8.1 s | -1.2% | 504 MB | 505 MB | +0.2% | ~ |
+| `SurfaceParts` | 399.0 s | 395.9 s | -0.8% | 4242 MB | 4242 MB | -0.0% | ~ |
+| `Tape` | 60.0 s | 57.7 s | -3.9% | 980 MB | 981 MB | +0.1% | ~ |
+| `TapeBVHUnion` | 42.0 s | 40.1 s | -4.6% | 921 MB | 921 MB | +0.0% | ~ |
+| **all, in both** | 4754.0 s | 4748.5 s | -0.1% | 6080 MB | 6080 MB | -0.0% | ~ |
+
+Device kernels: 194 in both, 0 changed (0 flagged: registers changed, spills grew, or the stack grew by more than 10% and 256 bytes), 4 new, 0 gone. Spills are bytes stored/loaded per thread.
+
+
+These probes compiled to the same code on both sides and were not run (368 cases): BVH (12), BVHRefit (2), BVHUnion (12), BVHUnionMixed (4), ClosestPrimitive (6), ClosestSurface (8), Domain (6), Fused (10), LaunchTuning (24), Mesh (8), MeshCSG (18), MeshReconcile (2), PointCloud (40), PointCloudBVHBuild (4), PointCloudHashGridBuild (4), Ray (28), RayCSG (20), RayCrossing (32), RayParticles (20), RayShell (12), Regions (12), Render (6), Shapes (20), SphereCloudBVH (8), SphereCloudRays (12), SphereContacts (2), SurfaceParts (12), Tape (20), TapeBVHUnion (4)
+
+The probes differ between the sides (each side ran its own): Performance/DomainObject/main.cpp, Performance/Common/Inputs.hpp
+
+<!-- END receipt cuda -->
