@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for PolygonSoup: construction, properties, clean() and the index maps behind it, and the
 // conversions to a DCEL mesh and to triangles. The file readers that return it are tested in

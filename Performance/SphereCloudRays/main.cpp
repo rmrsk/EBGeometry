@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for SphereCloudBVH's ray form, over 500,000 spheres of differing radii (centers uniform in the
 // unit cube), in float and double: the first crossing of rays starting at random points in the cloud's box, in a

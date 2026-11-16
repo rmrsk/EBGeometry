@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for PackedBVH::traverse() itself: a BVH over the boxes of the probe mesh's triangles,
 // walked with a ray (the nearest box entered, and whether any box is entered) and with a point (the

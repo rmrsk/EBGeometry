@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Check a pull request's performance receipt: that the comparison was run, on this code, against the
 # current base, and that its verdicts may be merged. Run by CI's Performance-receipt job; it needs only

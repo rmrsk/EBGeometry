@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Regions of several materials in one object: a cable, a copper core inside a PTFE jacket, in a box of air.
 // Overlay() stacks the parts as regions rather than one solid, so the core keeps its surface inside the jacket;

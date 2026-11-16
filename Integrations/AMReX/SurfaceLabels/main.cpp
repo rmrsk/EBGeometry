@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Which part of an object each cut cell lies on: the armadillo with a cylinder bored through its chest,
 // compiled into a Tape and handed to AMReX's EB2 grid generation as an implicit function, and each cut cell

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # The performance probes: one program per folder with a main.cpp, plus PerfCompare, which compares two
 # sets of results. Built from the project (EBGEOMETRY_BUILD_PERFORMANCE=ON, or the perf preset) or on

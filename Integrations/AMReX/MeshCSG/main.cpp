@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A mesh composed with analytic shapes: the xyzrgb dragon on a table, blended into it by a smooth union,
 // compiled into a Tape and handed to AMReX's EB2 grid generation as an implicit function. The same code runs

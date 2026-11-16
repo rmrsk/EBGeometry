@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
+# SPDX-License-Identifier: BSD-3-Clause
+
+cff-version: 1.2.0
+message: "If you use EBGeometry in published work, please cite it as below."
+type: software
+title: "EBGeometry"
+abstract: >-
+  A header-only C++17 library for fast, portable geometry queries on CPUs and GPUs: signed distance
+  functions of surface meshes, analytic shapes and constructive solid geometry, accelerated by bounding
+  volume hierarchies, with ray queries and point clouds, for embedded-boundary codes and beyond.
+authors:
+  - family-names: Marskar
+    given-names: Robert
+    affiliation: SINTEF
+license: BSD-3-Clause
+repository-code: "https://github.com/rmrsk/EBGeometry"
+url: "https://rmrsk.github.io/EBGeometry/"
+keywords:
+  - signed distance functions
+  - constructive solid geometry
+  - bounding volume hierarchy
+  - embedded boundary
+  - GPU
+  - C++

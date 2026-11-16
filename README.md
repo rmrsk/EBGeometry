@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml/badge.svg)](https://github.com/rmrsk/EBGeometry/actions/workflows/CI.yml)
 [![Documentation](https://github.com/rmrsk/EBGeometry/actions/workflows/docs.yml/badge.svg)](https://rmrsk.github.io/EBGeometry/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 [![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 [![Header-only](https://img.shields.io/badge/header--only-yes-brightgreen.svg)](EBGeometry.hpp)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](EBGeometry.hpp)
@@ -281,6 +281,20 @@ repository and open a pull request. See
 [Contributing and testing](https://rmrsk.github.io/EBGeometry/Contributing.html) for how to build and
 test locally, what continuous integration checks, the performance comparison every pull request
 carries, and the code conventions.
+
+## Citing EBGeometry
+
+If you use EBGeometry in published work, please cite it. GitHub's *Cite this repository* button (from
+[`CITATION.cff`](CITATION.cff)) gives the reference in BibTeX and APA, or use:
+
+```bibtex
+@software{EBGeometry,
+  author  = {Marskar, Robert},
+  title   = {{EBGeometry}: fast, portable geometry queries in a single {C++} header},
+  url     = {https://github.com/rmrsk/EBGeometry},
+  license = {BSD-3-Clause}
+}
+```
 
 ## How EBGeometry is developed
 

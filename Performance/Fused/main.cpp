@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for the fused CSG operations (EBGeometry_Fused.hpp): the Tape probe's solids (the
 // classic CSG solid, a smooth solid, a chain of 16 spheres) as fused compositions, and a mesh drilled

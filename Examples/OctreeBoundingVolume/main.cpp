@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Estimating a tight bounding box for anything that gives a distance at a point, by octree refinement:
 // first for one analytic shape, then for a union of three written as a small functor. The estimate

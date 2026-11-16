@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A composition read at run time: the classic CSG solid of the BasicCSG example, written in the .ebg language
 // (solid.ebg) instead of composed in C++. The program reads it, compiles its object into a tape, and opens a window on

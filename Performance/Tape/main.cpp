@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for Tape's signed distance: the classic CSG solid compiled into a
 // tape and the same solid written by hand, a tape of smooth unions, and a union of many spheres evaluated

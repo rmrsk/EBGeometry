@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for the renderer: one whole frame, with shadows and ambient occlusion, of the
 // classic CSG solid compiled into a Tape and of the armadillo as a TriMeshSDF, in float and double. A host

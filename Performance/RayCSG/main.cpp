@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for ray tracing a composition from its operands' spans (EBGeometry_RaySpans.hpp): a
 // scene of 25 balls and 25 boxes, less 10 balls, fused and through a tape (whose union of 50 is a BVH

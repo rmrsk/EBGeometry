@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for GPU::transform()'s launch settings (EBGeometry_GPUTransform.hpp): the block size and
 // the threads the CUDA compiler is asked to keep resident on a multiprocessor (GPU::DefaultMinResidentThreads),

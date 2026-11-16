@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A surface mesh (STL, PLY, VTK or OBJ) read into a TriMeshSDF and handed to AMReX's EB2 grid generation as
 // an implicit function. The same code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. See

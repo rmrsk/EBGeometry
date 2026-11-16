@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for a Tape's union through a BVH asked for with Accelerate::BVH: 64 shapes under point maps
 // (boxes rotated and translated, spheres scaled and translated), whose operands the BVH evaluates directly at

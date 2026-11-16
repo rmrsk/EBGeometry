@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Analytic shapes handed to AMReX's EB2 grid generation as an implicit function: one shape, a torus, or the
 // classic CSG solid, a cube rounded by a ball and drilled along each axis, compiled into a Tape or composed at

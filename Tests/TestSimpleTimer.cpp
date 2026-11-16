@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for EBGeometry_SimpleTimer.hpp. Previously untested. Timing-based checks use
 // generous, one-sided bounds (a lower bound well below the requested sleep duration, and an upper

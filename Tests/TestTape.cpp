@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for EBGeometry_Tape.hpp: the compiled form of an expression. Covers what the transform
 // and CSG tests do not: every primitive type the tape stores (analytic shapes, the three mesh SDFs,

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for the point-map and value transforms of the expression builder (EBGeometry_Expr.hpp):
 // complement, translate, rotate, scale, reflect, offset, annular shell, blur, mollify and elongate,
