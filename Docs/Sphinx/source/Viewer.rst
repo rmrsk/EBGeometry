@@ -48,7 +48,8 @@ To look inside:
   front to back, seeing through those in front of the one stepped to.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
   keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut
-  (or through the side N draws, or makes it opaque), and the arrow keys and Ctrl + wheel move it. I draws lines of equal distance on the plane, spaced to the view.
+  (or through the side N draws, or makes it opaque), and the arrow keys and Ctrl + wheel move it. I draws lines
+  of equal distance on the plane, spaced to the view.
 * **Slice view.** Z lays the section plane flat on screen, seen square from the removed side; the wheel then
   moves the plane through the object.
 * **Other views.** M cycles the views: shaded, x-ray, and the costs of finding hits and of finding crossings
