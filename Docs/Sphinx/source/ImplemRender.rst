@@ -87,6 +87,11 @@ default.
      - The direction toward the light, by default in the camera's frame so that it lights the side in view
        wherever the camera goes (``m_lightFromCamera`` false fixes it in the scene); how strongly it lights;
        the light from the sky; the highlights' brightness and size.
+   * - ``m_fillIntensity``, ``m_shoulder``
+     - A fill light, which lights the sides the light leaves dark: it comes from the camera's other side, a
+       little below the horizon, and follows the light; it casts no shadow, makes no highlights and costs no
+       rays (0 turns it off). Where lit surfaces start to roll off towards white instead of clipping at it (1:
+       a hard clip).
    * - ``m_floor``, ``m_floorStyle``, ``m_floorColor``, ``m_floorCellSize``, ``m_floorLineColor``,
        ``m_floorMajorEvery``, ``m_floorFade``, ``m_floorReflectance``
      - A floor under the shape that catches its shadow, fading into the backdrop far away: a checkerboard

@@ -623,6 +623,7 @@ public:
                              a_settings.m_light[2] * a_view.m_forward
                          : a_settings.m_light)),
       m_light(m_baseLight),
+      m_fill(fillDirection(a_view, m_baseLight)),
       m_first(a_view.m_first),
       m_second(a_view.m_second),
       m_forward(a_view.m_forward),
@@ -1289,6 +1290,11 @@ private:
   Vec3T<T> m_light;
 
   /**
+   * @brief Unit direction towards the fill light (see Settings::m_fillIntensity and fillDirection()).
+   */
+  Vec3T<T> m_fill;
+
+  /**
    * @brief Horizontal unit vectors (see Camera::horizontal()).
    */
   Vec3T<T> m_first;
@@ -1586,9 +1592,64 @@ private:
     const T spec = std::pow(Math::max(T(0), dot(a_normal, half)), m_settings.m_shininess) * diff;
     const T sky  = T(0.5) + T(0.5) * dot(a_normal, m_up);
     const T ao   = (a_shade && m_settings.m_occlusion) ? this->occlusion(a_point, a_normal) : T(1);
+    const T fill = m_settings.m_fillIntensity * Math::max(T(0), dot(a_normal, m_fill));
 
-    return a_albedo * (m_settings.m_lightIntensity * diff + m_settings.m_ambient * sky * ao) +
-           m_settings.m_specular * spec * Vec3T<T>::ones();
+    const Vec3T<T> c = a_albedo * (m_settings.m_lightIntensity * diff + m_settings.m_ambient * sky * ao + fill) +
+                       m_settings.m_specular * spec * Vec3T<T>::ones();
+
+    return Vec3T<T>(this->shoulder(c[0]), this->shoulder(c[1]), this->shoulder(c[2]));
+  }
+
+  /**
+   * @brief One component of a lit surface's color, rolled off towards white above Settings::m_shoulder.
+   * @details Above s = m_shoulder, c - (c - s)^2 / (4(1 - s)): the same value and slope as c at s, and 1 with slope
+   * 0 at 2 - s. A quadratic, rather than an exponential or rational curve, reaches white exactly, so that a surface
+   * lit far past white is white, as with the plain clip; and it costs a multiply-add. At s = 1 nothing changes, and
+   * the frame's encoding clips at 1 as before.
+   * @param[in] a_c The component, linear.
+   * @return The component rolled off.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  shoulder(const T a_c) const noexcept
+  {
+    const T s = m_settings.m_shoulder;
+
+    if (a_c <= s || s >= T(1)) {
+      return a_c;
+    }
+
+    if (a_c >= T(2) - s) {
+      return T(1);
+    }
+
+    const T d = a_c - s;
+
+    return a_c - d * d / (T(4) * (T(1) - s));
+  }
+
+  /**
+   * @brief The direction towards the fill light: the light's mirrored left to right in the camera's frame, in front,
+   * and a little below the scene's horizon.
+   * @details In the camera's frame (x right, y up, z towards the viewer), a light at unit (x, y, z) gives
+   * (-x, 0, 0.35): the camera's other side, and in front, so that the side the camera sees of a surface the light
+   * leaves dark faces it. Its component along the scene's up axis (CameraView::m_axis) is then set to -0.2 before normalizing, about 20
+   * degrees below the horizon for the default light: below the camera's own horizon would not do, since a camera
+   * pitched down sees an upward-facing floor lit from there, and the floor is to keep its brightness. A camera looking
+   * straight down with the light straight ahead leaves only that component, and the fill comes from straight below.
+   * Further forward (0.6 instead of 0.35) lit surfaces facing the camera as much as the sides, and flattened the
+   * shading; further to the side lights less of what the camera sees.
+   * @param[in] a_view  The camera's view.
+   * @param[in] a_light Unit direction towards the light, in the scene.
+   * @return Unit direction towards the fill light, in the scene.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline Vec3T<T>
+  fillDirection(const CameraView<T>& a_view, const Vec3T<T>& a_light) noexcept
+  {
+    const Vec3T<T> f = -dot(a_light, a_view.m_right) * a_view.m_right - T(0.35) * a_view.m_forward;
+
+    return unit(f - (dot(f, a_view.m_axis) + T(0.2)) * a_view.m_axis);
   }
 
   /**
@@ -1849,14 +1910,8 @@ private:
     }
 
     // Lines of equal distance, every m_isoSpacing, thinner than the contour.
-
-    if (lines) {
-      const T r = rest / slope;
-
-      if (std::abs(r) < T(0.75) * width) {
-        color = sample.m_secondary ? m_settings.m_isoSecondaryColor : m_settings.m_isoColor;
-      }
-    }
+    const bool      onLine = lines && std::abs(rest / slope) < T(0.75) * width;
+    const Vec3T<T>& line   = sample.m_secondary ? m_settings.m_isoSecondaryColor : m_settings.m_isoColor;
 
     if (value > T(0) && m_settings.m_sheetOpacity > T(0) && fill == T(0)) {
       // The sheet's edge, a pixel and a half wide, where the plane leaves the box.
@@ -1868,10 +1923,16 @@ private:
 
       const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColor : m_settings.m_sheetColor;
 
-      return (T(1) - m_settings.m_sheetOpacity) * color + m_settings.m_sheetOpacity * over;
+      const T        a       = m_settings.m_sheetOpacity;
+      const Vec3T<T> sheeted = (T(1) - a) * color + a * over;
+
+      // A line goes over the sheet, as strongly as the sheet is clear: over a white sheet that is the line under it, as
+      // drawn inside, but over a dark backdrop the sheet no longer lifts the line to the backdrop's own shade, which
+      // made the lines vanish there.
+      return onLine ? a * sheeted + (T(1) - a) * line : sheeted;
     }
 
-    return color;
+    return onLine ? line : color;
   }
 
   /**
@@ -2841,6 +2902,8 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_light", a_settings.m_light, settings.m_light);
   field("settings", "m_lightIntensity", a_settings.m_lightIntensity, settings.m_lightIntensity);
   field("settings", "m_ambient", a_settings.m_ambient, settings.m_ambient);
+  field("settings", "m_fillIntensity", a_settings.m_fillIntensity, settings.m_fillIntensity);
+  field("settings", "m_shoulder", a_settings.m_shoulder, settings.m_shoulder);
   field("settings", "m_specular", a_settings.m_specular, settings.m_specular);
   field("settings", "m_shininess", a_settings.m_shininess, settings.m_shininess);
   field("settings", "m_skyHorizon", a_settings.m_skyHorizon, settings.m_skyHorizon);
@@ -3479,6 +3542,12 @@ Renderer<T>::check(const Camera<T>& a_camera) const
                      double(m_settings.m_specular),
                      double(m_settings.m_floorCellSize),
                      double(m_settings.m_lightSize));
+  EBGEOMETRY_REQUIRE(m_settings.m_fillIntensity >= T(0),
+                     "Render::Renderer: the fill light's intensity must not be negative (%g)",
+                     double(m_settings.m_fillIntensity));
+  EBGEOMETRY_REQUIRE(m_settings.m_shoulder >= T(0) && m_settings.m_shoulder <= T(1),
+                     "Render::Renderer: the shoulder must be from 0 to 1 (%g)",
+                     double(m_settings.m_shoulder));
   EBGEOMETRY_REQUIRE(m_settings.m_floorFade > T(0) && m_settings.m_floorReflectance >= T(0) &&
                        m_settings.m_floorReflectance <= T(1),
                      "Render::Renderer: the floor's fade must be positive and its reflectance from 0 to 1 (%g, %g)",
