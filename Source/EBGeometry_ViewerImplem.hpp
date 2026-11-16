@@ -277,7 +277,9 @@ keys(const bool a_device, const bool a_regions = false)
       {"R", "Reset the camera, the light, what is picked and what is shown"},
       {nullptr, "Light"},
       {"Right drag", "Move the light"},
-      {"Left, Right", "Weaker or stronger highlights"},
+      {"Up, Down", "Stronger or weaker light"},
+      {"Left, Right", "Less or more ambient light"},
+      {"Shift + Up, Down", "Stronger or weaker highlights"},
       {"Shift + Left, Right", "Broader or tighter highlights"}}},
     {"Rendering",
      "Rendering",
@@ -287,10 +289,10 @@ keys(const bool a_device, const bool a_regions = false)
       {"A", "Ambient occlusion on or off"},
       {"F", "Floor on or off"},
       {"U", "Axis planes through the origin: all three, the one facing you most, or none"},
-      {"B",
-       "The next look of the backdrop and the floor (sky, dark, gradient, shadow only, light grid, studio, mirror, "
-       "dark grid, blueprint)"},
-      {"Shift + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
+      {"B, Shift + B",
+       "The next or previous look of the backdrop and the floor (sky, dark, gradient, shadow only, light grid, "
+       "studio, mirror, dark grid, blueprint)"},
+      {"Ctrl + Up, Down", "More or fewer rays per pixel (1 to 64)"}}},
     {"Section and contours",
      "Section",
      {{"X", "Cut across x, then y, then z"},
@@ -299,7 +301,7 @@ keys(const bool a_device, const bool a_regions = false)
        "See through the cut face and the plane, or make them opaque; with the other side drawn (N), "
        "make it opaque or ghosted"},
       {"N", "Keep the other side; each side with the other ghosted; both sides solid (five in turn)"},
-      {"Up, Down", "Move the plane in coarse steps"},
+      {"Page Up, Page Down", "Move the plane in coarse steps"},
       {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
       {"I", "Lines of equal distance: off, as set, coarse, fine, finer (these follow the zoom)"}}},
@@ -2249,7 +2251,7 @@ run(const S&           a_shape,
       normal = -normal;
     }
 
-    // The arrow keys move the plane towards the removed side, so that more of the shape shows.
+    // Page Up moves the plane towards the removed side, so that more of the shape shows.
     frame.m_section       = sectionMode != 0;
     frame.m_ghostOpacity  = sectionGhost ? ((sectionSolid != sectionSwap) ? T(1) : T(0.3)) : T(0);
     frame.m_sectionNormal = normal;
@@ -2535,7 +2537,8 @@ run(const S&           a_shape,
           fixed(double(camera.m_fieldOfView), 0)},
        {"Target " + point(camera.m_target, 3) + ", near clip " + fixed(double(camera.m_nearClip), 3),
         std::string("Light ") + (settings.m_lightFromCamera ? "from the camera, " : "in the scene, ") +
-          point(settings.m_light, 2),
+          point(settings.m_light, 2) + ", intensity " + fixed(double(settings.m_lightIntensity), 2) + ", ambient " +
+          fixed(double(settings.m_ambient), 2),
         "Highlights of strength " + fixed(double(settings.m_specular), 2) + ", tightness " +
           fixed(double(settings.m_shininess), 0)}},
       {{view + ", on the " + (onDevice ? "GPU" : "CPU"),
@@ -4598,7 +4601,10 @@ run(const S&           a_shape,
           // A floor turned off with F stays off; a look without one (gradient) says nothing of what F wants.
           const bool floorWanted = settings.m_floor || look == uint8_t(Look::Gradient);
 
-          look = uint8_t((look + 1U) % NumLooks);
+          // B steps forward through the looks, Shift and B back.
+          const unsigned step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? NumLooks - 1U : 1U;
+
+          look = uint8_t((look + step) % NumLooks);
 
           setLook(settings, Look(look));
 
@@ -4837,23 +4843,29 @@ run(const S&           a_shape,
         }
         case SDLK_UP:
         case SDLK_DOWN: {
-          // With Shift held, more or fewer rays per pixel (1 x 1 to 8 x 8); otherwise the section plane moves
-          // in coarse steps.
-          const bool upward = event.key.keysym.sym == SDLK_UP;
+          // The light: stronger or weaker, or with Shift held, its highlights, both in steps of 0.05, kept on them so
+          // that repeated steps do not drift. With Ctrl held, more or fewer rays per pixel, 1 x 1 to 8 x 8 (on the
+          // arrows rather than on keys some layouts reach only through AltGr).
+          const T step = (event.key.keysym.sym == SDLK_UP) ? T(1) : T(-1);
 
-          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
-            settings.m_supersampling =
-              upward ? Math::min(settings.m_supersampling + 1U, 8U) : Math::max(settings.m_supersampling, 2U) - 1U;
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            settings.m_supersampling = (step > T(0)) ? Math::min(settings.m_supersampling + 1U, 8U)
+                                                     : Math::max(settings.m_supersampling, 2U) - 1U;
+          }
+          else if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_specular = Math::clamp((std::round(settings.m_specular * T(20)) + step) / T(20), T(0), T(1.5));
           }
           else {
-            sectionOffset += (upward ? T(0.02) : T(-0.02)) * scale;
+            settings.m_lightIntensity =
+              Math::clamp((std::round(settings.m_lightIntensity * T(20)) + step) / T(20), T(0), T(3));
           }
 
           break;
         }
         case SDLK_LEFT:
         case SDLK_RIGHT: {
-          // The highlights: stronger or weaker, or with Shift held, tighter or broader (the specular exponent).
+          // The ambient light: more or less, in steps of 0.05 as the light's; or with Shift held, the highlights
+          // tighter or broader (the specular exponent).
           const bool more = event.key.keysym.sym == SDLK_RIGHT;
 
           if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
@@ -4861,11 +4873,17 @@ run(const S&           a_shape,
               Math::clamp(more ? settings.m_shininess * T(1.5) : settings.m_shininess / T(1.5), T(2), T(512));
           }
           else {
-            // In steps of 0.05, kept on them so that repeated steps do not drift.
-            const T steps = std::round(settings.m_specular * T(20)) + (more ? T(1) : T(-1));
+            const T steps = std::round(settings.m_ambient * T(20)) + (more ? T(1) : T(-1));
 
-            settings.m_specular = Math::clamp(steps / T(20), T(0), T(1.5));
+            settings.m_ambient = Math::clamp(steps / T(20), T(0), T(1.5));
           }
+
+          break;
+        }
+        case SDLK_PAGEUP:
+        case SDLK_PAGEDOWN: {
+          // The section plane, in coarse steps.
+          sectionOffset += ((event.key.keysym.sym == SDLK_PAGEUP) ? T(0.02) : T(-0.02)) * scale;
 
           break;
         }
@@ -5129,6 +5147,8 @@ run(const S&           a_shape,
 
           camera                        = (a_hooks != nullptr && a_hooks->m_hasHome) ? a_hooks->m_home : a_camera;
           settings.m_light              = a_settings.m_light;
+          settings.m_lightIntensity     = a_settings.m_lightIntensity;
+          settings.m_ambient            = a_settings.m_ambient;
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
