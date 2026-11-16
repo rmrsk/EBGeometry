@@ -50,7 +50,7 @@ EBGeometry object.
        labeled with its surface group (the boundary condition's id), its role (a boundary or an interface) and
        the region on the other side (``Domain::closestSurface(p, subdomain)``). With ``eb.model`` (and
        ``eb.domain``), the object and the domain are read from a ``.ebg`` model instead.
-     - :ref:`Chap:ExampleMaterials`, :ref:`Chap:ExampleLanguage`
+     - :ref:`Chap:ExampleMaterials`, :ref:`Chap:ExampleLanguageDomains`
    * - :file:`ManyObjects`
      - 3,000 spheres in a cylinder joined by a ``BVHSmoothUnion`` (the fluid is between them), or a city of
        boxes in a ``BVHUnion`` (``scene = spheres`` or ``city``).

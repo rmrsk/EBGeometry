@@ -58,5 +58,5 @@ Models in a program
 -------------------
 
 ``ebgstudio`` reads models the way any program can: through ``Language::read()`` (see :ref:`Chap:ImplemLanguage`).
-:ref:`Chap:ExampleLanguage` reads a model's setup file, builds its domain and fills a table of its materials, on the host and
+:ref:`Chap:ExampleLanguageDomains` reads a model's setup file, builds its domain and fills a table of its materials, on the host and
 on a GPU; ``ebgstudio`` is how such a model is written and checked before a program reads it.
