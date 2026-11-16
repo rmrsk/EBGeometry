@@ -8,7 +8,7 @@
 // cut (subdomain = 0 or 1); each cut cell is labeled with the surface group of the surface there (the boundary
 // condition's id), its role for the domain (a boundary or an interface) and the region on the other side. The same
 // code runs on CPUs and, in a CUDA or HIP build of AMReX, on GPUs. With eb.model, the object and the domain are read
-// from a .ebg model instead (eb.domain names the domain). See README.md, and the Materials and Language examples under
+// from a .ebg model instead (eb.domain names the domain). See README.md, and the Materials and LanguageDomains examples under
 // Examples/.
 
 #include <AMReX.H>

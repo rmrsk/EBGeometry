@@ -7,7 +7,6 @@
 // the object into a tape, builds the flow domain for it, and puts the fluid's properties in the pool as rows of its own
 // type, which a query reads on the host and on a GPU. See README.md.
 
-#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -64,33 +63,18 @@ main(int argc, char* argv[])
   // ── Read the model ─────────────────────────────────────────────────────────────────────────────────
   //
   // The setup file includes the geometry (model.ebg); read() reads it and what it includes. A model with errors throws
-  // them all, with their files, lines and columns. Meshes a model reads would be built into the pool.
+  // them all, with their files, lines and columns.
   const std::string file = (argc > 1 && argv[1][0] != '-') ? argv[1] : "cable/setup.ebg";
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-  const auto model = [&]() {
-    try {
-      return EBGeometry::Language::read<T>(file, pool);
-    } catch (const EBGeometry::Language::Error& e) {
-      std::cerr << e.what() << "\n";
-
-      std::exit(1);
-    }
-  }();
-
-  for (const auto& warning : model.warnings()) {
-    std::cout << warning.str() << "\n";
-  }
-
-  std::cout << "Read " << file << ": " << model.index().getNumRegions() << " regions, " << model.getNumMaterials()
-            << " materials, " << model.getNumDomains() << " domains\n";
+  const auto model = EBGeometry::Language::read<T>(file, pool);
 
   // ── Build what the program computes on ─────────────────────────────────────────────────────────────
   //
-  // The program compiles the object (it picks the tape's features), builds a domain of the model for that tape, and
-  // fills the fluid's table from the subdomains' properties: the subdomain's own over its regions' material's. Both
-  // live in the tape's pool: one mirror, one lifetime.
+  // The program compiles the object, builds the cfd domain of the model for that tape, and fills the fluid's table from
+  // the subdomains' properties: the subdomain's own over its regions' material's. Both live in the tape's pool: one
+  // mirror, one lifetime.
   const Tape tape(pool, model.object());
 
   const auto&  cfd = model.domain("cfd");
@@ -100,22 +84,14 @@ main(int argc, char* argv[])
     return Fluid{T(a_properties.number("density")), T(a_properties.number("viscosity", 0.0))};
   });
 
-  // Is every subdomain given properties, and every piece of surface bounding the domain a boundary condition?
+  // Is every subdomain given properties, and every piece of surface bounding the domain a boundary condition? If not,
+  // the findings say what is missing, at the lines to change.
   const auto check = EBGeometry::Language::completeness(model, tape, "cfd");
 
-  std::cout << "Domain cfd: " << cfd.getNumSubdomains() << " subdomain(s), " << cfd.getNumSurfaceGroups()
-            << " surface groups, " << (check.m_complete ? "complete" : "incomplete") << "\n";
+  std::cout << "Domain cfd: " << (check.m_complete ? "complete" : "incomplete") << "\n";
 
-  for (uint32_t g = 0; g < cfd.getNumSurfaceGroups(); g++) {
-    const auto& properties = cfd.surfaceGroupProperties(g);
-
-    std::cout << "  group " << cfd.surfaceGroupName(g) << ":";
-
-    for (const std::string& key : properties.keys()) {
-      std::cout << " " << key;
-    }
-
-    std::cout << "\n";
+  for (const auto& finding : check.m_findings) {
+    std::cout << "  " << finding.str() << "\n";
   }
 
   // ── On the host ────────────────────────────────────────────────────────────────────────────────────
@@ -129,11 +105,13 @@ main(int argc, char* argv[])
 
   const FluidDensity query{flow, fluids};
 
-  std::cout << "Fluid density along y = 0.05, z = 0 (on the host):\n";
+  std::cout << "Fluid density along y = 0.05, z = 0 (on the host):";
 
   for (const Vec3& p : points) {
-    std::cout << "  x = " << p[0] << ": " << query(p) << "\n";
+    std::cout << " " << query(p);
   }
+
+  std::cout << "\n";
 
   // ── The same query through GPU::transform ──────────────────────────────────────────────────────────
   //
@@ -163,11 +141,9 @@ main(int argc, char* argv[])
 
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
-  // The regions, colored by material, with the model's names: its regions, materials and labels, and its domains and
-  // their surface groups (the panel switches between them). ebgstudio view does the same, and writes the surface
-  // groups made in the window back into the files.
+  // The regions, colored by material, with the air hidden, and the model's names: the panel switches between its
+  // domains and their surface groups.
   EBGeometry::Render::Settings<T> settings;
-
   settings.m_colorBy            = EBGeometry::Render::ColorBy::Primitive;
   settings.m_regions.m_coloring = EBGeometry::RegionColoring::Material;
   settings.m_regions.setVisible(1, false);

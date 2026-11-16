@@ -179,4 +179,4 @@ Last, in ``mine/setup.ebg``, the camera and colors the window opens with:
 
 ``ebgstudio check mine/setup.ebg --all-domains`` now reports no error and no warning, and both domains complete: the
 model ``Studio/Models/cooling_block`` is, and a program reads ``setup.ebg`` (or either setup on its own) with
-``Language::read()`` (see :ref:`Chap:ExampleLanguage`).
+``Language::read()`` (see :ref:`Chap:ExampleLanguageDomains`).

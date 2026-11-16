@@ -12,7 +12,7 @@ material air { permittivity = 1.0, density = 1.2, viscosity = mu_air }
 domain electrostatics {
   subdomain insulation = jacket
   subdomain gas = air
-  group conductor = interface(core, jacket) { potential = 1000 }
+  group conductor = interface(core, jacket), interface(core, air) { potential = 1000 }
   group dielectric = interface(jacket, air) { surface_charge = 0 }
   group ground = label("inlet"), label("outlet"), label("far") { potential = 0 }
   group ends = remaining() { kind = "zero_flux" }
@@ -24,6 +24,7 @@ domain cfd {
   group inlet = label("inlet") { velocity = (2, 0, 0) }
   group outlet = label("outlet") { pressure = 0 }
   group walls = interface(air, jacket) { kind = "no_slip" }
+  group tips = interface(air, core) { kind = "no_slip" }
   group slip = label("far"), label("ends") { kind = "slip" }
 }
 

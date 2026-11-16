@@ -17,57 +17,58 @@ The reading order:
 
 1. `Shapes`: the built-in analytic shapes: constructing them, their signed distance, bounding box and distance quality.
 2. `BasicCSG`: the classic CSG solid, with `Union`, `Intersection` and `Difference`, compiled into a `Tape`.
-3. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
+3. `LanguageCSG`: the same solid written in the .ebg language, read at run time (`Language::read()`) and viewed: edit the model, no compiling.
+4. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 
 **Shapes and composition**
 
-4. `SmoothCSG`: smooth unions, intersections and differences, and the two blend kinds.
-5. `Transforms`: one object moved, turned, scaled, mirrored and stretched.
-6. `Repetition`: many copies of a mesh (the happy Buddha) from one `FiniteRepetition`.
-7. `ValueOperations`: `Offset`, `Annular`, `Blur` and `Mollify`.
-8. `FusedCSG`: the classic solid as a fused composition (`Fused::`), against the tape.
+5. `SmoothCSG`: smooth unions, intersections and differences, and the two blend kinds.
+6. `Transforms`: one object moved, turned, scaled, mirrored and stretched.
+7. `Repetition`: many copies of a mesh (the happy Buddha) from one `FiniteRepetition`.
+8. `ValueOperations`: `Offset`, `Annular`, `Blur` and `Mollify`.
+9. `FusedCSG`: the classic solid as a fused composition (`Fused::`), against the tape.
 
 **Meshes**
 
-9. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
-10. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
+10. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
+11. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
 
 **Parts, labels and materials**
 
-11. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
-12. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
-13. `Language`: a model read from text (`Language::read()`), its domain built for the tape, and its properties as a table a GPU reads.
+12. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
+13. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
+14. `LanguageDomains`: a model with regions, materials and domains read from text (`Language::read()`), its domain built for the tape, and its properties as a table a GPU reads.
 
 **Many objects and particles**
 
-14. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
-15. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
-16. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
-17. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
-18. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
-19. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
-20. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
-21. `Tornado`: a property carried on a `SphereCloudBVH` of millions of spheres: each sphere's wind speed in an array beside the cloud, in its pool, queried on the host and through `GPU::transform`, and the spheres colored by it through a ray form of the program's own.
+15. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
+16. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
+17. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
+18. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
+19. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
+20. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
+21. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
+22. `Tornado`: a property carried on a `SphereCloudBVH` of millions of spheres: each sphere's wind speed in an array beside the cloud, in its pool, queried on the host and through `GPU::transform`, and the spheres colored by it through a ray form of the program's own.
 
 **Rays and BVHs**
 
-22. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
-23. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
+23. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
+24. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
 
 **Extending the library**
 
-24. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
-25. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
-26. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
+25. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
+26. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
+27. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
 
 **Tuning**
 
-27. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
-28. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
-29. `BuildBVH`: comparing the BVH construction methods by build time.
+28. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
+29. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
+30. `BuildBVH`: comparing the BVH construction methods by build time.
 
-Every example that builds a shape (`Shapes`, `BasicCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
-`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `Language`, `NestedBVH`,
+Every example that builds a shape (`Shapes`, `BasicCSG`, `LanguageCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
+`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `LanguageDomains`, `NestedBVH`,
 `ManyObjects`, `PackedSpheres`, `SphereClouds`, `ParticleContacts`, `Tornado`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
 (`make VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
 without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes

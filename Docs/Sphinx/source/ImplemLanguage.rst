@@ -5,7 +5,7 @@ Reading models in C++
 
 A program reads a ``.ebg`` model (see :ref:`Chap:Language`) with ``Source/EBGeometry_Language.hpp``, which
 ``EBGeometry.hpp`` does not include: a program that reads no models compiles none of it. Everything here runs
-on the host, except the tables, which a device reads. :ref:`Chap:ExampleLanguage` shows the whole path, a
+on the host, except the tables, which a device reads. :ref:`Chap:ExampleLanguageDomains` shows the whole path, a
 device query included.
 
 .. contents:: On this page

@@ -33,12 +33,14 @@ model is two files, as most models are. The geometry, ``cable/model.ebg``:
 
    ebg 0
 
-   # A cable along z, in a box of air with a cross-flow along x: a copper core inside a PTFE jacket.
+   # A cable along z, in a box of air with a cross-flow along x: a copper core inside a PTFE jacket. The core stops
+   # short of the cable's ends, where it meets the air.
    param length = 6
    param r_core = 0.5
    param r_out  = 0.8
+   param strip  = 0.5  # how far the core stops short of each end
 
-   conductor  = cylinder((0, 0, -length / 2), (0, 0, length / 2), radius = r_core)
+   conductor  = cylinder((0, 0, strip - length / 2), (0, 0, length / 2 - strip), radius = r_core)
    insulation = tube((0, 0, -length / 2), (0, 0, length / 2), inner_radius = r_core, outer_radius = r_out)
    air_box    = box((-3, -2, -length / 2), (5, 2, length / 2))
      .label(xmin = "inlet", xmax = "outlet", ymin = "far", ymax = "far", zmin = "ends", zmax = "ends")
@@ -80,7 +82,7 @@ the file a program reads:
    domain electrostatics {
      subdomain insulation = jacket
      subdomain gas = air
-     group conductor = interface(core, jacket) { potential = 1000 }
+     group conductor = interface(core, jacket), interface(core, air) { potential = 1000 }
      group dielectric = interface(jacket, air) { surface_charge = 0 }
      group ground = label("inlet"), label("outlet"), label("far") { potential = 0 }
      group ends = remaining() { kind = "zero_flux" }
@@ -92,6 +94,7 @@ the file a program reads:
      group inlet = label("inlet") { velocity = (2, 0, 0) }
      group outlet = label("outlet") { pressure = 0 }
      group walls = interface(air, jacket) { kind = "no_slip" }
+     group tips = interface(air, core) { kind = "no_slip" }
      group slip = label("far"), label("ends") { kind = "slip" }
    }
 
@@ -107,12 +110,14 @@ the file a program reads:
   the core is in neither, so it is excluded, and its surface is a boundary of the domain. Each ``group`` is a
   surface group: a name, the surfaces it holds (selected by what they are: an interface between two
   regions, a label, or ``remaining()``, every surface no other group holds), and its properties.
-* The flow computes in the air alone; its walls are the cable's surface.
+* The flow computes in the air alone; its walls are the jacket's surface, and the core's ends, where the core
+  stops short of the jacket, are a group of their own, ``tips``, since the walls are coupled to a group of the
+  other domain that holds the jacket alone.
 * A ``couple`` joins two domains, here through a subdomain each (the gas, which both compute in) and through a
-  surface group each (the cable's surface).
+  surface group each (the jacket's surface).
 * ``view`` says how a viewer opens the model; programs ignore it.
 
-:ref:`Chap:ExampleLanguage` reads ``cable/setup.ebg`` in C++ (see :ref:`Chap:ImplemLanguage` for the
+:ref:`Chap:ExampleLanguageDomains` reads ``cable/setup.ebg`` in C++ (see :ref:`Chap:ImplemLanguage` for the
 calls).
 
 Writing a model is easiest with ``ebgstudio`` (see :ref:`Chap:Studio`) open on it: its window reloads the model

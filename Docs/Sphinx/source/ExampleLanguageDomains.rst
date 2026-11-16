@@ -1,13 +1,14 @@
-.. _Chap:ExampleLanguage:
+.. _Chap:ExampleLanguageDomains:
 
-Language
-========
+Language domains
+================
 
-``Examples/Language`` reads a model written in the :ref:`Chap:Language` at run time: the cable of
+``Examples/LanguageDomains`` reads a model written in the :ref:`Chap:Language` at run time: the cable of
 :ref:`Chap:Language`'s first model, a copper core inside a PTFE jacket, in a box of air with a flow across it.
-The source is at :file:`Examples/Language/main.cpp`, and the model in :file:`Examples/Language/cable/`.
+The source is at :file:`Examples/LanguageDomains/main.cpp`, and the model in :file:`Examples/LanguageDomains/cable/`. Reading a model and
+compiling its object are shown on their own in :ref:`Chap:ExampleLanguageCSG`.
 
-.. figure:: _static/example_Language.jpg
+.. figure:: _static/example_LanguageDomains.jpg
    :width: 60%
    :align: center
 
@@ -18,14 +19,14 @@ The model
 
 ``cable/model.ebg`` holds the geometry: the shapes, the overlay of regions with their materials, and the box's
 faces labeled ``inlet``, ``outlet``, ``far`` and ``ends``. ``cable/setup.ebg`` includes it and holds the
-materials' properties, two domains (electrostatics, in the jacket and the air; and cfd, the air with four
+materials' properties, two domains (electrostatics, in the jacket and the air; and cfd, the air with five
 surface groups) and the couplings between them. Both are shown and explained in :ref:`Chap:Language`.
 
 Reading it
 ----------
 
 The program reads ``cable/setup.ebg`` with ``Language::read()``, which also reads what it includes; a model with
-errors throws them all, and the program prints them and stops. It then compiles the object into a tape, builds
+errors throws them all, with their files, lines and columns. It then compiles the object into a tape, builds
 the cfd domain for that tape from the model's setup, and checks it with ``completeness()``.
 
 What a solver keeps
@@ -54,7 +55,7 @@ Build it as any example (see :ref:`Chap:Examples`), and run it from its folder, 
 
 .. code-block:: bash
 
-   cd Examples/Language
-   make && ./Language.ex                    # or ./Language.ex path/to/setup.ebg
+   cd Examples/LanguageDomains
+   make && ./LanguageDomains.ex                    # or ./LanguageDomains.ex path/to/setup.ebg
 
 See :ref:`Chap:ImplemLanguage` for the calls.

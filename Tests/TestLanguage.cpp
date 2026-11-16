@@ -1379,7 +1379,7 @@ TEMPLATE_TEST_CASE("Language: every model in the repository reads, and its canon
 
   for (const std::string file : {"Tests/data/language/cubes/setup.ebg",
                                  "Tests/data/language/wire/setup.ebg",
-                                 "Examples/Language/cable/setup.ebg"}) {
+                                 "Examples/LanguageDomains/cable/setup.ebg"}) {
     INFO(file);
 
     Pool pool(hostMemoryResource());
@@ -1416,8 +1416,8 @@ TEST_CASE("Language: mangled models read or report errors, never crash or abort"
 
   for (const char* file : {"Tests/data/language/wire/model.ebg",
                            "Tests/data/language/wire/setup.ebg",
-                           "Examples/Language/cable/model.ebg",
-                           "Examples/Language/cable/setup.ebg"}) {
+                           "Examples/LanguageDomains/cable/model.ebg",
+                           "Examples/LanguageDomains/cable/setup.ebg"}) {
     std::ifstream     in(root + "/" + file);
     std::stringstream text;
 
@@ -1489,7 +1489,7 @@ TEST_CASE("Language: mangled models read or report errors, never crash or abort"
     Pool pool(hostMemoryResource());
 
     try {
-      (void)Language::parse<T>(text, root + "/Examples/Language/cable/fuzz.ebg", pool);
+      (void)Language::parse<T>(text, root + "/Examples/LanguageDomains/cable/fuzz.ebg", pool);
 
       read++;
     } catch (const Language::Error& e) {
@@ -1497,7 +1497,7 @@ TEST_CASE("Language: mangled models read or report errors, never crash or abort"
 
       // Every diagnostic points into the text (or at no line, for the whole model).
       for (const Language::Diagnostic& d : e.diagnostics()) {
-        if (d.m_span.m_file == root + "/Examples/Language/cable/fuzz.ebg") {
+        if (d.m_span.m_file == root + "/Examples/LanguageDomains/cable/fuzz.ebg") {
           CHECK(d.m_span.m_end <= text.size());
           CHECK(d.m_span.m_begin <= d.m_span.m_end);
         }
