@@ -38,14 +38,16 @@ Reads the model and reports every error and warning, with its file, line and col
 
 ``--domain NAME`` checks that a domain is complete: every subdomain has properties, every piece of surface bounding
 it is in a surface group, and the surface groups its couplings join hold the same surfaces. What is missing is
-reported by the shape call it comes from (see :ref:`Chap:LanguageDomains`). ``--all-domains`` checks every domain the
-model has:
+reported by the shape call it comes from (see :ref:`Chap:LanguageDomains`). Each domain's line also says what its
+own object keeps: its regions and the regions whose bounding boxes meet theirs, what a solver of the domain alone
+compiles (see :ref:`Chap:ImplemRegions`). ``--all-domains`` checks every domain the model has:
 
 .. code-block:: text
 
-   $ ebgstudio check Models/cooling_block/setup.ebg --all-domains
-   domain 'flow': complete
-   domain 'heat': complete
+   $ ebgstudio check ../Examples/LanguageDomains/cable/setup.ebg --all-domains
+   domain 'electrostatics': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
+   domain 'cfd': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
+   domain 'conduction': complete; its own object keeps 3 of 4 regions (air, jacket, core)
 
 ``--inventory`` lists every name the model offers: its regions and materials with their properties' keys, its
 labels, each shape's parts and their labels, and its domains:

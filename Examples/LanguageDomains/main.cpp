@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// A model read from text: a cable in a box of air, written in the .ebg language (cable/model.ebg holds the geometry,
-// cable/setup.ebg the materials and two domains), read at run time instead of composed in C++. The program compiles
-// the object into a tape, builds the flow domain for it, and puts the fluid's properties in the pool as rows of its own
-// type, which a query reads on the host and on a GPU. See README.md.
+// A model read from text: a cable and a sensor in a box of air, written in the .ebg language (cable/model.ebg holds the
+// geometry, cable/setup.ebg the materials and three domains), read at run time instead of composed in C++. The program
+// compiles the object into a tape, builds the flow domain for it, and puts the fluid's properties in the pool as rows of
+// its own type, which a query reads on the host and on a GPU. It also compiles the conduction domain on its own, without
+// the sensor it never meets. See README.md.
 
 #include <iostream>
 #include <string>
@@ -19,10 +20,11 @@
 #define EBGEOMETRY_PRECISION double
 #endif
 
-using T      = EBGEOMETRY_PRECISION;
-using Vec3   = EBGeometry::Vec3T<T>;
-using Tape   = EBGeometry::Tape<T>;
-using Domain = EBGeometry::Domain<T>;
+using T       = EBGEOMETRY_PRECISION;
+using Vec3    = EBGeometry::Vec3T<T>;
+using Tape    = EBGeometry::Tape<T>;
+using Domain  = EBGeometry::Domain<T>;
+using Regions = EBGeometry::RegionView<Tape>;
 
 namespace {
 
@@ -94,6 +96,39 @@ main(int argc, char* argv[])
     std::cout << "  " << finding.str() << "\n";
   }
 
+  // ── A domain on its own ────────────────────────────────────────────────────────────────────────────
+  //
+  // Conduction computes in the cable alone. Its own object keeps the cable's regions and the regions that may touch
+  // them, those whose bounding boxes meet theirs: the air around the cable, not the sensor, whose box lies apart. Its
+  // regions are numbered anew; its setup is the domain's, translated, with the same subdomains and surface groups.
+  const auto   conduction = model.domainObject("conduction");
+  const Tape   cable(pool, conduction.object());
+  const Domain heat(pool, cable, conduction.setup());
+
+  std::cout << "Domain conduction, on its own: " << conduction.neighborhood().getNumRegions() - 1U << " of "
+            << model.index().getNumRegions() - 1U << " regions kept:";
+
+  for (uint32_t r = 1; r < conduction.neighborhood().getNumRegions(); r++) {
+    std::cout << " " << model.index().getRegion(conduction.neighborhood().wholeRegion(r)).m_name;
+  }
+
+  std::cout << "; " << heat.getNumSubdomainFunctions() - 1U << " subdomains, as in the whole model\n";
+
+  // The viewer gets every domain's own shape: its cost views of a domain shown alone (Only) time that domain's.
+  std::vector<EBGeometry::Render::DomainShape<Regions>> domains;
+
+  for (uint32_t d = 0; d < model.getNumDomains(); d++) {
+    const auto own = model.domainObject(model.domain(d).name());
+
+    std::vector<uint32_t> wholeRegion;
+
+    for (uint32_t r = 0; r < own.neighborhood().getNumRegions(); r++) {
+      wholeRegion.push_back(own.neighborhood().wholeRegion(r));
+    }
+
+    domains.push_back({Regions(Tape(pool, own.object())), wholeRegion});
+  }
+
   // ── On the host ────────────────────────────────────────────────────────────────────────────────────
   //
   // Along a line across the cable: the fluid's density, read from the table by the domain's subdomain there.
@@ -142,17 +177,17 @@ main(int argc, char* argv[])
   // ── Look at it ─────────────────────────────────────────────────────────────────────────────────────
   //
   // The regions, colored by material, with the air hidden, and the model's names: the panel switches between its
-  // domains and their surface groups.
+  // domains and their surface groups. With a domain shown alone, the cost views (M) trace its own shape.
   EBGeometry::Render::Settings<T> settings;
   settings.m_colorBy            = EBGeometry::Render::ColorBy::Primitive;
   settings.m_regions.m_coloring = EBGeometry::RegionColoring::Material;
   settings.m_regions.setVisible(1, false);
 
-  const EBGeometry::RegionView<Tape> regions(tape);
+  const Regions regions(tape);
 
   auto camera = EBGeometry::Render::Camera<T>::lookAt(Vec3(7, 5, 9), Vec3(1, 0, 0));
 
-  EBGeometry::Render::view(regions, pool, camera, settings, model.names(), argc, argv);
+  EBGeometry::Render::view(regions, pool, camera, settings, model.names(), domains, argc, argv);
 
   return 0;
 }

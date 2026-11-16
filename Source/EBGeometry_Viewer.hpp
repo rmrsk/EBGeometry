@@ -25,6 +25,10 @@
 #ifndef EBGEOMETRY_VIEWER_HPP
 #define EBGEOMETRY_VIEWER_HPP
 
+// Std includes
+#include <cstdint>
+#include <vector>
+
 // Our includes
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_RegionNames.hpp"
@@ -187,6 +191,56 @@ view(const S&                           a_shape,
      const Camera<ShapePrecision<S>>&   a_camera,
      const Settings<ShapePrecision<S>>& a_settings,
      const RegionNames&                 a_names,
+     int                                a_argc,
+     char**                             a_argv);
+
+/**
+ * @brief One domain's own shape, for the viewer's cost views of the domain shown alone (see view(const S&, Pool&,
+ * const Camera&, const Settings&, const RegionNames&, const std::vector<DomainShape<S>>&, int, char**)).
+ * @tparam S Shape type: a view of regions (RegionView) of the domain's own tape.
+ */
+template <class S>
+struct DomainShape
+{
+  /**
+   * @brief The shape: a RegionView of a tape compiled from the domain's own object (Language::DomainObject, or
+   * regionNeighborhood()), in the same pool as the whole shape.
+   */
+  S m_shape;
+
+  /**
+   * @brief The whole shape's region of each of its regions (RegionNeighborhood::wholeRegion()).
+   */
+  std::vector<uint32_t> m_wholeRegion;
+};
+
+/**
+ * @brief Look at a shape that lives in a pool in a window, as view(const S&, Pool&, const Camera&, const Settings&,
+ * const RegionNames&, int, char**) does, with each domain's own shape for the cost views.
+ * @details With the active domain shown alone (its regions shown, every other hidden, as its Only button leaves
+ * them), the cost views trace that domain's own shape, showing its regions and passing through the regions kept around
+ * them: each pixel's ray stops at the first surface of one of the domain's regions, on the domain's own tape, as a
+ * solver of the domain finds a subdomain's surface (Tape::firstSurface()), so the cost shown is what that solver pays
+ * for it. Otherwise they time the whole object's tape, as without the domains' shapes.
+ * @tparam S Shape type: a view of regions (RegionView), with rebasedView(const Pool&).
+ * @param[in]     a_shape    The shape, valid on the host.
+ * @param[in,out] a_pool     The pool a_shape and the domains' shapes live in.
+ * @param[in]     a_camera   Initial camera.
+ * @param[in]     a_settings Settings.
+ * @param[in]     a_names    The names (RegionNames(index) of the expression's index).
+ * @param[in]     a_domains  Each domain's own shape, in the order of a_names' domains; fewer (or none) leave the rest
+ *                           without.
+ * @param[in]     a_argc     The program's argument count.
+ * @param[in]     a_argv     The program's arguments.
+ */
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
+     const std::vector<DomainShape<S>>& a_domains,
      int                                a_argc,
      char**                             a_argv);
 

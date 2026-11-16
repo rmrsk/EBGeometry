@@ -116,6 +116,18 @@ view(const S& a_shape, EBGeometry::Pool&, const EBGeometry::Render::Camera<EBGeo
   Snapshot::view(a_shape, a_camera, a_settings, a_names, a_argc, a_argv);
 }
 
+// The same, with each domain's own shape (only the viewer's cost views use them).
+template <class S>
+void
+view(const S& a_shape, EBGeometry::Pool& a_pool,
+     const EBGeometry::Render::Camera<EBGeometry::ShapePrecision<S>>& a_camera,
+     const EBGeometry::Render::Settings<EBGeometry::ShapePrecision<S>>& a_settings,
+     const EBGeometry::RegionNames& a_names, const std::vector<EBGeometry::Render::DomainShape<S>>&, int a_argc,
+     char** a_argv)
+{
+  Snapshot::view(a_shape, a_pool, a_camera, a_settings, a_names, a_argc, a_argv);
+}
+
 // A shape and its device view, with the default camera.
 template <class S>
 void

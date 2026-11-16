@@ -9,8 +9,8 @@ materials with the domains a solver computes in; and the same written as a model
 * :ref:`Chap:ExampleSurfaceLabels`: which part of an object a query found, and a table of your own indexed by
   its label.
 * :ref:`Chap:ExampleMaterials`: several materials in one object, as regions, and each region's own function.
-* :ref:`Chap:ExampleLanguageDomains`: a model read from text (the .ebg language): its domain built for the tape, and its
-  properties as a table a GPU reads.
+* :ref:`Chap:ExampleLanguageDomains`: a model read from text (the .ebg language): its domain built for the tape, its
+  properties as a table a GPU reads, and a domain compiled on its own.
 
 .. toctree::
    :hidden:

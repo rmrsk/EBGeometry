@@ -173,7 +173,10 @@ traces many cheap misses. To time your own queries, use the ``Performance/`` pro
 :ref:`Chap:PerformanceTesting`). A program that draws its own colorbar takes a cost's place on the frame's
 scale from ``Render::costPlace(stats, cost)`` (0 at ``m_costLow``, 1 at ``m_costHigh``) and its color from
 ``Render::costColor(place)``. A view of regions shows the cost of its tape's queries, the whole object's
-``firstHit()`` and ``firstCrossing()``, whatever regions are shown.
+``firstHit()`` and ``firstCrossing()``, whatever regions are shown, except for a domain shown alone when the
+window was given the domain's own shape (below): then the cost of finding the first surface of one of the
+domain's regions on the domain's own tape, passing through the regions kept around them, as a solver of the
+domain finds a subdomain's surface (``Tape::firstSurface()``).
 
 .. figure:: _static/render_cost_firstCrossing.jpg
    :width: 100%
@@ -188,7 +191,10 @@ Opening the window
 ``Render::view(shape, argc, argv)`` opens a window on a shape, from a camera fitted to its box. Overloads
 take a camera and settings, a device view of the shape to render on a GPU, and a
 `RegionNames <doxygen/html/classEBGeometry_1_1RegionNames.html>`__, the names of a view of regions' regions,
-materials, surfaces and domains (see :ref:`Chap:ImplemRegions`). ``Render::view(shape, pool, argc, argv)``
+materials, surfaces and domains (see :ref:`Chap:ImplemRegions`), and with them each domain's own shape, a
+`Render::DomainShape <doxygen/html/structEBGeometry_1_1Render_1_1DomainShape.html>`__: a view of regions of
+the domain's own tape (see "A domain on its own" there) and its map to the whole object's regions, for the cost
+views of the domain shown alone. ``Render::view(shape, pool, argc, argv)``
 takes instead the pool the shape lives in: in a GPU build with a visible device, it freezes the pool, mirrors
 it for as long as the window is open and renders on the device (G switches to the host and back), and
 otherwise renders on the host.

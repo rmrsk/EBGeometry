@@ -42,9 +42,9 @@ commands:
   check   MODEL [--domain NAME]... [--all-domains] [--inventory]
                                                    read the model and report every error and warning; with
                                                    --domain, check that the domain is complete (--all-domains:
-                                                   every domain the model has); with --inventory, list every
-                                                   name the model offers. Exits 1 on an error or an incomplete
-                                                   domain.
+                                                   every domain the model has, and what each domain's own
+                                                   object keeps); with --inventory, list every name the model
+                                                   offers. Exits 1 on an error or an incomplete domain.
   print   MODEL [-o FILE] [--flatten]              the model in canonical form (the first file; --flatten
                                                    resolves the includes and the setup file into one text)
   params  MODEL [--json]                           the params, with their values and where they are written
@@ -244,7 +244,18 @@ check(const Options& a_options, Pool& a_pool)
         std::cerr << finding.str() << "\n";
       }
 
-      std::cout << "domain '" << domain << "': " << (result.m_complete ? "complete" : "incomplete") << "\n";
+      // What the domain's own object keeps: its regions and those whose bounding boxes meet theirs.
+      const auto own = model.domainObject(domain);
+
+      std::string kept;
+
+      for (uint32_t r = 1; r < own.neighborhood().getNumRegions(); r++) {
+        kept += (kept.empty() ? "" : ", ") + model.index().getRegion(own.neighborhood().wholeRegion(r)).m_name;
+      }
+
+      std::cout << "domain '" << domain << "': " << (result.m_complete ? "complete" : "incomplete")
+                << "; its own object keeps " << own.neighborhood().getNumRegions() - 1U << " of "
+                << model.index().getNumRegions() - 1U << " regions (" << kept << ")\n";
 
       status = result.m_complete ? status : 1;
     }
@@ -597,6 +608,10 @@ struct Loaded
   std::unique_ptr<RegionView<Tape<T>>> m_regions;
   RegionNames                          m_names;
   Stamps                               m_stamps;
+
+  // Each domain's own object, compiled, for the viewer's cost views of a domain shown alone.
+  std::vector<std::unique_ptr<Tape<T>>>                 m_domainTapes;
+  std::vector<Render::DomainShape<RegionView<Tape<T>>>> m_domains;
 };
 
 // Read a model into a pool of its own; throws Language::Error. a_before: the stamps of the files to watch, taken before
@@ -616,6 +631,19 @@ load(const Options& a_options, const Stamps& a_before)
   loaded->m_tape    = std::make_unique<Tape<T>>(*loaded->m_pool, loaded->m_model->object());
   loaded->m_regions = std::make_unique<RegionView<Tape<T>>>(*loaded->m_tape);
   loaded->m_names   = loaded->m_model->names();
+
+  for (uint32_t d = 0; d < loaded->m_model->getNumDomains(); d++) {
+    const auto own = loaded->m_model->domainObject(loaded->m_model->domain(d).name());
+
+    std::vector<uint32_t> wholeRegion;
+
+    for (uint32_t r = 0; r < own.neighborhood().getNumRegions(); r++) {
+      wholeRegion.push_back(own.neighborhood().wholeRegion(r));
+    }
+
+    loaded->m_domainTapes.push_back(std::make_unique<Tape<T>>(*loaded->m_pool, own.object()));
+    loaded->m_domains.push_back({RegionView<Tape<T>>(*loaded->m_domainTapes.back()), wholeRegion});
+  }
 
   for (const Language::Diagnostic& warning : loaded->m_model->warnings()) {
     std::cerr << warning.str() << "\n";
@@ -795,7 +823,7 @@ view(const Options& a_options)
 
   while (true) {
     Render::ViewerDetail::startInPool(
-      *current->m_regions, *current->m_pool, camera, settings, 1, argv, &current->m_names, &hooks);
+      *current->m_regions, *current->m_pool, camera, settings, 1, argv, &current->m_names, &hooks, &current->m_domains);
 
     if (!hooks.m_reloading) {
       break;

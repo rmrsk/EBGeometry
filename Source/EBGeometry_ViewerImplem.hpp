@@ -899,15 +899,19 @@ struct PanelSpan
  * @param[in] a_settings    Settings.
  * @param[in] a_names       Names of the regions, materials, surfaces and groups, or null (numbers).
  * @param[in,out] a_hooks   A reloading program's hooks, or null.
+ * @param[in] a_domains       Each domain's own shape, for the cost views of a domain shown alone, or null.
+ * @param[in] a_deviceDomains Device views of them, or null.
  */
 template <class T, class S>
 inline void
-run(const S&           a_shape,
-    const S*           a_deviceShape,
-    const Camera<T>&   a_camera,
-    const Settings<T>& a_settings,
-    const RegionNames* a_names,
-    Hooks<T>*          a_hooks)
+run(const S&                           a_shape,
+    const S*                           a_deviceShape,
+    const Camera<T>&                   a_camera,
+    const Settings<T>&                 a_settings,
+    const RegionNames*                 a_names,
+    Hooks<T>*                          a_hooks,
+    const std::vector<DomainShape<S>>* a_domains       = nullptr,
+    const std::vector<DomainShape<S>>* a_deviceDomains = nullptr)
 {
   using Clock = std::chrono::steady_clock;
 
@@ -2351,7 +2355,8 @@ run(const S&           a_shape,
                          const Camera<T>      a_view,
                          const bool           a_onDevice,
                          Image&               a_image,
-                         Background*          a_job) {
+                         Background*          a_job,
+                         const bool           a_asShown) {
     // On a device, the surface groups are read from their pool's mirror.
     Settings<T> frame = a_frame;
 
@@ -2378,9 +2383,10 @@ run(const S&           a_shape,
     // A cost view of regions times the queries its labels name, firstHit() and firstCrossing() of the object: its
     // tape's own, through the renderer's path for a tape, not the view's tracing of regions (finding where the region
     // changes and what is seen there), which costs more and is no query a program calls. The tape's leaves are not the
-    // view's coloring keys, so its primitives are not recorded.
+    // view's coloring keys, so its primitives are not recorded. A domain's own shape (see ownFrame below) is traced as
+    // shown instead.
     if constexpr (hasRegionVisibility<S>) {
-      if (frame.m_viewMode == ViewMode::CostHit || frame.m_viewMode == ViewMode::CostCrossing) {
+      if (!a_asShown && (frame.m_viewMode == ViewMode::CostHit || frame.m_viewMode == ViewMode::CostCrossing)) {
         Settings<T> object = frame;
 
         object.m_recordPrimitives = false;
@@ -2390,6 +2396,88 @@ run(const S&           a_shape,
     }
 
     return draw(a_host, a_device, frame);
+  };
+
+  // The active domain, when a cost view shows it alone (its regions shown, every other hidden, as its Only button
+  // leaves them) and the program gave its own shape (see view() with the domains' shapes); else None. The viewer shows
+  // and hides regions 1 to 63 only, so only those are compared.
+  const auto ownDomain = [&](const Settings<T>& a_frame) -> uint32_t {
+    if constexpr (hasRegionVisibility<S>) {
+      const bool timed = a_frame.m_viewMode == ViewMode::CostHit || a_frame.m_viewMode == ViewMode::CostCrossing;
+
+      if (!timed || a_domains == nullptr || names.getNumDomains() == 0U) {
+        return Subdomains::None;
+      }
+
+      const uint32_t active = names.getActiveDomain();
+
+      if (active >= a_domains->size()) {
+        return Subdomains::None;
+      }
+
+      const DomainSetup& domain     = names.getDomain(active);
+      const uint32_t     numRegions = shape.getNumRegions();
+
+      for (uint32_t k = 1; k < Math::min(numRegions, 64U); k++) {
+        if (a_frame.m_regions.isVisible(k, numRegions) != domain.computesIn(k)) {
+          return Subdomains::None;
+        }
+      }
+
+      return active;
+    }
+    else {
+      (void)a_frame;
+
+      return Subdomains::None;
+    }
+  };
+
+  // What a frame renders: the shapes and the settings, and whether the shape is traced as shown. With a domain shown
+  // alone in a cost view, its own shape, its regions shown and the regions kept around them hidden (renumbered as its
+  // own), traced as shown: each ray stops at the first surface of one of the domain's regions, on the domain's own
+  // tape, the loop of Tape::firstRegionChange() a solver's Tape::firstSurface() runs. Only which regions are shown is
+  // carried over: the other region settings name the whole shape's regions and surfaces, and the cost view draws
+  // nothing they set. Its primitives, keys of the domain's shape, are not recorded.
+  struct Framed
+  {
+    S           m_host;
+    S           m_device;
+    Settings<T> m_settings;
+    bool        m_own;
+  };
+
+  const auto frameOf = [&](const Settings<T>& a_frame) -> Framed {
+    const uint32_t own = ownDomain(a_frame);
+
+    if (own == Subdomains::None) {
+      return Framed{shape, deviceShape, a_frame, false};
+    }
+
+    const DomainShape<S>& domain = (*a_domains)[own];
+
+    Settings<T> frame = a_frame;
+
+    frame.m_regions          = RegionSettings();
+    frame.m_recordPrimitives = false;
+
+    for (uint32_t k = 1; k < domain.m_wholeRegion.size(); k++) {
+      frame.m_regions.setVisible(k, a_frame.m_regions.isVisible(domain.m_wholeRegion[k], shape.getNumRegions()));
+    }
+
+    const S& device = (a_deviceDomains != nullptr) ? (*a_deviceDomains)[own].m_shape : domain.m_shape;
+
+    return Framed{domain.m_shape, device, frame, true};
+  };
+
+  // The view's name; a cost view of a domain alone on its own object says so, and what its rays find.
+  const auto viewName = [&]() {
+    if (ownDomain(settings) != Subdomains::None) {
+      return "Cost of the first surface of " + names.domainName(names.getActiveDomain()) +
+             " per pixel, on its own object";
+    }
+
+    return std::string(viewNames[static_cast<int>(settings.m_viewMode)]);
   };
 
   // The slice view's camera turned square to the plane, from its removed side; its target, distance and field of view
@@ -2500,13 +2588,12 @@ run(const S&           a_shape,
 
     // A cost view: its scale's ends in the frame's unit, and its rays per second (the colorbar shows the scale).
     const std::string view =
-      std::string(viewNames[static_cast<int>(settings.m_viewMode)]) +
-      ((costView && shownStats.m_costUnit != CostUnit::None)
-         ? ", " + costText(shownStats.m_costLow, shownStats.m_costUnit) + " to " +
-             costText(shownStats.m_costHigh, shownStats.m_costUnit) + " (dark to bright)" +
-             (shownStats.m_costUnit == CostUnit::Cycles ? ", elapsed on the GPU, waits included" : "") + ", " +
-             rateText(shownStats.m_raysPerSecond)
-         : std::string());
+      viewName() + ((costView && shownStats.m_costUnit != CostUnit::None)
+                      ? ", " + costText(shownStats.m_costLow, shownStats.m_costUnit) + " to " +
+                          costText(shownStats.m_costHigh, shownStats.m_costUnit) + " (dark to bright)" +
+                          (shownStats.m_costUnit == CostUnit::Cycles ? ", elapsed on the GPU, waits included" : "") +
+                          ", " + rateText(shownStats.m_raysPerSecond)
+                      : std::string());
 
     // The primitives seen through.
     std::string hidden;
@@ -3489,7 +3576,7 @@ run(const S&           a_shape,
 
     if constexpr (hasRegionVisibility<S>) {
       if (outline && several) {
-        (void)render(shape, deviceShape, deviceGroups, alone, camera, onDevice, edges, nullptr);
+        (void)render(shape, deviceShape, deviceGroups, alone, camera, onDevice, edges, nullptr, false);
       }
     }
 
@@ -3581,9 +3668,9 @@ run(const S&           a_shape,
 
     SDL_UpdateTexture(texture, nullptr, pixels, static_cast<int>(4U * a_image.m_width));
 
-    status = std::string("EBGeometry: ") + viewNames[static_cast<int>(settings.m_viewMode)] + ", " +
-             (onDevice ? "GPU" : "CPU") + ", " + a_what + " " + std::to_string(a_image.m_width) + "x" +
-             std::to_string(a_image.m_height) + " in " + std::to_string(int(1000.0 * a_seconds)) + " ms" +
+    status = std::string("EBGeometry: ") + viewName() + ", " + (onDevice ? "GPU" : "CPU") + ", " + a_what + " " +
+             std::to_string(a_image.m_width) + "x" + std::to_string(a_image.m_height) + " in " +
+             std::to_string(int(1000.0 * a_seconds)) + " ms" +
              // A few grazing rays can seem to leave the solid; say so only when more than one hit in a
              // thousand does.
              ((a_stats.m_insideHits * 1000U > a_stats.m_hits) ? ", red: seen from inside the solid" : "") +
@@ -4636,10 +4723,18 @@ run(const S&           a_shape,
         }
         case SDLK_w: {
           // The full frame at the window's size, rendered now, as a PPM image in the working directory.
-          Image             image;
-          const Settings<T> frame = stageSettings(2);
+          Image        image;
+          const Framed framed = frameOf(stageSettings(2));
 
-          (void)render(shape, deviceShape, deviceGroups, frame, camera, onDevice, image, nullptr);
+          (void)render(framed.m_host,
+                       framed.m_device,
+                       deviceGroups,
+                       framed.m_settings,
+                       camera,
+                       onDevice,
+                       image,
+                       nullptr,
+                       framed.m_own);
 
           // The next name not taken, so that an earlier run's images are kept.
           const auto taken = [](const std::string& a_name) {
@@ -5230,8 +5325,17 @@ run(const S&           a_shape,
       // What was under the cursor may have moved with the camera or the plane; read again on the next move.
       cursorOn = false;
 
-      const Stats stats = render(shape, deviceShape, deviceGroups, stageSettings(0), camera, onDevice, image, nullptr);
-      const auto  seconds = std::chrono::duration<double>(Clock::now() - start).count();
+      const Framed framed  = frameOf(stageSettings(0));
+      const Stats  stats   = render(framed.m_host,
+                                 framed.m_device,
+                                 deviceGroups,
+                                 framed.m_settings,
+                                 camera,
+                                 onDevice,
+                                 image,
+                                 nullptr,
+                                 framed.m_own);
+      const auto   seconds = std::chrono::duration<double>(Clock::now() - start).count();
 
       // Keep previews between about 10 and 40 ms.
       if (seconds > 0.04 && previewScale > T(0.125)) {
@@ -5256,14 +5360,22 @@ run(const S&           a_shape,
       Background* next = job.get();
 
       // The frame's settings first: they publish the surface groups the device view below reads.
-      const Settings<T> stage = stageSettings(pending);
+      const Framed framed = frameOf(stageSettings(pending));
 
       next->m_stage  = pending;
-      next->m_height = stage.m_height;
-      next->m_thread = std::thread([next, render, shape, deviceShape, deviceGroups, stage, camera, onDevice]() {
+      next->m_height = framed.m_settings.m_height;
+      next->m_thread = std::thread([next, render, framed, deviceGroups, camera, onDevice]() {
         const auto start = Clock::now();
 
-        next->m_stats   = render(shape, deviceShape, deviceGroups, stage, camera, onDevice, next->m_image, next);
+        next->m_stats   = render(framed.m_host,
+                               framed.m_device,
+                               deviceGroups,
+                               framed.m_settings,
+                               camera,
+                               onDevice,
+                               next->m_image,
+                               next,
+                               framed.m_own);
         next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
         next->m_done    = true;
       });
@@ -5362,17 +5474,21 @@ closeWindow(Hooks<T>& a_hooks)
  * @param[in] a_argv        Arguments.
  * @param[in] a_names       Names of the regions, materials, surfaces and groups, or null.
  * @param[in,out] a_hooks   A reloading program's hooks, or null.
+ * @param[in] a_domains       Each domain's own shape, or null.
+ * @param[in] a_deviceDomains Device views of them, or null.
  */
 template <class T, class S>
 inline void
-start(const S&           a_shape,
-      const S*           a_deviceShape,
-      const Camera<T>&   a_camera,
-      const Settings<T>& a_settings,
-      const int          a_argc,
-      char**             a_argv,
-      const RegionNames* a_names = nullptr,
-      Hooks<T>*          a_hooks = nullptr)
+start(const S&                           a_shape,
+      const S*                           a_deviceShape,
+      const Camera<T>&                   a_camera,
+      const Settings<T>&                 a_settings,
+      const int                          a_argc,
+      char**                             a_argv,
+      const RegionNames*                 a_names         = nullptr,
+      Hooks<T>*                          a_hooks         = nullptr,
+      const std::vector<DomainShape<S>>* a_domains       = nullptr,
+      const std::vector<DomainShape<S>>* a_deviceDomains = nullptr)
 {
   static_assert(isShape<S>, "Render::view: the object to look at must be a shape (see isShape)");
 
@@ -5389,7 +5505,7 @@ start(const S&           a_shape,
     return;
   }
 
-  run(a_shape, a_deviceShape, a_camera, a_settings, a_names, a_hooks);
+  run(a_shape, a_deviceShape, a_camera, a_settings, a_names, a_hooks, a_domains, a_deviceDomains);
 #else
   (void)a_shape;
   (void)a_deviceShape;
@@ -5397,6 +5513,8 @@ start(const S&           a_shape,
   (void)a_settings;
   (void)a_names;
   (void)a_hooks;
+  (void)a_domains;
+  (void)a_deviceDomains;
 
   std::printf("EBGeometry: built without the viewer; build with VIEWER=SDL2 (make) or -DEBGEOMETRY_VIEWER=SDL2 "
               "(CMake) to look at the shape.\n");
@@ -5440,6 +5558,7 @@ initialCamera(const S& a_shape)
  * @param[in]     a_argv     Arguments.
  * @param[in]     a_names    Names of the regions, materials, surfaces and groups, or null.
  * @param[in,out] a_hooks    A reloading program's hooks, or null.
+ * @param[in]     a_domains  Each domain's own shape, in the same pool, or null.
  */
 template <class S>
 inline void
@@ -5450,7 +5569,8 @@ startInPool(const S&                           a_shape,
             int                                a_argc,
             char**                             a_argv,
             const RegionNames*                 a_names,
-            Hooks<ShapePrecision<S>>*          a_hooks = nullptr)
+            Hooks<ShapePrecision<S>>*          a_hooks   = nullptr,
+            const std::vector<DomainShape<S>>* a_domains = nullptr)
 {
   using T = ShapePrecision<S>;
 
@@ -5463,7 +5583,24 @@ startInPool(const S&                           a_shape,
     const Pool mirror      = Pool::mirror(a_pool, GPU::memoryResource());
     const S    deviceShape = a_shape.rebasedView(mirror);
 
-    start<T, S>(a_shape, &deviceShape, a_camera, a_settings, a_argc, a_argv, a_names, a_hooks);
+    std::vector<DomainShape<S>> deviceDomains;
+
+    if (a_domains != nullptr) {
+      for (const DomainShape<S>& domain : *a_domains) {
+        deviceDomains.push_back(DomainShape<S>{domain.m_shape.rebasedView(mirror), domain.m_wholeRegion});
+      }
+    }
+
+    start<T, S>(a_shape,
+                &deviceShape,
+                a_camera,
+                a_settings,
+                a_argc,
+                a_argv,
+                a_names,
+                a_hooks,
+                a_domains,
+                (a_domains != nullptr) ? &deviceDomains : nullptr);
 
     return;
   }
@@ -5471,7 +5608,7 @@ startInPool(const S&                           a_shape,
 
   (void)a_pool;
 
-  start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv, a_names, a_hooks);
+  start<T, S>(a_shape, nullptr, a_camera, a_settings, a_argc, a_argv, a_names, a_hooks, a_domains);
 }
 
 } // namespace ViewerDetail
@@ -5562,6 +5699,20 @@ view(const S&                           a_shape,
      char**                             a_argv)
 {
   ViewerDetail::startInPool(a_shape, a_pool, a_camera, a_settings, a_argc, a_argv, &a_names);
+}
+
+template <class S>
+inline void
+view(const S&                           a_shape,
+     Pool&                              a_pool,
+     const Camera<ShapePrecision<S>>&   a_camera,
+     const Settings<ShapePrecision<S>>& a_settings,
+     const RegionNames&                 a_names,
+     const std::vector<DomainShape<S>>& a_domains,
+     int                                a_argc,
+     char**                             a_argv)
+{
+  ViewerDetail::startInPool(a_shape, a_pool, a_camera, a_settings, a_argc, a_argv, &a_names, nullptr, &a_domains);
 }
 
 } // namespace EBGeometry::Render

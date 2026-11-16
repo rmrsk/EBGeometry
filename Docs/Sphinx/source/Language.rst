@@ -119,12 +119,16 @@ the file a program reads:
 * A ``material`` gives a material's properties. The names (``conductivity``, ``viscosity``) mean nothing to
   the language; they are what the program reads.
 * A ``domain`` is one computation. The electrostatic one computes in two subdomains, the jacket and the air;
-  the core is in neither, so it is excluded, and its surface is a boundary of the domain. Each ``group`` is a
+  the core and the sensor are in neither, so they are excluded, and their surfaces are boundaries of the domain
+  (the sensor's grounded). Each ``group`` is a
   surface group: a name, the surfaces it holds (selected by what they are: an interface between two
   regions, a label, or ``remaining()``, every surface no other group holds), and its properties.
 * The flow computes in the air alone; its walls are the jacket's surface, and the core's ends, where the core
   stops short of the jacket, are a group of their own, ``tips``, since the walls are coupled to a group of the
-  other domain that holds the jacket alone.
+  other domain that holds the jacket alone. The sensor is a wall of its own, ``sensor``.
+* Conduction computes in the cable alone, a subdomain each for the core and the jacket, with properties of their
+  own; every surface it touches is cooled. A solver of it can compile the cable on its own, without the sensor
+  (see :ref:`Chap:ImplemLanguage`).
 * A ``couple`` joins two domains, here through a subdomain each (the gas, which both compute in) and through a
   surface group each (the jacket's surface).
 * ``view`` says how a viewer opens the model; programs ignore it.
