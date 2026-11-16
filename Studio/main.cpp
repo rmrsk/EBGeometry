@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -348,14 +349,65 @@ viewOf(const Language::Model<T>& a_model,
   a_camera.m_fieldOfView  = T(view.number("field_of_view", double(a_camera.m_fieldOfView)));
   a_camera.m_orthographic = view.flag("orthographic", a_camera.m_orthographic);
 
-  // The background: a plain color instead of the sky's gradient, and the floor under the object or not.
+  // The look of the backdrop and the floor, then a plain background over it, and the floor under the object or not.
+  if (view.has("look")) {
+    Render::setLook(
+      a_settings,
+      Render::Look(view.code(
+        "look",
+        {"sky", "dark", "gradient", "shadow_only", "light_grid", "studio", "mirror", "dark_grid", "blueprint"})));
+  }
   if (view.has("background")) {
-    a_settings.m_sky        = false;
+    a_settings.m_backdrop   = Render::Backdrop::Plain;
     a_settings.m_background = view.vector<T>("background");
   }
 
-  a_settings.m_sky   = view.flag("sky", a_settings.m_sky);
   a_settings.m_floor = view.flag("floor", a_settings.m_floor);
+}
+
+// The backdrop and the floor of some settings (what a look and the view block's background set) copied into others.
+void
+copyBackdrop(const Render::Settings<T>& a_from, Render::Settings<T>& a_to)
+{
+  a_to.m_backdrop         = a_from.m_backdrop;
+  a_to.m_skyHorizon       = a_from.m_skyHorizon;
+  a_to.m_skyZenith        = a_from.m_skyZenith;
+  a_to.m_background       = a_from.m_background;
+  a_to.m_gradientFrom     = a_from.m_gradientFrom;
+  a_to.m_gradientTo       = a_from.m_gradientTo;
+  a_to.m_floor            = a_from.m_floor;
+  a_to.m_floorStyle       = a_from.m_floorStyle;
+  a_to.m_floorColor       = a_from.m_floorColor;
+  a_to.m_floorCellSize    = a_from.m_floorCellSize;
+  a_to.m_floorLineColor   = a_from.m_floorLineColor;
+  a_to.m_floorMajorEvery  = a_from.m_floorMajorEvery;
+  a_to.m_floorFade        = a_from.m_floorFade;
+  a_to.m_floorReflectance = a_from.m_floorReflectance;
+  a_to.m_lightSize        = a_from.m_lightSize;
+}
+
+// The look whose backdrop and floor the settings have, the floor being on or off and the plain background aside; none
+// when they were changed by hand.
+std::optional<Render::Look>
+lookOf(const Render::Settings<T>& a_settings)
+{
+  for (uint8_t k = 0; k < Render::NumLooks; k++) {
+    Render::Settings<T> look = a_settings;
+
+    Render::setLook(look, Render::Look(k));
+
+    look.m_floor      = a_settings.m_floor;
+    look.m_background = a_settings.m_background;
+
+    if (a_settings.m_backdrop == Render::Backdrop::Plain) {
+      look.m_backdrop = Render::Backdrop::Plain;
+    }
+    if (Render::toCode(Render::Camera<T>(), look) == Render::toCode(Render::Camera<T>(), a_settings)) {
+      return Render::Look(k);
+    }
+  }
+
+  return std::nullopt;
 }
 
 // The current view as a view block to paste into the model: the camera as the window holds it, the background where
@@ -390,7 +442,17 @@ viewText(const Language::Model<T>& a_model, const Render::Camera<T>& a_camera, c
   if (a_camera.m_orthographic) {
     text += ", orthographic = true";
   }
-  if (!a_settings.m_sky) {
+  // The look, when it is one (a look changed by hand cannot be written), and a plain background that is not the dark
+  // look's own.
+  const std::optional<Render::Look> look = lookOf(a_settings);
+
+  const bool ownBackground =
+    a_settings.m_backdrop == Render::Backdrop::Plain && !(a_settings.m_background == settings.m_background);
+
+  if (look && *look != Render::Look::Sky && !(*look == Render::Look::Dark && ownBackground)) {
+    text += ", look = \"" + std::string(Render::lookName(*look)) + "\"";
+  }
+  if (ownBackground) {
     text += ", background = " + vectorT(a_settings.m_background);
   }
   if (!a_settings.m_floor) {
@@ -707,14 +769,14 @@ view(const Options& a_options)
     viewOf(*current->m_model, *current->m_regions, camera, settings);
   }
 
-  // The background the view block gave last: a reload applies the block's only when it changed, so that saving the
-  // file keeps what the keys (B, F) set in the window.
+  // The backdrop and floor the view block gave last: a reload applies the block's only when they changed, so that
+  // saving the file keeps what the keys (B, F) set in the window.
   const auto backgroundOf = [](const Render::Settings<T>& a_settings) {
-    return std::make_tuple(a_settings.m_sky,
-                           a_settings.m_floor,
-                           a_settings.m_background[0],
-                           a_settings.m_background[1],
-                           a_settings.m_background[2]);
+    Render::Settings<T> backdrop;
+
+    copyBackdrop(a_settings, backdrop);
+
+    return Render::toCode(Render::Camera<T>(), backdrop);
   };
 
   auto viewBackground = backgroundOf(settings);
@@ -773,10 +835,9 @@ view(const Options& a_options)
     settings.m_regions.m_surfaceGroups = SurfaceGroups();
 
     if (viewRead && backgroundOf(fresh) != viewBackground) {
-      settings.m_sky        = fresh.m_sky;
-      settings.m_floor      = fresh.m_floor;
-      settings.m_background = fresh.m_background;
-      viewBackground        = backgroundOf(fresh);
+      copyBackdrop(fresh, settings);
+
+      viewBackground = backgroundOf(fresh);
     }
   }
 

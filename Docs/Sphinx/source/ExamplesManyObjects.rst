@@ -20,6 +20,8 @@ particles, their contacts, and solids cut by them.
 * :ref:`Chap:ExampleParticleContacts`: particles of differing sizes pushed apart in a cylinder until none
   overlap, rebuilding the cloud each round; their contacts, a contact list, and a near-contact force per
   particle on a GPU.
+* :ref:`Chap:ExampleTornado`: a property carried on a sphere cloud of millions: each sphere's wind speed in an array
+  beside the cloud, queried on the host and a GPU, and the spheres colored by it.
 
 .. toctree::
    :hidden:
@@ -31,3 +33,4 @@ particles, their contacts, and solids cut by them.
    ExampleParticleNeighbors.rst
    ExampleSphereClouds.rst
    ExampleParticleContacts.rst
+   ExampleTornado.rst

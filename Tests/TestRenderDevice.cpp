@@ -275,7 +275,7 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
   settings.m_shininess          = T(12);
   settings.m_specular           = T(0.6);
   settings.m_ambient            = T(0.2);
-  settings.m_floorCheckerSize   = T(0.5);
+  settings.m_floorCellSize      = T(0.5);
   settings.m_section            = true;
   settings.m_sectionPoint       = Vec3(T(0.1), T(0), T(0));
   settings.m_sectionNormal      = Vec3(T(1), T(0.2), T(0));
@@ -326,6 +326,67 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's with an orthogr
       CHECK(otherObject <= host.m_primitives.size() / 100);
       CHECK(std::abs(double(hostStats.m_hits) - double(deviceStats.m_hits)) <= double(hostStats.m_rays) / 100);
     }
+  }
+}
+
+TEMPLATE_TEST_CASE("Render: the device render matches the host's in every look of the backdrop and the floor",
+                   "[Render][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> tape(pool,
+                     Union(BoxSDF<T>(Vec3(T(-1), T(-1), T(-1)), Vec3(T(1), T(0), T(1))),
+                           SphereSDF<T>(Vec3(T(0), T(0.4), T(0)), T(0.6))));
+
+  pool.freeze();
+
+  const Pool    devicePool = Pool::mirror(pool, deviceTestResource());
+  const Tape<T> view       = tape.rebasedView(devicePool);
+
+  const auto camera = Render::Camera<T>::fit(tape.computeBoundingVolume());
+
+  for (uint8_t look = 0; look < Render::NumLooks; look++) {
+    Render::Settings<T> settings;
+
+    settings.m_width         = 48;
+    settings.m_height        = 32;
+    settings.m_supersampling = 2;
+
+    Render::setLook(settings, Render::Look(look));
+
+    const Render::Renderer<T> renderer(settings);
+
+    Render::Image host;
+    Render::Image device;
+
+    (void)renderer.render(tape, camera, host);
+    (void)renderer.renderOnDevice(view, camera, device);
+
+    REQUIRE(host.m_pixels.size() == device.m_pixels.size());
+
+    size_t different = 0;
+
+    for (size_t i = 0; i < host.m_pixels.size(); i++) {
+      const Channels a = channels(host.m_pixels[i]);
+      const Channels b = channels(device.m_pixels[i]);
+
+      if (std::abs(a.r - b.r) > 3 || std::abs(a.g - b.g) > 3 || std::abs(a.b - b.b) > 3) {
+        different++;
+      }
+    }
+
+    INFO(Render::lookName(Render::Look(look)));
+    CHECK(different <= host.m_pixels.size() / 100);
   }
 }
 

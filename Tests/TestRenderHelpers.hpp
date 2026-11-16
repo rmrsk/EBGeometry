@@ -29,7 +29,7 @@ plain(const uint32_t a_size)
   settings.m_supersampling = 1;
   settings.m_threads       = 3;
   settings.m_floor         = false;
-  settings.m_sky           = false;
+  settings.m_backdrop      = Render::Backdrop::Plain;
 
   return settings;
 }

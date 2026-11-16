@@ -219,6 +219,11 @@ the sphere crossed by its cloud index, in ``HitT::m_primitive``. Where spheres o
 surface of their union, and a ray starting inside a sphere leaves where no sphere holds it any more. The viewer
 traces the cloud the same way, on a device included.
 
+A sphere carries no data of its own. A property of the spheres (a speed, a material, a temperature) is an array of the
+program's own, in the order the cloud was built from, read at the cloud index a query or a ray reports; put in the
+cloud's pool as a ``PODVector``, it is mirrored to a device with the cloud, and a kernel reads it there.
+:ref:`Chap:ExampleTornado` carries a wind speed per sphere that way, and colors the spheres by it in the viewer.
+
 The cloud takes part in CSG as a mesh SDF does (see :ref:`Chap:ImplemCSG`), traced exactly there too: as an
 operand of the fused operations, or as a tape primitive, its type listed among the tape's primitives and the tape
 built in the cloud's pool:
@@ -230,4 +235,5 @@ built in the cloud's pool:
    const Tape<T, SphereCloudBVH<T>> porousTape(pool, Difference(Expr<T>(cylinder), Expr<T>(cloud)));
 
 See the `SphereCloudBVH doxygen page <doxygen/html/classEBGeometry_1_1SphereCloudBVH.html>`__ for the full
-interface, and :ref:`Chap:ExampleSphereClouds` and :ref:`Chap:ExampleParticleContacts` for worked usage.
+interface, and :ref:`Chap:ExampleSphereClouds`, :ref:`Chap:ExampleParticleContacts` and :ref:`Chap:ExampleTornado`
+for worked usage.

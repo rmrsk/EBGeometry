@@ -530,8 +530,45 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
 
       (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
     },
-    "Render::Renderer: the light intensity, ambient level, specular strength and checker size must not be "
-    "negative"));
+    "Render::Renderer: the light intensity, ambient level, specular strength, floor cell size and light size must "
+    "not be negative"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_lightSize = T(-0.1);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the light intensity, ambient level, specular strength, floor cell size and light size must "
+    "not be negative"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_floorReflectance = T(1.5);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the floor's fade must be positive and its reflectance from 0 to 1 (6, 1.5)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_floorFade = T(0);
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the floor's fade must be positive and its reflectance from 0 to 1 (0, 0.5)"));
 
   REQUIRE(abortsWith(
     [&sphere] {
@@ -1040,7 +1077,7 @@ TEMPLATE_TEST_CASE("Render: the light's intensity, the ambient level, the highli
   CHECK(bright.r + bright.g + bright.b > 200);
 
   // A sky of one color fills the background with it.
-  renderer.settings().m_sky        = true;
+  renderer.settings().m_backdrop   = Render::Backdrop::Sky;
   renderer.settings().m_skyHorizon = Vec3(T(0), T(1), T(0));
   renderer.settings().m_skyZenith  = Vec3(T(0), T(1), T(0));
 
@@ -1079,17 +1116,283 @@ TEMPLATE_TEST_CASE("Render: the floor's checkerboard can be turned off and resiz
 
   (void)renderer.render(sphere, camera, checked);
 
-  renderer.settings().m_floorCheckerSize = T(1.7);
+  renderer.settings().m_floorCellSize = T(1.7);
 
   (void)renderer.render(sphere, camera, larger);
 
-  renderer.settings().m_floorChecker = false;
+  renderer.settings().m_floorStyle = Render::FloorStyle::Plain;
 
   (void)renderer.render(sphere, camera, plainFloor);
 
   CHECK(checked.m_pixels != plainFloor.m_pixels);
   CHECK(checked.m_pixels != larger.m_pixels);
   CHECK(larger.m_pixels != plainFloor.m_pixels);
+}
+
+TEMPLATE_TEST_CASE("Render: a gradient runs from the top of the view to its bottom, a vignette from its center out",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A small sphere in the middle, so that the image's edges and corners are the backdrop.
+  const SphereSDF<T> sphere(Vec3::zeros(), T(0.1));
+
+  const auto camera = Render::Camera<T>::fit(SphereSDF<T>(Vec3::zeros(), T(1)).computeBoundingVolume());
+
+  constexpr uint32_t size = 40;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_backdrop     = Render::Backdrop::Gradient;
+  settings.m_gradientFrom = Vec3(T(1), T(0), T(0));
+  settings.m_gradientTo   = Vec3(T(0), T(0), T(1));
+
+  Render::Renderer<T> renderer(settings);
+  Render::Image       gradient;
+  Render::Image       vignette;
+
+  (void)renderer.render(sphere, camera, gradient);
+
+  // Red at the top, blue at the bottom, the same across each row, and halfway (gamma-encoded) in between.
+  const Channels top    = channels(gradient.at(3, 0));
+  const Channels bottom = channels(gradient.at(3, size - 1));
+  const Channels middle = channels(gradient.at(3, size / 2));
+
+  CHECK(top.r > 245);
+  CHECK(top.b < 50);
+  CHECK(bottom.b > 245);
+  CHECK(bottom.r < 50);
+  CHECK(gradient.at(0, 7) == gradient.at(size - 1, 7));
+  CHECK(std::abs(middle.r - middle.b) < 12);
+  CHECK(middle.r > 150);
+
+  renderer.settings().m_backdrop = Render::Backdrop::Vignette;
+
+  (void)renderer.render(sphere, camera, vignette);
+
+  // Red in the middle of an edge (a little way out), blue in the corners, alike in all four.
+  const Channels corner = channels(vignette.at(0, 0));
+  const Channels edge   = channels(vignette.at(size / 2, 0));
+
+  CHECK(corner.b > 240);
+  CHECK(corner.r < 60);
+  CHECK(edge.r > corner.r);
+  CHECK(vignette.at(0, 0) == vignette.at(size - 1, size - 1));
+  CHECK(vignette.at(0, size - 1) == vignette.at(size - 1, 0));
+}
+
+TEMPLATE_TEST_CASE("Render: a floor of only the shadow is the backdrop, darkened under the shape",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  camera.m_pitch = T(40);
+
+  constexpr uint32_t size = 48;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_floor           = true;
+  settings.m_floorStyle      = Render::FloorStyle::ShadowOnly;
+  settings.m_backdrop        = Render::Backdrop::Plain;
+  settings.m_background      = Vec3(T(0.5), T(0.5), T(0.5));
+  settings.m_lightFromCamera = false;
+  settings.m_light           = Vec3(T(0), T(1), T(0));
+  settings.m_colorBy         = Render::ColorBy::Uniform;
+  settings.m_color           = Vec3(T(1), T(0), T(0));
+
+  Render::Renderer<T> renderer(settings);
+  Render::Image       image;
+
+  (void)renderer.render(sphere, camera, image);
+
+  // The light is straight above: the shadow lies under the (red) sphere, the floor elsewhere is exactly the backdrop.
+  const uint32_t backdrop = image.at(0, 0);
+
+  uint32_t darker  = 0;
+  uint32_t lighter = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const Channels c = channels(image.at(column, row));
+
+      if (image.at(column, row) != backdrop && c.r == c.g && c.g == c.b) {
+        (c.r < channels(backdrop).r) ? darker++ : lighter++;
+      }
+    }
+  }
+
+  CHECK(image.at(0, size - 1) == backdrop);
+  CHECK(image.at(size - 1, size - 1) == backdrop);
+  CHECK(darker > 20);
+  CHECK(lighter == 0);
+}
+
+TEMPLATE_TEST_CASE("Render: a grid floor draws its lines, and a mirror floor reflects the shape",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  camera.m_pitch = T(20);
+
+  constexpr uint32_t size = 64;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_floor          = true;
+  settings.m_shadows        = false;
+  settings.m_occlusion      = false;
+  settings.m_floorStyle     = Render::FloorStyle::Grid;
+  settings.m_floorColor     = Vec3(T(0.5), T(0.5), T(0.5));
+  settings.m_floorLineColor = Vec3(T(1), T(0), T(0));
+  settings.m_floorCellSize  = T(0.5);
+  settings.m_colorBy        = Render::ColorBy::Uniform;
+  settings.m_color          = Vec3(T(0), T(1), T(0));
+
+  Render::Renderer<T> renderer(settings);
+  Render::Image       grid;
+  Render::Image       mirror;
+  Render::Image       matte;
+
+  (void)renderer.render(sphere, camera, grid);
+
+  // Lines are red on a gray floor: some floor pixels are redder than they are blue.
+  uint32_t lines = 0;
+
+  for (const uint32_t pixel : grid.m_pixels) {
+    const Channels c = channels(pixel);
+
+    lines += (c.r > c.b + 20 && c.g < c.r) ? 1U : 0U;
+  }
+
+  CHECK(lines > 20);
+
+  // On a mirror floor, the green sphere shows below itself; with no reflectance, the floor there is gray.
+  renderer.settings().m_floorStyle       = Render::FloorStyle::Mirror;
+  renderer.settings().m_floorReflectance = T(1);
+
+  (void)renderer.render(sphere, camera, mirror);
+
+  renderer.settings().m_floorReflectance = T(0);
+
+  (void)renderer.render(sphere, camera, matte);
+
+  uint32_t reflected = 0;
+
+  for (uint32_t row = size / 2; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const Channels m = channels(mirror.at(column, row));
+      const Channels d = channels(matte.at(column, row));
+
+      reflected += (m.g > m.r + 30 && !(d.g > d.r + 30)) ? 1U : 0U;
+    }
+  }
+
+  CHECK(reflected > 20);
+}
+
+TEMPLATE_TEST_CASE("Render: a larger light softens the shadow's edge over a pixel's rays",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const SphereSDF<T> sphere(Vec3::zeros(), T(1));
+
+  auto camera = Render::Camera<T>::fit(sphere.computeBoundingVolume());
+
+  camera.m_pitch = T(60);
+
+  constexpr uint32_t size = 64;
+
+  Render::Settings<T> settings = plain<T>(size);
+
+  settings.m_floor         = true;
+  settings.m_floorStyle    = Render::FloorStyle::Plain;
+  settings.m_occlusion     = false;
+  settings.m_supersampling = 4;
+  settings.m_lightSize     = T(0);
+
+  Render::Renderer<T> renderer(settings);
+  Render::Image       hard;
+  Render::Image       soft;
+
+  (void)renderer.render(sphere, camera, hard);
+
+  renderer.settings().m_lightSize = T(0.4);
+
+  (void)renderer.render(sphere, camera, soft);
+
+  // The floor's shades: with a point light, its pixels are lit, shadowed, or (at the shadow's edge, split among a
+  // pixel's rays) between; a large light widens the edge, so more pixels lie between.
+  const auto between = [&](const Render::Image& a_image) {
+    std::vector<uint32_t> shades(a_image.m_pixels.begin(), a_image.m_pixels.end());
+
+    std::sort(shades.begin(), shades.end());
+
+    return std::unique(shades.begin(), shades.end()) - shades.begin();
+  };
+
+  CHECK(between(soft) > between(hard));
+}
+
+TEMPLATE_TEST_CASE("Render: every look has its own name, and sets the backdrop and the floor alone",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  std::vector<std::string> names;
+  std::vector<std::string> codes;
+
+  for (uint8_t k = 0; k < Render::NumLooks; k++) {
+    Render::Settings<T> settings;
+
+    settings.m_color         = Vec3(T(0.1), T(0.2), T(0.3));
+    settings.m_supersampling = 3;
+
+    Render::setLook(settings, Render::Look(k));
+
+    names.emplace_back(Render::lookName(Render::Look(k)));
+    codes.push_back(Render::toCode(Render::Camera<T>(), settings));
+
+    // What a look does not set stays.
+    CHECK(settings.m_supersampling == 3U);
+    CHECK(settings.m_color[2] == T(0.3));
+  }
+
+  CHECK(names[0] == "sky");
+  CHECK(names[5] == "studio");
+
+  // The sky is the defaults; any look over another gives the same settings as over the defaults.
+  Render::Settings<T> sky;
+
+  Render::setLook(sky, Render::Look::Blueprint);
+  Render::setLook(sky, Render::Look::Sky);
+
+  CHECK(Render::toCode(Render::Camera<T>(), sky) == Render::toCode(Render::Camera<T>(), Render::Settings<T>()));
+
+  std::sort(names.begin(), names.end());
+  std::sort(codes.begin(), codes.end());
+
+  CHECK(std::unique(names.begin(), names.end()) == names.end());
+  CHECK(std::unique(codes.begin(), codes.end()) == codes.end());
 }
 
 TEMPLATE_TEST_CASE("Render: an orthographic camera shows a sphere as a disc of its own radius",
@@ -1270,6 +1573,9 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
   settings.m_rays.m_maxSteps    = 100;
   settings.m_viewMode           = Render::ViewMode::XRay;
   settings.m_hidden[1]          = 7;
+  settings.m_backdrop           = Render::Backdrop::Vignette;
+  settings.m_floorStyle         = Render::FloorStyle::Grid;
+  settings.m_floorMajorEvery    = 5;
 
   CHECK(Render::toCode(camera, settings) ==
         "EBGeometry::Render::Camera<T> camera;\n"
@@ -1279,8 +1585,11 @@ TEMPLATE_TEST_CASE("Render: toCode() writes the fields that differ from their de
         "EBGeometry::Render::Settings<T> settings;\n"
         "settings.m_width = 1280;\n"
         "settings.m_shadows = false;\n"
+        "settings.m_backdrop = EBGeometry::Render::Backdrop::Vignette;\n"
         "settings.m_colorBy = EBGeometry::Render::ColorBy::Uniform;\n"
         "settings.m_primitiveColors[3] = EBGeometry::Vec3T<T>(T(0.5), T(0.5), T(0.5));\n"
+        "settings.m_floorStyle = EBGeometry::Render::FloorStyle::Grid;\n"
+        "settings.m_floorMajorEvery = 5;\n"
         "settings.m_rays.m_maxSteps = 100;\n"
         "settings.m_viewMode = EBGeometry::Render::ViewMode::XRay;\n"
         "settings.m_hidden[1] = 7;\n");
