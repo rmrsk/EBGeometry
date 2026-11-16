@@ -1877,8 +1877,41 @@ private:
   /**
    * @brief The color of the floor where a camera ray hit it, in its style (Settings::m_floorStyle), shadowed by the
    * shape, fading into the backdrop far away.
-   * @details Out of line on a device: inlined, its styles (the grid, the shadow-only floor's second lighting) took part
-   * in every render kernel's register allocation, and the kernels of TestRenderDevice spilled up to 40% more.
+   * @details The checker and the plain floor are shaded here, inlined into the render kernels; the other styles in
+   * shadeStyledFloor(), out of line on a device. Out of line, the checker floor made the float CSG frame of the Render
+   * probe 11% slower on a device; inlined, the other styles (the grid, the shadow-only floor's second lighting, the
+   * mirror) took part in every render kernel's register allocation, and the kernels of TestRenderDevice spilled up to
+   * 40% more.
+   * @param[in] a_point     Point on the floor.
+   * @param[in] a_direction Unit direction of the camera ray.
+   * @param[in] a_t         Distance along the ray.
+   * @return Linear RGB.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  shadeFloor(const Vec3T<T>& a_point, const Vec3T<T>& a_direction, const T a_t) const noexcept
+  {
+    const FloorStyle style = m_settings.m_floorStyle;
+
+    if (style != FloorStyle::Checker && style != FloorStyle::Plain) {
+      return this->shadeStyledFloor(a_point, a_direction, a_t);
+    }
+
+    const T cell  = this->floorCell();
+    const T a     = std::floor(dot(a_point, m_first) / cell);
+    const T b     = std::floor(dot(a_point, m_second) / cell);
+    const T check = (style == FloorStyle::Plain || std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9);
+
+    const Vec3T<T> lit = this->light(a_point, m_up, a_direction, check * m_settings.m_floorColor);
+
+    const T fade = this->floorFade(a_t);
+
+    return fade * lit + (T(1) - fade) * this->background(a_direction);
+  }
+
+  /**
+   * @brief The floor's color in a style other than the checker and the plain floor (see shadeFloor()).
+   * @details Out of line on a device (see shadeFloor()).
    * @param[in] a_point     Point on the floor.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_t         Distance along the ray.
@@ -1887,12 +1920,11 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline Vec3T<T>
-  shadeFloor(const Vec3T<T>& a_point, const Vec3T<T>& a_direction, const T a_t) const noexcept
+  shadeStyledFloor(const Vec3T<T>& a_point, const Vec3T<T>& a_direction, const T a_t) const noexcept
   {
     const FloorStyle style = m_settings.m_floorStyle;
     const Vec3T<T>   under = this->background(a_direction);
-
-    const T fade = std::exp(-(a_t * a_t) / (m_settings.m_floorFade * m_settings.m_floorFade * m_scale * m_scale));
+    const T          fade  = this->floorFade(a_t);
 
     // Only the shape's shadow and occlusion, as a darkening of the backdrop.
     if (style == FloorStyle::ShadowOnly) {
@@ -1903,20 +1935,13 @@ private:
       return (T(1) - fade * dark) * under;
     }
 
-    const T cell = (m_settings.m_floorCellSize > T(0)) ? m_settings.m_floorCellSize : m_scale / T(6);
-    const T u    = dot(a_point, m_first) / cell;
-    const T v    = dot(a_point, m_second) / cell;
-
     Vec3T<T> albedo = m_settings.m_floorColor;
 
-    if (style == FloorStyle::Checker) {
-      const T a = std::floor(u);
-      const T b = std::floor(v);
+    if (style == FloorStyle::Grid) {
+      const T cell = this->floorCell();
 
-      albedo = ((std::fmod(std::abs(a + b), T(2)) < T(0.5)) ? T(1) : T(0.9)) * albedo;
-    }
-    else if (style == FloorStyle::Grid) {
-      albedo = this->gridColor(u, v, (m_footprint + m_footprintPerLength * a_t) / cell);
+      albedo = this->gridColor(
+        dot(a_point, m_first) / cell, dot(a_point, m_second) / cell, (m_footprint + m_footprintPerLength * a_t) / cell);
     }
 
     Vec3T<T> lit = this->light(a_point, m_up, a_direction, albedo);
@@ -1926,6 +1951,30 @@ private:
     }
 
     return fade * lit + (T(1) - fade) * under;
+  }
+
+  /**
+   * @brief The side of the floor's checker or grid cell (Settings::m_floorCellSize, or a sixth of the scene's scale).
+   * @return The side.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  floorCell() const noexcept
+  {
+    return (m_settings.m_floorCellSize > T(0)) ? m_settings.m_floorCellSize : m_scale / T(6);
+  }
+
+  /**
+   * @brief How much of the floor shows at a distance along a camera ray, fading into the backdrop
+   * (Settings::m_floorFade).
+   * @param[in] a_t Distance along the ray.
+   * @return From 1 (near) to 0.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  floorFade(const T a_t) const noexcept
+  {
+    return std::exp(-(a_t * a_t) / (m_settings.m_floorFade * m_settings.m_floorFade * m_scale * m_scale));
   }
 
   /**
@@ -1940,6 +1989,8 @@ private:
   inline Vec3T<T>
   gridColor(const T a_u, const T a_v, const T a_pixel) const noexcept
   {
+    // A pixel of no width (a zero footprint set by the caller) would divide zero by zero on a line.
+    const T pixel = Math::max(a_pixel, Math::Limits<T>::min());
     const T nu    = std::floor(a_u + T(0.5));
     const T nv    = std::floor(a_v + T(0.5));
     const T du    = std::abs(a_u - nu);
@@ -1947,17 +1998,17 @@ private:
     const T every = T(m_settings.m_floorMajorEvery);
 
     // Lines a cell apart are seen fully at 8 pixels apart or more, and fade out down to 4.
-    const T minorSeen = Math::clamp((T(1) / a_pixel - T(4)) / T(4), T(0), T(1));
-    const T minor     = minorSeen * Math::clamp(T(1) - Math::min(du, dv) / a_pixel, T(0), T(1));
+    const T minorSeen = Math::clamp((T(1) / pixel - T(4)) / T(4), T(0), T(1));
+    const T minor     = minorSeen * Math::clamp(T(1) - Math::min(du, dv) / pixel, T(0), T(1));
 
     T major = T(0);
 
     if (every > T(0)) {
-      const T majorSeen = Math::clamp((every / a_pixel - T(4)) / T(4), T(0), T(1));
+      const T majorSeen = Math::clamp((every / pixel - T(4)) / T(4), T(0), T(1));
       const T onU       = (std::fmod(std::abs(nu), every) < T(0.5)) ? du : Math::Limits<T>::infinity();
       const T onV       = (std::fmod(std::abs(nv), every) < T(0.5)) ? dv : Math::Limits<T>::infinity();
 
-      major = majorSeen * Math::clamp(T(2) - Math::min(onU, onV) / a_pixel, T(0), T(1));
+      major = majorSeen * Math::clamp(T(2) - Math::min(onU, onV) / pixel, T(0), T(1));
     }
 
     const T line = Math::max(T(0.6) * minor, major);
@@ -1968,8 +2019,10 @@ private:
   /**
    * @brief The mirror floor's color at a point: its own lit color, with the shape's reflection, or the backdrop's,
    * over it by the reflectance, rising towards the horizon (Schlick's approximation).
-   * @details Out of line on a device, like shadeCutFace(): its trace and second shading, inlined, would take part in
-   * the register allocation of every render kernel.
+   * @details A reflected ray that hits nothing shows the backdrop behind the floor point (a_under), not the backdrop
+   * in the reflected direction: the gradient and the vignette are images of the screen, which a reflection keeps, and
+   * a mirrored sky does not flip. Out of line on a device, like shadeCutFace(): its trace and second shading, inlined,
+   * would take part in the register allocation of every render kernel.
    * @param[in] a_point     Point on the floor.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_lit       The floor's own lit color there.
