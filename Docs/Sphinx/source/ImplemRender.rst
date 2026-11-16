@@ -53,6 +53,9 @@ The classes are in namespace ``Render``:
   per second (below). The renderer prints nothing.
 * ``Render::toCode(camera, settings)`` writes a camera and settings as C++ statements, the fields that differ
   from their defaults: a view found by hand in the window, ready to paste into a program.
+* ``Render::setLook(settings, Render::Look::Studio)`` sets the backdrop and the floor to one of nine named looks
+  (``lookName()`` gives their names), the ones the viewer's B key steps through; change any of their fields
+  afterwards to adjust one.
 
 The settings
 ------------
@@ -77,16 +80,22 @@ default.
        ``Primitive``, by ``HitT::m_primitive`` (a tape's leaf, a mesh's face); ``m_primitiveColors`` gives the
        first ``Settings::PrimitiveColors`` (16) primitives colors of their own, and the others take the
        built-in palette's.
-   * - ``m_shadows``, ``m_occlusion``
-     - Soft shadows, and ambient occlusion (darker creases); both on.
+   * - ``m_shadows``, ``m_occlusion``, ``m_lightSize``
+     - Shadows, and ambient occlusion (darker creases); both on. The light's size softens the shadows' edges: with
+       supersampling, each of a pixel's rays sees the light from a different point of it.
    * - ``m_light``, ``m_lightFromCamera``, ``m_lightIntensity``, ``m_ambient``, ``m_specular``, ``m_shininess``
      - The direction toward the light, by default in the camera's frame so that it lights the side in view
        wherever the camera goes (``m_lightFromCamera`` false fixes it in the scene); how strongly it lights;
        the light from the sky; the highlights' brightness and size.
-   * - ``m_floor``, ``m_floorColor``, ``m_floorChecker``, ``m_floorCheckerSize``
-     - A floor under the shape that catches its shadow, with or without a checkerboard.
-   * - ``m_sky``, ``m_skyHorizon``, ``m_skyZenith``, ``m_background``
-     - A sky gradient behind the shape, or, with ``m_sky`` false, a plain background.
+   * - ``m_floor``, ``m_floorStyle``, ``m_floorColor``, ``m_floorCellSize``, ``m_floorLineColor``,
+       ``m_floorMajorEvery``, ``m_floorFade``, ``m_floorReflectance``
+     - A floor under the shape that catches its shadow, fading into the backdrop far away: a checkerboard
+       (``FloorStyle::Checker``, the default), a grid with heavier lines every few, a plain floor, only the shape's
+       shadow on the backdrop (``ShadowOnly``), or a floor that reflects the shape (``Mirror``, which traces one more
+       ray per pixel of the floor).
+   * - ``m_backdrop``, ``m_skyHorizon``, ``m_skyZenith``, ``m_background``, ``m_gradientFrom``, ``m_gradientTo``
+     - What is behind the shape: a sky (``Backdrop::Sky``, the default), a plain background, a gradient from the
+       top of the view to its bottom, or a vignette from its center to its corners.
    * - ``m_section``, ``m_sectionPoint``, ``m_sectionNormal``, ``m_ghostOpacity``
      - A section plane, removing the part of the shape on the side its normal points to; with ``m_ghostOpacity``
        above 0, that part is drawn translucent in front of the cut instead of left out, and the fill covers only the

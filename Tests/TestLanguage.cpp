@@ -541,7 +541,7 @@ TEMPLATE_TEST_CASE("Language: the view block warns about a key a viewer passes o
   // Every key a viewer reads, and a color for each kind of name: no warning.
   const auto clean = Language::parse<T>(model + "view { camera = (7, 5, 9), target = (1, 0, 0), up = (0, 1, 0), "
                                                 "field_of_view = 30, orthographic = false, background = (1, 1, 1), "
-                                                "sky = false, floor = false, color.red = (1, 0, 1), "
+                                                "look = \"studio\", floor = false, color.red = (1, 0, 1), "
                                                 "color.r2 = (0, 0, 1) }\n",
                                         "test.ebg",
                                         pool);

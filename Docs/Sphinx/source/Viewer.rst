@@ -47,8 +47,9 @@ To look inside:
   Shift + T makes every surface opaque again. Shift and the wheel step through the surfaces under the cursor,
   front to back, seeing through those in front of the one stepped to.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
-  keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut, and
-  the arrow keys and Ctrl + wheel move it. I draws lines of equal distance on the plane, spaced to the view.
+  keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut
+  (or through the side N draws, or makes it opaque), and the arrow keys and Ctrl + wheel move it. I draws lines
+  of equal distance on the plane, spaced to the view.
 * **Slice view.** Z lays the section plane flat on screen, seen square from the removed side; the wheel then
   moves the plane through the object.
 * **Other views.** M cycles the views: shaded, x-ray, and the costs of finding hits and of finding crossings
@@ -77,15 +78,22 @@ The keys
        its position and the shape's value there, and for a view of regions the region it is in, the active
        domain's subdomain and functions there, and the nearest surface with its surface group. A right click on
        the background clears it.
-   * - Left, Right (Shift + Left, Right)
-     - Weaker or stronger highlights (broader or tighter).
+   * - Up, Down; Left, Right
+     - A stronger or weaker light; less or more ambient light (the light from the sky, which lights the sides the
+       light does not reach).
+   * - Shift + Up, Down; Shift + Left, Right
+     - Stronger or weaker highlights; broader or tighter ones.
    * - M; Shift + M
      - Cycle the view: shaded, x-ray, cost of ``firstHit()``, cost of ``firstCrossing()``; backwards.
    * - P
      - Cycle the coloring: by normal, uniform, by primitive.
-   * - S, A, F, B
-     - Shadows, ambient occlusion, the floor, the sky on or off.
-   * - Shift + Up, Down
+   * - S, A, F
+     - Shadows, ambient occlusion, the floor on or off.
+   * - B; Shift + B
+     - The next look of the backdrop and the floor; the previous one. In order: the sky, a dark background, a gradient
+       without a floor, only the shadow on a gradient, a light grid, a white studio backdrop, a mirror floor, a dark
+       grid, a blueprint. A floor turned off with F stays off.
+   * - Ctrl + Up, Down
      - More or fewer rays per pixel, from 1 x 1 to 8 x 8.
    * - G
      - Render on the GPU or the CPU (when the window has a device view).
@@ -93,8 +101,10 @@ The keys
      - Cut with a section plane across x, then y, then z, through the box's center (a plane the settings turn
        on comes first); remove the cut; see through the cut face and the plane to the surfaces behind them, or
        make them opaque again; keep the other side, then each side with the other ghosted (drawn translucent
-       in front of it), then both sides solid (the plane shows outside the shape only), five in turn.
-   * - Ctrl + wheel; Up, Down
+       in front of it), then both sides solid (the plane shows outside the shape only), five in turn. While N
+       draws the other side, Shift + X makes it opaque where it is ghosted and ghosted where it is solid, until the
+       next N.
+   * - Ctrl + wheel; Page Up, Page Down
      - Move the section plane in fine steps; in coarse ones.
    * - U
      - The axis planes through the origin, drawn over the image: all three, the one facing the camera most, or
@@ -106,8 +116,8 @@ The keys
        perspective; R with the camera the window opened with.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them, then every 1/20, 1/50 or
-       1/100 of the view's height (rounded to 1, 2 or 5 times a power of ten), which follow the zoom and the
-       field of view: zoomed in, they are drawn closer. Where they would crowd together on screen (far along a
+       1/100 of the view's height where the plane is looked at (rounded to 1, 2 or 5 times a power of ten), which
+       follow the zoom and the field of view: zoomed in, they are drawn closer. Where they would crowd together on screen (far along a
        plane seen at a slant), every second line is left out, as often as needed.
    * - Click; Shift + click; Ctrl + click
      - Pick the object under the cursor; mark a point to measure from or to. For a view of regions, a click

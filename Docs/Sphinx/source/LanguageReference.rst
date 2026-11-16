@@ -121,10 +121,13 @@ The view block
        the fitted camera's when left out. Not together with ``camera``.
    * - ``field_of_view``, ``orthographic``
      - the vertical field of view in degrees; ``orthographic = true`` for parallel rays
+   * - ``look = "NAME"``
+     - the look of the backdrop and the floor: ``sky`` (the default), ``dark``, ``gradient``, ``shadow_only``,
+       ``light_grid``, ``studio``, ``mirror``, ``dark_grid`` or ``blueprint``, as the viewer's B key steps through them
    * - ``background = (r, g, b)``
-     - a plain background of that color, each component from 0 to 1, instead of the sky's gradient
-   * - ``sky = false``, ``floor = false``
-     - a plain default background; no floor under the object
+     - a plain background of that color, each component from 0 to 1, instead of the look's backdrop (its floor kept)
+   * - ``floor = false``
+     - no floor under the object
    * - ``color.NAME = (r, g, b)``
      - the color of a name, each component from 0 to 1: a material's, a region's, a surface label's or a
        surface group's, used when the viewer colors by that kind of name; colored by region, a region without
