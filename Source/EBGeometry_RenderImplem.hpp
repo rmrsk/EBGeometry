@@ -1923,13 +1923,13 @@ private:
 
       const Vec3T<T>& over = (edge < T(1.5) * width) ? m_settings.m_sheetEdgeColor : m_settings.m_sheetColor;
 
-      const T        a       = m_settings.m_sheetOpacity;
-      const Vec3T<T> sheeted = (T(1) - a) * color + a * over;
+      const T        opacity = m_settings.m_sheetOpacity;
+      const Vec3T<T> sheeted = (T(1) - opacity) * color + opacity * over;
 
       // A line goes over the sheet, as strongly as the sheet is clear: over a white sheet that is the line under it, as
       // drawn inside, but over a dark backdrop the sheet no longer lifts the line to the backdrop's own shade, which
       // made the lines vanish there.
-      return onLine ? a * sheeted + (T(1) - a) * line : sheeted;
+      return onLine ? opacity * sheeted + (T(1) - opacity) * line : sheeted;
     }
 
     return onLine ? line : color;
