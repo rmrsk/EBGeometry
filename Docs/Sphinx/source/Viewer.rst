@@ -47,8 +47,8 @@ To look inside:
   Shift + T makes every surface opaque again. Shift and the wheel step through the surfaces under the cursor,
   front to back, seeing through those in front of the one stepped to.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
-  keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut, and
-  the arrow keys and Ctrl + wheel move it. I draws lines of equal distance on the plane, spaced to the view.
+  keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut
+  (or through the side N draws, or makes it opaque), and the arrow keys and Ctrl + wheel move it. I draws lines of equal distance on the plane, spaced to the view.
 * **Slice view.** Z lays the section plane flat on screen, seen square from the removed side; the wheel then
   moves the plane through the object.
 * **Other views.** M cycles the views: shaded, x-ray, and the costs of finding hits and of finding crossings
@@ -97,7 +97,9 @@ The keys
      - Cut with a section plane across x, then y, then z, through the box's center (a plane the settings turn
        on comes first); remove the cut; see through the cut face and the plane to the surfaces behind them, or
        make them opaque again; keep the other side, then each side with the other ghosted (drawn translucent
-       in front of it), then both sides solid (the plane shows outside the shape only), five in turn.
+       in front of it), then both sides solid (the plane shows outside the shape only), five in turn. While N
+       draws the other side, Shift + X makes it opaque where it is ghosted and ghosted where it is solid, until the
+       next N.
    * - Ctrl + wheel; Up, Down
      - Move the section plane in fine steps; in coarse ones.
    * - U
