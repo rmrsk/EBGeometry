@@ -12,6 +12,7 @@
 #define EBGEOMETRY_REGIONNEIGHBORHOODIMPLEM_HPP
 
 // Std includes
+#include <cmath>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -365,9 +366,17 @@ regionNeighborhood(const Expr<T>& a_expr, const std::vector<uint32_t>& a_regions
 
   EBGEOMETRY_EXPECT(boxes.size() + 1U == numRegions);
 
-  const BoundingVolumes::AABBT<T> scene = a_expr.computeBoundingVolume();
+  // How far apart two boxes may be and still meet: rounding in the maps that carried them, relative to the size of the
+  // regions given; none when one of them is unbounded (it meets every box it reaches anyway).
+  T extent = T(0);
 
-  const T tolerance = T(1.E-5) * (scene.getHighCorner() - scene.getLowCorner()).length();
+  for (const uint32_t r : a_regions) {
+    if (r > 0U && boxes[r - 1U].m_some) {
+      extent = Math::max(extent, (boxes[r - 1U].m_hi - boxes[r - 1U].m_lo).length());
+    }
+  }
+
+  const T tolerance = std::isfinite(extent) ? T(1.E-5) * extent : T(0);
 
   std::vector<bool> kept(numRegions, false);
 

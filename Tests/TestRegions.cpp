@@ -3037,6 +3037,19 @@ TEMPLATE_TEST_CASE("regionNeighborhood: keeps the regions given and those whose 
   CHECK(box.getLowCorner()[0] >= T(2.5) - looseMargin<T>());
   CHECK(box.getHighCorner()[0] <= T(3.5) + looseMargin<T>());
 
+  // Through a rotation: a box turned 45 degrees about z, whose corner reaches x = 1, touches the first box's face and
+  // is kept with it; moved away, it is dropped.
+  const auto turned = [](const T a_x) {
+    return Translate(Rotate(BoxSDF<T>(T(-0.5) * Vec3::ones(), T(0.5) * Vec3::ones()), T(45), 2), Vec3(a_x, T(0), T(0)));
+  };
+
+  const T reach = T(0.5) * std::sqrt(T(2));
+
+  CHECK(keptRegions(regionNeighborhood(Overlay(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), turned(T(1) + reach)), {1U})) ==
+        std::vector<uint32_t>{0U, 1U, 2U});
+  CHECK(keptRegions(regionNeighborhood(Overlay(BoxSDF<T>(-Vec3::ones(), Vec3::ones()), turned(T(1.5) + reach)),
+                                       {1U})) == std::vector<uint32_t>{0U, 1U});
+
   // With the background, everything; an object with no Overlay is its own neighborhood.
   CHECK(regionNeighborhood(scene, {0U}).getNumRegions() == 7U);
 

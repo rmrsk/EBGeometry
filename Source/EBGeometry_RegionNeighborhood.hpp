@@ -172,8 +172,10 @@ private:
  * for a region: it never drops a region that touches one given (so every surface of theirs keeps the regions on both
  * of its sides), but it may keep one that does not, when their boxes meet while the regions do not (a region in the
  * hollow of an L-shaped one, or whose box is cut away by later regions). A region's box is its operand's, carried up
- * through the maps above it and clipped by the clipping intersections' boxes. Regions in a FiniteRepetition are kept
- * whole, with it. Host only.
+ * through the maps above it and clipped by the clipping intersections' boxes; boxes meet within a small tolerance
+ * relative to the regions given, for the rounding of the maps. A region with an unbounded box (a half-space, a
+ * complement) meets every region its box reaches, so it keeps them, or is kept by every region given. Regions in a
+ * FiniteRepetition are kept whole, with it. Host only.
  * @tparam T Floating-point precision.
  * @param[in] a_expr    An expression; one with no Overlay has one region, the whole object, and is its own
  *                      neighborhood.
