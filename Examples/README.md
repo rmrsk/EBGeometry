@@ -17,7 +17,7 @@ The reading order:
 
 1. `Shapes`: the built-in analytic shapes: constructing them, their signed distance, bounding box and distance quality.
 2. `BasicCSG`: the classic CSG solid, with `Union`, `Intersection` and `Difference`, compiled into a `Tape`.
-3. `LanguageCSG`: the same solid written in the .ebg language and read at run time (`Language::read()`): edit the model, no compiling.
+3. `LanguageCSG`: the same solid written in the .ebg language, read at run time (`Language::read()`) and viewed: edit the model, no compiling.
 4. `MeshSDF`: reading a surface mesh into a signed distance function; `FlatMeshSDF`, `MeshSDF` and `TriMeshSDF`, and which to pick.
 
 **Shapes and composition**

@@ -31,18 +31,17 @@ Reading it and compiling it
 ---------------------------
 
 ``Language::read()`` reads the file into a model; a model with errors throws them all, with their files, lines and
-columns. A param can be given another value when it is read, here from the command line (``-Dr_drill=0.3``). The
-model's object is an ``Expr``, as the expression builder makes one, and compiles into a tape like any other:
+columns. The model's object is an ``Expr``, as the expression builder makes one, and compiles into a tape like any other:
 
 .. code-block:: c++
 
    Pool pool(hostMemoryResource());
 
-   const auto    model = Language::read<T>("solid.ebg", pool, {{"r_drill", "0.3"}});
+   const auto    model = Language::read<T>("solid.ebg", pool);
    const Tape<T> tape(pool, model.object());
 
-From here on, nothing knows the solid came from a file: the program evaluates the tape at a few points and opens a
-window on the solid. The tape runs on a GPU as any tape does (see :ref:`Chap:ExampleBasicCSG`).
+From here on, nothing knows the solid came from a file: the program opens a window on the tape, which renders on the
+GPU in a GPU build, and the tape runs queries there as any tape does (see :ref:`Chap:ExampleBasicCSG`).
 
 Editing ``solid.ebg`` changes the solid with no compiling: run the program again. ``ebgstudio`` (built in
 ``Studio/``, see :ref:`Chap:Studio`) opens the model in a window that reloads it on every save,
@@ -56,6 +55,6 @@ Build it as any example (see :ref:`Chap:Examples`), and run it from its folder, 
 .. code-block:: bash
 
    cd Examples/LanguageCSG
-   make && ./LanguageCSG.ex                 # or ./LanguageCSG.ex -Dr_drill=0.3, or path/to/model.ebg
+   make && ./LanguageCSG.ex                 # or ./LanguageCSG.ex path/to/model.ebg
 
 See :ref:`Chap:ImplemLanguage` for the calls.

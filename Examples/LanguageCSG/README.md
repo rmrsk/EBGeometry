@@ -3,11 +3,10 @@ Examples/LanguageCSG
 
 A composition read at run time. `solid.ebg` writes the classic CSG solid of the `BasicCSG` example, a cube rounded
 off by a ball and drilled through along all three axes, in the .ebg language, with its sizes as params.
-`Language::read()` reads it; the program compiles its object into a tape and evaluates it, as `BasicCSG` does with
-the solid it composes in C++ (which also runs the tape on a GPU: a tape read from a file runs there the same way).
+`Language::read()` reads it; the program compiles its object into a tape and opens a window on it. The tape is like
+the one `BasicCSG` composes in C++, and runs on a GPU the same way.
 
-Edit `solid.ebg` and run again: no compiling. A param can also be set from the command line, `-DNAME=VALUE`, as
-`ebgstudio` takes it. `ebgstudio`, built in `../../Studio` (`make` there), opens the model in a window that reloads
+Edit `solid.ebg` and run again: no compiling. `ebgstudio`, built in `../../Studio` (`make` there), opens the model in a window that reloads
 it on every save (`ebgstudio solid.ebg`). The `LanguageDomains` example goes on to regions, materials and domains.
 
 Building
@@ -69,8 +68,6 @@ Running
 -------
 
     ./LanguageCSG.ex                       # solid.ebg
-    ./LanguageCSG.ex -Dr_drill=0.3         # thinner drills
     ./LanguageCSG.ex path/to/model.ebg     # another model
 
-It prints the model's params (and which were overridden), the tape's size and box, and the signed distance at four
-points. The window then opens on the solid.
+It opens the window on the solid; a model with errors stops it with their files, lines and columns.
