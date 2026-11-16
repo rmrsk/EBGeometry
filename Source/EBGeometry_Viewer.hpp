@@ -221,7 +221,9 @@ struct DomainShape
  * them), the cost views trace that domain's own shape, showing its regions and passing through the regions kept around
  * them: each pixel's ray stops at the first surface of one of the domain's regions, on the domain's own tape, as a
  * solver of the domain finds a subdomain's surface (Tape::firstSurface()), so the cost shown is what that solver pays
- * for it. Otherwise they time the whole object's tape, as without the domains' shapes.
+ * for it. Otherwise they time the whole object's tape, as without the domains' shapes. The window shows and hides
+ * regions 1 to 63 only: a domain is shown alone when those match its regions, and a domain whose own shape has more
+ * than 64 regions (the background included) is timed as the whole object.
  * @tparam S Shape type: a view of regions (RegionView), with rebasedView(const Pool&).
  * @param[in]     a_shape    The shape, valid on the host.
  * @param[in,out] a_pool     The pool a_shape and the domains' shapes live in.

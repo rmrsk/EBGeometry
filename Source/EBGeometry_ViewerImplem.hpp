@@ -2400,7 +2400,8 @@ run(const S&                           a_shape,
 
   // The active domain, when a cost view shows it alone (its regions shown, every other hidden, as its Only button
   // leaves them) and the program gave its own shape (see view() with the domains' shapes); else None. The viewer shows
-  // and hides regions 1 to 63 only, so only those are compared.
+  // and hides regions 1 to 63 only, so only those are compared; and its own shape must have no more, so that the
+  // regions kept around the domain's can all be hidden.
   const auto ownDomain = [&](const Settings<T>& a_frame) -> uint32_t {
     if constexpr (hasRegionVisibility<S>) {
       const bool timed = a_frame.m_viewMode == ViewMode::CostHit || a_frame.m_viewMode == ViewMode::CostCrossing;
@@ -2411,7 +2412,7 @@ run(const S&                           a_shape,
 
       const uint32_t active = names.getActiveDomain();
 
-      if (active >= a_domains->size()) {
+      if (active >= a_domains->size() || (*a_domains)[active].m_wholeRegion.size() > 64U) {
         return Subdomains::None;
       }
 
@@ -2461,8 +2462,11 @@ run(const S&                           a_shape,
     frame.m_regions          = RegionSettings();
     frame.m_recordPrimitives = false;
 
+    // The domain's regions shown, from the domain itself (the whole shape's regions from 64 on have no bit to read).
+    const DomainSetup& setup = names.getDomain(own);
+
     for (uint32_t k = 1; k < domain.m_wholeRegion.size(); k++) {
-      frame.m_regions.setVisible(k, a_frame.m_regions.isVisible(domain.m_wholeRegion[k], shape.getNumRegions()));
+      frame.m_regions.setVisible(k, setup.computesIn(domain.m_wholeRegion[k]));
     }
 
     const S& device = (a_deviceDomains != nullptr) ? (*a_deviceDomains)[own].m_shape : domain.m_shape;
