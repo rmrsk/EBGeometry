@@ -282,6 +282,20 @@ repository and open a pull request. See
 test locally, what continuous integration checks, the performance comparison every pull request
 carries, and the code conventions.
 
+## Citing EBGeometry
+
+If you use EBGeometry in published work, please cite it. GitHub's *Cite this repository* button (from
+[`CITATION.cff`](CITATION.cff)) gives the reference in BibTeX and APA, or use:
+
+```bibtex
+@software{EBGeometry,
+  author  = {Marskar, Robert},
+  title   = {{EBGeometry}: fast, portable geometry queries in a single {C++} header},
+  url     = {https://github.com/rmrsk/EBGeometry},
+  license = {BSD-3-Clause}
+}
+```
+
 ## How EBGeometry is developed
 
 EBGeometry is human-designed, with AI-assisted implementation.
