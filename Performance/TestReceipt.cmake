@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Checks that perf_write_receipt() (Receipt.cmake) writes a report whole: a yellow or red verdict has a
 # semicolon, and a receipt once kept only the text before it (#227). Run by ctest with

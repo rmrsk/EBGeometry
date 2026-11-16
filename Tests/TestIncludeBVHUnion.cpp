@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A file that includes the shapes and EBGeometry_BVHUnion.hpp, and no other header of the library, must see
 // the ray form of the BVH unions: firstHit() is a template (declared with the shapes), and a file that saw no

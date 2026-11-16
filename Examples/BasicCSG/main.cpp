@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // The classic CSG solid: a cube rounded off by a ball (an intersection) and drilled through along all three
 // axes (a difference with a union of three cylinders). The expression builder describes it, a Tape compiles

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Align every function of the probes to 64 bytes, a cache line, so that a probe's time depends on its code
 # and not on where the linker happens to place it. Performance/CMakeLists.txt includes this file, and

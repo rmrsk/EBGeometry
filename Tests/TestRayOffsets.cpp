@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Unit tests for the ray queries of offsets and annuli: of analytic shapes and of meshes, traced to their
 // level sets in a tape and fused, and device evaluation.

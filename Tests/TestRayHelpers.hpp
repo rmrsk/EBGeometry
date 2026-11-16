@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test helpers shared by the ray tests (TestRayAnalytic, TestRayMesh, TestRayCSG, TestRayOffsets): a slab
 // test of the unit cube, a fine mesh of a cube, user shapes with and without ray forms, a marched wrapper,

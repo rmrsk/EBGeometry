@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // A property carried on a sphere cloud, at scale: a tornado of half a million spheres or more (try 8 million), each
 // carrying the speed of the wind where it sits. The spheres are packed as in SphereClouds and kept in one

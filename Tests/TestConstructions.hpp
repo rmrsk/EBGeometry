@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Every BVH::Construction value, for tests that check a BVH user accepts all of them. One list, so a value
 // added to the enum is added to every such test at once. Test infrastructure only.

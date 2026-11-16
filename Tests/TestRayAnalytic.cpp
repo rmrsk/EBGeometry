@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Unit tests for the ray queries of analytic shapes (EBGeometry_Ray.hpp and the analytic ray forms): the
 // ray forms against hand-computed crossings and against the march, a tube's spans against its values along

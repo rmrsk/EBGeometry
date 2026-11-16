@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Shared helpers for death tests: run an operation in a forked child and check that it aborts
 // (SIGABRT), which is how EBGEOMETRY_REQUIRE and EBGEOMETRY_EXPECT signal a failed check. Not part of

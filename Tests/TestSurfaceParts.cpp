@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for the parts of a shape and the face groups of a mesh (EBGeometry_SurfaceRef.hpp,
 // EBGeometry_FaceGroups.hpp): each built-in shape's parts at points beside each face, a mesh's part as the face

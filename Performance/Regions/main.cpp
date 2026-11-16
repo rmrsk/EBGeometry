@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for the regions of a tape: a matrix holding particles, each a shell around a grain, one Overlay
 // of 1 + 2 x Particles regions, in float and double, at random points in the matrix. region() finds the region a point

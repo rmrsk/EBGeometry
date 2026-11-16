@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Searching a point cloud: the closest points to arbitrary query points, and the nearest neighbors of
 // points that are in the cloud (the k-nearest-neighbor graph). Two classes answer the same questions

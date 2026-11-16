@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for a domain with many subdomains and surface groups: a matrix holding particles, each a shell
 // around a grain (the Regions probe's scene), with the matrix and every shell a subdomain of its own (33 subdomains,

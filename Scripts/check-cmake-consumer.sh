@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # Builds a small project that uses EBGeometry the two ways Building.rst documents -- add_subdirectory
 # and install + find_package -- and checks that neither imposes SIMD flags on it. Used by CI.

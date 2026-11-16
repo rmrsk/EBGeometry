@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for the mesh signed distance functions: TriMeshSDF and MeshSDF on the armadillo
 // mesh (the dodecahedron under --smoke), in float and double. A host build runs the host cases (builds,

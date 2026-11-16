@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Cross-format parser behavior: binary fixtures against their ASCII counterparts, and malformed or
 // truncated input, which must throw Parser::ParseError rather than crash or yield a partial mesh.

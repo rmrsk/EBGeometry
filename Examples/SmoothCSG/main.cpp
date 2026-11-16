@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Smooth CSG: SmoothUnion, SmoothIntersection and SmoothDifference blend two objects over a length instead of
 // meeting at a sharp crease. The program compares a sharp and a smooth union at their crease, with both blend

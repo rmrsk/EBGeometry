@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for SphereCloudBVH and its leaf group SphereAoSoA: the signed distance to a union of spheres of
 // differing radii and the closest sphere, checked against a brute-force scan over the spheres, in both precisions;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 """Check that library code under Source/ keeps to the device toolchain contract.
 
 nvcc rejects a call to a constexpr host function (std::min, std::array::operator[],

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for EBGeometry_PointCloud.hpp: the Hit result, the KBest set and the brute-force
 // references that PointCloudBVH and PointCloudHashGrid share. The structures' own tests run these on

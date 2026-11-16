@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2022 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # Bulk licensing for files that cannot carry an inline SPDX header (data,
 # images, JSON) or where a per-file header would be noise (build/config/docs).
@@ -27,19 +27,19 @@ path = [
   "README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # GitHub metadata and workflows
 [[annotations]]
 path = ".github/**"
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # Documentation: Sphinx sources, figures (.png/.tex), and config
 [[annotations]]
 path = "Docs/**"
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # Example build files and per-example documentation
 # (main.cpp carries its own inline header)
@@ -55,7 +55,7 @@ path = [
   "Examples/**/README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # ebgstudio: its build file, its README and its models (main.cpp, Writer.hpp and CMakeLists.txt carry their own
 # inline headers)
@@ -66,7 +66,7 @@ path = [
   "Studio/Models/**",
 ]
 SPDX-FileCopyrightText = "2026 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # Third-party integration examples: build files and per-example
 # documentation. main.cpp files carry their own inline SPDX headers.
@@ -78,7 +78,7 @@ path = [
   "Integrations/**/README.md",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # Tests: build files and the small self-authored test fixture mesh
 [[annotations]]
@@ -87,7 +87,7 @@ path = [
   "Tests/data/**",
 ]
 SPDX-FileCopyrightText = "2022 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"
 
 # The F18 animation on the README. The render is ours; it depicts a model adapted from the Boeing EA-18G Growler
 # by Leo Zeng (https://grabcad.com/library/boeing-ea-18g-growler-1), published on GrabCAD under GrabCAD's terms,
@@ -95,4 +95,4 @@ SPDX-License-Identifier = "GPL-3.0-or-later"
 [[annotations]]
 path = "Docs/Sphinx/source/_static/f18_assembly.gif"
 SPDX-FileCopyrightText = "2026 Robert Marskar <robert.marskar@sintef.no>"
-SPDX-License-Identifier = "GPL-3.0-or-later"
+SPDX-License-Identifier = "BSD-3-Clause"

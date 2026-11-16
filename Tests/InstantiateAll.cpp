@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Single translation unit that explicitly instantiates EBGeometry's public class
 // templates. It is compiled but never run: it exists so that clang-tidy (see

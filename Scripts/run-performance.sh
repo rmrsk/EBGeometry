@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 #
 # Runs the performance probes under Performance/: every case by default, a subset on demand, or a
 # comparison of two commits. All the logic is in Performance/RunPerformance.cmake, which needs only

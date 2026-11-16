@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // BuildCost: runs one compile and records what it cost. Compare.cmake sets it as CMake's compiler
 // launcher (CMAKE_<LANG>_COMPILER_LAUNCHER), so every compile of a comparison's builds goes through it:

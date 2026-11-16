@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for the surfaces of a shape (EBGeometry_SurfaceRef.hpp): closestSurface() of a sphere cloud, of BVH
 // unions of one type, of several and of containers, and of a tape, drilling into its container leaves and into a

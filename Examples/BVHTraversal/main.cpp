@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Walking a BVH with your own search: PackedBVH::traverse() over a scene of balls (a primitive type of
 // this program's own), asked three questions. Which ball surface is nearest to a point (a point query),

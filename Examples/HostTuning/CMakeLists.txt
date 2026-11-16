@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # Standalone build file for the HostTuning example. It can be built on its own
 # (e.g. copied out as a template for a new project) or as part of the top-level

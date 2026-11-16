@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for Tape::closestLeaf() (EBGeometry_Tape.hpp, EBGeometry_LeafRef.hpp): the deciding
 // leaf of unions, intersections and differences, through smooth blends, blurs, maps and repetitions, the

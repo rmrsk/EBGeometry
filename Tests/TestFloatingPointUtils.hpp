@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Shared helpers for writing precision-independent (TEMPLATE_TEST_CASE<float, double>) Catch2
 // tests. Not part of the library itself -- test infrastructure only.

@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Performance cases for BVHUnion: unions of about 100,000 objects on a lattice, in float and double, in
 // three families: spheres (well-filled boxes that do not overlap), capsules along the diagonal (the worst

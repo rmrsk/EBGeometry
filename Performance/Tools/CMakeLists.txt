@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 #
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: BSD-3-Clause
 
 # The comparison's build-cost tools: BuildCost, the compiler launcher that records what each compile cost,
 # and BuildCompare, which compares two such records. Compare.cmake builds this folder on its own, before the

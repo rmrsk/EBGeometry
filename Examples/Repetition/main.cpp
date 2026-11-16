@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
 //
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Repetition: many copies of one object on a grid, with FiniteRepetition; here a mesh, the happy Buddha. The
 // tape stores the object once and folds each point into the nearest copy, so its size and cost do not grow

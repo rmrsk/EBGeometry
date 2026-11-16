@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Robert Marskar <robert.marskar@sintef.no>
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: BSD-3-Clause
 
 // Test suite for regions and materials (Overlay(), MaterialLabel() and ExprIndex's regions, groups and materials):
 // the regions of an Overlay against a hand-numbered expression, the background, materials inherited from groups,
