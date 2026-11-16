@@ -4076,8 +4076,8 @@ private:
                                                "distance",
                                                "field_of_view",
                                                "orthographic",
+                                               "look",
                                                "background",
-                                               "sky",
                                                "floor"};
 
     const ExprIndex<T>& index = *m_model.m_index;
