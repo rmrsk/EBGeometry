@@ -3,7 +3,7 @@
 Geometries
 ===========
 
-This page covers the concrete classes behind two Concepts pages: :ref:`Chap:GeometryRepresentations`
+This page covers the concrete classes behind two concept pages: :ref:`Chap:GeometryRepresentations`
 (signed distance fields and implicit functions in general) and :ref:`Chap:ConstructiveSolidGeometry`
 (transformations and CSG combinators) -- read those first for the conceptual picture, and use this
 page for the class/function-level detail and Doxygen links.

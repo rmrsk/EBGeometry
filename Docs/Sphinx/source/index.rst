@@ -23,9 +23,9 @@ and on GPUs, from the same code, with no dependencies.
   (SSE to AVX-512), CUDA and HIP on the device, and a performance comparison on every change.
 * **No dependencies:** include ``EBGeometry.hpp`` in any C++17 project, in ``float`` or ``double``.
 
-There are two ways in. **A library user** writing C++ starts with :ref:`Chap:Quickstart` and the
-:ref:`Chap:Examples`. **A modeler** describing geometry, materials and boundary conditions for a solver
-starts with :ref:`Chap:Language` and the :ref:`ebgstudio tutorial <Chap:StudioCoolingBlock>`.
+There are two ways in. **A library user** writing C++ starts with :ref:`Chap:Quickstart`, the
+:ref:`Chap:Overview` of which queries each kind of geometry answers, and the :ref:`Chap:Examples`. **A
+modeler** describing geometry, materials and boundary conditions for a solver starts with :ref:`Chap:Language` and the :ref:`ebgstudio tutorial <Chap:StudioCoolingBlock>`.
 
 .. important::
 
@@ -47,10 +47,13 @@ starts with :ref:`Chap:Language` and the :ref:`ebgstudio tutorial <Chap:StudioCo
 
    <style>
    section#getting-started,
-   section#concepts,
+   section#overview,
+   section#geometry,
+   section#queries,
+   section#acceleration,
+   section#where-it-runs,
    section#the-ebg-language,
    section#studio,
-   section#implementation,
    section#examples,
    section#contributing-and-testing,
    section#references,
@@ -77,20 +80,67 @@ Getting started
    ConfigurationOptions.rst
    Glossary.rst
 
-Concepts
+Overview
 ********
 
 .. toctree::
    :maxdepth: 3
-   :caption: Concepts
+   :caption: Overview
+   :hidden:
+
+   Overview.rst
+
+Geometry
+********
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Geometry
    :hidden:
 
    GeometryRepresentations.rst
-   Meshes.rst
-   BVH.rst
+   ImplemVec.rst
+   GeometryMeshes.rst
    PointCloud.rst
-   ConceptsComposition.rst
-   ConceptsRays.rst
+   GeometryComposition.rst
+   ImplemOctree.rst
+
+Queries
+*******
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Queries
+   :hidden:
+
+   Queries.rst
+   QueriesRays.rst
+   ImplemPointCloud.rst
+
+Acceleration
+************
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Acceleration
+   :hidden:
+
+   BVH.rst
+   CloudSearch.rst
+   ImplemBVH.rst
+   ImplemBVHTraversal.rst
+   SIMDClasses.rst
+
+Where it runs
+*************
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Where it runs
+   :hidden:
+
+   MemoryModel.rst
+   RunningOnGPU.rst
 
 The .ebg language
 *****************
@@ -119,23 +169,6 @@ Studio
    StudioCoolingBlock.rst
    StudioCommands.rst
    StudioViewer.rst
-
-Implementation
-**************
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Implementation
-   :hidden:
-
-   Implementation.rst
-   ImplemFoundations.rst
-   ImplemMeshes.rst
-   ImplemBVHs.rst
-   ImplemPointCloud.rst
-   ImplemComposition.rst
-   ImplemRaysPictures.rst
-   ImplemUtilities.rst
 
 Examples
 ********

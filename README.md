@@ -56,11 +56,21 @@ one header and compile with C++17.
 
 ## What it does
 
+Spatial queries on geometry, on the host and on a device:
+
+|                          | Distance and inside           | Closest                     | Rays                     | Neighbors             |
+|--------------------------|-------------------------------|-----------------------------|--------------------------|-----------------------|
+| Analytic shapes          | signed distance               | the surface                 | yes                      | –                     |
+| Meshes                   | signed distance               | the face                    | yes                      | –                     |
+| Compositions and regions | signed distance, the region   | the leaf and the surface    | yes, and region changes  | –                     |
+| Sphere clouds            | signed distance (a shape)     | the sphere and its surface  | yes                      | contacts within a gap |
+| Point clouds             | unsigned distance             | the k nearest points        | –                        | each point's k nearest |
+
 **Geometry in**
 
 * Triangle meshes, as a half-edge mesh or as SIMD triangle blocks, read from STL, PLY, OBJ and VTK.
 * Analytic shapes (spheres, boxes, cylinders, tori, planes and more) and your own.
-* Point clouds.
+* Point clouds, and clouds of spheres, which are shapes too.
 
 **Composition**
 

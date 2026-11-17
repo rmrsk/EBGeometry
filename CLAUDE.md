@@ -252,8 +252,9 @@ changed `Source/*.hpp` file:
 3. **If you added a new public class/function**, add it to `Tests/InstantiateAll.cpp` (for
    clang-tidy/compile coverage under both precisions, per the existing convention) and check
    whether it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` implementation
-   page (concrete API, Doxygen-linked) and/or its `Docs/Sphinx/source/*.rst` Concepts-section
-   counterpart (conceptual picture, no implementation classes named) and/or a row in a
+   page (concrete API, Doxygen-linked) and/or its concept page in the same section of the guide
+   (Geometry, Queries, Acceleration or Where it runs; conceptual picture, no implementation classes
+   named), the geometry-by-queries table of `Overview.rst` if it adds a cell, and/or a row in a
    `Docs/Sphinx/source/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
    documented.
 4. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
