@@ -1,4 +1,4 @@
-# GNU makefile for building the ParticleWalls MPI integration.
+# GNU makefile for building the OctreeLevelSet MPI integration.
 #
 # EBGEOMETRY_HOME must point at the directory that contains EBGeometry.hpp (the EBGeometry repository root); it
 # defaults to the in-tree location three levels up. MPICXX is the MPI compiler wrapper (mpicxx). PRECISION selects
@@ -20,7 +20,7 @@ ifeq ($(ASSERTIONS),ON)
   CXXFLAGS += -DEBGEOMETRY_ENABLE_ASSERTIONS
 endif
 
-TARGET := ParticleWalls.ex
+TARGET := OctreeLevelSet.ex
 
 $(TARGET): main.cpp
 	$(MPICXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_PRECISION=$(PRECISION) $< -o $@
@@ -30,4 +30,4 @@ run: $(TARGET)
 	$(MPIRUN) -n $(NP) ./$(TARGET)
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TARGET) OctreeLevelSet_*.vtu OctreeLevelSet.pvtu
