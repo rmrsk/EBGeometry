@@ -133,7 +133,11 @@ struct HasRayFirstHit<
  * @details Internal helper; not part of the public API. The span code traces such a shape on past an interval it
  * crosses nowhere, instead of asking whether the interval is inside (see traceEnd()). A shape whose trace may march (a
  * tape, a view of regions, a fused node) is not traced on: marching to the box's end costs many evaluations where the
- * question costs one. Nor is an analytic shape: its question is as cheap as its trace.
+ * question costs one. Nor is an analytic shape: its question is as cheap as its trace. A shape given the trait must
+ * find a crossing anywhere up to the end it is given, with no box test of its own tighter than the span code's (the
+ * box padded by the ray tolerance): the meshes' walks have none, only the BVH's widened slab tests, so a surface on
+ * the box's face is found. Tracing on costs at most one walk of the whole BVH along the ray. A trace that comes back
+ * unresolved gets the question instead.
  * @tparam S Shape type.
  */
 template <class S>
