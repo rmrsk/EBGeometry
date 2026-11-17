@@ -924,7 +924,9 @@ TEMPLATE_TEST_CASE("Mesh SDFs: gradient matches finite differences away from the
   check(triSDF);
 }
 
-// The closest point and gradient of a mesh SDF, one component per query: for the device test below.
+// The closest point, gradient and signed distance of a mesh SDF, one component per query: for the device test
+// below. The face id is left out: where the closest point is an edge or a vertex, every face meeting there is
+// correct, and the device and the host, rounding the distances differently, may name different ones.
 template <class S>
 struct ClosestPointQuery
 {
@@ -939,8 +941,11 @@ struct ClosestPointQuery
     const ClosestPoint<T> cp = m_sdf.closestPoint(a_point);
     const Vec3T<T>        g  = m_sdf.gradient(a_point);
 
-    return m_component < 3 ? cp.point[static_cast<size_t>(m_component)]
-                           : g[static_cast<size_t>(m_component - 3)] + T(cp.faceId);
+    if (m_component < 3) {
+      return cp.point[static_cast<size_t>(m_component)];
+    }
+
+    return m_component < 6 ? g[static_cast<size_t>(m_component - 3)] : cp.signedDistance;
   }
 };
 
@@ -973,7 +978,7 @@ TEMPLATE_TEST_CASE("Mesh SDFs: closestPoint and gradient run on device and match
   const auto compare = [&](const auto& a_host, const auto& a_device) {
     using S = std::decay_t<decltype(a_host)>;
 
-    for (int component = 0; component < 6; component++) {
+    for (int component = 0; component < 7; component++) {
       INFO("component " << component);
 
       requireSameResults(evaluateOnDevice<T>(ClosestPointQuery<S>{a_device, component}, points),
