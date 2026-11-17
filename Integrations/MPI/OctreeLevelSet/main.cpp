@@ -44,14 +44,31 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using Tape = EBGeometry::Tape<T>;
 
 // The octree: rootsPerSide^3 root cells, each refined at most maxLevel times (--max-level, default defaultMaxLevel, at
-// most maxMaxLevel). A cell is refined while the surface may pass through it: while the value at its center is, in
-// magnitude, below its half-diagonal times safety (a little above one, since a composition's value can be a bound
-// rather than the exact distance). In a model with regions, a cell is also refined where a region changes in it: where
-// one of its corners is in another region than its center.
-constexpr unsigned int rootsPerSide    = 8;
-constexpr int          defaultMaxLevel = 2;
-constexpr int          maxMaxLevel     = 10;
-constexpr T            safety          = T(1.2);
+// most maxMaxLevel). A cell near the surface, one the surface may pass through (the value at its center is, in
+// magnitude, below its half-diagonal times safety, a little above one since a composition's value can be a bound rather
+// than the exact distance), is refined:
+//   - to minLevel at least, so that a small feature is found before the corners judge the cell;
+//   - beyond that, while its corners do not predict its center: while the trilinear interpolation of the values at its
+//     corners (their mean, at the center) misses the value at its center by more than tolerance times its side
+//     (--tolerance, default defaultTolerance). On a flat part of the surface the two agree, and the cell stops; where
+//     the surface curves they differ by about the curvature times the side squared, and at an edge or a corner of the
+//     model by more, so the cells there refine further.
+// In a model with regions, a cell is also refined where a region changes in it: where one of its corners is in another
+// region than its center.
+constexpr unsigned int rootsPerSide     = 8;
+constexpr int          minLevel         = 2;
+constexpr int          defaultMaxLevel  = 5;
+constexpr int          maxMaxLevel      = 10;
+constexpr T            defaultTolerance = T(1e-2);
+constexpr T            safety           = T(1.2);
+
+// What decides the refinement.
+struct Refinement
+{
+  int  maxLevel;
+  T    tolerance;
+  bool regions;
+};
 
 // Output file names: one piece per rank, and the file that lists them.
 const std::string outputName = "OctreeLevelSet";
@@ -97,8 +114,7 @@ regionChanges(const Tape& a_tape, const Vec3& a_lo, const T a_side, const std::u
 // Morton order. Only this rank's tape is asked.
 void
 refine(const Tape&        a_tape,
-       const bool         a_regions,
-       const int          a_maxLevel,
+       const Refinement&  a_refinement,
        const Vec3&        a_lo,
        const Index&       a_index,
        const T            a_side,
@@ -109,16 +125,35 @@ refine(const Tape&        a_tape,
   const T    value        = a_tape.signedDistance(center);
   const T    halfDiagonal = T(0.5) * std::sqrt(T(3)) * a_side;
 
-  const std::uint32_t region = a_regions ? a_tape.region(center) : 0U;
+  const std::uint32_t region = a_refinement.regions ? a_tape.region(center) : 0U;
 
-  // The corners are asked only where the value alone would not refine, and only below the finest level.
-  const bool nearSurface = std::abs(value) < safety * halfDiagonal;
-  const bool refined =
-    a_level < a_maxLevel && (nearSurface || (a_regions && regionChanges(a_tape, a_lo, a_side, region)));
+  // The level set at the corners: it decides the refinement, and a leaf stores it, where a contour of it is drawn.
+  // Neighboring leaves of one level share their corners' values, so the contour is continuous across them (with
+  // cracks where the level changes).
+  std::array<T, 8> values;
+  T                mean = T(0);
+
+  for (int corner = 0; corner < 8; corner++) {
+    values[static_cast<std::size_t>(corner)] = a_tape.signedDistance(a_lo + a_side * cornerOffset(corner));
+    mean += values[static_cast<std::size_t>(corner)];
+  }
+
+  mean /= T(8);
+
+  bool refined = false;
+
+  if (a_level < a_refinement.maxLevel) {
+    if (std::abs(value) < safety * halfDiagonal) {
+      refined = a_level < minLevel || std::abs(mean - value) > a_refinement.tolerance * a_side;
+    }
+
+    // The corners' regions are asked only where the level set alone would not refine.
+    refined = refined || (a_refinement.regions && regionChanges(a_tape, a_lo, a_side, region));
+  }
 
   if (refined) {
     const T             half = T(0.5) * a_side;
-    const std::uint32_t step = 1U << (a_maxLevel - a_level - 1);
+    const std::uint32_t step = 1U << (a_refinement.maxLevel - a_level - 1);
 
     for (int child = 0; child < 8; child++) {
       const Vec3  offset = cornerOffset(child);
@@ -126,18 +161,10 @@ refine(const Tape&        a_tape,
                             a_index[1] + step * std::uint32_t((child >> 1) & 1),
                             a_index[2] + step * std::uint32_t((child >> 2) & 1)};
 
-      refine(a_tape, a_regions, a_maxLevel, a_lo + half * offset, index, half, a_level + 1, a_leaves);
+      refine(a_tape, a_refinement, a_lo + half * offset, index, half, a_level + 1, a_leaves);
     }
 
     return;
-  }
-
-  // The level set is stored at the corners, where a contour of it is drawn: neighboring leaves of one level share
-  // their corners' values, so the contour is continuous across them (with small cracks where the level changes).
-  std::array<T, 8> values;
-
-  for (int corner = 0; corner < 8; corner++) {
-    values[static_cast<std::size_t>(corner)] = a_tape.signedDistance(a_lo + a_side * cornerOffset(corner));
   }
 
   a_leaves.push_back(Leaf{a_lo, a_index, a_side, a_level, values, region});
@@ -345,10 +372,11 @@ run(int argc, char* argv[])
 
   // ── The arguments ────────────────────────────────────────────────────────────────────────────────────
   //
-  // A model file (by default the CSG solid of the LanguageCSG example) and --max-level N. Every rank reads the same
-  // arguments, so every rank stops on a bad one; rank 0 says why.
-  std::string file     = "../../../Examples/LanguageCSG/solid.ebg";
-  int         maxLevel = defaultMaxLevel;
+  // A model file (by default the CSG solid of the LanguageCSG example), --max-level N and --tolerance X. Every rank
+  // reads the same arguments, so every rank stops on a bad one; rank 0 says why.
+  std::string file      = "../../../Examples/LanguageCSG/solid.ebg";
+  int         maxLevel  = defaultMaxLevel;
+  T           tolerance = defaultTolerance;
 
   for (int i = 1; i < argc; i++) {
     const std::string arg = argv[i];
@@ -371,6 +399,26 @@ run(int argc, char* argv[])
       }
 
       maxLevel = level;
+      i++;
+    }
+    else if (arg == "--tolerance") {
+      double value = -1.0;
+
+      try {
+        value = i + 1 < argc ? std::stod(argv[i + 1]) : -1.0;
+      } catch (const std::exception&) {
+        value = -1.0;
+      }
+
+      if (!(value > 0.0)) {
+        if (rank == 0) {
+          std::cerr << "--tolerance takes a positive number\n";
+        }
+
+        return 1;
+      }
+
+      tolerance = static_cast<T>(value);
       i++;
     }
     else {
@@ -432,8 +480,7 @@ run(int argc, char* argv[])
     const std::uint32_t finest = 1U << maxLevel;
 
     refine(tape,
-           regions,
-           maxLevel,
+           Refinement{maxLevel, tolerance, regions},
            lo + root * Vec3(T(index[0]), T(index[1]), T(index[2])),
            Index{finest * std::uint32_t(index[0]), finest * std::uint32_t(index[1]), finest * std::uint32_t(index[2])},
            root,
