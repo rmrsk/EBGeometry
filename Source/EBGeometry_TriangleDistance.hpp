@@ -417,9 +417,8 @@ unsignedDistance2(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
  * inside it, else vertex 0, 1, 2 and edge 0, 1, 2, a later one replacing the best only when strictly closer),
  * in the same order and with the same arithmetic as its scalar branch, so the signed distance is the one
  * signedDistance() computes. A point projecting onto the face's boundary is reported on the edge or vertex
- * there, with that feature's pseudonormal: on the surface, the normal of the feature the point is on. It is not on any
- * distance path: a closest-point query runs
- * it once, on the triangle a search found nearest.
+ * there, with that feature's pseudonormal: on the surface, the normal of the feature the point is on. It is not
+ * on any distance path: a closest-point query runs it once, on the triangle a search found nearest.
  * @tparam T      Scalar type (float or double).
  * @tparam Source Triangle accessor (see signedDistance()), read with V = T.
  * @param[in]  a_triangle     The triangle.
