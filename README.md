@@ -64,7 +64,7 @@ Spatial queries on geometry, on the host and on a device:
 | Meshes                   | signed distance               | the face                    | yes                      | –                     |
 | Compositions and regions | signed distance, the region   | the leaf and the surface    | yes, and region changes  | –                     |
 | Sphere clouds            | signed distance (a shape)     | the sphere and its surface  | yes                      | contacts within a gap |
-| Point clouds             | unsigned distance             | the k nearest points        | –                        | the k nearest         |
+| Point clouds             | unsigned distance             | the k nearest points        | –                        | each point's k nearest |
 
 **Geometry in**
 

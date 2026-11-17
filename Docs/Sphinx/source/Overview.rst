@@ -44,9 +44,9 @@ Geometry and queries
      - contacts within a gap
    * - Point clouds
      - unsigned distance to the nearest point
-     - the k nearest points
+     - the k nearest points to any point
      - --
-     - the k nearest of a cloud's own points
+     - each point's k nearest other points
 
 The rows are described in :ref:`Sec:OverviewGeometry`, the columns in :ref:`Chap:Queries`.
 
