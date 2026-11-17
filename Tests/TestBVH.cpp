@@ -5748,6 +5748,181 @@ TEMPLATE_TEST_CASE("BVH::RayQuery: the entry distance into the unit cube matches
   }
 }
 
+// Rays that meet a box only along an edge: in exact arithmetic the entry equals the exit up to a small positive
+// margin (at least 0.06 of the precision's epsilon, relative, checked in long double against the direction itself),
+// and without the slab test's widening the rounded entry lands past the rounded exit, a miss. Found by a search over
+// rays aimed at a random point of a box's edge; about one such ray in a hundred is missed without the widening.
+template <class T>
+struct EdgeRay
+{
+  T m_lo[3];
+  T m_hi[3];
+  T m_origin[3];
+  T m_direction[3];
+};
+
+template <class T>
+std::vector<EdgeRay<T>>
+edgeRays()
+{
+  if constexpr (std::is_same_v<T, float>) {
+    return {
+      {{0x1.9f7fdcp-1f, 0x1.d86e9p-1f, 0x1.45d20ep-2f},
+       {0x1.fd764p-1f, 0x1.42eaeep+0f, 0x1.2980a6p-1f},
+       {0x1.989594p+0f, 0x1.203872p-1f, 0x1.7854e6p-1f},
+       {-0x1.522938p-2f, 0x1.89023ep-2f, -0x1.9862d2p-4f}},
+      {{0x1.17735ep-2f, 0x1.e9b50ep-1f, 0x1.0882dap-2f},
+       {0x1.bf6c7p-2f, 0x1.22a324p+0f, 0x1.740996p-1f},
+       {0x1.00871ep+0f, 0x1.c7308cp-2f, 0x1.32af8ep+0f},
+       {-0x1.1d07cep-2f, 0x1.5c6846p-2f, -0x1.2cb944p-2f}},
+      {{0x1.4f964cp-2f, 0x1.d4f7acp-1f, 0x1.66b2f4p-1f},
+       {0x1.9c9d96p-1f, 0x1.5987a8p+0f, 0x1.bdc1fep-1f},
+       {0x1.a41606p+0f, 0x1.2d2a26p-1f, 0x1.6c700ap+0f},
+       {-0x1.b9fee4p-2f, 0x1.930ffep-2f, -0x1.36dc3cp-2f}},
+      {{0x1.76723ap-4f, 0x1.c84cd4p-2f, 0x1.cb05dap-4f},
+       {0x1.2a148cp-3f, 0x1.27eb4cp+0f, 0x1.e82354p-3f},
+       {-0x1.a871p-1f, 0x1.11b2e2p+1f, 0x1.a43bd2p-1f},
+       {0x1.f5fe9p-2f, -0x1.fa0396p-2f, -0x1.5e1238p-2f}},
+    };
+  }
+  else {
+    return {
+      {{0x1.6d3312f1106efp-4, 0x1.46964c6bfa399p-1, 0x1.98715d9d8c7f4p-5},
+       {0x1.346d96167b9e7p-1, 0x1.126c626907ccap+0, 0x1.20cd778921d8ep-2},
+       {0x1.5612e49a2e814p+0, 0x1.8f70f0b2eb4e3p-1, 0x1.615888b9c37a8p-1},
+       {-0x1.c3e03d494e82bp-2, 0x1.6760ee63eeabp-3, -0x1.1d47f32e15ca6p-2}},
+      {{0x1.c4a21076e3793p-1, 0x1.28e6614b31203p-2, 0x1.9fac2f8bc632cp-1},
+       {0x1.a9de9a8f941ccp+0, 0x1.3c2ebd91a5bcp+0, 0x1.757adf9ce6d1ap+0},
+       {0x1.cde7aa7b0bcf6p+0, 0x1.e800369fe4eccp-3, 0x1.1b403a8e3cee4p+1},
+       {-0x1.0dc62d1800cdcp-4, 0x1.dd98e4f9e5c44p-2, -0x1.7255af46752eep-2}},
+      {{0x1.55b0205f36163p-1, 0x1.eb6803fff3f51p-1, 0x1.fef4d56fcdde7p-1},
+       {0x1.2d7b4de863b67p+0, 0x1.a9fa11552c186p+0, 0x1.0b1edc5c1765bp+0},
+       {0x1.91b244f5bee99p+0, 0x1.7c350944d42e7p-1, 0x1.0840ee3feb4p-6},
+       {-0x1.42b886adb31d8p-3, 0x1.7bca62f9ba906p-2, 0x1.9f6a7b5f0d1cep-2}},
+      {{0x1.9518162bfd57fp-3, 0x1.503eca2d72242p-2, 0x1.fe08368434cc4p-1},
+       {0x1.7fa46c65101d1p-2, 0x1.40b2557edf006p+0, 0x1.1680bd1eb7827p+0},
+       {-0x1.734e8e35a00eep-1, 0x1.e8ab07ce5d2a7p+0, 0x1.64029838ac3f4p+0},
+       {0x1.dbfb352c0ab44p-2, -0x1.1bf44576c3609p-2, -0x1.199abd068b1a8p-3}},
+    };
+  }
+}
+
+// The slab test without the widening, as a reference: each case must be one it misses.
+template <class T>
+T
+unwidenedEntry(const EdgeRay<T>& a_case)
+{
+  T entry = T(0);
+  T exit  = std::numeric_limits<T>::infinity();
+
+  for (int axis = 0; axis < 3; axis++) {
+    const T inv = T(1) / a_case.m_direction[axis];
+    const T t0  = (a_case.m_lo[axis] - a_case.m_origin[axis]) * inv;
+    const T t1  = (a_case.m_hi[axis] - a_case.m_origin[axis]) * inv;
+
+    entry = std::max(entry, std::min(t0, t1));
+    exit  = std::min(exit, std::max(t0, t1));
+  }
+
+  return (exit >= entry) ? entry : std::numeric_limits<T>::infinity();
+}
+
+// Where the ray of an edge case enters its box, through RayQuery::key().
+template <class T>
+struct EdgeRayEntry
+{
+  EdgeRay<T> m_cases[4];
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const uint32_t& a_index) const noexcept
+  {
+    const EdgeRay<T>& c = m_cases[a_index];
+
+    const BoundingVolumes::AABBT<T> box(Vec3T<T>(c.m_lo[0], c.m_lo[1], c.m_lo[2]),
+                                        Vec3T<T>(c.m_hi[0], c.m_hi[1], c.m_hi[2]));
+    const BVH::RayQuery<T>          ray(Vec3T<T>(c.m_origin[0], c.m_origin[1], c.m_origin[2]),
+                               Vec3T<T>(c.m_direction[0], c.m_direction[1], c.m_direction[2]));
+
+    return ray.key(box);
+  }
+};
+
+TEMPLATE_TEST_CASE("BVH::RayQuery: a ray that meets a box only along an edge enters it, which it would not "
+                   "without the widening",
+                   "[BVH][traverse][RayQuery]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+
+  const T inf = std::numeric_limits<T>::infinity();
+
+  for (const EdgeRay<T>& c : edgeRays<T>()) {
+    const Vec3 lo(c.m_lo[0], c.m_lo[1], c.m_lo[2]);
+    const Vec3 hi(c.m_hi[0], c.m_hi[1], c.m_hi[2]);
+
+    const BVH::RayQuery<T> ray(Vec3(c.m_origin[0], c.m_origin[1], c.m_origin[2]),
+                               Vec3(c.m_direction[0], c.m_direction[1], c.m_direction[2]));
+
+    // The case needs the widening: rounded without it, the ray misses the box.
+    REQUIRE(unwidenedEntry(c) == inf);
+
+    // One box, and the same box in every slot of a row (the SIMD path where this build has one).
+    BVH::ChildBoxes<T, 4> row;
+
+    for (size_t axis = 0; axis < 3; axis++) {
+      for (size_t k = 0; k < 4; k++) {
+        row.m_lo[axis][k] = lo[axis];
+        row.m_hi[axis][k] = hi[axis];
+      }
+    }
+
+    const T single = ray.key(AABB(lo, hi));
+
+    REQUIRE(single < inf);
+    REQUIRE(ray.key(row, 1) == single);
+
+    for (const T entry : ray.keys(row)) {
+      REQUIRE(entry == single);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("BVH::RayQuery: a ray that meets a box only along an edge enters it on a device too",
+                   "[BVH][traverse][RayQuery][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const std::vector<EdgeRay<T>> cases = edgeRays<T>();
+
+  REQUIRE(cases.size() == 4);
+
+  EdgeRayEntry<T> entry{};
+
+  for (size_t i = 0; i < cases.size(); i++) {
+    entry.m_cases[i] = cases[i];
+  }
+
+  const std::vector<uint32_t> indices = {0U, 1U, 2U, 3U};
+  const std::vector<T>        device  = evaluateOnDevice<T>(entry, indices);
+
+  for (const T t : device) {
+    REQUIRE(t < std::numeric_limits<T>::infinity());
+  }
+
+  // The entry is not widened, so it is the host's bit for bit, fused widening or not.
+  requireSameResults(device, evaluateOnHost<T>(entry, indices), T(0));
+}
+
 TEMPLATE_TEST_CASE("PackedBVH::traverse with a RayQuery: the nearest box entered matches a brute-force scan",
                    "[BVH][traverse][RayQuery]",
                    EBGEOMETRY_TEST_PRECISIONS)
