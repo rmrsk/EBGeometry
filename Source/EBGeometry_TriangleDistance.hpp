@@ -302,7 +302,8 @@ signedDistance(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
  * @details A nearest-triangle search compares these and signs only the winner, with signedDistance() on
  * that triangle: the six pseudonormal dot products and the square root are then paid once per query, not
  * once per triangle. The square root of this value equals |signedDistance()| to rounding, so the winner is
- * the triangle a search on signedDistance() picks, except where two triangles are equally near to rounding. With V a scalar, the inside case returns early, as signedDistance()'s does.
+ * the triangle a search on signedDistance() picks, except where two triangles are equally near to rounding. With V a
+ * scalar, the inside case returns early, as signedDistance()'s does.
  * @tparam V      Scalar or SIMD::Pack.
  * @tparam Source A triangle accessor (see signedDistance()).
  * @param[in] a_triangle The triangle(s).
@@ -416,7 +417,8 @@ unsignedDistance2(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
  * inside it, else vertex 0, 1, 2 and edge 0, 1, 2, a later one replacing the best only when strictly closer),
  * in the same order and with the same arithmetic as its scalar branch, so the signed distance is the one
  * signedDistance() computes. A point projecting onto the face's boundary is reported on the edge or vertex
- * there, with that feature's pseudonormal: on the surface, the normal of the feature the point is on. It is not on any distance path: a closest-point query runs
+ * there, with that feature's pseudonormal: on the surface, the normal of the feature the point is on. It is not on any
+ * distance path: a closest-point query runs
  * it once, on the triangle a search found nearest.
  * @tparam T      Scalar type (float or double).
  * @tparam Source Triangle accessor (see signedDistance()), read with V = T.

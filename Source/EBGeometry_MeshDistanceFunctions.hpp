@@ -188,7 +188,8 @@ public:
 
   /**
    * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
-   * @details Scans every face, as getClosestFace() does, then finds the closest point on the winning face (DCEL::FaceT::closestPoint()). The signed distance equals what getClosestFace() returns.
+   * @details Scans every face, as getClosestFace() does, then finds the closest point on the winning face
+   *          (DCEL::FaceT::closestPoint()). The signed distance equals what getClosestFace() returns.
    * @param[in] a_point Query point. Must be finite.
    * @return The closest point, its face id and pseudonormal, and the signed distance.
    */
@@ -203,7 +204,9 @@ public:
    * on the surface (|a_point - c| no more than 64 machine epsilons times max(1, the largest coordinate of
    * c)), the direction is undefined and the pseudonormal of the closest feature is returned instead. On
    * the medial surface (several closest points) it is the gradient seen from the first closest face found,
-   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh.
+   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh. The tolerance is absolute below
+   * coordinates of 1: a mesh much smaller than one unit, in single precision, gets the pseudonormal at points a
+   * noticeable fraction of its features away; scale such a mesh up.
    * @param[in] a_point Query point. Must be finite.
    * @return The unit gradient.
    */
@@ -454,7 +457,8 @@ public:
 
   /**
    * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
-   * @details The same traversal as getClosestFace(), then the closest point on the winning face (DCEL::FaceT::closestPoint()). The signed distance equals what signedDistance() returns.
+   * @details The same traversal as getClosestFace(), then the closest point on the winning face
+   *          (DCEL::FaceT::closestPoint()). The signed distance equals what signedDistance() returns.
    * @param[in] a_point Query point. Must be finite.
    * @return The closest point, its face id and pseudonormal, and the signed distance.
    */
@@ -469,7 +473,9 @@ public:
    * on the surface (|a_point - c| no more than 64 machine epsilons times max(1, the largest coordinate of
    * c)), the direction is undefined and the pseudonormal of the closest feature is returned instead. On
    * the medial surface (several closest points) it is the gradient seen from the first closest face found,
-   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh.
+   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh. The tolerance is absolute below
+   * coordinates of 1: a mesh much smaller than one unit, in single precision, gets the pseudonormal at points a
+   * noticeable fraction of its features away; scale such a mesh up.
    * @param[in] a_point Query point. Must be finite.
    * @return The unit gradient.
    */
@@ -723,7 +729,8 @@ public:
    * own TriangleSoA group(s) during packing, with no batching across leaves, so a leaf smaller
    * than W wastes some of its group's SIMD lanes on padding. For the top-down methods it is an upper
    * bound, not a target — the partitioner still splits down to tighter, more selective leaves wherever
-   * the geometry warrants it; the space-filling curves aim for it. Expressing this as a count of W-sized groups (rather than a raw triangle
+   * the geometry warrants it; the space-filling curves aim for it. Expressing this as a count of W-sized groups (rather
+   * than a raw triangle
    * count) makes it impossible to accidentally pick a leaf size that isn't a multiple of W. Must
    * be > 0.
    */
@@ -804,7 +811,10 @@ public:
 
   /**
    * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
-   * @details The nearest-triangle search of the host's signedDistance(), on the host and on a device, then the closest point on the winning triangle (TriangleAoSoA::closestPointAt()). The signed distance is the winning triangle's, signed as signedDistance() signs it on the host: equal to it bit for bit on the host, and to rounding on a device.
+   * @details The nearest-triangle search of the host's signedDistance(), on the host and on a device, then the closest
+   *          point on the winning triangle (TriangleAoSoA::closestPointAt()). The signed distance is the winning
+   *          triangle's, signed as signedDistance() signs it on the host: equal to it bit for bit on the host, and to
+   *          rounding on a device.
    * @param[in] a_point Query point. Must be finite.
    * @return The closest point, its face id and pseudonormal, and the signed distance.
    */
@@ -819,7 +829,9 @@ public:
    * on the surface (|a_point - c| no more than 64 machine epsilons times max(1, the largest coordinate of
    * c)), the direction is undefined and the pseudonormal of the closest feature is returned instead. On
    * the medial surface (several closest points) it is the gradient seen from the first closest face found,
-   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh.
+   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh. The tolerance is absolute below
+   * coordinates of 1: a mesh much smaller than one unit, in single precision, gets the pseudonormal at points a
+   * noticeable fraction of its features away; scale such a mesh up.
    * @param[in] a_point Query point. Must be finite.
    * @return The unit gradient.
    */
