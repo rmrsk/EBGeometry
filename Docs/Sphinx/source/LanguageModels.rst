@@ -176,8 +176,20 @@ group's material as their default; ``f18`` below names the group and ``f18_part_
      region f18 = parts material aluminium
    }
 
-Where two parts overlap, the later file lies on top. A list where one shape is required (the object, a shape's
-argument) is an error. A union of the parts still tells which part a surface point belongs to: each part is a
+Where two parts overlap, the later file lies on top. An overlay of many regions is searched region by region,
+so for an assembly of many parts write ``overlay(bvh = true)``, which searches its regions through a BVH over
+their boxes and gives the same answers (see :ref:`Chap:ImplemRegions`); a plain overlay of 64 regions or more
+warns. Nothing in such an overlay may be clipped or drilled, and it can be moved but not clipped, drilled or
+placed in another overlay:
+
+.. code-block:: text
+
+   object overlay(bvh = true) {
+     region air = box((-20, -20, -5), (20, 20, 10)) material air
+     region f18 = parts material aluminium
+   }
+
+A list where one shape is required (the object, a shape's argument) is an error. A union of the parts still tells which part a surface point belongs to: each part is a
 leaf of its own (see :ref:`Chap:LeavesAndSurfaces`).
 
 Labels and the parts of shapes

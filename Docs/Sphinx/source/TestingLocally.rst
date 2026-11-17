@@ -473,15 +473,20 @@ Test coverage
        device against the host; the pieces an
        object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
-       under later regions, outside a mask), and leaving unproved what it cannot prove.
+       under later regions, outside a mask), and leaving unproved what it cannot prove. An ``Overlay`` through a BVH
+       against the same overlay without it, on an assembly of regions that overlap, touch, nest and form a moved
+       group (a half-space, cubes sharing faces): every region query at random points and on shared faces, along
+       random rays, and a domain's functions and surfaces; with regions whose values are only bounds, the same
+       signs and values no farther from zero; on the device against the host; and the placements it rejects.
    * - ``TestLanguage``
      - The ``.ebg`` language: every built-in shape and operation against the same expression built in C++ (equal
        distances on a grid), arithmetic, params and overrides, regions, materials, labels and part names in the
        index, domains (subdomains with properties merged from materials, selectors against the C++ selectors, a
        domain built for the tape), couplings, a domain's completeness, a setup including its model and a mesh
        read once, errors at their line and column (all reported, none aborting, the library's own value checks
-       included), the printer's canonical form (idempotent, the same model) and a table of properties read on a
-       device.
+       included), the printer's canonical form (idempotent, the same model), a table of properties read on a
+       device, and ``overlay(bvh = true)`` (the same regions as without it, the option printed, the rejected
+       options, the warning for a large plain overlay).
    * - ``TestStudioWriter``
      - ebgstudio's writer of the viewer's edits: a clicked surface named and written by its label, a renamed group
        keeping its comment and properties, a new domain appended, undo and redo, and no write over a file changed

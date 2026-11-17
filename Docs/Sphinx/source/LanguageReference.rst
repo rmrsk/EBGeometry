@@ -75,7 +75,8 @@ Expressions
             | "(" expr ")" | "(" expr "," expr "," expr ")"     # grouping, a vector
             | "(" expr "," expr ")"                            # a pair: only a selector's between = (a, b)
             | name "(" [ args ] ")"
-            | "overlay" "{" { "region" name "=" expr [ "material" name ] NEWLINE } "}"
+            | "overlay" [ "(" "bvh" "=" ( "true" | "false" ) ")" ]
+              "{" { "region" name "=" expr [ "material" name ] NEWLINE } "}"
    args    := arg { "," arg }        arg := expr | name "=" expr
 
 Values are numbers, vectors, strings, bools and shapes. ``+`` and ``-`` take two numbers or two vectors, ``*`` a number
@@ -166,7 +167,8 @@ The warnings:
 * a selector that can hold nothing, such as ``interface(a, a)`` (a region has no interface with itself);
 * a key in the view block that a viewer does not read, pointing to the key meant (``red.color`` to
   ``color.red``);
-* a color in the view block for a name nothing in the model has (``color.blue`` with only a ``blu``).
+* a color in the view block for a name nothing in the model has (``color.blue`` with only a ``blu``);
+* an overlay of 64 regions or more without ``(bvh = true)``, which would be searched region by region.
 
 Common errors, as a reader words them:
 
@@ -190,6 +192,8 @@ Common errors, as a reader words them:
      - a part labeled twice
    * - ``an overlay (regions) cannot be an operand of union: ...``
      - an overlay where the region of a point would not be clear
+   * - ``an overlay takes one option, written (bvh = true) or (bvh = false)``
+     - another option, or a value that is not written as ``true`` or ``false``
    * - ``'a.ebg' includes itself, through the files that include it``
      - a cycle of includes
    * - ``version 1 is unknown; this reader knows version 0``

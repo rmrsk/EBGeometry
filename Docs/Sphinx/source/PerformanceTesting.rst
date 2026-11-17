@@ -965,7 +965,9 @@ holding 32 particles, each a shell around a grain, one ``Overlay`` of 65 regions
 what ``regionDistances`` does by asking ``signedDistance(point, region)`` for each region, names it, and a comparison
 notes the ratio of their times (what the one pass saves). An assembly of one region, 512 spheres in a union through a
 BVH with no ``Overlay``, is traced too: ``firstRegionChange()``, what a view of its regions traces per camera ray, and
-``firstHit()`` of the same rays, which names it (what naming the region and the surface costs).
+``firstHit()`` of the same rays, which names it (what naming the region and the surface costs). The ``parts``
+cases are an assembly of many regions: a matrix holding 512 spheres that overlap their neighbors, a region each,
+one ``Overlay`` through a BVH (see :ref:`Chap:ImplemRegions`).
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
@@ -978,6 +980,9 @@ Family                                Build  Measures
                                              shells; the grains excluded)
 ``assembly/firstRegionChange``,       host   where 50,000 rays at the assembly first change region,
 ``assembly/firstHit``                        with the surface; or where they first cross it
+``parts/region``,                     host   the region of each of 20,000 points in the matrix, and
+``parts/domainLabels``                       a domain's label functions (the matrix; the parts)
+``parts/firstRegionChange``           host   where 50,000 rays at the matrix first change region
 ``<input>/<operation>``               GPU    each of the above at 262,144 points or rays on both sides
 ====================================  =====  =====================================================
 

@@ -42,6 +42,12 @@ its place in the outer overlay's order and stay together as a *region group*. An
 unclear which region a point belongs to, such as a union of an overlay with another solid, or an offset or a
 blend of one, is rejected when the object is built.
 
+Asking which region a point is in, or for a region's function, means looking at the regions that could hold
+it or lie on top of it, which for a plain overlay is every region. An overlay of many regions (an assembly of
+many parts, a region each) can instead be searched through a BVH over the regions' boxes, which looks only at
+the regions near the point; the answers are the same. Such an overlay can be moved and hold region groups, but
+nothing in it can be clipped or drilled.
+
 Materials
 ---------
 
