@@ -60,6 +60,7 @@ What is in Performance/
      SurfaceParts/main.cpp    parts and labels of a tape's surfaces, and firstSurface()
      Regions/main.cpp         a tape's regions, their functions, and a domain's labels
      Domain/main.cpp          a domain with many subdomains and surface groups
+     DomainObject/main.cpp    a domain compiled on its own, against the whole object
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -995,6 +996,24 @@ Family                                Build  Measures
                                              (``subdomainAt()``)
 ``particles/surfaceGroups``           host   the surface group of the surface of each point's region
                                              closest to it (found untimed)
+``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
+====================================  =====  =====================================================
+
+**DomainObject** (``Performance/DomainObject``): a domain compiled on its own (``regionNeighborhood()``, see
+:ref:`Chap:ImplemRegions`), against the whole object. An assembly of 216 balls on a grid in a box of air, each ball
+a region, and a domain computing in the middle ball: the whole object's tape evaluates every ball, the domain's own
+keeps the ball and the air around it. Each case runs at points in a shell around the ball, where the two tapes give
+the same values; each ``partsOwn`` case is noted relative to its ``partsWhole`` one.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``partsWhole/labels``                 host   the domain's functions at each of 20,000 points
+                                             (``signedDistances()``), on the whole object's tape
+``partsWhole/labelAt``                host   the subdomain of each of those points
+                                             (``subdomainAt()``), on the whole object's tape
+``partsOwn/labels``,                  host   the same, on the domain's own tape
+``partsOwn/labelAt``
 ``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
 ====================================  =====  =====================================================
 

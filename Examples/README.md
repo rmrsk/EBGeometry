@@ -37,7 +37,7 @@ The reading order:
 
 12. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
 13. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
-14. `LanguageDomains`: a model with regions, materials and domains read from text (`Language::read()`), its domain built for the tape, and its properties as a table a GPU reads.
+14. `LanguageDomains`: a model with regions, materials and domains read from text (`Language::read()`), its domain built for the tape, its properties as a table a GPU reads, and a domain compiled on its own.
 
 **Many objects and particles**
 

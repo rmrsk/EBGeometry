@@ -33,8 +33,8 @@ model is two files, as most models are. The geometry, ``cable/model.ebg``:
 
    ebg 0
 
-   # A cable along z, in a box of air with a cross-flow along x: a copper core inside a PTFE jacket. The core stops
-   # short of the cable's ends, where it meets the air.
+   # A cable along z, in a box of air with a cross-flow along x: a copper core inside a PTFE jacket, and a steel sensor in
+   # the flow downstream. The core stops short of the cable's ends, where it meets the air.
    param length = 6
    param r_core = 0.5
    param r_out  = 0.8
@@ -44,11 +44,13 @@ model is two files, as most models are. The geometry, ``cable/model.ebg``:
    insulation = tube((0, 0, -length / 2), (0, 0, length / 2), inner_radius = r_core, outer_radius = r_out)
    air_box    = box((-3, -2, -length / 2), (5, 2, length / 2))
      .label(xmin = "inlet", xmax = "outlet", ymin = "far", ymax = "far", zmin = "ends", zmax = "ends")
+   probe      = sphere((3, 0, 0), radius = 0.3)
 
    object overlay {  # each region lies on top of the ones before it
      region air    = air_box material air
      region jacket = insulation material PTFE
      region core   = conductor material copper
+     region sensor = probe material steel
    }
 
 Line by line:
@@ -77,25 +79,35 @@ the file a program reads:
    material copper { conductivity = 5.8e7 }
    material PTFE { permittivity = 2.1, density = 2200 }
    material air { permittivity = 1.0, density = 1.2, viscosity = mu_air }
+   material steel { density = 7850 }
 
-   # Electrostatics: the field in the insulation and the air; the conductor is a boundary held at its potential.
+   # Electrostatics: the field in the insulation and the air; the conductor is a boundary held at its potential, the
+   # sensor one at ground.
    domain electrostatics {
      subdomain insulation = jacket
      subdomain gas = air
      group conductor = interface(core, jacket), interface(core, air) { potential = 1000 }
      group dielectric = interface(jacket, air) { surface_charge = 0 }
-     group ground = label("inlet"), label("outlet"), label("far") { potential = 0 }
+     group ground = label("inlet"), label("outlet"), label("far"), interface(sensor, air) { potential = 0 }
      group ends = remaining() { kind = "zero_flux" }
    }
 
-   # Flow: air past the cable.
+   # Flow: air past the cable and the sensor.
    domain cfd {
      subdomain fluid = air
      group inlet = label("inlet") { velocity = (2, 0, 0) }
      group outlet = label("outlet") { pressure = 0 }
      group walls = interface(air, jacket) { kind = "no_slip" }
      group tips = interface(air, core) { kind = "no_slip" }
+     group sensor = interface(air, sensor) { kind = "no_slip" }
      group slip = label("far"), label("ends") { kind = "slip" }
+   }
+
+   # Heat in the cable alone, cooled by the air around it: its solver needs the cable and the air, not the sensor.
+   domain conduction {
+     subdomain conductor = core { thermal_conductivity = 400 }
+     subdomain insulation = jacket { thermal_conductivity = 0.25 }
+     group cooled = remaining() { kind = "convective", h = 10 }
    }
 
    # Coupling: the electric body force acts on the gas; the cable surface carries charge into the flow.
@@ -107,12 +119,16 @@ the file a program reads:
 * A ``material`` gives a material's properties. The names (``conductivity``, ``viscosity``) mean nothing to
   the language; they are what the program reads.
 * A ``domain`` is one computation. The electrostatic one computes in two subdomains, the jacket and the air;
-  the core is in neither, so it is excluded, and its surface is a boundary of the domain. Each ``group`` is a
+  the core and the sensor are in neither, so they are excluded, and their surfaces are boundaries of the domain
+  (the sensor's grounded). Each ``group`` is a
   surface group: a name, the surfaces it holds (selected by what they are: an interface between two
   regions, a label, or ``remaining()``, every surface no other group holds), and its properties.
 * The flow computes in the air alone; its walls are the jacket's surface, and the core's ends, where the core
   stops short of the jacket, are a group of their own, ``tips``, since the walls are coupled to a group of the
-  other domain that holds the jacket alone.
+  other domain that holds the jacket alone. The sensor is a wall of its own, ``sensor``.
+* Conduction computes in the cable alone, a subdomain each for the core and the jacket, with properties of their
+  own; every surface it touches is cooled. A solver of it can compile the cable on its own, without the sensor
+  (see :ref:`Chap:ImplemLanguage`).
 * A ``couple`` joins two domains, here through a subdomain each (the gas, which both compute in) and through a
   surface group each (the jacket's surface).
 * ``view`` says how a viewer opens the model; programs ignore it.
