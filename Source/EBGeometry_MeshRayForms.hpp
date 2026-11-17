@@ -205,6 +205,67 @@ struct RayForm<FlatMeshSDF<T>>
 namespace RayDetail {
 
 /**
+ * @brief A TriMeshSDF is traced on past an interval (see TracedOnCheaply).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ * @tparam W Triangles per leaf group.
+ */
+template <class T, size_t K, size_t W>
+struct TracedOnCheaply<TriMeshSDF<T, K, W>> : std::true_type
+{
+};
+
+/**
+ * @brief A TriMeshSDF's crossing names its face, its part (see HitNamesPart).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ * @tparam W Triangles per leaf group.
+ */
+template <class T, size_t K, size_t W>
+struct HitNamesPart<TriMeshSDF<T, K, W>> : std::true_type
+{
+};
+
+/**
+ * @brief A MeshSDF is traced on past an interval (see TracedOnCheaply).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ */
+template <class T, size_t K>
+struct TracedOnCheaply<MeshSDF<T, K>> : std::true_type
+{
+};
+
+/**
+ * @brief A MeshSDF's crossing names its face, its part (see HitNamesPart).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ */
+template <class T, size_t K>
+struct HitNamesPart<MeshSDF<T, K>> : std::true_type
+{
+};
+
+/**
+ * @brief A FlatMeshSDF is traced on past an interval (see TracedOnCheaply): its trace visits every face, and so does
+ * the distance query it saves.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct TracedOnCheaply<FlatMeshSDF<T>> : std::true_type
+{
+};
+
+/**
+ * @brief A FlatMeshSDF's crossing names its face, its part (see HitNamesPart).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct HitNamesPart<FlatMeshSDF<T>> : std::true_type
+{
+};
+
+/**
  * @brief A crossing of a mesh face as a HitT.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
@@ -599,7 +660,8 @@ RayForm<TriMeshSDF<T, K, W>>::spans(const TriMeshSDF<T, K, W>& a_shape,
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), crossings, leaf, bound);
 
-  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+  crossings.toSpans(
+    a_tMin, crossings.m_count == 0U && RayDetail::insideUncrossed(a_shape, a_ray, a_tMin, a_tMax, a_options), a_spans);
 }
 
 template <class T, size_t K>
@@ -644,7 +706,8 @@ RayForm<MeshSDF<T, K>>::spans(const MeshSDF<T, K>& a_shape,
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), crossings, leaf, bound);
 
-  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+  crossings.toSpans(
+    a_tMin, crossings.m_count == 0U && RayDetail::insideUncrossed(a_shape, a_ray, a_tMin, a_tMax, a_options), a_spans);
 }
 
 template <class T>
@@ -679,7 +742,8 @@ RayForm<FlatMeshSDF<T>>::spans(const FlatMeshSDF<T>& a_shape,
     }
   }
 
-  crossings.toSpans(a_tMin, crossings.m_count == 0U && RayDetail::insideAt(a_shape, a_ray.at(a_tMin)), a_spans);
+  crossings.toSpans(
+    a_tMin, crossings.m_count == 0U && RayDetail::insideUncrossed(a_shape, a_ray, a_tMin, a_tMax, a_options), a_spans);
 }
 
 } // namespace EBGeometry

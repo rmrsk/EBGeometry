@@ -181,6 +181,11 @@ struct Drill
   SurfaceRef<T>* m_surface;
 
   /**
+   * @brief The part a trace crossed, where its crossing named it (RayDetail::HitNamesPart), or SurfaceRef::None.
+   */
+  uint32_t m_part = SurfaceRef<T>::None;
+
+  /**
    * @brief Drill into a primitive: a container reports its own surface; any other shape is one surface.
    * @tparam P Primitive type.
    * @param[in] a_primitive The deciding leaf's primitive.
@@ -204,6 +209,14 @@ struct Drill
       }
     }
     else if constexpr (hasParts<P, T>) {
+      if constexpr (RayDetail::HitNamesPart<P>::value) {
+        if (m_part != SurfaceRef<T>::None) {
+          m_surface->m_part = m_part;
+
+          return;
+        }
+      }
+
       m_surface->m_part = a_primitive.closestPart(m_surface->m_localPoint);
     }
   }
@@ -2694,14 +2707,31 @@ Tape<T, UserPrimitives...>::traceProgram(const uint32_t       a_program,
 }
 
 template <class T, class... UserPrimitives>
-template <bool Whole>
 EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline HitT<T>
-Tape<T, UserPrimitives...>::traceBody(const uint32_t       a_program,
+Tape<T, UserPrimitives...>::tracePart(const uint32_t       a_program,
                                       const RayT<T>&       a_ray,
                                       const T              a_tMin,
                                       const T              a_tMax,
-                                      const RayOptions<T>& a_options) const noexcept
+                                      const RayOptions<T>& a_options,
+                                      uint32_t&            a_part) const noexcept
+{
+  a_part = SurfaceRef<T>::None;
+
+  return this->template traceBody<false, true>(a_program, a_ray, a_tMin, a_tMax, a_options, &a_part);
+}
+
+template <class T, class... UserPrimitives>
+template <bool Whole, bool Part>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+Tape<T, UserPrimitives...>::traceBody(const uint32_t             a_program,
+                                      const RayT<T>&             a_ray,
+                                      const T                    a_tMin,
+                                      const T                    a_tMax,
+                                      const RayOptions<T>&       a_options,
+                                      [[maybe_unused]] uint32_t* a_part) const noexcept
 {
   // The whole object's program is 0. Not const: a constant (for the whole object) would need no capture in the lambdas
   // below, which clang rejects as an unused capture; the compiler folds it all the same.
@@ -2746,6 +2776,26 @@ Tape<T, UserPrimitives...>::traceBody(const uint32_t       a_program,
         hit.m_normal = -hit.m_normal;
       }
     }
+  }
+  else if constexpr (Part) {
+    // The leaf's own crossing, which names its part; the leaf's number is its clause's, as rayLeafHit() gives it
+    // without Part.
+    const auto resolve = [this, program, &a_ray, &a_options, base, &location, a_part](const T        a_t,
+                                                                                      const uint32_t a_leaf) noexcept {
+      HitT<T> leafHit =
+        this->template rayLeafHit<MaxCallDepth, false, true>(program, a_ray, a_t, a_leaf, a_options, base, location);
+
+      const TapeDetail::RayClause c = TapeDetail::rayClause(m_layout.m_clauses.data(base)[a_leaf]);
+
+      if (c.m_op == TapeDetail::RayOp::Leaf) {
+        *a_part             = leafHit.m_primitive;
+        leafHit.m_primitive = c.m_b;
+      }
+
+      return leafHit;
+    };
+
+    hit = RayDetail::traceSpans(trace, resolve, a_ray, a_tMin, a_tMax);
   }
   else {
     const auto resolve = [this, program, &a_ray, &a_options, base, &location](const T        a_t,
@@ -3093,7 +3143,7 @@ Tape<T, UserPrimitives...>::rayUnion(const TapeDetail::RayClause& a_clause,
 }
 
 template <class T, class... UserPrimitives>
-template <unsigned D, bool Level>
+template <unsigned D, bool Level, bool Part>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline HitT<T>
@@ -3149,7 +3199,9 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
       if (c.m_op == RayOp::Leaf) {
         hit = this->primitiveLeafHit(c, top.m_ray, top.m_t0, a_options, a_base, a_location);
 
-        hit.m_primitive = c.m_b;
+        if constexpr (!Part) {
+          hit.m_primitive = c.m_b;
+        }
       }
       else {
         // A Marched clause is a leaf of the trace as a whole: its subtree has no ray program, so a trace never
@@ -3224,7 +3276,7 @@ Tape<T, UserPrimitives...>::rayLeafHit(const uint32_t       a_program,
         }
 
         if (operand != UINT32_MAX && operand != a_program && operand >= c.m_b && operand < c.m_c) {
-          hit = this->template rayLeafHit<D - 1, Level>(
+          hit = this->template rayLeafHit<D - 1, Level, Part>(
             operand, top.m_ray, top.m_t0, a_clause, a_options, a_base, a_location);
         }
       }
@@ -4114,7 +4166,10 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
   // crossing (at the start and past the hit) on top of the one naming the surface; on an assembly of meshes, a view
   // of its one region (RegionView) rendered several times slower than the tape itself.
   if (n == 0U) {
-    const HitT<T> hit = this->traceProgram(0U, a_ray, a_tMin + nudge, a_tMax, a_options);
+    // The part from the trace (the face of a mesh it crossed): closestPart() would search the mesh again for it.
+    uint32_t part = SurfaceRef<T>::None;
+
+    const HitT<T> hit = this->tracePart(0U, a_ray, a_tMin + nudge, a_tMax, a_options, part);
 
     result.m_hit = hit;
 
@@ -4122,7 +4177,11 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       return result;
     }
 
-    result.m_surface = this->surfaceOf(this->tracedLeaf(0U, hit.m_primitive, hit.m_point));
+    // A leaf in a sub-program is named by evaluating the program at the crossing (see tracedLeaf()); the part is the
+    // traced leaf's, so it is passed only when that names the same leaf.
+    const LeafRef<T> leaf = this->tracedLeaf(0U, hit.m_primitive, hit.m_point);
+
+    result.m_surface = this->surfaceOf(leaf, (leaf.m_leaf == hit.m_primitive) ? part : SurfaceRef<T>::None);
 
     if (hit.m_entering) {
       result.m_hit.m_normal = -hit.m_normal;
@@ -4754,7 +4813,7 @@ template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline SurfaceRef<T>
-Tape<T, UserPrimitives...>::surfaceOf(const LeafRef<T>& a_ref) const noexcept
+Tape<T, UserPrimitives...>::surfaceOf(const LeafRef<T>& a_ref, const uint32_t a_part) const noexcept
 {
   const LeafRef<T>& ref = a_ref;
 
@@ -4771,7 +4830,7 @@ Tape<T, UserPrimitives...>::surfaceOf(const LeafRef<T>& a_ref) const noexcept
 
   // A tape whose types include no container and no shape with parts compiles no drilling at all.
   if constexpr (TapeDetail::AnyDrill<T, Primitives>::value) {
-    this->visitPrimitive(ref, TapeDetail::Drill<T>{&surface});
+    this->visitPrimitive(ref, TapeDetail::Drill<T>{&surface, a_part});
   }
 
   // A part whose face group named it has that label, over the leaf's. The table starts with one entry per leaf:
