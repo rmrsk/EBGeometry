@@ -11,7 +11,9 @@ magnitude, below its half-diagonal times a small safety factor) is split into ei
 while its corners do not predict its center: while the mean of the values at its eight corners (their trilinear
 interpolation at the center) misses the value at its center by more than a tolerance times the cell's side. On a flat
 part of the surface the two agree and the cell stops; where the surface curves, and most at the model's edges and
-corners, they differ and the cells refine further. In a model with regions (an `overlay`), a cell is also split, to
+corners, they differ and the cells refine further. The test samples only a cell's eight corners and its center, so a
+feature that touches none of them (a thin region, or a bump symmetric about the center) can stop a cell early; the
+minimum level near the surface keeps such misses to features smaller than a cell of level 2. In a model with regions (an `overlay`), a cell is also split, to
 the maximum level, where a region changes in it, where one of its eight corners is in another region than its center
 (`Tape::region()`), so the interfaces between regions are refined as the surface is. Each leaf stores the signed
 distance at its eight corners and, for a model with regions, the region at its center.

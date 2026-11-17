@@ -19,6 +19,7 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -232,6 +233,13 @@ writePiece(const std::string&       a_file,
 {
   const std::size_t numLeaves = a_leaves.size();
 
+  // The corners are indexed with 32 bits: more leaves than that allows would write a corrupt file, so none is written.
+  if (numLeaves > static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max() / 8)) {
+    std::cerr << "Rank " << a_rank << " has " << numLeaves << " leaves, more than one file of 32-bit indices holds\n";
+
+    return false;
+  }
+
   // The arrays. The corners are drawn, so single precision is enough for them; the level set keeps every digit of T.
   std::vector<float>         points;
   std::vector<std::int32_t>  connectivity(8 * numLeaves);
@@ -385,7 +393,10 @@ run(int argc, char* argv[])
       int level = -1;
 
       try {
-        level = i + 1 < argc ? std::stoi(argv[i + 1]) : -1;
+        std::size_t used = 0;
+
+        level = i + 1 < argc ? std::stoi(argv[i + 1], &used) : -1;
+        level = i + 1 < argc && argv[i + 1][used] != '\0' ? -1 : level;
       } catch (const std::exception&) {
         level = -1;
       }
@@ -405,7 +416,10 @@ run(int argc, char* argv[])
       double value = -1.0;
 
       try {
-        value = i + 1 < argc ? std::stod(argv[i + 1]) : -1.0;
+        std::size_t used = 0;
+
+        value = i + 1 < argc ? std::stod(argv[i + 1], &used) : -1.0;
+        value = i + 1 < argc && argv[i + 1][used] != '\0' ? -1.0 : value;
       } catch (const std::exception&) {
         value = -1.0;
       }
@@ -420,6 +434,13 @@ run(int argc, char* argv[])
 
       tolerance = static_cast<T>(value);
       i++;
+    }
+    else if (arg.rfind("--", 0) == 0) {
+      if (rank == 0) {
+        std::cerr << "Unknown option " << arg << " (the options are --max-level N and --tolerance X)\n";
+      }
+
+      return 1;
     }
     else {
       file = arg;
