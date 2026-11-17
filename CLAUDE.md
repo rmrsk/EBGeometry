@@ -22,9 +22,8 @@ Single-word orientation: `Source/` is the library (all headers, no `.cpp`), `Tes
 unit-test suite (fetched via CMake `FetchContent`, not vendored), `Examples/` holds small
 standalone programs with no third-party dependencies (each independently buildable — see below),
 `Performance/` holds the performance probes and the comparison that every PR is vetted with (see
-"Vetting every pull request for performance" below), `Integrations/` holds programs using
-EBGeometry with third-party code (`Integrations/MPI`, maintained and CI-tested; `Integrations/AMReX`,
-illustrative and not CI-tested), and
+"Vetting every pull request for performance" below), `Integrations/` holds illustrative (not
+CI-tested) examples coupling EBGeometry to a third-party application code, and
 `Docs/Sphinx/` + `Docs/doxygen.conf` are the two documentation systems.
 
 ## Cloning
@@ -284,7 +283,7 @@ Scripts/run-all-checks.sh
 Runs every pre-commit hook (default and manual stage — formatting, REUSE/license headers,
 codespell, Doxygen, the `check-docs` literalinclude ban, the `check-device-math` device toolchain
 contract, clang-tidy, a debug-preset compile check, the documentation figures, Sphinx HTML/PDF)
-followed by all four CMake presets' test suites and, when MPI is installed, the MPI integrations. This is nearly the check set
+followed by all four CMake presets' test suites. This is nearly the check set
 `.github/workflows/CI.yml` runs, just local and in one command; CI's `CMake-consumer` job is not
 included (run `Scripts/check-cmake-consumer.sh` for that). Expect it to take several
 minutes. `pre-commit install` is only needed if you want the default-stage hooks
