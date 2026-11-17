@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// One geometry built once and shared under MPI. Rank 0 reads a mesh into a TriMeshSDF and freezes its pool. The
-// pool's size, its bytes and the TriMeshSDF's layout (offsets only, no address) are broadcast, and every rank rebuilds
-// the TriMeshSDF from the layout with the (Layout, PoolLocation) constructor instead of building it again. Within a
+// One geometry built once and shared under MPI. Rank 0 reads a model (an .ebg file), compiles its object into a Tape
+// and freezes the pool. The pool's size, its bytes and the tape's layout (offsets only, no address) are broadcast, and
+// every rank rebuilds the tape from the layout with the (Layout, PoolLocation) constructor instead of reading and
+// compiling the model again: only rank 0 reads the file. Within a
 // node the bytes are held once: a MemoryResource over an MPI shared-memory window (MPI_Win_allocate_shared) backs the
 // pool on every rank of the node, so they all read the same copy. That works because a pool holds offsets, valid at
 // whatever address each process maps the window. Every rank then evaluates the same points and checks that it gets
@@ -14,6 +15,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -26,6 +28,7 @@
 #include <mpi.h>
 
 #include <EBGeometry.hpp>
+#include <Source/EBGeometry_Language.hpp>
 
 // Floating-point precision. Overridable from CMake (-DEBGEOMETRY_PRECISION=float) or make (PRECISION=float).
 #ifndef EBGEOMETRY_PRECISION
@@ -35,14 +38,10 @@
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 
-// The mesh SDF's BVH branching factor and triangles per leaf group, spelled out.
-constexpr std::size_t K = 4;
-constexpr std::size_t W = 4;
-
-using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
+using Tape = EBGeometry::Tape<T>;
 
 // The layout is broadcast as bytes.
-static_assert(std::is_trivially_copyable_v<Mesh::Layout>);
+static_assert(std::is_trivially_copyable_v<Tape::Layout>);
 
 // Points each rank evaluates for the check.
 constexpr int numPoints = 1000;
@@ -157,6 +156,19 @@ broadcastBytes(void* a_data, const std::size_t a_bytes, const int a_root, MPI_Co
   }
 }
 
+// The location of the objects in a pool this rank did not build into: the pool on the window, whose bytes rank 0's
+// pool sent. Following the pool, as a handle that was built in it does. This is the one place that says how a handle
+// finds a pool filled from outside; a library call for it would replace this function.
+EBGeometry::PoolLocation
+locationOf(const EBGeometry::Pool& a_pool)
+{
+  EBGeometry::PoolLocation location;
+
+  location.attach(a_pool, "SharedGeometry");
+
+  return location;
+}
+
 // The points every rank evaluates: a regular lattice through the box around the object, the same on every rank.
 std::vector<Vec3>
 lattice(const Vec3& a_lo, const Vec3& a_hi)
@@ -196,22 +208,23 @@ run(int argc, char* argv[])
 
   // ── Build it once, on rank 0 ─────────────────────────────────────────────────────────────────────────
   //
-  // Rank 0 reads the mesh into a pool of its own and freezes the pool. What the other ranks need is the pool's size,
-  // its bytes, and the TriMeshSDF's layout: offsets into the pool, valid in any copy of it. Rank 0 also evaluates
-  // the points, as the reference the other ranks check against.
-  const std::string file = argc >= 2 ? std::string(argv[1]) : "../../../Examples/data/dodecahedron.stl";
+  // Rank 0 reads the model and compiles its object into a tape, in a pool of its own, and freezes the pool. What the
+  // other ranks need is the pool's size, its bytes, and the tape's layout: offsets into the pool, valid in any copy of
+  // it. Rank 0 also evaluates the points, as the reference the other ranks check against.
+  const std::string file = argc >= 2 ? std::string(argv[1]) : "../../../Examples/LanguageCSG/solid.ebg";
 
   EBGeometry::Pool buildPool(EBGeometry::hostMemoryResource());
 
   std::uint64_t     bytes = 0;
-  Mesh::Layout      layout{};
+  Tape::Layout      layout{};
   Vec3              lo = Vec3::zeros();
   Vec3              hi = Vec3::zeros();
   std::vector<T>    reference(numPoints);
   std::vector<Vec3> points;
 
   if (rank == 0) {
-    const Mesh built = EBGeometry::Parser::readIntoTriMeshSDF<T, K, W>(file, buildPool);
+    const auto model = EBGeometry::Language::read<T>(file, buildPool);
+    const Tape built(buildPool, model.object());
 
     buildPool.freeze();
 
@@ -225,11 +238,11 @@ run(int argc, char* argv[])
       reference[static_cast<std::size_t>(i)] = built.signedDistance(points[static_cast<std::size_t>(i)]);
     }
 
-    std::cout << "Rank 0 read " << file << " into a pool of " << bytes << " bytes\n";
+    std::cout << "Rank 0 read " << file << " and compiled it into a pool of " << bytes << " bytes\n";
   }
 
   MPI_Bcast(&bytes, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&layout, sizeof(Mesh::Layout), MPI_BYTE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&layout, sizeof(Tape::Layout), MPI_BYTE, 0, MPI_COMM_WORLD);
   MPI_Bcast(&lo, sizeof(Vec3), MPI_BYTE, 0, MPI_COMM_WORLD);
   MPI_Bcast(&hi, sizeof(Vec3), MPI_BYTE, 0, MPI_COMM_WORLD);
   MPI_Bcast(reference.data(), static_cast<int>(numPoints * sizeof(T)), MPI_BYTE, 0, MPI_COMM_WORLD);
@@ -273,9 +286,9 @@ run(int argc, char* argv[])
 
     // ── Rebuild the handle, on every rank ──────────────────────────────────────────────────────────────
     //
-    // The TriMeshSDF is its layout plus the location of the pool that holds it: here, this rank's pool on the
-    // window. Nothing is built.
-    const Mesh mesh(layout, EBGeometry::PoolLocation{pool.control()});
+    // The tape is its layout plus the location of the pool that holds it: here, this rank's pool on the window.
+    // Nothing is read or compiled.
+    const Tape tape(layout, locationOf(pool));
 
     // ── The same answers on every rank ─────────────────────────────────────────────────────────────────
     //
@@ -285,7 +298,7 @@ run(int argc, char* argv[])
     int mismatches = 0;
 
     for (int i = 0; i < numPoints; i++) {
-      if (mesh.signedDistance(points[static_cast<std::size_t>(i)]) != reference[static_cast<std::size_t>(i)]) {
+      if (tape.signedDistance(points[static_cast<std::size_t>(i)]) != reference[static_cast<std::size_t>(i)]) {
         mismatches++;
       }
     }
@@ -323,11 +336,11 @@ main(int argc, char* argv[])
 
   int status = 0;
 
-  // A mesh file that cannot be read is reported, and the run stops on every rank.
+  // A model that cannot be read is reported (with every error in it), and the run stops on every rank.
   try {
     status = run(argc, argv);
-  } catch (const EBGeometry::Parser::ParseError& e) {
-    std::cerr << "Cannot read the mesh: " << e.what() << '\n';
+  } catch (const std::exception& e) {
+    std::cerr << "Cannot read the model: " << e.what() << '\n';
 
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
