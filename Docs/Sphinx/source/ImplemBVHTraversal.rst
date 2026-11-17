@@ -207,9 +207,9 @@ a multiply and an add into a fused multiply-add (GCC and nvcc by default, Clang 
 wherever the hardware has FMA; on the host, e.g. with ``-march=native``): ``PointQuery``'s paths can
 then differ in the last bit, and so can whether a ray that grazes a box's edge within rounding enters
 it. That changes only which boxes a ray query visits, never its answer, and ``RayQuery``'s entry
-distances still agree bit for bit. ``RayQuery`` is robust at the edges: a ray that meets a box only along an edge or at a
-corner enters it, a ray through a face or edge shared by two boxes enters at least one of them, and a
-ray lying in a box's face plane is not counted as missing it.
+distances still agree bit for bit. ``RayQuery`` is robust at the edges: a ray that meets a box only
+along an edge or at a corner enters it, a ray through a face or edge shared by two boxes enters at least
+one of them, and a ray lying in a box's face plane is not counted as missing it.
 
 .. _Sec:TraversalStack:
 
