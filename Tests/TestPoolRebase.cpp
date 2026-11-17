@@ -160,6 +160,36 @@ public:
   }
 };
 
+// Stands in for device memory without a GPU: the host never reads it here, and the resource says so. Its block is
+// host memory, so the test can still free it.
+class FakeDeviceResource final : public MemoryResource
+{
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
 template <class T>
 using TestSDF = MeshSDF<T, 4>;
 
@@ -447,3 +477,107 @@ TEST_CASE("PoolLocation: a view of device-only memory used on the host fails an 
     "EBGeometry assertion failed: (m_hostAccessible)"));
 }
 #endif
+
+TEMPLATE_TEST_CASE("Pool::forImage: structures rebuilt from a copy of a pool's image answer like the originals",
+                   "[PoolRebase][PoolHandle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Tri  = TriMeshSDF<T, 4, 4>;
+  using Tape = EBGeometry::Tape<T, Tri>;
+
+  // The image, the layouts and the answers of the originals; the originals and their pool are gone before the
+  // copy is read, so the copy can only answer from its own bytes.
+  std::vector<unsigned char> image;
+  typename Tri::Layout       triLayout;
+  typename Tape::Layout      tapeLayout;
+  std::vector<T>             triValues;
+  std::vector<T>             tapeValues;
+
+  {
+    Pool host(hostMemoryResource());
+
+    const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), host);
+    const Tri  tri(mesh, host, BVH::Construction::SAH, 4);
+    const Tape tape(host, Difference(Expr<T>(tri), SphereSDF<T>(Vec3T<T>::zeros(), T(0.5))));
+
+    host.freeze();
+
+    const auto* bytes = static_cast<const unsigned char*>(host.base());
+
+    image.assign(bytes, bytes + host.usedBytes());
+    triLayout  = tri.layout();
+    tapeLayout = tape.layout();
+
+    for (const auto& p : probes<T>()) {
+      triValues.push_back(tri.signedDistance(p));
+      tapeValues.push_back(tape.signedDistance(p));
+    }
+  }
+
+  Pool copy = Pool::forImage(hostMemoryResource(), image.size());
+
+  REQUIRE(copy.usedBytes() == image.size());
+  REQUIRE_FALSE(copy.isFrozen());
+
+  std::memcpy(copy.base(), image.data(), image.size());
+  copy.freeze();
+
+  const Tri  tri(triLayout, copy.location());
+  const Tape tape(tapeLayout, copy.location());
+
+  REQUIRE(tri.isAttachedTo(copy));
+
+  const auto points = probes<T>();
+
+  for (size_t i = 0; i < points.size(); i++) {
+    REQUIRE(tri.signedDistance(points[i]) == triValues[i]);
+    REQUIRE(tape.signedDistance(points[i]) == tapeValues[i]);
+  }
+
+  // The copy is a root of its own: a structure rebuilt on it rebases onto the copy's mirrors.
+  FakeManagedResource managed;
+  const Pool          mirror   = Pool::mirror(copy, managed);
+  const Tri           onMirror = tri.rebasedView(mirror);
+
+  for (size_t i = 0; i < points.size(); i++) {
+    REQUIRE(onMirror.signedDistance(points[i]) == triValues[i]);
+  }
+}
+
+TEST_CASE("Pool::forImage: a block of any size, in memory the host may not read, with a location", "[PoolRebase]")
+{
+  // Not a multiple of PoolBaseAlign: the block is exactly the image, allocated and freed at that size.
+  constexpr size_t bytes = 1000;
+
+  Pool pool = Pool::forImage(hostMemoryResource(), bytes);
+
+  REQUIRE(pool.usedBytes() == bytes);
+  REQUIRE(pool.base() != nullptr);
+
+  std::memset(pool.base(), 0x5A, bytes);
+  pool.freeze();
+
+  // A resource the host cannot read: forImage() and location() take it, as mirror() does.
+  FakeDeviceResource deviceMemory;
+  Pool               device = Pool::forImage(deviceMemory, bytes);
+
+  device.freeze();
+
+  const PoolLocation location = device.location();
+
+  REQUIRE(location.isAttachedTo(device));
+  REQUIRE_FALSE(location.isAttachedTo(pool));
+}
+
+TEST_CASE("Pool::forImage: an empty image gives an empty pool", "[PoolRebase]")
+{
+  Pool pool = Pool::forImage(hostMemoryResource(), 0);
+
+  REQUIRE(pool.usedBytes() == 0);
+  REQUIRE(pool.base() == nullptr);
+
+  pool.freeze();
+
+  REQUIRE(pool.isFrozen());
+}

@@ -110,8 +110,8 @@ public:
   /**
    * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
    * @details How an outer pool-resident object, such as a BVHUnion, evaluates a FlatMeshSDF it stores as
-   * a layout. @p a_location must belong to the pool the layout was reserved from, or to a mirror of it;
-   * nothing is checked, since a device has no pool to check against.
+   * a layout. @p a_location must belong to the pool the layout was reserved from, to a mirror of it, or to a
+   * pool holding its image (Pool::forImage()); nothing is checked, since a device has no pool to check against.
    * @param[in] a_layout   The arrays.
    * @param[in] a_location Where they live.
    */
@@ -322,8 +322,8 @@ public:
   /**
    * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
    * @details How an outer pool-resident object, such as a BVHUnion, evaluates a MeshSDF it stores as
-   * a layout. @p a_location must belong to the pool the layout was reserved from, or to a mirror of it;
-   * nothing is checked, since a device has no pool to check against.
+   * a layout. @p a_location must belong to the pool the layout was reserved from, to a mirror of it, or to a
+   * pool holding its image (Pool::forImage()); nothing is checked, since a device has no pool to check against.
    * @param[in] a_layout   The arrays.
    * @param[in] a_location Where they live.
    */
@@ -599,8 +599,8 @@ public:
   /**
    * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
    * @details How an outer pool-resident object, such as a BVHUnion, evaluates a TriMeshSDF it stores as
-   * a layout. @p a_location must belong to the pool the layout was reserved from, or to a mirror of it;
-   * nothing is checked, since a device has no pool to check against.
+   * a layout. @p a_location must belong to the pool the layout was reserved from, to a mirror of it, or to a
+   * pool holding its image (Pool::forImage()); nothing is checked, since a device has no pool to check against.
    * @param[in] a_layout   The arrays.
    * @param[in] a_location Where they live.
    */

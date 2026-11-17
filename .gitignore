@@ -10,6 +10,8 @@ Integrations/*/*/plt*
 Integrations/*/*/tmp_build_dir
 Integrations/*/*/Backtrace.*
 Integrations/*/Backtrace.*
+Integrations/*/*/*.vtu
+Integrations/*/*/*.pvtu
 
 Docs/*
 !Docs/.nojekyll
