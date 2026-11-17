@@ -652,6 +652,92 @@ TEMPLATE_TEST_CASE(
   }
 }
 
+TEMPLATE_TEST_CASE("Tape: firstRegionChange() names a mesh's part by the face its ray crosses, under maps and beside "
+                   "other shapes",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+  constexpr size_t W = TriangleSoA::DefaultWidth<T>();
+
+  Pool pool(hostMemoryResource());
+
+  const auto mesh = Parser::readIntoDCEL<T>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl", pool);
+
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, K>       bvhMesh(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, K, W> triMesh(mesh, pool, BVH::Construction::SAH, 4);
+
+  const auto box    = flat.computeBoundingVolume();
+  const Vec3 center = T(0.5) * (box.getLowCorner() + box.getHighCorner());
+  const T    size   = (box.getHighCorner() - box.getLowCorner()).length();
+
+  // The mesh under maps (its faces are named in its own frame), beside a ball that the rays also cross.
+  const Vec3    shift(T(0.2) * size, T(-0.1) * size, T(0.1) * size);
+  const Vec3    ballCenter = center + Vec3(size, T(0), T(0));
+  const T       ballRadius = T(0.2) * size;
+  const Expr<T> ball       = SphereSDF<T>(ballCenter, ballRadius);
+
+  const auto placed = [&](const Expr<T>& a_mesh) { return Union(Translate(Rotate(a_mesh, T(30), 2), shift), ball); };
+
+  const Tape<T> tapes[3] = {
+    Tape<T>(pool, placed(flat)), Tape<T>(pool, placed(bvhMesh)), Tape<T>(pool, placed(triMesh))};
+
+  for (const Tape<T>& tape : tapes) {
+    int onMesh = 0;
+    int agree  = 0;
+
+    for (int i = 0; i < 24; i++) {
+      for (int j = 0; j < 12; j++) {
+        const Vec3 target = center + shift + T(0.03) * size * Vec3(T(i % 5) - T(2), T(j % 4) - T(1.5), T(i % 3) - T(1));
+        const Vec3 origin =
+          target + T(2) * size * Vec3(std::cos(T(0.26) * T(i)), std::sin(T(0.26) * T(i)), T(0.15) * T(j) - T(0.8));
+        const RayT<T> ray{origin, (target - origin) / (target - origin).length()};
+
+        T t = T(0);
+
+        // Every crossing along the ray: into the mesh and out of it, and the ball's.
+        for (int k = 0; k < 6; k++) {
+          const SurfaceHitT<T> change = tape.firstRegionChange(ray, t, T(8) * size);
+
+          if (!change.m_hit.hit()) {
+            break;
+          }
+
+          t = change.m_hit.m_t;
+
+          const SurfaceRef<T> closest = tape.closestSurface(change.m_hit.m_point);
+
+          CHECK(change.m_surface.m_leaf == closest.m_leaf);
+
+          // The ball's crossings: it has one part.
+          if (std::abs((change.m_hit.m_point - ballCenter).length() - ballRadius) < T(1e-3) * size) {
+            continue;
+          }
+
+          onMesh++;
+
+          // A face the crossing lies on: the one closestSurface() names there, but for a crossing on an edge, where
+          // the neighbor is as close.
+          REQUIRE(change.m_surface.m_part < mesh.numFaces());
+
+          const T onFace = mesh.getFace(change.m_surface.m_part).unsignedDistance2(change.m_surface.m_localPoint, mesh);
+
+          CHECK(std::sqrt(onFace) <= T(1e-3) * size);
+
+          agree += (change.m_surface.m_part == closest.m_part) ? 1 : 0;
+        }
+      }
+    }
+
+    CHECK(onMesh > 300);
+    CHECK(agree > (onMesh * 9) / 10);
+  }
+}
+
 TEMPLATE_TEST_CASE("Tape: regionDistances() gives every region's function in one pass, as signedDistance() does",
                    "[Overlay][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)

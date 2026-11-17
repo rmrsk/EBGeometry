@@ -128,6 +128,37 @@ struct HasRayFirstHit<
 };
 
 /**
+ * @brief Whether a shape's trace costs about the same however far past an interval it goes: a walk of a BVH that stops
+ * at the first crossing and at the box, never a march (the mesh SDFs).
+ * @details Internal helper; not part of the public API. The span code traces such a shape on past an interval it
+ * crosses nowhere, instead of asking whether the interval is inside (see traceEnd()). A shape whose trace may march (a
+ * tape, a view of regions, a fused node) is not traced on: marching to the box's end costs many evaluations where the
+ * question costs one. Nor is an analytic shape: its question is as cheap as its trace. A shape given the trait must
+ * find a crossing anywhere up to the end it is given, with no box test of its own tighter than the span code's (the
+ * box padded by the ray tolerance): the meshes' walks have none, only the BVH's widened slab tests, so a surface on
+ * the box's face is found. Tracing on costs at most one walk of the whole BVH along the ray. A trace that comes back
+ * unresolved gets the question instead.
+ * @tparam S Shape type.
+ */
+template <class S>
+struct TracedOnCheaply : std::false_type
+{
+};
+
+/**
+ * @brief Whether a shape's crossing names its part: its ray form's HitT::m_primitive is the part closestPart() gives at
+ * the crossing (a mesh's face).
+ * @details Internal helper; not part of the public API. A view of a tape's regions names the surface of every crossing
+ * it shows, with its part (Tape::firstRegionChange()); for such a shape, the part is then the one its trace crossed,
+ * where closestPart() would search the whole shape again (for a mesh, a nearest-face search per crossing).
+ * @tparam S Shape type.
+ */
+template <class S>
+struct HitNamesPart : std::false_type
+{
+};
+
+/**
  * @brief Whether a shape's ray form has its own intersects().
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
