@@ -144,9 +144,7 @@ public:
     m_tape.regionDistancesWithin(
       a_point,
       [&](const uint32_t a_region, const T a_value) {
-        const bool visible = this->isVisible(a_region);
-
-        if (visible) {
+        if (this->isVisible(a_region)) {
           field = Math::min(field, std::abs(a_value));
           in    = Math::min(in, a_value);
         }
@@ -154,7 +152,9 @@ public:
           out = Math::min(out, a_value);
         }
 
-        sides.visited(a_region, visible);
+        if constexpr (TapeType::SearchesRegions) {
+          sides.visited(a_region, this->isVisible(a_region));
+        }
       },
       [&]() { return sides.radius(field, out); });
 
@@ -745,17 +745,19 @@ private:
     uint8_t left[Slots] = {};
 
     // The settings name regions below 64 only; the rest are all excluded, counted at once.
-    if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
-      const uint32_t n = m_tape.getNumRegions();
+    if constexpr (TapeType::SearchesRegions) {
+      if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
+        const uint32_t n = m_tape.getNumRegions();
 
-      for (uint32_t r = 1; r < Math::min(n, 64U); r++) {
-        uint8_t& count = left[slotOf(r)];
+        for (uint32_t r = 1; r < Math::min(n, 64U); r++) {
+          uint8_t& count = left[slotOf(r)];
 
-        count = (count < 255U) ? uint8_t(count + 1U) : count;
-      }
+          count = (count < 255U) ? uint8_t(count + 1U) : count;
+        }
 
-      if (n > 64U) {
-        left[Excluded] = uint8_t(Math::min(uint32_t(left[Excluded]) + (n - 64U), 255U));
+        if (n > 64U) {
+          left[Excluded] = uint8_t(Math::min(uint32_t(left[Excluded]) + (n - 64U), 255U));
+        }
       }
     }
 
@@ -766,8 +768,10 @@ private:
 
         smallest[l] = Math::min(smallest[l], a_value);
 
-        if (a_region > 0U && left[l] > 0U && left[l] < 255U) {
-          left[l]--;
+        if constexpr (TapeType::SearchesRegions) {
+          if (a_region > 0U && left[l] > 0U && left[l] < 255U) {
+            left[l]--;
+          }
         }
       },
       [&]() {
@@ -818,25 +822,26 @@ private:
 
     const uint64_t section = m_settings.m_sectionRegions;
 
-    const auto member = [this, a_section, section](const uint32_t a_region) {
+    TapeDetail::SubdomainSides<T> sides = this->sidesOf([this, a_section, section](const uint32_t a_region) {
       return a_section ? (a_region < 64U && ((section >> a_region) & 1U) != 0U) : this->isVisible(a_region);
-    };
-
-    TapeDetail::SubdomainSides<T> sides = this->sidesOf(member);
+    });
 
     m_tape.regionDistancesWithin(
       a_point,
       [&](const uint32_t a_region, const T a_value) {
-        const bool isMember = member(a_region);
+        const bool member =
+          a_section ? (a_region < 64U && ((section >> a_region) & 1U) != 0U) : this->isVisible(a_region);
 
-        if (isMember) {
+        if (member) {
           in = Math::min(in, a_value);
         }
         else {
           out = Math::min(out, a_value);
         }
 
-        sides.visited(a_region, isMember);
+        if constexpr (TapeType::SearchesRegions) {
+          sides.visited(a_region, member);
+        }
       },
       [&]() { return sides.radius(in, out); });
 
@@ -858,15 +863,17 @@ private:
   {
     TapeDetail::SubdomainSides<T> sides;
 
-    if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
-      const uint32_t n = m_tape.getNumRegions();
+    if constexpr (TapeType::SearchesRegions) {
+      if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
+        const uint32_t n = m_tape.getNumRegions();
 
-      for (uint32_t r = 1; r < Math::min(n, 64U); r++) {
-        (a_inSet(r) ? sides.m_in : sides.m_out)++;
-      }
+        for (uint32_t r = 1; r < Math::min(n, 64U); r++) {
+          (a_inSet(r) ? sides.m_in : sides.m_out)++;
+        }
 
-      if (n > 64U) {
-        (a_inSet(64U) ? sides.m_in : sides.m_out) += n - 64U;
+        if (n > 64U) {
+          (a_inSet(64U) ? sides.m_in : sides.m_out) += n - 64U;
+        }
       }
     }
 

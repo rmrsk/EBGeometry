@@ -63,11 +63,11 @@ struct RegionHit
   T        m_value;
 };
 
-template <class T, Operation Op>
+template <class T, Operation Op, class... Features>
 struct Query
 {
-  EBGeometry::Tape<T>   m_tape;
-  EBGeometry::Domain<T> m_domain;
+  EBGeometry::Tape<T, Features...>   m_tape;
+  EBGeometry::Domain<T, Features...> m_domain;
 
   EBGEOMETRY_HOST_DEVICE
   RegionHit<T>
@@ -195,10 +195,10 @@ assembly(const std::size_t a_spheres)
 
 // A ray from an origin towards the assembly's center: where it first changes region (its surface in m_region), or
 // where it first crosses the object.
-template <class T, bool Regions>
+template <class T, bool Regions, class... Features>
 struct RayQuery
 {
-  EBGeometry::Tape<T> m_tape;
+  EBGeometry::Tape<T, Features...> m_tape;
 
   EBGEOMETRY_HOST_DEVICE
   RegionHit<T>
@@ -370,6 +370,13 @@ parts(const std::size_t a_parts)
   return EBGeometry::Overlay(operands, EBGeometry::Accelerate::BVH);
 }
 
+// The parts' tape searches the regions' BVH (TapeFeature::RegionBVH), and so does its domain.
+template <class T>
+using PartsTape = EBGeometry::Tape<T, EBGeometry::TapeFeature::RegionBVH>;
+
+template <class T>
+using PartsDomain = EBGeometry::Domain<T, EBGeometry::TapeFeature::RegionBVH>;
+
 // The parts' domain: the matrix, and the parts, two subdomains.
 inline EBGeometry::DomainSetup
 partsDomain(const std::size_t a_parts)
@@ -399,16 +406,16 @@ addParts(Perf::Suite& a_suite)
   a_suite.add(Perf::caseName({"Regions", "parts", name, prec, "host"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const std::size_t           n = c.size(Parts, SmokeParts);
-    const EBGeometry::Tape<T>   tape(pool, parts<T>(n));
-    const std::size_t           tapeBytes = pool.usedBytes();
-    const EBGeometry::Domain<T> domain(pool, tape, partsDomain(n));
-    const auto                  points = Perf::pointsInBox<T>(
+    const std::size_t    n = c.size(Parts, SmokeParts);
+    const PartsTape<T>   tape(pool, parts<T>(n));
+    const std::size_t    tapeBytes = pool.usedBytes();
+    const PartsDomain<T> domain(pool, tape, partsDomain(n));
+    const auto           points = Perf::pointsInBox<T>(
       matrix<T>().computeBoundingVolume(), c.size(HostQueries, SmokeQueries), Perf::Seed::TapeQueries);
 
     std::vector<RegionHit<T>> hits;
 
-    Perf::measureHostQuery(c, Query<T, Op>{tape, domain}, points, hits);
+    Perf::measureHostQuery(c, Query<T, Op, EBGeometry::TapeFeature::RegionBVH>{tape, domain}, points, hits);
 
     c.checksum(checksumOf(hits));
     c.poolBytes(tapeBytes);
@@ -418,10 +425,10 @@ addParts(Perf::Suite& a_suite)
   a_suite.add(Perf::caseName({"Regions", "parts", name, prec, "hostdevice"}), [=](Perf::Case& c) {
     EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
-    const std::size_t           n = c.size(Parts, SmokeParts);
-    const EBGeometry::Tape<T>   tape(pool, parts<T>(n));
-    const EBGeometry::Domain<T> domain(pool, tape, partsDomain(n));
-    const auto                  points = Perf::pointsInBox<T>(
+    const std::size_t    n = c.size(Parts, SmokeParts);
+    const PartsTape<T>   tape(pool, parts<T>(n));
+    const PartsDomain<T> domain(pool, tape, partsDomain(n));
+    const auto           points = Perf::pointsInBox<T>(
       matrix<T>().computeBoundingVolume(), c.size(PairQueries, SmokeQueries), Perf::Seed::TapeQueries);
 
     const auto hits = Perf::measureHostAndDevice<RegionHit<T>>(
@@ -429,7 +436,7 @@ addParts(Perf::Suite& a_suite)
       pool,
       points,
       [&](const EBGeometry::Pool& a_pool) {
-        return Query<T, Op>{tape.rebasedView(a_pool), domain.rebasedView(a_pool)};
+        return Query<T, Op, EBGeometry::TapeFeature::RegionBVH>{tape.rebasedView(a_pool), domain.rebasedView(a_pool)};
       },
       agreeValue<T>);
 
@@ -449,14 +456,14 @@ addPartsRays(Perf::Suite& a_suite)
   };
 
   a_suite.add(Perf::caseName({"Regions", "parts", "firstRegionChange", prec, "host"}), [=](Perf::Case& c) {
-    EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
-    const std::size_t         n = c.size(Parts, SmokeParts);
-    const EBGeometry::Tape<T> tape(pool, parts<T>(n));
-    const auto                rays = origins(c.size(HostRays, SmokeQueries));
+    EBGeometry::Pool   pool(EBGeometry::hostMemoryResource());
+    const std::size_t  n = c.size(Parts, SmokeParts);
+    const PartsTape<T> tape(pool, parts<T>(n));
+    const auto         rays = origins(c.size(HostRays, SmokeQueries));
 
     std::vector<RegionHit<T>> hits;
 
-    Perf::measureHostQuery(c, RayQuery<T, true>{tape}, rays, hits);
+    Perf::measureHostQuery(c, RayQuery<T, true, EBGeometry::TapeFeature::RegionBVH>{tape}, rays, hits);
 
     c.checksum(checksumOf(hits));
     c.poolBytes(pool.usedBytes());
@@ -464,16 +471,18 @@ addPartsRays(Perf::Suite& a_suite)
   });
 
   a_suite.add(Perf::caseName({"Regions", "parts", "firstRegionChange", prec, "hostdevice"}), [=](Perf::Case& c) {
-    EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
-    const std::size_t         n = c.size(Parts, SmokeParts);
-    const EBGeometry::Tape<T> tape(pool, parts<T>(n));
-    const auto                rays = origins(c.size(PairRays, SmokeQueries));
+    EBGeometry::Pool   pool(EBGeometry::hostMemoryResource());
+    const std::size_t  n = c.size(Parts, SmokeParts);
+    const PartsTape<T> tape(pool, parts<T>(n));
+    const auto         rays = origins(c.size(PairRays, SmokeQueries));
 
     const auto hits = Perf::measureHostAndDevice<RegionHit<T>>(
       c,
       pool,
       rays,
-      [&](const EBGeometry::Pool& a_pool) { return RayQuery<T, true>{tape.rebasedView(a_pool)}; },
+      [&](const EBGeometry::Pool& a_pool) {
+        return RayQuery<T, true, EBGeometry::TapeFeature::RegionBVH>{tape.rebasedView(a_pool)};
+      },
       agreeValue<T>);
 
     c.checksum(checksumOf(hits));

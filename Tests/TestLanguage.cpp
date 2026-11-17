@@ -1704,8 +1704,9 @@ TEMPLATE_TEST_CASE("Language: overlay(bvh = true) searches its regions through a
   const auto fast  = Language::parse<T>("ebg 0\nobject overlay(bvh = true) {" + regions, "fast.ebg", pool);
   const auto off   = Language::parse<T>("ebg 0\nobject overlay(bvh = false) {" + regions, "off.ebg", pool);
 
-  const Tape<T> plainTape(pool, plain.object());
-  const Tape<T> fastTape(pool, fast.object());
+  // The regions' BVH is searched by a tape that lists TapeFeature::RegionBVH.
+  const Tape<T>                         plainTape(pool, plain.object());
+  const Tape<T, TapeFeature::RegionBVH> fastTape(pool, fast.object());
 
   CHECK(plainTape.getNumBVHUnions() == 0U);
   CHECK(fastTape.getNumBVHUnions() == 1U);
@@ -1747,8 +1748,9 @@ TEMPLATE_TEST_CASE("Language: overlay(bvh = true) searches its regions through a
 
   REQUIRE(large.warnings().size() == 1U);
   CHECK_THAT(large.warnings()[0].m_message,
-             Catch::Matchers::ContainsSubstring("an overlay of 64 regions is searched region by region; overlay(bvh = "
-                                                "true) { ... } searches it through a BVH"));
+             Catch::Matchers::ContainsSubstring(
+               "an overlay of 64 regions is searched region by region; overlay(bvh = "
+               "true) { ... } searches it through a BVH in a tape with TapeFeature::RegionBVH"));
   CHECK(
     Language::parse<T>("ebg 0\nobject overlay(bvh = true) {\n" + many + "}\n", "large.ebg", pool).warnings().empty());
 }

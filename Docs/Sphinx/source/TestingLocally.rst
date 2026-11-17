@@ -473,8 +473,8 @@ Test coverage
        device against the host; the pieces an
        object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
-       under later regions, outside a mask), and leaving unproved what it cannot prove. An ``Overlay`` through a BVH
-       against the same overlay without it, on an assembly of regions that overlap, touch, nest and form a moved
+       under later regions, outside a mask), and leaving unproved what it cannot prove. An ``Overlay`` through a BVH,
+       in a tape with ``TapeFeature::RegionBVH`` and in a plain tape, against the same overlay without it, on an assembly of regions that overlap, touch, nest and form a moved
        group (a half-space, cubes sharing faces): every region query at random points and on shared faces, along
        random rays, and a domain's functions and surfaces; with regions whose values are only bounds, the same
        signs and values no farther from zero; on the device against the host; and the placements it rejects.

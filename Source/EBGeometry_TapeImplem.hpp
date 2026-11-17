@@ -1794,9 +1794,20 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     // An Overlay through a BVH is the outermost partition of its expression, and no region in it has masks (Overlay()
     // and the builder's checks): one BVH over the regions' numbers, each in its solid's box. A region with
     // an empty box goes with the unbounded ones, which every query evaluates, as in a BVH union.
+    // Only a tape that searches it (TapeFeature::RegionBVH) builds it; any other answers the region queries by visiting
+    // every region.
     table.push_back(TapeDetail::NoRegionBVH);
 
-    if (a_expr.node().m_regionBVH) {
+    if (a_expr.node().m_regionBVH && !SearchesRegions && a_options.m_largeUnionWarning > 0U &&
+        solids.size() >= a_options.m_largeUnionWarning) {
+      std::fprintf(stderr,
+                   "EBGeometry::Tape: an Overlay of %u regions through a BVH answers its region queries by visiting "
+                   "every region in a tape without TapeFeature::RegionBVH (TapeOptions::m_largeUnionWarning silences "
+                   "this)\n",
+                   unsigned(solids.size()));
+    }
+
+    if (SearchesRegions && a_expr.node().m_regionBVH) {
       std::vector<uint32_t>                  numbers;
       std::vector<BoundingVolumes::AABBT<T>> boxes;
 
@@ -3702,19 +3713,21 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
   const uint32_t n = this->numRegionOperands();
 
   // Through the regions' BVH, only the solids whose boxes hold the point can.
-  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-    uint32_t found = 0U;
+  if constexpr (SearchesRegions) {
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      uint32_t found = 0U;
 
-    this->visitRegionsNear(
-      a_point,
-      [this, &a_point, &found](const uint32_t a_region) {
-        if (a_region > found && this->regionSolid(a_region, 0U, a_point) < T(0)) {
-          found = a_region;
-        }
-      },
-      []() { return T(0); });
+      this->visitRegionsNear(
+        a_point,
+        [this, &a_point, &found](const uint32_t a_region) {
+          if (a_region > found && this->regionSolid(a_region, 0U, a_point) < T(0)) {
+            found = a_region;
+          }
+        },
+        []() { return T(0); });
 
-    return found;
+      return found;
+    }
   }
 
   // The last region whose solid, with all its masks, holds the point: later regions are on top.
@@ -3753,19 +3766,21 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
   // Through the regions' BVH (no masks), a later solid matters only where it is below -S_k: one holding the point,
   // or, inside region k's solid, one nearer than its surface, or than the nearest later solid found so far. Any other
   // is at least as far as its box, beyond that.
-  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-    const T own = this->regionSolid(a_region, 0U, a_point);
+  if constexpr (SearchesRegions) {
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      const T own = this->regionSolid(a_region, 0U, a_point);
 
-    this->visitRegionsNear(
-      a_point,
-      [this, &a_point, a_region, &later](const uint32_t a_other) {
-        if (a_other > a_region) {
-          later = Math::min(later, this->regionSolid(a_other, 0U, a_point));
-        }
-      },
-      [own, &later]() { return Math::min((own < T(0)) ? -own : T(0), later); });
+      this->visitRegionsNear(
+        a_point,
+        [this, &a_point, a_region, &later](const uint32_t a_other) {
+          if (a_other > a_region) {
+            later = Math::min(later, this->regionSolid(a_other, 0U, a_point));
+          }
+        },
+        [own, &later]() { return Math::min((own < T(0)) ? -own : T(0), later); });
 
-    return Math::max(own, -later);
+      return Math::max(own, -later);
+    }
   }
 
   for (uint32_t j = a_region + 1U; j <= n; j++) {
@@ -3833,11 +3848,13 @@ Tape<T, UserPrimitives...>::subdomainSides(const Subdomains& a_subdomains, const
 
   // Only a search through the regions' BVH reads them (regionDistancesWithin()); the table counts each subdomain's
   // regions other than the background.
-  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-    const uint32_t others = this->getNumRegions() - 1U;
+  if constexpr (SearchesRegions) {
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      const uint32_t others = this->getNumRegions() - 1U;
 
-    sides.m_in  = Math::min(a_subdomains.getNumRegionsIn(a_subdomain), others);
-    sides.m_out = others - sides.m_in;
+      sides.m_in  = Math::min(a_subdomains.getNumRegionsIn(a_subdomain), others);
+      sides.m_out = others - sides.m_in;
+    }
   }
 
   return sides;
@@ -3851,12 +3868,16 @@ Tape<T, UserPrimitives...>::regionDistancesWithin(const Vec3T<T>& a_point,
                                                   Visit&&         a_visit,
                                                   Radius&&        a_radius) const noexcept
 {
-  if (this->regionBVH() == TapeDetail::NoRegionBVH) {
-    this->regionDistances(a_point, a_visit);
+  if constexpr (SearchesRegions) {
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      this->regionDistancesSearched(a_point, a_visit, a_radius);
+
+      return;
+    }
   }
-  else {
-    this->regionDistancesSearched(a_point, a_visit, a_radius);
-  }
+
+  // Forwarded, so that a tape without the search instantiates regionDistances() as a direct call would.
+  this->regionDistances(a_point, static_cast<Visit&&>(a_visit));
 }
 
 template <class T, class... UserPrimitives>
@@ -4148,34 +4169,53 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
     first.m_t = a_tMax;
 
-    const auto trace = [&](const uint32_t a_region) {
-      if (a_region < Math::max(from, 1U)) {
-        return;
-      }
-
-      const uint32_t record = m_layout.m_regionPrograms.at(base, a_region);
-      const uint32_t solid =
-        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
-
-      const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
-
-      // On a tie, the later region: it lies on top, as region() names the point.
-      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t || (hit.m_t == first.m_t && a_region > entered))) {
-        first   = hit;
-        program = solid;
-        entered = a_region;
-      }
-    };
-
     // Through the regions' BVH, only the solids whose boxes the ray enters before the first crossing so far.
-    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-      // A little beyond the first crossing so far: a solid crossed there too (a tie, the later region's) is not lost
-      // where the ray's entry into its box rounds the other way.
-      this->visitRegionsAlong(a_ray, start, trace, [&first, nudge]() { return first.m_t + nudge; });
+    bool searched = false;
+
+    if constexpr (SearchesRegions) {
+      if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+        const auto trace = [&](const uint32_t a_region) {
+          if (a_region < Math::max(from, 1U)) {
+            return;
+          }
+
+          const uint32_t record = m_layout.m_regionPrograms.at(base, a_region);
+          const uint32_t solid =
+            m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+
+          const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
+
+          // On a tie, the later region: it lies on top, as region() names the point. The search visits the regions in
+          // no fixed order.
+          if (hit.hit() && (!first.hit() || hit.m_t < first.m_t || (hit.m_t == first.m_t && a_region > entered))) {
+            first   = hit;
+            program = solid;
+            entered = a_region;
+          }
+        };
+
+        // A little beyond the first crossing so far: a solid crossed there too (a tie, the later region's) is not lost
+        // where the ray's entry into its box rounds the other way.
+        this->visitRegionsAlong(a_ray, start, trace, [&first, nudge]() { return first.m_t + nudge; });
+
+        searched = true;
+      }
     }
-    else {
+
+    if (!searched) {
       for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
-        trace(k);
+        const uint32_t record = m_layout.m_regionPrograms.at(base, k);
+        const uint32_t solid =
+          m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+
+        const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
+
+        // On a tie, the later region: it lies on top, as region() names the point.
+        if (hit.hit() && (!first.hit() || hit.m_t <= first.m_t)) {
+          first   = hit;
+          program = solid;
+          entered = k;
+        }
       }
     }
 
@@ -4377,20 +4417,27 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     uint32_t across  = 0U;
 
     // Through the regions' BVH, nearest first: a solid is never below the distance to its box.
-    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-      this->visitRegionsNear(
-        a_point,
-        [this, &a_point, &nearest, &across](const uint32_t a_other) {
-          const T value = this->regionSolid(a_other, 0U, a_point);
+    bool searched = false;
 
-          if (value < nearest || (value == nearest && a_other > across)) {
-            nearest = value;
-            across  = a_other;
-          }
-        },
-        [&nearest]() { return nearest; });
+    if constexpr (SearchesRegions) {
+      if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+        this->visitRegionsNear(
+          a_point,
+          [this, &a_point, &nearest, &across](const uint32_t a_other) {
+            const T value = this->regionSolid(a_other, 0U, a_point);
+
+            if (value < nearest || (value == nearest && a_other > across)) {
+              nearest = value;
+              across  = a_other;
+            }
+          },
+          [&nearest]() { return nearest; });
+
+        searched = true;
+      }
     }
-    else {
+
+    if (!searched) {
       for (uint32_t m = n; m > 0U; m--) {
         const T value = this->regionSolid(m, 0U, a_point);
 
@@ -4415,8 +4462,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
 
   const V own = this->regionSolidTagged(a_region, 0U, a_point);
 
-  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-    return this->closestRegionSurface(a_point, a_region, own);
+  if constexpr (SearchesRegions) {
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      return this->closestRegionSurface(a_point, a_region, own);
+    }
   }
 
   V later;

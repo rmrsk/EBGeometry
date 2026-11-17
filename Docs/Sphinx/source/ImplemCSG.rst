@@ -340,6 +340,9 @@ code. The features are:
    * - ``ExactOffsets``
      - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
        affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
+   * - ``RegionBVH``
+     - The region queries of an overlay built with ``Accelerate::BVH`` search a BVH over its regions' boxes
+       (see :ref:`Chap:ImplemRegions`). Without it, they visit every region.
 
 .. _Sec:Fused:
 

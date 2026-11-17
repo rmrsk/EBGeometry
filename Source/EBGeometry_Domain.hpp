@@ -215,10 +215,17 @@ public:
       a_values[l] = Math::Limits<T>::max();
     }
 
-    if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
-      this->smallestSearched(a_point, a_values);
+    bool searched = false;
+
+    if constexpr (TapeType::SearchesRegions) {
+      if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
+        this->smallestSearched(a_point, a_values);
+
+        searched = true;
+      }
     }
-    else {
+
+    if (!searched) {
       m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
         const uint32_t subdomain = subdomains.subdomainOf(a_region);
         const uint32_t slot      = (subdomain == Subdomains::None) ? excluded : subdomain;

@@ -3512,9 +3512,11 @@ private:
       const uint32_t numRegions = ExprIndex<T>(*value.m_shape->m_expr).getNumRegions() - 1U;
 
       if (numRegions >= large) {
-        this->warning(a_node.m_span,
-                      "an overlay of " + std::to_string(numRegions) +
-                        " regions is searched region by region; overlay(bvh = true) { ... } searches it through a BVH");
+        this->warning(
+          a_node.m_span,
+          "an overlay of " + std::to_string(numRegions) +
+            " regions is searched region by region; overlay(bvh = true) { ... } searches it through a BVH in a "
+            "tape with TapeFeature::RegionBVH");
       }
     }
 

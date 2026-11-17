@@ -178,8 +178,8 @@ group's material as their default; ``f18`` below names the group and ``f18_part_
 
 Where two parts overlap, the later file lies on top. An overlay of many regions is searched region by region,
 so for an assembly of many parts write ``overlay(bvh = true)``, which searches its regions through a BVH over
-their boxes and gives the same answers (see :ref:`Chap:ImplemRegions`); a plain overlay of 64 regions or more
-warns. Nothing in such an overlay may be clipped or drilled, and it can be moved but not clipped, drilled or
+their boxes and gives the same answers when the model is compiled into a tape with ``TapeFeature::RegionBVH``
+(see :ref:`Chap:ImplemRegions`); a plain overlay of 64 regions or more warns. Nothing in such an overlay may be clipped or drilled, and it can be moved but not clipped, drilled or
 placed in another overlay:
 
 .. code-block:: text

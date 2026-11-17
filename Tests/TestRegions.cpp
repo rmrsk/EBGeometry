@@ -73,11 +73,11 @@ struct RegionAnswer
 
 // Device functor: the region queries of a tape at a point, and what a downstream code computing on a domain asks
 // there, the domain taken whole.
-template <class T, class TapeType>
+template <class T, class TapeType, class DomainType = Domain<T>>
 struct RegionQuery
 {
-  TapeType  m_tape;
-  Domain<T> m_domain;
+  TapeType   m_tape;
+  DomainType m_domain;
 
   EBGEOMETRY_HOST_DEVICE
   RegionAnswer<T>
@@ -3328,14 +3328,18 @@ TEMPLATE_TEST_CASE("Overlay through a BVH: every region query gives what the sam
 
   const std::vector<Expr<T>> parts = assembly<T>();
 
-  const Tape<T> plain(pool, Overlay(parts), quiet);
-  const Tape<T> fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+  // Through the BVH in a tape that searches it; without the feature, the same Overlay visits every region.
+  const Tape<T>                         plain(pool, Overlay(parts), quiet);
+  const Tape<T, TapeFeature::RegionBVH> fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+  const Tape<T>                         written(pool, Overlay(parts, Accelerate::BVH), quiet);
 
   const uint32_t n = plain.getNumRegions();
 
   REQUIRE(fast.getNumRegions() == n);
+  REQUIRE(written.getNumRegions() == n);
   CHECK(plain.getNumBVHUnions() == 0U);
   CHECK(fast.getNumBVHUnions() == 1U);
+  CHECK(written.getNumBVHUnions() == 1U);
 
   for (uint32_t k = 0; k < n; k++) {
     CHECK(fast.getMaterialOf(k) == plain.getMaterialOf(k));
@@ -3362,11 +3366,14 @@ TEMPLATE_TEST_CASE("Overlay through a BVH: every region query gives what the sam
 
     CHECK(fast.signedDistance(p) == plain.signedDistance(p));
     CHECK(fast.region(p) == plain.region(p));
+    CHECK(written.region(p) == plain.region(p));
 
     for (uint32_t k = 0; k < n; k++) {
       INFO("region " << k);
 
       CHECK(fast.signedDistance(p, k) == plain.signedDistance(p, k));
+      CHECK(written.signedDistance(p, k) == plain.signedDistance(p, k));
+      CHECK(written.closestSurface(p, k).m_neighborRegion == plain.closestSurface(p, k).m_neighborRegion);
 
       const SurfaceRef<T> a = fast.closestSurface(p, k);
       const SurfaceRef<T> b = plain.closestSurface(p, k);
@@ -3462,8 +3469,8 @@ TEMPLATE_TEST_CASE(
 
   const std::vector<Expr<T>> parts = assembly<T>(true);
 
-  const Tape<T> plain(pool, Overlay(parts), quiet);
-  const Tape<T> fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+  const Tape<T>                         plain(pool, Overlay(parts), quiet);
+  const Tape<T, TapeFeature::RegionBVH> fast(pool, Overlay(parts, Accelerate::BVH), quiet);
 
   for (const Vec3T<T>& p : assemblyPoints<T>()) {
     INFO("point " << p);
@@ -3521,7 +3528,7 @@ TEMPLATE_TEST_CASE(
   // Moved, its regions are those of the Overlay, and its queries go through the BVH.
   Pool pool(hostMemoryResource());
 
-  const Tape<T> moved1(pool, Translate(bvh(), Vec3(T(5), T(0), T(0))));
+  const Tape<T, TapeFeature::RegionBVH> moved1(pool, Translate(bvh(), Vec3(T(5), T(0), T(0))));
 
   CHECK(moved1.getNumRegions() == 3U);
   CHECK(moved1.region(Vec3(T(5), T(0), T(0))) == 1U);
@@ -3553,8 +3560,10 @@ TEMPLATE_TEST_CASE(
 
   const std::vector<Expr<T>> parts = assembly<T>();
 
+  using Fast = EBGeometry::Tape<T, TapeFeature::RegionBVH>;
+
   const Tape plain(pool, Overlay(parts), quiet);
-  const Tape fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+  const Fast fast(pool, Overlay(parts, Accelerate::BVH), quiet);
 
   // The air and the ground, two subdomains; the rest excluded.
   DomainSetup setup;
@@ -3572,7 +3581,8 @@ TEMPLATE_TEST_CASE(
   const std::vector<Vec3> points = assemblyPoints<T>();
 
   const auto onDevice = evaluateOnDevice<RegionAnswer<T>>(
-    RegionQuery<T, Tape>{fast.rebasedView(device), fastDomain.rebasedView(device)}, points);
+    RegionQuery<T, Fast, Domain<T, TapeFeature::RegionBVH>>{fast.rebasedView(device), fastDomain.rebasedView(device)},
+    points);
   const auto onHost = evaluateOnHost<RegionAnswer<T>>(RegionQuery<T, Tape>{plain, plainDomain}, points);
 
   size_t differ = 0;

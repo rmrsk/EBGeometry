@@ -438,11 +438,17 @@ TEMPLATE_TEST_CASE("Tape: a union as written reports its size, and a large one w
   CHECK(warning(Union(spheres), silenced).empty());
   CHECK(warning(Union(spheres, Accelerate::BVH), at10).empty());
 
-  // A large Overlay of solids is flagged too, with its own advice; one through a BVH is not.
+  // A large Overlay of solids is flagged too, with its own advice; one through a BVH is too in a tape that does not
+  // search the regions' BVH (TapeFeature::RegionBVH), and not in one that does.
   CHECK(
     warning(Overlay(spheres), at10).rfind("EBGeometry::Tape: an Overlay of 20 regions is evaluated as written", 0) ==
     0U);
-  CHECK(warning(Overlay(spheres, Accelerate::BVH), at10).empty());
+  CHECK(
+    warning(Overlay(spheres, Accelerate::BVH), at10)
+      .rfind("EBGeometry::Tape: an Overlay of 20 regions through a BVH answers its region queries by visiting every "
+             "region in a tape without TapeFeature::RegionBVH",
+             0) == 0U);
+  CHECK(warning(Overlay(spheres, Accelerate::BVH), silenced).empty());
 
   // One warning per tape, for its largest union.
   const std::string twice = warning(Union(Union(first), Translate(Union(second), Vec3::ones())), at10);

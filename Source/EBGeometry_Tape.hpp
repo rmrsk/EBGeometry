@@ -96,7 +96,8 @@ struct TapeOptions
  * - **The compiler decides.** TapeDetail::Compiler receives the features and emits the feature's clauses,
  *   flags or parameters only when it is listed; clause flags a feature sets are never set otherwise.
  * - **The evaluator compiles the feature's code only under `if constexpr (hasFeature<F>)`**, at every place it
- *   is reached from (for ExactOffsets: rayLeaf(), rayMarchedWithin(), traceRay() and rayLeafHit()). A run-time test
+ *   is reached from (for ExactOffsets: rayLeaf(), rayMarchedWithin(), traceRay() and rayLeafHit(); for RegionBVH,
+ *   each region query's search, under SearchesRegions). A run-time test
  *   of a flag alone is not enough: the code behind it is still in every kernel.
  * - **A plain tape compiles exactly the code it did before.** Check that Tape<T>'s kernels are unchanged: the
  *   ptxas register, stack and spill figures (or the SASS) of the float tape kernels (signedDistance() once
@@ -123,6 +124,16 @@ struct Tag
  * scaled mesh is still traced exactly.
  */
 struct ExactOffsets : Tag
+{
+};
+
+/**
+ * @brief The region queries of an Overlay built with Accelerate::BVH (region(), signedDistance(point, region),
+ * closestSurface(point, region), firstRegionChange(), and a Domain's or a RegionView's queries over the regions)
+ * search a BVH over the regions' boxes, visiting only the regions near the point or along the ray; without it they
+ * visit every region, as for an Overlay without a BVH. The whole object's value takes the Overlay's BVH either way.
+ */
+struct RegionBVH : Tag
 {
 };
 
@@ -842,6 +853,12 @@ public:
    */
   template <class F>
   static constexpr bool hasFeature = TapeDetail::IndexOf<F, Features>::value < Features::size;
+
+  /**
+   * @brief Whether the region queries search the regions' BVH of an Overlay built with Accelerate::BVH (see
+   * TapeFeature::RegionBVH).
+   */
+  static constexpr bool SearchesRegions = hasFeature<TapeFeature::RegionBVH>;
 
   /**
    * @brief Bounding box type.
