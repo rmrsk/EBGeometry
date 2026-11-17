@@ -1420,7 +1420,8 @@ private:
   }
 
   /**
-   * @brief Whether a ray misses the cut shape's box, padded by the tolerance, in an interval from 0.
+   * @brief Whether a ray misses the object's box (uncut: a cut only makes it smaller), padded by the tolerance, in an
+   * interval from 0.
    * @details Out of line on a device: inlined into blocked(), the slab test's values added spills to every render
    * kernel, and made a mesh tape's frames without shadows 4% slower (armadillo, float, sm_86).
    * @param[in] a_ray  Ray, with a unit direction.
