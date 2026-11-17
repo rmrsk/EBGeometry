@@ -76,6 +76,27 @@ The mesh distance functions are also ray traced exactly: ``firstHit()`` and ``in
 along the ray and test the faces near it, reporting the face id and its normal (see
 :ref:`Chap:ImplemRays`).
 
+The closest point and the gradient
+----------------------------------
+
+``closestPoint(point)`` returns a
+`ClosestPoint <doxygen/html/structEBGeometry_1_1ClosestPoint.html>`__: the signed distance and the face id,
+as ``getClosestFace()`` reports them, the closest point on the mesh, and the unit pseudonormal of the face,
+edge or vertex that point lies on. ``gradient(point)`` returns the unit gradient of the signed distance in
+closed form from the closest point, and the pseudonormal on the surface (see :ref:`Sec:MeshGradient`). Both
+are on all three mesh distance functions and callable on a device:
+
+.. code-block:: c++
+
+   const ClosestPoint<T> c = sdf.closestPoint(p);  // c.point is on the mesh, at distance |c.signedDistance|
+   const Vec3T<T>        n = sdf.gradient(p);      // unit length, never NaN
+   const Vec3T<T>        q = p - c.signedDistance * n; // p moved onto the surface: q equals c.point
+
+Neither is on the path of ``signedDistance()``, so adding them costs a distance query nothing. A query that
+only needs the distance should keep calling ``signedDistance()``: the closest point costs a little more.
+For a ``TriMeshSDF`` the reported feature is one of its triangles': on the diagonal of a fan-triangulated
+polygon, the normal is the polygon's. :ref:`Chap:ExampleMeshClosestPoint` shows both.
+
 When the mesh changes
 ---------------------
 

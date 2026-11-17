@@ -55,6 +55,7 @@ What is in Performance/
      RayParticles/main.cpp    particles colliding with a boundary
      Render/main.cpp          one frame of the renderer
      MeshCSG/main.cpp         a mesh in plain and smooth unions: rays and frames
+     MeshClosestPoint/main.cpp  a mesh's closestPoint() and gradient()
      ClosestPrimitive/main.cpp  a tape's closestLeaf()
      ClosestSurface/main.cpp  a tape's closestSurface(), drilled into a collection
      SurfaceParts/main.cpp    parts and labels of a tape's surfaces, and firstSurface()
@@ -907,6 +908,20 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 
 The inputs are ``mesh``, ``csg-tape``, ``drilled-mesh-tape`` and ``smooth-mesh-tape``.
+
+**MeshClosestPoint** (``Performance/MeshClosestPoint``): the mesh distance functions' ``closestPoint()`` and
+``gradient()`` (see :ref:`Sec:MeshGradient`) on the armadillo, with ``signedDistance()`` at the same points as
+the reference the closest point is compared with. A host and a device closest point agree when their distances
+do: at a point equally near two faces, the two sides may name different faces.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``tri/signedDistance``                host   a ``TriMeshSDF``'s distance, the reference
+``tri/closestPoint``,                 both   the closest point, its face and pseudonormal
+``mesh/closestPoint``
+``tri/gradient``                      host   the closed-form gradient
+====================================  =====  =====================================================
 
 **ClosestPrimitive** (``Performance/ClosestPrimitive``): a tape's ``closestLeaf()``, the deciding
 leaf (see :ref:`Sec:DecidingLeaf`), of the classic CSG solid, of a scene of fused parts and of the

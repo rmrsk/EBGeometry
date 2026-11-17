@@ -710,6 +710,287 @@ TEMPLATE_TEST_CASE("Mesh SDFs: getClosestFace names a closest mesh face and matc
   }
 }
 
+// The unit cube [0,1]^3's closest point and signed-distance gradient in closed form, the reference for
+// closestPoint() and gradient() on cube_quads.obj: outside, the point clamped to the cube; inside, the
+// projection onto the nearest face, whose outward normal is the gradient. a_unique is false inside where two
+// faces are nearly equally near (the medial surface), where the closest point is not unique.
+template <class T>
+void
+unitCubeClosest(const Vec3T<T>& a_p, Vec3T<T>& a_closest, Vec3T<T>& a_gradient, bool& a_unique)
+{
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 clamped(std::clamp(a_p[0], T(0), T(1)), std::clamp(a_p[1], T(0), T(1)), std::clamp(a_p[2], T(0), T(1)));
+
+  a_unique = true;
+
+  if (!(clamped == a_p)) {
+    a_closest  = clamped;
+    a_gradient = (a_p - clamped) / (a_p - clamped).length();
+
+    return;
+  }
+
+  // Inside: the nearest of the six faces.
+  T   best     = std::numeric_limits<T>::max();
+  T   second   = std::numeric_limits<T>::max();
+  int bestDir  = 0;
+  int bestSide = 0;
+
+  for (int dir = 0; dir < 3; dir++) {
+    for (int side = 0; side < 2; side++) {
+      const T d = side == 0 ? a_p[dir] : T(1) - a_p[dir];
+
+      if (d < best) {
+        second   = best;
+        best     = d;
+        bestDir  = dir;
+        bestSide = side;
+      }
+      else if (d < second) {
+        second = d;
+      }
+    }
+  }
+
+  a_unique            = second - best > T(1e-3);
+  a_closest           = a_p;
+  a_closest[bestDir]  = T(bestSide);
+  a_gradient          = Vec3::zeros();
+  a_gradient[bestDir] = bestSide == 0 ? T(-1) : T(1);
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: closestPoint and gradient match the unit cube's closed form",
+                   "[BVH][MeshSDF][TriMeshSDF][FlatMeshSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("cube_quads.obj"), pool);
+
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, 4>       meshSDF(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, 4, 4> triSDF(mesh, pool, BVH::Construction::SAH, 2);
+
+  const auto check = [](const auto& a_sdf, const Vec3& a_p) {
+    Vec3 closest;
+    Vec3 gradient;
+    bool unique = false;
+
+    unitCubeClosest(a_p, closest, gradient, unique);
+
+    const ClosestPoint<T> cp = a_sdf.closestPoint(a_p);
+
+    // The face it reports is one the point lies on, its distance is the signed distance, and the point is
+    // on the surface.
+    REQUIRE(cp.faceId < 6U);
+    REQUIRE(cp.signedDistance == a_sdf.signedDistance(a_p));
+    REQUIRE_THAT((a_p - cp.point).length(), withinAbsT(std::abs(cp.signedDistance), tightMargin<T>()));
+    REQUIRE_THAT(std::abs(a_sdf.signedDistance(cp.point)), withinAbsT(T(0), tightMargin<T>()));
+    REQUIRE_THAT(cp.normal.length(), withinAbsT(T(1), tightMargin<T>()));
+
+    const Vec3 g = a_sdf.gradient(a_p);
+
+    REQUIRE_THAT(g.length(), withinAbsT(T(1), tightMargin<T>()));
+
+    if (unique) {
+      for (size_t dir = 0; dir < 3; dir++) {
+        REQUIRE_THAT(cp.point[dir], withinAbsT(closest[dir], tightMargin<T>()));
+        REQUIRE_THAT(g[dir], withinAbsT(gradient[dir], tightMargin<T>()));
+      }
+    }
+  };
+
+  for (const auto& p : EBGeometryTestGPU::queryGrid<T>(Vec3(T(-1), T(-1), T(-1)), Vec3(T(2), T(2), T(2)), 9)) {
+    INFO("point " << p[0] << " " << p[1] << " " << p[2]);
+
+    check(flat, p);
+    check(meshSDF, p);
+    check(triSDF, p);
+  }
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: gradient on the surface is the closest feature's pseudonormal, never NaN",
+                   "[BVH][MeshSDF][TriMeshSDF][FlatMeshSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("cube_quads.obj"), pool);
+
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, 4>       meshSDF(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, 4, 4> triSDF(mesh, pool, BVH::Construction::SAH, 2);
+
+  const T    r = T(1) / std::sqrt(T(2));
+  const T    q = T(1) / std::sqrt(T(3));
+  const auto e = [](const T a_x, const T a_y, const T a_z) { return Vec3(a_x, a_y, a_z); };
+
+  // On a face (also on a fan diagonal of the TriMeshSDF's triangles), on an edge and at a corner: the face
+  // normal, and the angle-weighted pseudonormals, which for a cube's right angles are the normalized sums of
+  // the adjacent faces' normals.
+  const std::vector<std::pair<Vec3, Vec3>> cases = {
+    {e(T(0.3), T(0.6), T(1)), e(T(0), T(0), T(1))},
+    {e(T(0.5), T(0.5), T(0)), e(T(0), T(0), T(-1))},
+    {e(T(1), T(0.4), T(1)), e(r, T(0), r)},
+    {e(T(0), T(0), T(0)), e(-q, -q, -q)},
+    {e(T(1), T(1), T(1)), e(q, q, q)},
+  };
+
+  const auto check = [&cases, &e](const auto& a_sdf) {
+    for (const auto& [p, normal] : cases) {
+      INFO("point " << p[0] << " " << p[1] << " " << p[2]);
+
+      const Vec3 g = a_sdf.gradient(p);
+
+      for (size_t dir = 0; dir < 3; dir++) {
+        REQUIRE_THAT(g[dir], withinAbsT(normal[dir], tightMargin<T>()));
+      }
+    }
+
+    // The center is on the medial surface: every face is equally near. The gradient is one face's normal.
+    const Vec3 center = a_sdf.gradient(e(T(0.5), T(0.5), T(0.5)));
+
+    REQUIRE_THAT(center.length(), withinAbsT(T(1), tightMargin<T>()));
+    REQUIRE_THAT(std::abs(center[center.maxDir(true)]), withinAbsT(T(1), tightMargin<T>()));
+  };
+
+  check(flat);
+  check(meshSDF);
+  check(triSDF);
+}
+
+TEMPLATE_TEST_CASE("Mesh SDFs: gradient matches finite differences away from the medial surface",
+                   "[BVH][MeshSDF][TriMeshSDF][FlatMeshSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
+
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, 4>       meshSDF(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, 4, 4> triSDF(mesh, pool, BVH::Construction::SAH, 2);
+
+  // A central difference of step h is accurate to O(h^2) where the distance is smooth; a point within a
+  // few steps of the medial surface, where the closest face changes, is skipped (its two one-sided
+  // differences disagree).
+  const T      h      = std::is_same_v<T, float> ? T(1e-2) : T(1e-4);
+  const double margin = std::is_same_v<T, float> ? 2e-2 : 1e-5;
+
+  const auto check = [&](const auto& a_sdf) {
+    int compared = 0;
+
+    for (const auto& p : EBGeometryTestGPU::queryGrid<T>(Vec3(T(-3), T(-3), T(-3)), Vec3(T(3), T(3), T(3)), 8)) {
+      const uint32_t face = a_sdf.closestPoint(p).faceId;
+
+      bool nearMedial = false;
+
+      for (size_t dir = 0; dir < 3 && !nearMedial; dir++) {
+        for (const T sign : {T(-2), T(2)}) {
+          Vec3 shifted = p;
+
+          shifted[dir] += sign * h;
+
+          nearMedial = nearMedial || flat.closestPoint(shifted).faceId != face;
+        }
+      }
+
+      if (nearMedial) {
+        continue;
+      }
+
+      const Vec3 g  = a_sdf.gradient(p);
+      const Vec3 fd = normal(a_sdf, p, h);
+
+      for (size_t dir = 0; dir < 3; dir++) {
+        REQUIRE_THAT(g[dir], withinAbsT(fd[dir], margin));
+      }
+
+      compared++;
+    }
+
+    REQUIRE(compared > 100);
+  };
+
+  check(flat);
+  check(meshSDF);
+  check(triSDF);
+}
+
+// The closest point, gradient and signed distance of a mesh SDF, one component per query: for the device test
+// below. The face id is left out: where the closest point is an edge or a vertex, every face meeting there is
+// correct, and the device and the host, rounding the distances differently, may name different ones.
+template <class S>
+struct ClosestPointQuery
+{
+  S   m_sdf;
+  int m_component;
+
+  template <class T>
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    const ClosestPoint<T> cp = m_sdf.closestPoint(a_point);
+    const Vec3T<T>        g  = m_sdf.gradient(a_point);
+
+    if (m_component < 3) {
+      return cp.point[static_cast<size_t>(m_component)];
+    }
+
+    return m_component < 6 ? g[static_cast<size_t>(m_component - 3)] : cp.signedDistance;
+  }
+};
+
+TEMPLATE_TEST_CASE("Mesh SDFs: closestPoint and gradient run on device and match the host",
+                   "[BVH][MeshSDF][TriMeshSDF][FlatMeshSDF][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = Parser::readIntoDCEL<T>(dataPath("dodecahedron.obj"), pool);
+
+  const FlatMeshSDF<T>      flat(mesh, pool);
+  const MeshSDF<T, 4>       meshSDF(mesh, pool, BVH::Construction::SAH);
+  const TriMeshSDF<T, 4, 4> triSDF(mesh, pool, BVH::Construction::SAH, 2);
+
+  pool.freeze();
+
+  Pool devicePool = Pool::mirror(pool, deviceTestResource());
+
+  const auto points = queryGrid<T>(Vec3(T(-3), T(-3), T(-3)), Vec3(T(3), T(3), T(3)), 6);
+
+  const auto compare = [&](const auto& a_host, const auto& a_device) {
+    using S = std::decay_t<decltype(a_host)>;
+
+    for (int component = 0; component < 7; component++) {
+      INFO("component " << component);
+
+      requireSameResults(evaluateOnDevice<T>(ClosestPointQuery<S>{a_device, component}, points),
+                         evaluateOnHost<T>(ClosestPointQuery<S>{a_host, component}, points));
+    }
+  };
+
+  compare(flat, flat.rebasedView(devicePool));
+  compare(meshSDF, meshSDF.rebasedView(devicePool));
+  compare(triSDF, triSDF.rebasedView(devicePool));
+}
+
 TEMPLATE_TEST_CASE("MeshSDF reads its faces from the mesh: flipping or moving the mesh after the build is seen",
                    "[BVH][MeshSDF]",
                    EBGEOMETRY_TEST_PRECISIONS)

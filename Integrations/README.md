@@ -17,7 +17,7 @@ MPI
 
 | Folder | What it shows |
 |---|---|
-| `OctreeLevelSet` | Queries without communication: an adaptive octree whose roots are split among the ranks in Morton order; each rank refines its roots toward the surface of a model's tape and stores the signed distance (and the region) per leaf, and writes its leaves as a VTK file that ParaView and VisIt open. |
+| `OctreeLevelSet` | Queries without communication: an adaptive octree whose roots are split among the ranks in Morton order; each rank refines its roots toward the surface of a model's tape and the interfaces between its regions, and stores the signed distance at each leaf's corners (and the region), and writes its leaves as a VTK file that ParaView and VisIt open. |
 | `SharedGeometry` | Build once, one copy per node: rank 0 reads a model and compiles it into a tape; the other ranks rebuild the tape from its pool's bytes and its `Layout`, never reading the file, with one copy per node in an MPI shared-memory window (`MPI_Win_allocate_shared`) behind a `MemoryResource`. |
 
 They need an MPI installation and nothing else, and read the model `Examples/LanguageCSG/solid.ebg` by default. Each

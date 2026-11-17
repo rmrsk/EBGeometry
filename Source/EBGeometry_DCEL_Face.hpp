@@ -310,6 +310,23 @@ public:
   signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
   /**
+   * @brief The closest point on this face to a_x0, the pseudonormal there, and the signed distance.
+   * @details The same cases as signedDistance(): the projection into the face's plane, with the face
+   * normal, where a_x0 projects inside the face; otherwise the closest point of the nearest edge (the first
+   * one found on a tie), with that edge's or end vertex's pseudonormal (EdgeT::closestPoint()). A point
+   * projecting onto the face's boundary, where an edge or vertex is as near as the plane, is reported on that
+   * feature, with its pseudonormal.
+   * @param[in]  a_x0           Query point.
+   * @param[in]  a_mesh         Owning mesh, used to resolve the half-edge loop.
+   * @param[out] a_closestPoint The closest point.
+   * @param[out] a_normal       The pseudonormal of the face, edge or vertex it lies on.
+   * @return The signed distance, equal to signedDistance()'s.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  closestPoint(const Vec3& a_x0, const Mesh& a_mesh, Vec3& a_closestPoint, Vec3& a_normal) const noexcept;
+
+  /**
    * @brief Where a ray crosses the face, from either side.
    * @details The ray is a_origin + t * a_direction. The face is taken to be planar and convex, as the mesh
    * SDFs require: the ray meets the face's plane at one t, and that point is inside the face if it is on the

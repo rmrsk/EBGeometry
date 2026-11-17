@@ -54,9 +54,10 @@ one process (:ref:`Sec:BuildingGPU`).
      - What it shows
    * - :file:`MPI/OctreeLevelSet`
      - Queries without communication: an adaptive octree whose root cells are split among the ranks in Morton order.
-       Each rank reads the model into a ``Tape`` of its own, refines its roots toward the surface, and stores the
-       signed distance (and the region, ``Tape::region()``) per leaf; one reduction gives a summary. Every rank
-       writes its leaves as a VTK file, which ParaView and VisIt open through the ``.pvtu`` file rank 0 writes.
+       Each rank reads the model into a ``Tape`` of its own, refines its roots toward the surface and the interfaces
+       between regions, and stores the signed distance at each leaf's corners (and the region, ``Tape::region()``);
+       one reduction gives a summary. Every rank writes its leaves as a VTK file, which ParaView and VisIt open
+       through the ``.pvtu`` file rank 0 writes.
    * - :file:`MPI/SharedGeometry`
      - Build once, one copy per node: rank 0 reads a model and compiles it into a ``Tape``, and the other ranks
        rebuild the tape from its pool's bytes and its layout, never reading the file, with one copy per node in a
