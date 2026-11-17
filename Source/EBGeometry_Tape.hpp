@@ -1578,6 +1578,30 @@ private:
     uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
 
   /**
+   * @brief traceProgram(), also giving the part of the leaf crossed where its crossing names it (see
+   * RayDetail::HitNamesPart): what firstRegionChange() names the surface with, without searching the leaf for it.
+   * @details A copy of the trace of its own (traceBody() with Part), which only the region queries reach, so that a
+   * plain trace (traceRay(), traceProgram()) compiles as it did.
+   * @param[in]  a_program The program.
+   * @param[in]  a_ray     The ray, with a unit direction.
+   * @param[in]  a_tMin    Start of the interval.
+   * @param[in]  a_tMax    End of the interval.
+   * @param[in]  a_options How to march the parts without a ray form.
+   * @param[out] a_part    The part, or SurfaceRef::None where the crossing does not name it (a marched crossing, a
+   * shape without the trait, a tape with TapeFeature::ExactOffsets).
+   * @return The crossing, a miss, or an unresolved query.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline HitT<T>
+  tracePart(uint32_t             a_program,
+            const RayT<T>&       a_ray,
+            T                    a_tMin,
+            T                    a_tMax,
+            const RayOptions<T>& a_options,
+            uint32_t&            a_part) const noexcept;
+
+  /**
    * @brief The body of traceRay() (the whole object, program 0, inlined into it) and of traceProgram() (any program,
    * out of line).
    * @details The whole object's trace compiles as it did before region programs existed: the program is the constant
@@ -1585,18 +1609,24 @@ private:
    * traceRay() through an out-of-line traceProgram(), or with that naming merely reachable, a plain float tape's
    * firstHit() kernel went from 40 to 255 registers and ran 12% slower on a device (sm_86).
    * @tparam Whole Whether the program is the whole object's.
-   * @param[in] a_program The program (0 when Whole).
-   * @param[in] a_ray     The ray, with a unit direction.
-   * @param[in] a_tMin    Start of the interval.
-   * @param[in] a_tMax    End of the interval.
-   * @param[in] a_options How to march the parts without a ray form.
+   * @tparam Part  Whether to give the part of the leaf crossed (tracePart()).
+   * @param[in]  a_program The program (0 when Whole).
+   * @param[in]  a_ray     The ray, with a unit direction.
+   * @param[in]  a_tMin    Start of the interval.
+   * @param[in]  a_tMax    End of the interval.
+   * @param[in]  a_options How to march the parts without a ray form.
+   * @param[out] a_part    With Part, the part (see tracePart()); unused without.
    * @return The crossing, a miss, or an unresolved query.
    */
-  template <bool Whole>
+  template <bool Whole, bool Part = false>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline HitT<T>
-  traceBody(
-    uint32_t a_program, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) const noexcept;
+  traceBody(uint32_t             a_program,
+            const RayT<T>&       a_ray,
+            T                    a_tMin,
+            T                    a_tMax,
+            const RayOptions<T>& a_options,
+            uint32_t*            a_part = nullptr) const noexcept;
 
   /**
    * @brief Where a ray is inside the object over an interval, from the ray program.
@@ -1652,6 +1682,8 @@ private:
    * @tparam Level Whether a level-set clause (bit 3, see TapeDetail::RayOp) is resolved (levelClauseHit());
    * without, its crossing is only marked LevelLeaf, so that this walk, which plain tapes run, never reaches the
    * level-set code (see resolveLevelHit()).
+   * @tparam Part  Whether a Leaf clause's crossing keeps the leaf's own primitive (a mesh's face, see
+   * RayDetail::HitNamesPart) in HitT::m_primitive, instead of the leaf's number: for tracePart(), never for a plain trace.
    * @param[in] a_program  Sub-program whose ray program to follow.
    * @param[in] a_ray      The ray.
    * @param[in] a_t        The crossing's distance.
@@ -1662,7 +1694,7 @@ private:
    * @return The crossing, with HitT::m_primitive the leaf's number (MarchedLeaf for a marched subtree), or a
    * miss if the clause is not reached from the program.
    */
-  template <unsigned D, bool Level = false>
+  template <unsigned D, bool Level = false, bool Part = false>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline HitT<T>
@@ -2007,13 +2039,15 @@ private:
 
   /**
    * @brief A leaf's surface: drilled into a collection, with its part and its label (see closestSurface()).
-   * @param[in] a_ref The leaf.
+   * @param[in] a_ref  The leaf.
+   * @param[in] a_part The leaf's part where a trace crossed it and named it (tracePart()), which is then not searched
+   * for; SurfaceRef::None otherwise.
    * @return The surface, or none.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
   inline SurfaceRef<T>
-  surfaceOf(const LeafRef<T>& a_ref) const noexcept;
+  surfaceOf(const LeafRef<T>& a_ref, uint32_t a_part = SurfaceRef<T>::None) const noexcept;
 
   /**
    * @brief A region's solid with the leaf its value comes from (see regionSolid()).

@@ -146,6 +146,19 @@ struct TracedOnCheaply : std::false_type
 };
 
 /**
+ * @brief Whether a shape's crossing names its part: its ray form's HitT::m_primitive is the part closestPart() gives at
+ * the crossing (a mesh's face).
+ * @details Internal helper; not part of the public API. A view of a tape's regions names the surface of every crossing
+ * it shows, with its part (Tape::firstRegionChange()); for such a shape, the part is then the one its trace crossed,
+ * where closestPart() would search the whole shape again (for a mesh, a nearest-face search per crossing).
+ * @tparam S Shape type.
+ */
+template <class S>
+struct HitNamesPart : std::false_type
+{
+};
+
+/**
  * @brief Whether a shape's ray form has its own intersects().
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.

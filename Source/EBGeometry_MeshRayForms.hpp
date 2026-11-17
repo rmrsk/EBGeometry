@@ -216,6 +216,17 @@ struct TracedOnCheaply<TriMeshSDF<T, K, W>> : std::true_type
 };
 
 /**
+ * @brief A TriMeshSDF's crossing names its face, its part (see HitNamesPart).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ * @tparam W Triangles per leaf group.
+ */
+template <class T, size_t K, size_t W>
+struct HitNamesPart<TriMeshSDF<T, K, W>> : std::true_type
+{
+};
+
+/**
  * @brief A MeshSDF is traced on past an interval (see TracedOnCheaply).
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor.
@@ -226,12 +237,31 @@ struct TracedOnCheaply<MeshSDF<T, K>> : std::true_type
 };
 
 /**
+ * @brief A MeshSDF's crossing names its face, its part (see HitNamesPart).
+ * @tparam T Floating-point precision.
+ * @tparam K BVH branching factor.
+ */
+template <class T, size_t K>
+struct HitNamesPart<MeshSDF<T, K>> : std::true_type
+{
+};
+
+/**
  * @brief A FlatMeshSDF is traced on past an interval (see TracedOnCheaply): its trace visits every face, and so does
  * the distance query it saves.
  * @tparam T Floating-point precision.
  */
 template <class T>
 struct TracedOnCheaply<FlatMeshSDF<T>> : std::true_type
+{
+};
+
+/**
+ * @brief A FlatMeshSDF's crossing names its face, its part (see HitNamesPart).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct HitNamesPart<FlatMeshSDF<T>> : std::true_type
 {
 };
 
