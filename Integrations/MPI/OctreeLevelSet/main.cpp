@@ -45,17 +45,17 @@ using Vec3 = EBGeometry::Vec3T<T>;
 using Tape = EBGeometry::Tape<T>;
 
 // The octree: rootsPerSide^3 root cells, each refined at most maxLevel times (--max-level, default defaultMaxLevel, at
-// most maxMaxLevel). A cell near the surface, one the surface may pass through (the value at its center is, in
-// magnitude, below its half-diagonal times safety, a little above one since a composition's value can be a bound rather
-// than the exact distance), is refined:
+// most maxMaxLevel). Each cell is judged by one function: the object's signed distance, or, in a model with regions,
+// the function of the region at its center (Tape::signedDistance(p, region)), whose zero contour is that region's whole
+// boundary, the object's surface and the interfaces with the other regions alike. A cell near that boundary, one it may
+// pass through (the function at its center is, in magnitude, below its half-diagonal times safety, a little above one
+// since a composition's value can be a bound rather than the exact distance), is refined:
 //   - to minLevel at least, so that a small feature is found before the corners judge the cell;
 //   - beyond that, while its corners do not predict its center: while the trilinear interpolation of the values at its
 //     corners (their mean, at the center) misses the value at its center by more than tolerance times its side
-//     (--tolerance, default defaultTolerance). On a flat part of the surface the two agree, and the cell stops; where
-//     the surface curves they differ by about the curvature times the side squared, and at an edge or a corner of the
+//     (--tolerance, default defaultTolerance). On a flat part of the boundary the two agree, and the cell stops; where
+//     the boundary curves they differ by about the curvature times the side squared, and at an edge or a corner of the
 //     model by more, so the cells there refine further.
-// In a model with regions, a cell is also refined where a region changes in it: where one of its corners is in another
-// region than its center.
 constexpr unsigned int rootsPerSide     = 8;
 constexpr int          minLevel         = 2;
 constexpr int          defaultMaxLevel  = 5;
@@ -98,19 +98,6 @@ cornerOffset(const int a_corner)
   return Vec3(T(a_corner & 1), T((a_corner >> 1) & 1), T((a_corner >> 2) & 1));
 }
 
-// Whether a corner of the cell is in another region than a_region, the region at its center.
-bool
-regionChanges(const Tape& a_tape, const Vec3& a_lo, const T a_side, const std::uint32_t a_region)
-{
-  for (int corner = 0; corner < 8; corner++) {
-    if (a_tape.region(a_lo + a_side * cornerOffset(corner)) != a_region) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 // Refines a cell toward the surface, and toward the interfaces between regions, and appends its leaves, children in
 // Morton order. Only this rank's tape is asked.
 void
@@ -123,34 +110,28 @@ refine(const Tape&        a_tape,
        std::vector<Leaf>& a_leaves)
 {
   const Vec3 center       = a_lo + T(0.5) * a_side * Vec3::ones();
-  const T    value        = a_tape.signedDistance(center);
   const T    halfDiagonal = T(0.5) * std::sqrt(T(3)) * a_side;
 
-  const std::uint32_t region = a_refinement.regions ? a_tape.region(center) : 0U;
+  // The function that judges the cell: the object's distance, or the function of the region at the center.
+  const std::uint32_t region   = a_refinement.regions ? a_tape.region(center) : 0U;
+  const auto          boundary = [&](const Vec3& a_point) {
+    return a_refinement.regions ? a_tape.signedDistance(a_point, region) : a_tape.signedDistance(a_point);
+  };
 
-  // The level set at the corners: it decides the refinement, and a leaf stores it, where a contour of it is drawn.
-  // Neighboring leaves of one level share their corners' values, so the contour is continuous across them (with
-  // cracks where the level changes).
-  std::array<T, 8> values;
+  const T value = boundary(center);
+
+  std::array<T, 8> corners;
   T                mean = T(0);
 
   for (int corner = 0; corner < 8; corner++) {
-    values[static_cast<std::size_t>(corner)] = a_tape.signedDistance(a_lo + a_side * cornerOffset(corner));
-    mean += values[static_cast<std::size_t>(corner)];
+    corners[static_cast<std::size_t>(corner)] = boundary(a_lo + a_side * cornerOffset(corner));
+    mean += corners[static_cast<std::size_t>(corner)];
   }
 
   mean /= T(8);
 
-  bool refined = false;
-
-  if (a_level < a_refinement.maxLevel) {
-    if (std::abs(value) < safety * halfDiagonal) {
-      refined = a_level < minLevel || std::abs(mean - value) > a_refinement.tolerance * a_side;
-    }
-
-    // The corners' regions are asked only where the level set alone would not refine.
-    refined = refined || (a_refinement.regions && regionChanges(a_tape, a_lo, a_side, region));
-  }
+  const bool refined = a_level < a_refinement.maxLevel && std::abs(value) < safety * halfDiagonal &&
+                       (a_level < minLevel || std::abs(mean - value) > a_refinement.tolerance * a_side);
 
   if (refined) {
     const T             half = T(0.5) * a_side;
@@ -166,6 +147,17 @@ refine(const Tape&        a_tape,
     }
 
     return;
+  }
+
+  // A leaf stores the object's distance at its corners, where a contour of it is drawn (in a model without regions,
+  // the values that judged it). Neighboring leaves of one level share their corners' values, so the contour is
+  // continuous across them (with cracks where the level changes).
+  std::array<T, 8> values = corners;
+
+  if (a_refinement.regions) {
+    for (int corner = 0; corner < 8; corner++) {
+      values[static_cast<std::size_t>(corner)] = a_tape.signedDistance(a_lo + a_side * cornerOffset(corner));
+    }
   }
 
   a_leaves.push_back(Leaf{a_lo, a_index, a_side, a_level, values, region});
