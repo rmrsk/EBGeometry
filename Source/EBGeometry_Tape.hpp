@@ -2200,6 +2200,21 @@ private:
   regionDistancesWithin(const Vec3T<T>& a_point, Visit&& a_visit, Radius&& a_radius) const noexcept;
 
   /**
+   * @brief regionDistancesWithin() through the regions' BVH, out of line on a device: its walks and arrays stay out of
+   * the frames of the kernels that call it, and of every plain tape's.
+   * @tparam Visit  A callable taking (uint32_t region, T value).
+   * @tparam Radius A callable taking nothing and returning T.
+   * @param[in] a_point  Point.
+   * @param[in] a_visit  What to do with each region's value.
+   * @param[in] a_radius The radius.
+   */
+  template <class Visit, class Radius>
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  regionDistancesSearched(const Vec3T<T>& a_point, Visit& a_visit, Radius& a_radius) const noexcept;
+
+  /**
    * @brief How many masks two regions share: those above both, which region k's function
    * applies once rather than to each later region too (see TapeDetail::RegionSolid).
    * @param[in] a_first  A region.

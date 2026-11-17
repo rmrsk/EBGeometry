@@ -3853,10 +3853,21 @@ Tape<T, UserPrimitives...>::regionDistancesWithin(const Vec3T<T>& a_point,
 {
   if (this->regionBVH() == TapeDetail::NoRegionBVH) {
     this->regionDistances(a_point, a_visit);
-
-    return;
   }
+  else {
+    this->regionDistancesSearched(a_point, a_visit, a_radius);
+  }
+}
 
+template <class T, class... UserPrimitives>
+template <class Visit, class Radius>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline void
+Tape<T, UserPrimitives...>::regionDistancesSearched(const Vec3T<T>& a_point,
+                                                    Visit&          a_visit,
+                                                    Radius&         a_radius) const noexcept
+{
   // A region's function is never below its solid, nor its solid below the distance to its box (where the solids are
   // distances): a region whose box is beyond the radius has a function beyond it too.
   a_visit(0U, -this->wholeValue(a_point));
