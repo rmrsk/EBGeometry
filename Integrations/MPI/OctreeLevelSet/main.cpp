@@ -5,12 +5,13 @@
 // An adaptive octree level set under MPI, without communication. A coarse grid of root cells covers the model's box,
 // and the roots are split among the ranks in Morton order, as an octree code (p4est, say) partitions its forest. Every
 // rank reads the model and compiles it into a tape of its own, refines its roots toward the surface and the interfaces
-// between regions, cell by cell, and stores the signed distance (and the region, if the model has regions) on each
-// leaf. None of that asks another rank anything: each rank holds the whole geometry. One reduction at the end gives a
-// summary, and every rank writes its leaves as a VTK file (binary), which ParaView and VisIt open through the .pvtu file
-// rank 0 writes. See README.md.
+// between regions, cell by cell, and stores the signed distance at each leaf's corners (and the region at its
+// center, if the model has regions). None of that asks another rank anything: each rank holds the whole geometry. One
+// reduction at the end gives a summary, and every rank writes its leaves as a VTK file (binary), which ParaView and
+// VisIt open through the .pvtu file rank 0 writes. See README.md.
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -21,6 +22,7 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 // The C bindings of MPI only: the C++ bindings, removed from the standard, are not needed and do not compile cleanly
@@ -56,24 +58,34 @@ const std::string outputName = "OctreeLevelSet";
 
 namespace {
 
-// A leaf cell: its low corner, side and level, and what it holds.
+// A leaf cell: its low corner (as a point, and as an index on the grid of the finest level, which names a corner
+// exactly), side and level, and what it holds: the signed distance at its corners (corner c at
+// lo + side * (c & 1, (c >> 1) & 1, (c >> 2) & 1)) and the region at its center.
+using Index = std::array<std::uint32_t, 3>;
+
 struct Leaf
 {
-  Vec3          lo;
-  T             side;
-  int           level;
-  T             value;
-  std::uint32_t region;
+  Vec3             lo;
+  Index            index;
+  T                side;
+  int              level;
+  std::array<T, 8> values;
+  std::uint32_t    region;
 };
+
+// The offset of corner c of a cell, in units of its side.
+Vec3
+cornerOffset(const int a_corner)
+{
+  return Vec3(T(a_corner & 1), T((a_corner >> 1) & 1), T((a_corner >> 2) & 1));
+}
 
 // Whether a corner of the cell is in another region than a_region, the region at its center.
 bool
 regionChanges(const Tape& a_tape, const Vec3& a_lo, const T a_side, const std::uint32_t a_region)
 {
   for (int corner = 0; corner < 8; corner++) {
-    const Vec3 offset(T(corner & 1), T((corner >> 1) & 1), T((corner >> 2) & 1));
-
-    if (a_tape.region(a_lo + a_side * offset) != a_region) {
+    if (a_tape.region(a_lo + a_side * cornerOffset(corner)) != a_region) {
       return true;
     }
   }
@@ -88,6 +100,7 @@ refine(const Tape&        a_tape,
        const bool         a_regions,
        const int          a_maxLevel,
        const Vec3&        a_lo,
+       const Index&       a_index,
        const T            a_side,
        const int          a_level,
        std::vector<Leaf>& a_leaves)
@@ -104,28 +117,40 @@ refine(const Tape&        a_tape,
     a_level < a_maxLevel && (nearSurface || (a_regions && regionChanges(a_tape, a_lo, a_side, region)));
 
   if (refined) {
-    const T half = T(0.5) * a_side;
+    const T             half = T(0.5) * a_side;
+    const std::uint32_t step = 1U << (a_maxLevel - a_level - 1);
 
     for (int child = 0; child < 8; child++) {
-      const Vec3 offset(T(child & 1), T((child >> 1) & 1), T((child >> 2) & 1));
+      const Vec3  offset = cornerOffset(child);
+      const Index index  = {a_index[0] + step * std::uint32_t(child & 1),
+                            a_index[1] + step * std::uint32_t((child >> 1) & 1),
+                            a_index[2] + step * std::uint32_t((child >> 2) & 1)};
 
-      refine(a_tape, a_regions, a_maxLevel, a_lo + half * offset, half, a_level + 1, a_leaves);
+      refine(a_tape, a_regions, a_maxLevel, a_lo + half * offset, index, half, a_level + 1, a_leaves);
     }
 
     return;
   }
 
-  a_leaves.push_back(Leaf{a_lo, a_side, a_level, value, region});
+  // The level set is stored at the corners, where a contour of it is drawn: neighboring leaves of one level share
+  // their corners' values, so the contour is continuous across them (with small cracks where the level changes).
+  std::array<T, 8> values;
+
+  for (int corner = 0; corner < 8; corner++) {
+    values[static_cast<std::size_t>(corner)] = a_tape.signedDistance(a_lo + a_side * cornerOffset(corner));
+  }
+
+  a_leaves.push_back(Leaf{a_lo, a_index, a_side, a_level, values, region});
 }
 
 // ── VTK output ─────────────────────────────────────────────────────────────────────────────────────────────
 //
 // A VTK XML UnstructuredGrid with its arrays appended as raw binary: an XML header that names each array and its
-// offset, then the bytes of every array, each after its length in bytes (a UInt64). Each leaf is a hexahedron (VTK
-// type 12) with its own eight corners, in VTK's order (the low face counterclockwise, then the high face), and cell
-// data for the level set, the level, the rank and, if the model has regions, the region. Binary rather than ASCII:
-// a reader copies the arrays instead of parsing a number per value. The corners are indexed with 32 bits, enough for
-// a quarter of a billion leaves per rank.
+// offset, then the bytes of every array, each after its length in bytes (a UInt64). Each leaf is a hexahedron (VTK type
+// 12) on eight corners shared with the leaves that meet there, in VTK's order (the low face counterclockwise, then the
+// high face), the level set as point data on them, and cell data for the level, the rank and, if the model has regions,
+// the region. Binary rather than ASCII: a reader copies the arrays instead of parsing a number per value. The corners
+// are indexed with 32 bits, enough for a quarter of a billion leaves per rank.
 
 const char* const realType = std::is_same_v<T, float> ? "Float32" : "Float64";
 
@@ -172,7 +197,11 @@ private:
 
 // Each writer returns whether the file was written whole.
 bool
-writePiece(const std::string& a_file, const std::vector<Leaf>& a_leaves, const int a_rank, const bool a_regions)
+writePiece(const std::string&       a_file,
+           const std::vector<Leaf>& a_leaves,
+           const int                a_maxLevel,
+           const int                a_rank,
+           const bool               a_regions)
 {
   const std::size_t numLeaves = a_leaves.size();
 
@@ -181,30 +210,42 @@ writePiece(const std::string& a_file, const std::vector<Leaf>& a_leaves, const i
   std::vector<std::int32_t>  connectivity(8 * numLeaves);
   std::vector<std::int32_t>  offsets(numLeaves);
   std::vector<std::uint8_t>  types(numLeaves, 12);
-  std::vector<T>             levelset(numLeaves);
+  std::vector<T>             levelset;
   std::vector<std::int32_t>  level(numLeaves);
   std::vector<std::int32_t>  ranks(numLeaves, a_rank);
   std::vector<std::uint32_t> region(numLeaves);
 
-  points.reserve(24 * numLeaves);
+  // Each corner is written once, and the leaves meeting there share it, so a reader sees which faces are inside the
+  // mesh and draws only the outer ones. A corner is named by its index on the finest grid (21 bits per direction).
+  std::unordered_map<std::uint64_t, std::int32_t> corners;
+
+  corners.reserve(2 * numLeaves);
 
   for (std::size_t i = 0; i < numLeaves; i++) {
-    const Leaf& leaf = a_leaves[i];
+    const Leaf&         leaf = a_leaves[i];
+    const std::uint32_t step = 1U << (a_maxLevel - leaf.level);
+    std::size_t         c    = 0;
 
     for (int corner : {0, 1, 3, 2, 4, 5, 7, 6}) {
-      const Vec3 p = leaf.lo + leaf.side * Vec3(T(corner & 1), T((corner >> 1) & 1), T((corner >> 2) & 1));
+      const std::uint64_t key = (std::uint64_t(leaf.index[0] + step * std::uint32_t(corner & 1)) << 42) |
+                                (std::uint64_t(leaf.index[1] + step * std::uint32_t((corner >> 1) & 1)) << 21) |
+                                std::uint64_t(leaf.index[2] + step * std::uint32_t((corner >> 2) & 1));
 
-      points.insert(points.end(), {float(p[0]), float(p[1]), float(p[2])});
+      const auto [it, inserted] = corners.emplace(key, static_cast<std::int32_t>(levelset.size()));
+
+      if (inserted) {
+        const Vec3 p = leaf.lo + leaf.side * cornerOffset(corner);
+
+        points.insert(points.end(), {float(p[0]), float(p[1]), float(p[2])});
+        levelset.push_back(leaf.values[static_cast<std::size_t>(corner)]);
+      }
+
+      connectivity[8 * i + c++] = it->second;
     }
 
-    for (std::size_t c = 0; c < 8; c++) {
-      connectivity[8 * i + c] = static_cast<std::int32_t>(8 * i + c);
-    }
-
-    offsets[i]  = static_cast<std::int32_t>(8 * (i + 1));
-    levelset[i] = leaf.value;
-    level[i]    = leaf.level;
-    region[i]   = leaf.region;
+    offsets[i] = static_cast<std::int32_t>(8 * (i + 1));
+    level[i]   = leaf.level;
+    region[i]  = leaf.region;
   }
 
   Appended data;
@@ -229,15 +270,16 @@ writePiece(const std::string& a_file, const std::vector<Leaf>& a_leaves, const i
          << "<VTKFile type=\"UnstructuredGrid\" version=\"1.0\" byte_order=\"" << byteOrder()
          << "\" header_type=\"UInt64\">\n"
          << "<UnstructuredGrid>\n"
-         << "<Piece NumberOfPoints=\"" << 8 * numLeaves << "\" NumberOfCells=\"" << numLeaves << "\">\n"
+         << "<Piece NumberOfPoints=\"" << levelset.size() << "\" NumberOfCells=\"" << numLeaves << "\">\n"
          << "<Points>\n"
          << array("Float32", nullptr, data.add(points), 3) << "</Points>\n"
          << "<Cells>\n"
          << array("Int32", "connectivity", data.add(connectivity), 1) << array("Int32", "offsets", data.add(offsets), 1)
          << array("UInt8", "types", data.add(types), 1) << "</Cells>\n"
-         << "<CellData Scalars=\"levelset\">\n"
-         << array(realType, "levelset", data.add(levelset), 1) << array("Int32", "level", data.add(level), 1)
-         << array("Int32", "rank", data.add(ranks), 1);
+         << "<PointData Scalars=\"levelset\">\n"
+         << array(realType, "levelset", data.add(levelset), 1) << "</PointData>\n"
+         << "<CellData>\n"
+         << array("Int32", "level", data.add(level), 1) << array("Int32", "rank", data.add(ranks), 1);
 
   if (a_regions) {
     header << array("UInt32", "region", data.add(region), 1);
@@ -269,8 +311,10 @@ writeMaster(const std::string& a_file, const int a_numRanks, const bool a_region
       << "\" header_type=\"UInt64\">\n"
       << "<PUnstructuredGrid GhostLevel=\"0\">\n"
       << "<PPoints>\n<PDataArray type=\"Float32\" NumberOfComponents=\"3\"/>\n</PPoints>\n"
-      << "<PCellData Scalars=\"levelset\">\n"
+      << "<PPointData Scalars=\"levelset\">\n"
       << "<PDataArray type=\"" << realType << "\" Name=\"levelset\"/>\n"
+      << "</PPointData>\n"
+      << "<PCellData>\n"
       << "<PDataArray type=\"Int32\" Name=\"level\"/>\n"
       << "<PDataArray type=\"Int32\" Name=\"rank\"/>\n";
 
@@ -385,7 +429,16 @@ run(int argc, char* argv[])
   for (std::size_t r = first; r < last; r++) {
     const EBGeometry::SFC::Index index = EBGeometry::SFC::Morton::decode(codes[r]);
 
-    refine(tape, regions, maxLevel, lo + root * Vec3(T(index[0]), T(index[1]), T(index[2])), root, 0, leaves);
+    const std::uint32_t finest = 1U << maxLevel;
+
+    refine(tape,
+           regions,
+           maxLevel,
+           lo + root * Vec3(T(index[0]), T(index[1]), T(index[2])),
+           Index{finest * std::uint32_t(index[0]), finest * std::uint32_t(index[1]), finest * std::uint32_t(index[2])},
+           root,
+           0,
+           leaves);
   }
 
   // ── A summary: one reduction ─────────────────────────────────────────────────────────────────────────
@@ -409,7 +462,7 @@ run(int argc, char* argv[])
 
   int status = 0;
 
-  if (!writePiece(piece, leaves, rank, regions)) {
+  if (!writePiece(piece, leaves, maxLevel, rank, regions)) {
     std::cerr << "Rank " << rank << " cannot write " << piece << '\n';
 
     status = 1;

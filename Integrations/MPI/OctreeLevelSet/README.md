@@ -10,7 +10,7 @@ its own roots, cell by cell: a cell is split into eight while the value at its c
 half-diagonal (times a small safety factor), up to a maximum level. In a model with regions (an `overlay`), a cell is
 also split where a region changes in it, where one of its eight corners is in another region than its center
 (`Tape::region()`), so the interfaces between regions are refined as the surface is. Each leaf stores the signed
-distance at its center and, for a model with regions, the region there.
+distance at its eight corners and, for a model with regions, the region at its center.
 
 None of this asks another rank anything. The only communication is one reduction at the end, for the summary rank 0
 prints: the leaves per level. The program also checks that the ranks' leaves cover the domain exactly once, and exits
@@ -25,10 +25,12 @@ Output
 ------
 
 Every rank writes its leaves as `OctreeLevelSet_<rank>.vtu`, a VTK XML unstructured grid whose arrays are appended as
-raw binary (no compression, and no library needed to write it), which VisIt and ParaView read much faster than text:
-one hexahedron per leaf, with the cell data `levelset`, `level`, `rank` and, for a model with regions, `region`. Rank 0
-writes `OctreeLevelSet.pvtu`, which lists the pieces. Open `OctreeLevelSet.pvtu` in ParaView or VisIt; a threshold of
-`levelset` at 0 shows the object, and coloring by `rank` shows the partition. `make clean` removes the files.
+raw binary (no compression, and no library needed to write it), which VisIt and ParaView read much faster than text: one
+hexahedron per leaf, on corners shared with its neighbors (so a reader draws only the outer faces), with the level set
+`levelset` at its corners (point data) and the cell data `level`, `rank` and, for a model with regions, `region`. Rank 0
+writes `OctreeLevelSet.pvtu`, which lists the pieces. Open `OctreeLevelSet.pvtu` in ParaView or VisIt; a contour of
+`levelset` at 0 shows the surface (continuous across leaves of one level, with small cracks where the level changes),
+and coloring by `rank` shows the partition. `make clean` removes the files.
 
 The default model is the classic CSG solid of the `LanguageCSG` example, `Examples/LanguageCSG/solid.ebg`, found by a path
 relative to this folder (`../../../Examples/LanguageCSG/solid.ebg`): run the program from here, or give a model as the
