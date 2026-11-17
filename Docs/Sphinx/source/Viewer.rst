@@ -166,7 +166,10 @@ panel away from its buttons picks the surface behind it. From the top:
 **Domains.** Each registered domain is listed on a line. A click on one makes it the active domain, tints
 and outlines the surfaces of its regions, and lists its subdomains under it; a click on a subdomain highlights
 its boundary. ``[Hide]`` and ``[Only]`` hide a subdomain's or the domain's regions, or show only them, and
-``[Show all regions]`` shows every region again.
+``[Show all regions]`` shows every region again. With the domain shown alone, the cost views (M) time the domain's own object
+instead of the whole one's, when the program gave the window each domain's own shape (``ebgstudio`` does): rays
+stop at the first surface of the domain's regions and pass through the regions kept around them, so the cost
+shown is what a solver of that domain pays.
 
 **Color by, and Pick.** A "Color by" row sets what the surfaces are colored by: material, region, surface
 group, surface label, surface, part, interface, the normal, or one color. A swatch beside each region and

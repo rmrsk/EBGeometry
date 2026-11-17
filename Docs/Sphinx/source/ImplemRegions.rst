@@ -177,6 +177,46 @@ a pool of its own, ``Domain(otherPool, tape, setup)``; ``rebasedView(tapePool, t
 and only the small tables are copied, never the geometry. Both pools, or their mirrors, must outlive the
 domain and every copy and view of it.
 
+A domain on its own
+-------------------
+
+A domain computes in some regions, but a tape of the whole object evaluates every region at every point. A
+solver of one domain can compile a smaller object instead: the domain's regions and their neighbors,
+`regionNeighborhood(expr, regions) <doxygen/html/EBGeometry__RegionNeighborhood_8hpp.html>`__, a
+`RegionNeighborhood <doxygen/html/classEBGeometry_1_1RegionNeighborhood.html>`__ (host only):
+
+.. code-block:: c++
+
+   const auto own = regionNeighborhood(expr, {index.findRegion("core"), index.findRegion("jacket")});
+
+   const Tape<T> tape(pool, own.object());                          // the regions kept, numbered anew
+   const Domain  heat(pool, tape, own.setup(setup));                // the setup written for the whole object
+
+   own.wholeRegion(r);                                               // the whole object's region of its region r
+   own.region(wholeRegion);                                          // and back; None for a region dropped
+
+* **Which regions are kept.** Two regions are neighbors when their bounding boxes meet, touching faces and
+  edges included. The regions given are kept, and every region whose box meets the box of one of them; every
+  other region is dropped. A region given with the background (region 0) keeps them all, since the
+  background meets every region.
+* **The boxes are a conservative stand-in.** No region that touches one given is ever dropped, so every
+  surface of the regions given keeps the regions on both of its sides, its labels and its materials. But a
+  region whose box meets theirs is kept even where the region itself does not touch them: a region in the
+  hollow of an L-shaped one, or one whose box is mostly cut away by later regions. Such a region costs time,
+  never correctness. A domain gains most when its regions are a few among many, apart from the rest, and
+  gains nothing when one of them is a medium whose box holds every other region.
+* **What stays the same.** In the regions given and around them, every subdomain function has the same value as
+  on the whole object's tape, and everywhere the same sign; ``closestSurface()`` finds the same surfaces, with
+  the same regions on their two sides. Far from them, in the excluded regions, the values may differ.
+* **What is numbered anew.** The kept regions keep their order and are numbered from 1; ``region()``,
+  ``wholeRegion()``, ``surface()`` and ``wholeSurface()`` map regions and surfaces both ways. ``setup()``
+  translates a setup written for the whole object: regions and surfaces through the maps, materials and labels
+  by name. Its subdomains and surface groups keep their numbers, so tables indexed by them still apply; a
+  selector naming only something dropped is left out, since it selects nothing of the domain.
+
+A model read from a file does this per domain with ``model.domainObject("conduction")`` (see
+:ref:`Chap:ImplemLanguage`).
+
 Checking the surface groups
 ---------------------------
 

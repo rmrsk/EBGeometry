@@ -42,6 +42,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `SurfaceParts/` | A tape's surfaces with their parts and labels: `closestSurface()` on a union of boxes and on a mesh labeled by face groups, and `firstSurface()` at that mesh, against `closestLeaf()` and `firstHit()` |
 | `Regions/`    | A tape's regions: `region()`, every region's function in one pass (`regionDistances()`, against asking region by region) and a domain's label functions, for a matrix holding 32 two-layer particles; rays at a one-region assembly, `firstRegionChange()` against `firstHit()` |
 | `Domain/`     | A domain with many subdomains and surface groups (a matrix and 32 shells each its own subdomain, 33 selectors in 8 surface groups): every label's function at a point, a point's label, and a surface's group |
+| `DomainObject/` | A domain compiled on its own (`regionNeighborhood()`) against the whole object: an assembly of 216 balls in air, a domain in one ball; its functions and a point's label on both tapes |
 | `LaunchTuning/` | `GPU::transform()`'s launch settings (block size, minimum resident threads) on a mesh distance, a tape's rays and a point cloud; device only |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results; `BuildCost`, the compiler launcher that records what each compile costs, and `BuildCompare`, which compares two builds' costs |

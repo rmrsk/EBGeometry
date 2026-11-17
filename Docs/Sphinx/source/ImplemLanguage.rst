@@ -71,6 +71,19 @@ domain label *i*, surface group *g* is group *g*.
    const auto&  cfd = model.domain("cfd");
    const Domain fluid(pool, tape, cfd.setup());
 
+A solver of one domain can compile the domain's own object instead of the whole model's: ``domainObject(name)``
+gives a `DomainObject <doxygen/html/classEBGeometry_1_1Language_1_1DomainObject.html>`__, the domain's regions and
+the regions whose bounding boxes meet theirs (``regionNeighborhood()``, whose rule and caveats are on
+:ref:`Chap:ImplemRegions`), with the domain's setup and the model's names translated to it. Its subdomains and
+surface groups keep their numbers, so the domain's tables (below) still apply; its regions and surfaces are
+numbered anew, mapped to the model's through ``neighborhood()``.
+
+.. code-block:: c++
+
+   const auto   own = model.domainObject("conduction");
+   const Tape<T> cable(pool, own.object());
+   const Domain heat(pool, cable, own.setup());
+
 `Properties <doxygen/html/classEBGeometry_1_1Language_1_1Properties.html>`__ are what a material, subdomain,
 surface group or coupling carries: ``number()``, ``vector<T>()``, ``string()`` and ``flag()`` (true or false)
 by key, each with an optional fallback, and ``code(key, {"no_slip", "slip"})``, a string as its index among

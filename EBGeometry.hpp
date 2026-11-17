@@ -59,6 +59,7 @@
 #include "Source/EBGeometry_Ray.hpp"
 #include "Source/EBGeometry_RaySpans.hpp"
 #include "Source/EBGeometry_RegionNames.hpp"
+#include "Source/EBGeometry_RegionNeighborhood.hpp"
 #include "Source/EBGeometry_RegionView.hpp"
 #include "Source/EBGeometry_Render.hpp"
 #include "Source/EBGeometry_SFC.hpp"
