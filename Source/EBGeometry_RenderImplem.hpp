@@ -1459,9 +1459,14 @@ private:
 
   /**
    * @brief Where a ray first meets a surface that is not seen through (Settings::m_hidden) in an interval.
-   * @details With no surface seen through, one trace, as a plain shape's shadow and occlusion rays always were;
-   * stepping past surfaces seen through is blockedPastHidden(), out of line on the host: inlined into the lighting of
-   * every shaded pixel, it made host renders of a plain float tape 10% slower.
+   * @details A ray that misses the shape's box meets nothing, which one slab test says: most of the floor's shadow and
+   * occlusion rays miss it, and a shape that tests its own box first (a mesh, at its BVH's root) rejects them as
+   * cheaply, but a tape pays its interpreter's fixed cost for each (on a device, 16 ms of a mesh tape's frame against
+   * 3 ms of the mesh's; armadillo, float, sm_86). In the renderer, not in the tape: a box test in every tape query costs
+   * the random rays of a query, while a frame's floor rays are coherent. With no surface seen through, one crossing
+   * without its normal (firstCrossing()), which a shadow does not read: a tape's firstHit() resolves its crossing a
+   * second time for the normal. Stepping past surfaces seen through is blockedPastHidden(), out of line on the host:
+   * inlined into the lighting of every shaded pixel, it made host renders of a plain float tape 10% slower.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
    * @return The distance along the ray, or infinity if it meets none.
@@ -1470,6 +1475,17 @@ private:
   inline T
   blocked(const RayT<T>& a_ray, const T a_tMax) const noexcept
   {
+    {
+      const Vec3T<T> pad = m_eps * Vec3T<T>::ones();
+
+      T t0 = T(0);
+      T t1 = a_tMax;
+
+      if (!RayDetail::clip(m_object.m_low - pad, m_object.m_high + pad, a_ray, t0, t1)) {
+        return Math::Limits<T>::infinity();
+      }
+    }
+
     if (m_settings.hidesAny()) {
       return this->blockedPastHidden(a_ray, a_tMax);
     }
@@ -1486,7 +1502,7 @@ private:
       }
     }
 
-    const HitT<T> hit = this->trace(a_ray, T(0), a_tMax);
+    const CrossingT<T> hit = this->crossing(a_ray, T(0), a_tMax);
 
     return hit.hit() ? hit.m_t : Math::Limits<T>::infinity();
   }

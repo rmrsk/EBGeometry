@@ -332,6 +332,68 @@ TEMPLATE_TEST_CASE("Ray: a segment out of an open mesh through its hole crosses 
   check(flat);
 }
 
+TEMPLATE_TEST_CASE("Ray: a mesh in a tape is inside or outside rightly where a short ray crosses none of its faces",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Mesh = TriMeshSDF<T, 4, 4>;
+
+  // The L-shaped prism ([0,2]x[0,1] U [0,1]x[0,2]) x [0,1]: its box holds the notch [1,2]x[1,2]x[0,1], which is
+  // outside it. In a composition, an operand the ray crosses nowhere in an interval is inside or outside there
+  // throughout, which the tape learns by tracing the mesh on past the interval; the operations below show it in
+  // their crossings. Short rays from points in and around the box, many ending inside it (in the solid, in the notch),
+  // checked against the tape's value sampled along them.
+  const std::string file = std::string(EBGEOMETRY_TEST_DATA_DIR) + "/lblock.stl";
+
+  Pool       pool(hostMemoryResource());
+  const Mesh mesh = Parser::readIntoTriMeshSDF<T, 4, 4>(file, pool);
+
+  const Expr<T> slab = BoxSDF<T>(Vec3(-T(1), -T(1), T(0.3)), Vec3(T(3), T(3), T(0.7)));
+  const Expr<T> ball = SphereSDF<T>(Vec3(T(1.5), T(1.5), T(0.5)), T(0.4));
+
+  const std::vector<std::pair<const char*, Expr<T>>> expressions{
+    {"intersection", Intersection(Expr<T>(mesh), slab)},
+    {"difference", Difference(slab, Expr<T>(mesh))},
+    {"union", Union(Expr<T>(mesh), ball)},
+  };
+
+  std::mt19937                      rng(255);
+  std::uniform_real_distribution<T> u(T(0), T(1));
+
+  for (const auto& [name, expression] : expressions) {
+    const Tape<T, Mesh> tape(pool, expression);
+
+    size_t hits = 0;
+
+    for (int i = 0; i < 400; i++) {
+      const Vec3    from(-T(0.5) + T(3) * u(rng), -T(0.5) + T(3) * u(rng), -T(0.25) + T(1.5) * u(rng));
+      const RayT<T> ray{from, unit(u(rng) - T(0.5), u(rng) - T(0.5), u(rng) - T(0.5))};
+      const T       tMax = T(0.05) + T(1.2) * u(rng);
+
+      INFO(name << ", ray " << i);
+
+      const HitT<T> hit = firstHit(tape, ray, T(0), tMax);
+
+      requireSampledAgreement(tape, ray, tMax, hit, 200, T(1e-3));
+
+      const CrossingT<T> crossing = firstCrossing(tape, ray, T(0), tMax);
+
+      REQUIRE(crossing.hit() == hit.hit());
+
+      if (hit.hit()) {
+        REQUIRE_THAT(crossing.m_t, withinAbsT(hit.m_t, 10 * looseMargin<T>()));
+
+        hits++;
+      }
+    }
+
+    // Enough of the rays cross something for the check to mean something.
+    CHECK(hits > 25);
+  }
+}
+
 TEMPLATE_TEST_CASE("Ray: device ray queries of mesh SDFs match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;

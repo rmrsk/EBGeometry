@@ -61,6 +61,7 @@ What is in Performance/
      Regions/main.cpp         a tape's regions, their functions, and a domain's labels
      Domain/main.cpp          a domain with many subdomains and surface groups
      DomainObject/main.cpp    a domain compiled on its own, against the whole object
+     MeshTape/main.cpp        a mesh in a tape and in a view of regions, against the mesh
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -1015,6 +1016,26 @@ Family                                Build  Measures
 ``partsOwn/labels``,                  host   the same, on the domain's own tape
 ``partsOwn/labelAt``
 ``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
+====================================  =====  =====================================================
+
+**MeshTape** (``Performance/MeshTape``): a mesh in a tape against the mesh alone: the armadillo (the dodecahedron
+under ``--smoke``) as a ``TriMeshSDF`` (input ``mesh``), as a ``Tape`` holding only it (``tape``), and as a
+``RegionView`` of that tape (``view``), which is what ``ebgstudio`` draws of a model read through the language. They
+give the mesh's answers, so each ``tape`` and ``view`` case is noted relative to its ``mesh`` case (the comparison
+notes ``tape/mesh`` and ``view/mesh``): the cost of reaching a mesh through a tape. The rays start at random points
+in the mesh's box grown to twice its size and point at its center.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``<input>/firstHit``                  host   the first crossing of each of 100,000 rays, with its
+                                             normal
+``mesh/firstCrossing``,               host   the same rays through ``firstCrossing()``, without the
+``tape/firstCrossing``                       normal
+``<input>/frame``                     host   one 192 x 192 frame on one thread, with shadows and
+                                             ambient occlusion
+``<input>/<operation>``               GPU    the rays at 262,144 on both sides, and the pixels of a
+                                             512 x 512 frame through ``Render::PixelQuery``
 ====================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see
