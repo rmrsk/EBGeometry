@@ -3,6 +3,13 @@
 Bounding volume hierarchies
 =============================
 
+Every query of :ref:`Chap:Queries` asks about the nearest of many things: the faces of a mesh, the objects of a
+union, the points or spheres of a cloud. Measuring the distance to each of :math:`N` of them costs
+:math:`\mathcal{O}(N)` per query. The acceleration structures of this section all avoid it the same way: they
+group nearby things, bound each group, and let a query rule out a whole group from its bound without measuring
+the distance to anything in it. A bounding volume hierarchy does this for meshes, unions and clouds alike; a
+uniform grid is the alternative for a near-uniform cloud (:ref:`Chap:CloudSearch`).
+
 Bounding volume hierarchies (BVHs) are tree structures where the interior nodes are bounding volumes that enclose all geometric primitives (e.g. polygon faces or analytic shapes) further down in the hierarchy.
 This means that every node in a BVH is associated with a *bounding volume*.
 The bounding volume can, in principle, be any type of volume; EBGeometry uses axis-aligned
