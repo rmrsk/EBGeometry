@@ -246,6 +246,10 @@ TEST_CASE("Pool: a reservation larger than a block can hold aborts", "[Pool][dea
     },
     std::string("an initial block of ") + std::to_string(SIZE_MAX) + " bytes is more than a pool block can hold"));
 
+  CHECK(
+    abortsWith([] { (void)Pool::forImage(hostMemoryResource(), SIZE_MAX); },
+               std::string("an image of ") + std::to_string(SIZE_MAX) + " bytes is more than a pool block can hold"));
+
   // A request that fits a block on its own, but not after the 16 bytes already reserved.
   CHECK(abortsWith(
     [] {

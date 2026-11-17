@@ -380,6 +380,20 @@ public:
   signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept;
 
   /**
+   * @brief The closest point on this half-edge to a_x0, the pseudonormal there, and the signed distance.
+   * @details The same cases as signedDistance(): an end vertex where a_x0 projects past it, with the
+   * vertex's pseudonormal, else the point on the segment, with the edge's.
+   * @param[in]  a_x0           Query point.
+   * @param[in]  a_mesh         Owning mesh, used to resolve the vertex indices.
+   * @param[out] a_closestPoint The closest point.
+   * @param[out] a_normal       The pseudonormal of the edge or end vertex it lies on.
+   * @return The signed distance, equal to signedDistance()'s.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  closestPoint(const Vec3& a_x0, const Mesh& a_mesh, Vec3& a_closestPoint, Vec3& a_normal) const noexcept;
+
+  /**
    * @brief Get the squared unsigned distance from a_x0 to this half-edge.
    * @details Clamps the projection parameter to [0,1] so the closest point is
    * always on the segment, then returns the squared distance. Faster than

@@ -8,14 +8,14 @@ dependencies.  Each one can be built directly with a compiler, with GNU Make, or
 (see :ref:`Chap:Building`), and every folder ships all three (a ``GNUmakefile``, a
 ``CMakeLists.txt``, and a plain ``main.cpp`` compilable with a single compiler invocation).
 
-Examples that couple EBGeometry to a third-party application code's embedded-boundary grid
-generation live separately under :file:`Integrations/` instead,
-and additionally require that platform to be installed — see :ref:`Chap:Integrations`.
+Programs that use EBGeometry with third-party code (MPI, or an application code's embedded-boundary grid
+generation) live separately under :file:`Integrations/` instead, and additionally require that code to be
+installed — see :ref:`Chap:Integrations`.
 
 .. important::
 
    Several examples read a mesh from the ``common-3d-test-models`` git submodule by default
-   (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleShell`,
+   (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshClosestPoint`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleShell`,
    :ref:`Chap:ExampleSurfaceLabels`, :ref:`Chap:ExampleRepetition`, :ref:`Chap:ExampleTwist`,
    :ref:`Chap:ExampleRayTracing`, :ref:`Chap:ExampleDeviceTuning`). Clone the repository with ``--recurse-submodules``, or run
    ``git submodule update --init`` in it (see :ref:`Sec:Cloning`).
@@ -43,7 +43,8 @@ first group:
 #. :ref:`Chap:ExamplesComposition`: :ref:`SmoothCSG <Chap:ExampleSmoothCSG>`, :ref:`Transforms
    <Chap:ExampleTransforms>`, :ref:`Repetition <Chap:ExampleRepetition>`, :ref:`ValueOperations
    <Chap:ExampleValueOperations>`, :ref:`FusedCSG <Chap:ExampleFusedCSG>`.
-#. :ref:`Chap:ExamplesMeshes`: :ref:`MeshCSG <Chap:ExampleMeshCSG>`, :ref:`Shell <Chap:ExampleShell>`.
+#. :ref:`Chap:ExamplesMeshes`: :ref:`MeshClosestPoint <Chap:ExampleMeshClosestPoint>`, :ref:`MeshCSG <Chap:ExampleMeshCSG>`,
+   :ref:`Shell <Chap:ExampleShell>`.
 #. :ref:`Chap:ExamplesMaterials`: :ref:`SurfaceLabels <Chap:ExampleSurfaceLabels>`, :ref:`Materials
    <Chap:ExampleMaterials>`, :ref:`LanguageDomains <Chap:ExampleLanguageDomains>`.
 #. :ref:`Chap:ExamplesManyObjects`: :ref:`NestedBVH <Chap:ExampleNestedBVH>`, :ref:`ManyObjects

@@ -12,7 +12,7 @@
 # after a change to an example's geometry or to the renderer; nothing runs it automatically.
 #
 # Requires: a C++17 compiler (CXX, default g++) and ImageMagick's convert. The examples that read a mesh
-# by default (MeshSDF, MeshCSG, Shell, SurfaceLabels, Repetition, Twist) need the common-3d-test-models
+# by default (MeshSDF, MeshClosestPoint, MeshCSG, Shell, SurfaceLabels, Repetition, Twist) need the common-3d-test-models
 # submodule: git submodule update --init.
 #
 # Usage:

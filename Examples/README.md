@@ -7,7 +7,7 @@ The examples teach; the unit tests in `Tests/` verify. An example shows the call
 in the order you would write them, and prints results you can read. It does not check its own
 answers.
 
-**Several examples read a mesh from the `common-3d-test-models` git submodule by default** (`MeshSDF`,
+**Several examples read a mesh from the `common-3d-test-models` git submodule by default** (`MeshSDF`, `MeshClosestPoint`,
 `MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `SurfaceLabels`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
 `git submodule update --init` in it.
 
@@ -30,45 +30,46 @@ The reading order:
 
 **Meshes**
 
-10. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
-11. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
+10. `MeshClosestPoint`: the point of a mesh closest to a query point (`closestPoint()`), and the gradient of the signed distance from it (`gradient()`), on the host and a GPU.
+11. `MeshCSG`: a mesh joined to analytic shapes: the dragon on a table, blended by a smooth union.
+12. `Shell`: a thin shell around a mesh (Lucy, rotated upright) with `Annular`, cut open.
 
 **Parts, labels and materials**
 
-12. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
-13. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
-14. `LanguageDomains`: a model with regions, materials and domains read from text (`Language::read()`), its domain built for the tape, its properties as a table a GPU reads, and a domain compiled on its own.
+13. `SurfaceLabels`: which part of an object a query found (`closestLeaf()`, `closestSurface()`, `firstSurface()`), and a table of your own indexed by its label.
+14. `Materials`: several materials in one object (`Overlay()`, `MaterialLabel()`), the region a point is in and each region's own function.
+15. `LanguageDomains`: a model with regions, materials and domains read from text (`Language::read()`), its domain built for the tape, its properties as a table a GPU reads, and a domain compiled on its own.
 
 **Many objects and particles**
 
-15. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
-16. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
-17. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
-18. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
-19. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
-20. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
-21. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
-22. `Tornado`: a property carried on a `SphereCloudBVH` of millions of spheres: each sphere's wind speed in an array beside the cloud, in its pool, queried on the host and through `GPU::transform`, and the spheres colored by it through a ray form of the program's own.
+16. `NestedBVH`: a mesh placed many times: in a `Tape` alongside shapes, and in a `BVHUnion` of meshes.
+17. `ManyObjects`: a `BVHUnion` over many spheres and boxes, and how much it saves over a plain loop; device timing of the query alone.
+18. `PackedSpheres`: thousands of spheres at random places in a cylinder, joined by a smooth BVH union.
+19. `PointClouds`: closest points and the k-nearest-neighbor graph of a point cloud with `PointCloudBVH`, and the same with `PointCloudHashGrid`.
+20. `ParticleNeighbors`: particles that move, in arrays of the program's own, and their 8 nearest neighbors after every step: a `PointCloudHashGrid` built on the device once, with room to grow, and rebuilt in place.
+21. `SphereClouds`: particles of differing sizes packed in a cylinder, in arrays of the program's own: the signed distance to their union and the closest particle, with `SphereCloudBVH`; the cylinder with the particles cut out of it, fused and in a tape, and a ray through both.
+22. `ParticleContacts`: particles of differing sizes pushed apart in a cylinder until none overlap, with a `rebuild()` each round, and their contacts (`SphereCloudBVH::forEachContact()`): one particle's, a contact list in arrays of the program's own, and a near-contact force per particle on a GPU.
+23. `Tornado`: a property carried on a `SphereCloudBVH` of millions of spheres: each sphere's wind speed in an array beside the cloud, in its pool, queried on the host and through `GPU::transform`, and the spheres colored by it through a ray form of the program's own.
 
 **Rays and BVHs**
 
-23. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
-24. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
+24. `BVHTraversal`: walking a BVH with a search of your own (`PackedBVH::traverse()`): the nearest object to a point, the first one a ray hits, whether a segment is blocked.
+25. `RayTracing`: casting rays at a triangle mesh (`firstHit()`, `intersects()`): where a ray or a particle's step first crosses the surface, and the same walk of the BVH written by hand.
 
 **Extending the library**
 
-25. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
-26. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
-27. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
+26. `OctreeBoundingVolume`: estimating a bounding box for a function with no closed-form one.
+27. `CustomShape`: a shape type of your own in a `Tape`, in managed memory, called from a kernel written out by hand.
+28. `Twist`: an operation of your own, a twist about the y axis, applied to a mesh.
 
 **Tuning**
 
-28. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
-29. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
-30. `BuildBVH`: comparing the BVH construction methods by build time.
+29. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
+30. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
+31. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that builds a shape (`Shapes`, `BasicCSG`, `LanguageCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
-`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `LanguageDomains`, `NestedBVH`,
+`ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshClosestPoint`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `LanguageDomains`, `NestedBVH`,
 `ManyObjects`, `PackedSpheres`, `SphereClouds`, `ParticleContacts`, `Tornado`, `CustomShape`, `Twist`) ends by opening a window on it with `EBGeometry::Render::view()`, when built with the viewer
 (`make VIEWER=SDL2`, or CMake with `-DEBGEOMETRY_VIEWER=SDL2`; it needs SDL2). Otherwise, with `--no-view`, or
 without a display, `view()` prints why and returns, so the examples still run unattended (ctest passes

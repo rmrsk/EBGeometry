@@ -324,6 +324,42 @@ EdgeT<T>::projectPointToEdge(const Vec3& a_x0, const Mesh& a_mesh) const noexcep
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
+EdgeT<T>::closestPoint(const Vec3& a_x0, const Mesh& a_mesh, Vec3& a_closestPoint, Vec3& a_normal) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_vertex != UINT32_MAX);
+
+  const T t = this->projectPointToEdge(a_x0, a_mesh);
+
+  if (t <= T(0.0)) {
+    const Vertex& v = this->getVertex(a_mesh);
+
+    a_closestPoint = v.getPosition();
+    a_normal       = v.getNormal();
+
+    return v.signedDistance(a_x0);
+  }
+
+  if (t >= T(1.0)) {
+    const Vertex& v = this->getOtherVertex(a_mesh);
+
+    a_closestPoint = v.getPosition();
+    a_normal       = v.getNormal();
+
+    return v.signedDistance(a_x0);
+  }
+
+  // The same arithmetic as signedDistance()'s edge case.
+  const Vec3 x2x1  = this->getX2X1(a_mesh);
+  a_closestPoint   = this->getVertex(a_mesh).getPosition() + t * x2x1;
+  a_normal         = m_normal;
+  const Vec3 delta = a_x0 - a_closestPoint;
+
+  return ((m_normal.dot(delta) > T(0.0)) ? 1 : -1) * delta.length();
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline T
 EdgeT<T>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 {
   EBGEOMETRY_EXPECT(std::isfinite(a_x0[0]));
