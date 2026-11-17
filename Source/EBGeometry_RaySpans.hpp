@@ -673,9 +673,9 @@ spanHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, cons
  * @details Internal helper; not part of the public API. For a shape whose trace is cheap however far it goes
  * (TracedOnCheaply): its trace finds every crossing, so where a ray crosses nothing in an interval, the first crossing
  * past it says whether the interval is inside, which it is when the ray leaves the shape there, and is not when the ray
- * enters there or leaves the box first. This takes the place of a distance query (insideAt()), which for a mesh is a
- * whole nearest-triangle search: a tape holding a mesh traced its rays 2-4 times slower than the mesh alone on a
- * device, most of it in those searches (armadillo, float, sm_86). The box is padded by the ray tolerance, so that a
+ * enters there or leaves the box first. Asking instead whether the interval is inside (insideAt()) would be, for a
+ * mesh, a whole nearest-triangle search: a tape holding a mesh traced its rays 2-4 times slower than the mesh alone on
+ * a device, most of it in those searches (armadillo, float, sm_86). The box is padded by the ray tolerance, so that a
  * surface lying on the box's face (a mesh's always does) is not missed by the rounding of where the ray leaves it. A
  * box unbounded the way the ray goes has no such end: the question is asked instead.
  * @tparam T Floating-point precision.
