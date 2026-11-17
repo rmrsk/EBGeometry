@@ -668,49 +668,58 @@ spanHit(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, cons
 }
 
 /**
- * @brief How far a shape with a ray form is traced for a list over an interval: on to where the ray leaves
- * its box, if that is past the interval's end.
- * @details Internal helper; not part of the public API. A ray form finds every crossing, so where a ray
- * crosses nothing in the interval, the first crossing past it says whether the ray is inside there: it is
- * when the ray leaves the shape at that crossing, and it is not when it enters or crosses nothing before
- * leaving the box. This takes the place of a distance query (insideAt()), which for a mesh is a whole
- * nearest-triangle search: a tape holding a mesh traced its rays 2-4 times slower than the mesh alone on a
- * device, most of it in those searches (armadillo, float, sm_86), and a ray form's trace stops at the box
- * anyway. The box is padded by the ray tolerance, so that a surface lying on the box's face (a mesh's
- * always does) is not missed by the rounding of where the ray leaves it.
+ * @brief How far a shape is traced on past an interval it crosses nowhere, to learn whether the interval is inside: to
+ * where the ray leaves the shape's box.
+ * @details Internal helper; not part of the public API. For a shape whose trace is cheap however far it goes
+ * (TracedOnCheaply): its trace finds every crossing, so where a ray crosses nothing in an interval, the first crossing
+ * past it says whether the interval is inside, which it is when the ray leaves the shape there, and is not when the ray
+ * enters there or leaves the box first. This takes the place of a distance query (insideAt()), which for a mesh is a
+ * whole nearest-triangle search: a tape holding a mesh traced its rays 2-4 times slower than the mesh alone on a
+ * device, most of it in those searches (armadillo, float, sm_86). The box is padded by the ray tolerance, so that a
+ * surface lying on the box's face (a mesh's always does) is not missed by the rounding of where the ray leaves it. A
+ * box unbounded the way the ray goes has no such end: the question is asked instead.
  * @tparam T Floating-point precision.
- * @tparam S Shape type, with a ray form.
- * @param[in] a_shape   The shape.
- * @param[in] a_ray     The ray.
- * @param[in] a_t0      Start of the interval.
- * @param[in] a_t1      End of the interval.
- * @param[in] a_options The ray options (the tolerance and scale).
- * @return Where to trace to: at least a_t1, infinite if the box is unbounded that way.
+ * @tparam S Shape type.
+ * @param[in]  a_shape   The shape.
+ * @param[in]  a_ray     The ray.
+ * @param[in]  a_t1      End of the interval.
+ * @param[in]  a_options The ray options (the tolerance and scale).
+ * @param[out] a_tEnd    Where to trace to: a_t1, or where the ray leaves the box past it.
+ * @return Whether the ray is outside the box at a_tEnd (or never in it past a_t1), so that a trace to there with no
+ * crossing past a_t1 says the interval is outside; false for a box unbounded that way.
  */
 template <class T, class S>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-inline T
-traceEnd(const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, const RayOptions<T>& a_options) noexcept
+inline bool
+traceEnd(const S& a_shape, const RayT<T>& a_ray, const T a_t1, const RayOptions<T>& a_options, T& a_tEnd) noexcept
 {
   const auto     box   = a_shape.computeBoundingVolume();
   const T        scale = RayDetail::scaleOf(box.getLowCorner(), box.getHighCorner(), a_options);
   const Vec3T<T> pad   = (a_options.m_tolerance * scale) * Vec3T<T>::ones();
 
-  T t0 = a_t0;
+  T t0 = a_t1;
   T t1 = Math::Limits<T>::infinity();
 
+  a_tEnd = a_t1;
+
   if (!RayDetail::clip(box.getLowCorner() - pad, box.getHighCorner() + pad, a_ray, t0, t1)) {
-    return a_t1;
+    return true;
   }
 
-  return Math::max(a_t1, t1);
+  if (!(t1 < Math::Limits<T>::infinity())) {
+    return false;
+  }
+
+  a_tEnd = Math::max(a_t1, t1);
+
+  return true;
 }
 
 /**
  * @brief Whether a shape is inside throughout an interval of a ray that crosses it nowhere there.
- * @details Internal helper; not part of the public API. A shape with a ray form is traced on from the
- * interval's end (see traceEnd()); one without, or whose trace there is unresolved, is asked at the
- * interval's start (insideAt()).
+ * @details Internal helper; not part of the public API. A shape traced on cheaply (TracedOnCheaply) is traced on from
+ * the interval's end to its box's end (see traceEnd()); any other, or one whose box has no end that way or whose trace
+ * there is unresolved, is asked at the interval's start (insideAt()).
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.
@@ -726,22 +735,20 @@ inline bool
 insideUncrossed(
   const S& a_shape, const RayT<T>& a_ray, const T a_t0, const T a_t1, const RayOptions<T>& a_options) noexcept
 {
-  if constexpr (HasRayFirstHit<S, T>::value) {
-    const T tEnd = RayDetail::traceEnd(a_shape, a_ray, a_t0, a_t1, a_options);
+  if constexpr (TracedOnCheaply<S>::value) {
+    T tEnd = a_t1;
 
-    if (!(tEnd > a_t1)) {
-      // The ray has left the box by the interval's end: outside there, so throughout.
-      return false;
-    }
+    if (RayDetail::traceEnd(a_shape, a_ray, a_t1, a_options, tEnd)) {
+      if (!(tEnd > a_t1)) {
+        // Outside the box at the interval's end: outside there, so throughout.
+        return false;
+      }
 
-    const HitT<T> hit = RayDetail::spanHit(a_shape, a_ray, a_t1, tEnd, a_options);
+      const HitT<T> hit = RayDetail::spanHit(a_shape, a_ray, a_t1, tEnd, a_options);
 
-    if (hit.m_status == HitStatus::Hit) {
-      return !hit.m_entering;
-    }
-
-    if (hit.m_status == HitStatus::Miss) {
-      return false;
+      if (hit.m_status != HitStatus::Unresolved) {
+        return hit.hit() && !hit.m_entering;
+      }
     }
   }
 
@@ -749,12 +756,12 @@ insideUncrossed(
 }
 
 /**
- * @brief The list up to a shape's first crossing, from spanHit(): a span from it if the ray enters there,
- * or to it if the ray starts inside; the horizon there.
- * @details Internal helper; not part of the public API. Where the ray crosses nothing, the list is the
- * whole interval if the ray is inside throughout, and empty otherwise. An unresolved query leaves the
- * horizon where it stopped. A shape with a ray form is traced past the interval, to where the ray leaves its
- * box (see traceEnd()), so that the one trace also says whether an interval it crosses nowhere is inside.
+ * @brief The list up to a shape's first crossing, from spanHit(): a span from it if the ray enters there, or to it if
+ * the ray starts inside; the horizon there.
+ * @details Internal helper; not part of the public API. Where the ray crosses nothing, the list is the whole interval
+ * if the ray is inside throughout, and empty otherwise. An unresolved query leaves the horizon where it stopped. A
+ * shape traced on cheaply (TracedOnCheaply) is traced past the interval, to where the ray leaves its box (see
+ * traceEnd()), so that the one trace also says whether an interval it crosses nowhere is inside.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in]  a_shape   The shape.
@@ -776,26 +783,25 @@ firstSpan(const S&             a_shape,
 {
   a_spans.reset(a_t1);
 
-  T tEnd = a_t1;
+  // Traced on past the interval (see traceEnd()), the one trace also says whether an interval crossed nowhere is
+  // inside.
+  T                     tEnd    = a_t1;
+  [[maybe_unused]] bool decides = false;
 
-  if constexpr (HasRayFirstHit<S, T>::value) {
-    tEnd = RayDetail::traceEnd(a_shape, a_ray, a_t0, a_t1, a_options);
+  if constexpr (TracedOnCheaply<S>::value) {
+    decides = RayDetail::traceEnd(a_shape, a_ray, a_t1, a_options, tEnd);
   }
 
   const HitT<T> hit = RayDetail::spanHit(a_shape, a_ray, a_t0, tEnd, a_options);
 
-  if constexpr (HasRayFirstHit<S, T>::value) {
-    // Nothing crossed in the interval: inside throughout if the ray leaves the shape at its next crossing.
-    if (hit.m_status == HitStatus::Miss || (hit.m_status == HitStatus::Hit && hit.m_t > a_t1)) {
-      if (hit.m_status == HitStatus::Hit && !hit.m_entering) {
-        a_spans.add(openAt(a_t0), openAt(a_t1));
-      }
+  if constexpr (TracedOnCheaply<S>::value) {
+    if (hit.m_status == HitStatus::Miss || hit.m_t > a_t1) {
+      // Nothing crossed in the interval: inside throughout if the ray leaves the shape at its next crossing.
+      const bool inside = (hit.m_status == HitStatus::Hit)               ? !hit.m_entering
+                          : (hit.m_status == HitStatus::Miss && decides) ? false
+                                                                         : RayDetail::insideAt(a_shape, a_ray.at(a_t0));
 
-      return;
-    }
-
-    if (hit.m_status == HitStatus::Unresolved && hit.m_t > a_t1) {
-      if (RayDetail::insideAt(a_shape, a_ray.at(a_t0))) {
+      if (inside) {
         a_spans.add(openAt(a_t0), openAt(a_t1));
       }
 
@@ -978,7 +984,7 @@ crossingSpans(const S&             a_shape,
   }
 
   if (pairer.m_first) {
-    if (RayDetail::insideUncrossed(a_shape, a_ray, a_t0, a_t1, a_options)) {
+    if (RayDetail::insideAt(a_shape, a_ray.at(a_t0))) {
       a_spans.add(openAt(a_t0), openAt(a_t1));
     }
   }

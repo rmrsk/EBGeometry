@@ -128,6 +128,20 @@ struct HasRayFirstHit<
 };
 
 /**
+ * @brief Whether a shape's trace costs about the same however far past an interval it goes: a walk of a BVH that stops
+ * at the first crossing and at the box, never a march (the mesh SDFs).
+ * @details Internal helper; not part of the public API. The span code traces such a shape on past an interval it
+ * crosses nowhere, instead of asking whether the interval is inside (see traceEnd()). A shape whose trace may march (a
+ * tape, a view of regions, a fused node) is not traced on: marching to the box's end costs many evaluations where the
+ * question costs one. Nor is an analytic shape: its question is as cheap as its trace.
+ * @tparam S Shape type.
+ */
+template <class S>
+struct TracedOnCheaply : std::false_type
+{
+};
+
+/**
  * @brief Whether a shape's ray form has its own intersects().
  * @details Internal helper; not part of the public API.
  * @tparam S Shape type.
