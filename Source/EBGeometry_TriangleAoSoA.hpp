@@ -119,6 +119,25 @@ public:
   }
 
   /**
+   * @brief The closest point on one lane's triangle, and the pseudonormal there
+   * (TriangleSoAT::closestPointAt()).
+   * @param[in]  a_lane         Lane, below the number of packed triangles.
+   * @param[in]  a_point        The point.
+   * @param[out] a_closestPoint The closest point on the triangle.
+   * @param[out] a_normal       The pseudonormal of the face, edge or vertex it lies on.
+   * @return The signed distance, equal to signedDistanceAt() to rounding.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  closestPointAt(const uint32_t  a_lane,
+                 const Vec3T<T>& a_point,
+                 Vec3T<T>&       a_closestPoint,
+                 Vec3T<T>&       a_normal) const noexcept
+  {
+    return m_triangles.closestPointAt(a_lane, a_point, a_closestPoint, a_normal);
+  }
+
+  /**
    * @brief Where a ray first crosses a triangle in this group, with that triangle's face id and normal.
    * @details See TriangleSoAT::rayCrossing(). Requires the group to have already been packed via pack().
    * @param[in]  a_origin    Ray origin.

@@ -410,6 +410,137 @@ unsignedDistance2(const Source& a_triangle, const Vec3V<V>& a_point) noexcept
   return select(inside, faceD * faceD, bestD2);
 }
 
+/**
+ * @brief The closest point on a triangle to @p a_point, the pseudonormal there, and the signed distance.
+ * @details One triangle, scalar only: the candidates of signedDistance() (the face where the point projects
+ * inside it, else vertex 0, 1, 2 and edge 0, 1, 2, a later one replacing the best only when strictly closer),
+ * in the same order and with the same arithmetic as its scalar branch, so the signed distance is the one
+ * signedDistance() computes. A point projecting onto the face's boundary is reported on the edge or vertex
+ * there, with that feature's pseudonormal: on the surface, the normal of the feature the point is on. It is not on any distance path: a closest-point query runs
+ * it once, on the triangle a search found nearest.
+ * @tparam T      Scalar type (float or double).
+ * @tparam Source Triangle accessor (see signedDistance()), read with V = T.
+ * @param[in]  a_triangle     The triangle.
+ * @param[in]  a_point        The query point.
+ * @param[out] a_closestPoint The point of the triangle closest to @p a_point.
+ * @param[out] a_normal       The pseudonormal of the feature @p a_closestPoint lies on: the face normal, an
+ *                            edge's or a vertex's.
+ * @return The signed distance, negative behind the face normal.
+ */
+template <class T, class Source>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+closestPoint(const Source& a_triangle, const Vec3V<T>& a_point, Vec3V<T>& a_closestPoint, Vec3V<T>& a_normal) noexcept
+{
+  static_assert(std::is_floating_point_v<T>, "TriangleDistance::closestPoint is a scalar kernel");
+
+  const Vec3V<T> v0 = a_triangle.vertex(0);
+  const Vec3V<T> v1 = a_triangle.vertex(1);
+  const Vec3V<T> v2 = a_triangle.vertex(2);
+  const Vec3V<T> n  = a_triangle.normal();
+
+  const Vec3V<T> v21 = v1 - v0;
+  const Vec3V<T> v32 = v2 - v1;
+  const Vec3V<T> v13 = v0 - v2;
+
+  const Vec3V<T> p1 = a_point - v0;
+  const Vec3V<T> p2 = a_point - v1;
+  const Vec3V<T> p3 = a_point - v2;
+
+  const T s0 = sign(dot(cross(v21, n), p1));
+  const T s1 = sign(dot(cross(v32, n), p2));
+  const T s2 = sign(dot(cross(v13, n), p3));
+
+  const bool inside = std::abs(s0 + s1 + s2) >= T(2);
+
+  // The closest candidate so far: its squared distance, the vector from it to the point, and which feature
+  // it is (0-2 vertices, 3-5 edges).
+  T        bestD2  = dot(p1, p1);
+  Vec3V<T> bestVec = p1;
+  int      best    = 0;
+
+  const T p2d2 = dot(p2, p2);
+
+  if (p2d2 < bestD2) {
+    bestD2  = p2d2;
+    bestVec = p2;
+    best    = 1;
+  }
+
+  const T p3d2 = dot(p3, p3);
+
+  if (p3d2 < bestD2) {
+    bestD2  = p3d2;
+    bestVec = p3;
+    best    = 2;
+  }
+
+  const T t1 = dot(p1, v21) / dot(v21, v21);
+
+  if (onEdge(t1)) {
+    const Vec3V<T> y1   = p1 - scaled(v21, t1);
+    const T        y1d2 = dot(y1, y1);
+
+    if (y1d2 < bestD2) {
+      bestD2  = y1d2;
+      bestVec = y1;
+      best    = 3;
+    }
+  }
+
+  const T t2 = dot(p2, v32) / dot(v32, v32);
+
+  if (onEdge(t2)) {
+    const Vec3V<T> y2   = p2 - scaled(v32, t2);
+    const T        y2d2 = dot(y2, y2);
+
+    if (y2d2 < bestD2) {
+      bestD2  = y2d2;
+      bestVec = y2;
+      best    = 4;
+    }
+  }
+
+  const T t3 = dot(p3, v13) / dot(v13, v13);
+
+  if (onEdge(t3)) {
+    const Vec3V<T> y3   = p3 - scaled(v13, t3);
+    const T        y3d2 = dot(y3, y3);
+
+    if (y3d2 < bestD2) {
+      bestD2  = y3d2;
+      bestVec = y3;
+      best    = 5;
+    }
+  }
+
+  const auto k = static_cast<size_t>(best);
+
+  // A point projecting inside the face is nearest the face, unless it projects onto the face's boundary,
+  // where an edge or a vertex is as near: that feature is then the one the point lies on, and its
+  // pseudonormal (not the face's) is the normal there. The distance is the face's either way.
+  if (inside) {
+    const T faceD = dot(n, p1);
+
+    if (bestD2 > faceD * faceD) {
+      a_closestPoint = a_point - scaled(n, faceD);
+      a_normal       = n;
+    }
+    else {
+      a_closestPoint = a_point - bestVec;
+      a_normal       = k < 3 ? a_triangle.vertexNormal(k) : a_triangle.edgeNormal(k - 3);
+    }
+
+    return faceD;
+  }
+
+  // bestVec runs from the closest point to the query point, whatever the feature.
+  a_closestPoint = a_point - bestVec;
+  a_normal       = k < 3 ? a_triangle.vertexNormal(k) : a_triangle.edgeNormal(k - 3);
+
+  return sign(dot(a_normal, bestVec)) * std::sqrt(bestD2);
+}
+
 } // namespace TriangleDistance
 
 } // namespace EBGeometry

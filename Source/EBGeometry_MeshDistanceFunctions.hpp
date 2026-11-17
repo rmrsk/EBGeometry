@@ -49,6 +49,26 @@ struct ClosestFace
 };
 
 /**
+ * @brief The point of a mesh closest to a query point, as the mesh SDFs' closestPoint() returns it.
+ * @details A plain, trivially copyable value, so closestPoint() is callable on a device. The closest point
+ * @c point lies on the face @c faceId, and |query - point| equals |signedDistance| to rounding. @c normal is
+ * the unit pseudonormal of the face, edge or vertex the point lies on (for a TriMeshSDF, of the triangle's
+ * face, edge or vertex: a point on the diagonal of a fan-triangulated polygon has the polygon's normal there,
+ * since both triangles have it). When several faces are equally close (a point on the medial surface), the
+ * first one found is reported. For an empty mesh, @c faceId is UINT32_MAX and the other members keep their
+ * defaults.
+ * @tparam T Floating-point precision type.
+ */
+template <class T>
+struct ClosestPoint
+{
+  T        signedDistance = Math::Limits<T>::max(); ///< Signed distance, as signedDistance() returns it.
+  uint32_t faceId         = UINT32_MAX;             ///< Id of the face the point lies on, as getClosestFace().
+  Vec3T<T> point          = Vec3T<T>::zeros();      ///< The closest point on the mesh.
+  Vec3T<T> normal         = Vec3T<T>::zeros();      ///< Unit pseudonormal of the face, edge or vertex it lies on.
+};
+
+/**
  * @brief Signed distance function for a DCEL mesh. Does not use BVHs.
  * @details Iterates over every face of the mesh on every query -- O(N) per call. Suitable only for
  * very small meshes, debugging, and as a brute-force reference for the BVH-accelerated mesh SDFs.
@@ -165,6 +185,31 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline ClosestFace<T>
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
+   * @details Scans every face, as getClosestFace() does, then finds the closest point on the winning face (DCEL::FaceT::closestPoint()). The signed distance equals what getClosestFace() returns.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The closest point, its face id and pseudonormal, and the signed distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline ClosestPoint<T>
+  closestPoint(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The gradient of the signed distance at a_point, in closed form from the closest point.
+   * @details sign(s) (a_point - c) / |a_point - c|, with c the closest point and s the signed distance: a
+   * unit vector, from one evaluation instead of the six of a finite-difference normal(). Where a_point is
+   * on the surface (|a_point - c| no more than 64 machine epsilons times max(1, the largest coordinate of
+   * c)), the direction is undefined and the pseudonormal of the closest feature is returned instead. On
+   * the medial surface (several closest points) it is the gradient seen from the first closest face found,
+   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The unit gradient.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  gradient(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief How many parts the mesh has (see hasParts): one per face, the mesh's numFaces().
@@ -406,6 +451,31 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline ClosestFace<T>
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
+   * @details The same traversal as getClosestFace(), then the closest point on the winning face (DCEL::FaceT::closestPoint()). The signed distance equals what signedDistance() returns.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The closest point, its face id and pseudonormal, and the signed distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline ClosestPoint<T>
+  closestPoint(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The gradient of the signed distance at a_point, in closed form from the closest point.
+   * @details sign(s) (a_point - c) / |a_point - c|, with c the closest point and s the signed distance: a
+   * unit vector, from one evaluation instead of the six of a finite-difference normal(). Where a_point is
+   * on the surface (|a_point - c| no more than 64 machine epsilons times max(1, the largest coordinate of
+   * c)), the direction is undefined and the pseudonormal of the closest feature is returned instead. On
+   * the medial surface (several closest points) it is the gradient seen from the first closest face found,
+   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The unit gradient.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  gradient(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief How many parts the mesh has (see hasParts): one per face, the mesh's numFaces().
@@ -731,6 +801,31 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline ClosestFace<T>
   getClosestFace(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
+   * @details The nearest-triangle search of the host's signedDistance(), on the host and on a device, then the closest point on the winning triangle (TriangleAoSoA::closestPointAt()). The signed distance is the winning triangle's, signed as signedDistance() signs it on the host: equal to it bit for bit on the host, and to rounding on a device.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The closest point, its face id and pseudonormal, and the signed distance.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline ClosestPoint<T>
+  closestPoint(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The gradient of the signed distance at a_point, in closed form from the closest point.
+   * @details sign(s) (a_point - c) / |a_point - c|, with c the closest point and s the signed distance: a
+   * unit vector, from one evaluation instead of the six of a finite-difference normal(). Where a_point is
+   * on the surface (|a_point - c| no more than 64 machine epsilons times max(1, the largest coordinate of
+   * c)), the direction is undefined and the pseudonormal of the closest feature is returned instead. On
+   * the medial surface (several closest points) it is the gradient seen from the first closest face found,
+   * one of the valid one-sided gradients. Never NaN; zero for an empty mesh.
+   * @param[in] a_point Query point. Must be finite.
+   * @return The unit gradient.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline Vec3T<T>
+  gradient(const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief How many parts the mesh has (see hasParts): one per face, one more than the largest face id its triangles

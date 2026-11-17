@@ -86,6 +86,7 @@ namespace EBGeometry {
   template class BVHUnion<PREC, 4, TriMeshSDF<PREC, 4, 4>, SphereSDF<PREC>>; \
   template class BVHSmoothUnion<PREC, 4, SmoothMinOp<PREC>, MeshSDF<PREC, 4>>;                  \
   template struct ClosestFace<PREC>;                                         \
+  template struct ClosestPoint<PREC>;                                        \
                                                                                \
   /* -- Point clouds --------------------------------------------------------*/\
   template struct PointSoAT<PREC>;                                           \

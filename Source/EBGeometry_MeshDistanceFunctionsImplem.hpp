@@ -348,6 +348,36 @@ buildTriTreeBVH(const std::vector<EBGeometry::Triangle<T>>& a_triangles,
   return bvh;
 }
 
+/**
+ * @brief The gradient of a mesh's signed distance from its closest point: sign(s) (p - c) / |p - c|, or the
+ * closest feature's pseudonormal where p is on the surface. See MeshSDF::gradient().
+ * @tparam T Floating-point precision type.
+ * @param[in] a_closest The closest point query's result at a_point.
+ * @param[in] a_point   The query point.
+ * @return The unit gradient; zero for an empty mesh.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+gradientFromClosestPoint(const ClosestPoint<T>& a_closest, const Vec3T<T>& a_point) noexcept
+{
+  if (a_closest.faceId == UINT32_MAX) {
+    return Vec3T<T>::zeros();
+  }
+
+  const Vec3T<T> delta  = a_point - a_closest.point;
+  const T        length = delta.length();
+
+  // On the surface p - c is rounding noise; the scale is that of the coordinates it was computed from.
+  const T scale     = Math::max(T(1), std::abs(a_closest.point[a_closest.point.maxDir(true)]));
+  const T tolerance = T(64) * Math::Limits<T>::epsilon() * scale;
+
+  if (!(length > tolerance)) {
+    return a_closest.normal;
+  }
+
+  return (a_closest.signedDistance < T(0) ? -T(1) : T(1)) / length * delta;
+}
 } // namespace MeshDistanceFunctionsDetail
 
 template <class T>
@@ -423,6 +453,32 @@ FlatMeshSDF<T>::getClosestFace(const Vec3T<T>& a_point) const noexcept
   }
 
   return closest;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline ClosestPoint<T>
+FlatMeshSDF<T>::closestPoint(const Vec3T<T>& a_point) const noexcept
+{
+  const Mesh           mesh    = this->getMesh();
+  const ClosestFace<T> closest = this->getClosestFace(a_point);
+
+  ClosestPoint<T> result;
+
+  if (closest.faceId != UINT32_MAX) {
+    result.faceId         = closest.faceId;
+    result.signedDistance = mesh.getFace(closest.faceId).closestPoint(a_point, mesh, result.point, result.normal);
+  }
+
+  return result;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+FlatMeshSDF<T>::gradient(const Vec3T<T>& a_point) const noexcept
+{
+  return MeshDistanceFunctionsDetail::gradientFromClosestPoint(this->closestPoint(a_point), a_point);
 }
 
 template <class T>
@@ -602,6 +658,32 @@ MeshSDF<T, K>::getClosestFace(const Vec3T<T>& a_point) const noexcept
   bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   return closest;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline ClosestPoint<T>
+MeshSDF<T, K>::closestPoint(const Vec3T<T>& a_point) const noexcept
+{
+  const Mesh           mesh    = this->getMesh();
+  const ClosestFace<T> closest = this->getClosestFace(a_point);
+
+  ClosestPoint<T> result;
+
+  if (closest.faceId != UINT32_MAX) {
+    result.faceId         = closest.faceId;
+    result.signedDistance = mesh.getFace(closest.faceId).closestPoint(a_point, mesh, result.point, result.normal);
+  }
+
+  return result;
+}
+
+template <class T, size_t K>
+EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+MeshSDF<T, K>::gradient(const Vec3T<T>& a_point) const noexcept
+{
+  return MeshDistanceFunctionsDetail::gradientFromClosestPoint(this->closestPoint(a_point), a_point);
 }
 
 template <class T, size_t K>
@@ -970,6 +1052,72 @@ TriMeshSDF<T, K, W>::getClosestFace(const Vec3T<T>& a_point) const noexcept
   bvh.traverse(BVH::PointQuery<T>{a_point}, closest, evalLeaf, pruneDist2);
 
   return closest;
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline ClosestPoint<T>
+TriMeshSDF<T, K, W>::closestPoint(const Vec3T<T>& a_point) const noexcept
+{
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+  EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
+
+  // The host signedDistance()'s search, on either side: the nearest triangle by squared unsigned distance,
+  // then the closest point on it alone.
+  struct Nearest
+  {
+    T        d2    = Math::Limits<T>::max();
+    uint32_t group = 0;
+    uint32_t lane  = 0;
+  };
+
+  const Root bvh    = this->getRoot();
+  const auto groups = bvh.getPrimitives();
+
+  Nearest nearest;
+
+  const auto evalLeaf = [&groups, &a_point](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      T              d2   = T(0);
+      const uint32_t lane = groups[static_cast<uint32_t>(i)].nearestLane(a_point, d2);
+
+      EBGEOMETRY_EXPECT(!std::isnan(d2));
+
+      if (d2 < a_state.d2) {
+        a_state = Nearest{d2, static_cast<uint32_t>(i), lane};
+      }
+    }
+  };
+
+  const auto prune = [](const Nearest& a_state) noexcept -> T { return a_state.d2; };
+
+  bvh.traverse(BVH::PointQuery<T>{a_point}, nearest, evalLeaf, prune);
+
+  ClosestPoint<T> result;
+
+  if (nearest.d2 == Math::Limits<T>::max()) {
+    return result;
+  }
+
+  const auto& group = groups[nearest.group];
+
+  (void)group.closestPointAt(nearest.lane, a_point, result.point, result.normal);
+
+  // The value signedDistance() returns on the host, bit for bit there (the scalar kernel's may differ from
+  // the SIMD one's in the last place).
+  result.signedDistance = group.signedDistanceAt(nearest.lane, a_point);
+  result.faceId         = group.getFaceId(nearest.lane);
+
+  return result;
+}
+
+template <class T, size_t K, size_t W>
+EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+TriMeshSDF<T, K, W>::gradient(const Vec3T<T>& a_point) const noexcept
+{
+  return MeshDistanceFunctionsDetail::gradientFromClosestPoint(this->closestPoint(a_point), a_point);
 }
 
 template <class T, size_t K, size_t W>
