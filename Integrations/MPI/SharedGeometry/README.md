@@ -6,8 +6,7 @@ One geometry built once and shared under MPI, with one copy of its memory per no
 * **Build once.** Rank 0 reads a model (an `.ebg` file) and compiles its object into a `Tape`, and freezes the pool
   they live in. The pool's size, its bytes and the tape's `Layout` (offsets into the pool, no address) are broadcast,
   and every rank rebuilds the tape with its `(Layout, PoolLocation)` constructor, on a pool made for the bytes
-with `Pool::forImage()`. Only rank 0 reads the file: the
-  other ranks neither read nor compile anything.
+  with `Pool::forImage()`. Only rank 0 reads the file: the other ranks neither read nor compile anything.
 * **One copy per node.** The ranks of a node (`MPI_Comm_split_type` with `MPI_COMM_TYPE_SHARED`) share an MPI
   shared-memory window (`MPI_Win_allocate_shared`). A `MemoryResource` over the window backs the pool on each of them,
   so only the first rank of each node receives the bytes, and every rank of the node reads that one copy. This works

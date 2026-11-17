@@ -426,7 +426,8 @@ public:
    *          is offsets into that block, so the image holds them wherever it is copied. mirror() copies a pool
    *          this process holds; forImage() is for an image that comes from elsewhere: another process (an
    *          MPI broadcast), a file a previous run wrote, or a window of memory several processes share,
-   *          where it is already in place. The caller writes the image into base() (a host copy, a receive, a
+   *          where it is already in place. Nothing is reserved into it: a reserve() before freeze() would append
+   *          to the image and could move the block. The caller writes the image into base() (a host copy, a receive, a
    *          read, or, for a resource the host cannot read, the device copy of its choice), then calls freeze(),
    *          and rebuilds each structure from its layout and location(): @code
    * Pool pool = Pool::forImage(hostMemoryResource(), bytes);

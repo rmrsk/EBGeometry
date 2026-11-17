@@ -160,6 +160,36 @@ public:
   }
 };
 
+// Stands in for device memory without a GPU: the host never reads it here, and the resource says so. Its block is
+// host memory, so the test can still free it.
+class FakeDeviceResource final : public MemoryResource
+{
+public:
+  void*
+  allocate(size_t a_bytes, size_t a_alignment) override
+  {
+    return hostMemoryResource().allocate(a_bytes, a_alignment);
+  }
+
+  void
+  deallocate(void* a_ptr, size_t a_bytes, size_t a_alignment) noexcept override
+  {
+    hostMemoryResource().deallocate(a_ptr, a_bytes, a_alignment);
+  }
+
+  bool
+  isHostAccessible() const noexcept override
+  {
+    return false;
+  }
+
+  bool
+  isDeviceAccessible() const noexcept override
+  {
+    return true;
+  }
+};
+
 template <class T>
 using TestSDF = MeshSDF<T, 4>;
 
@@ -513,6 +543,31 @@ TEMPLATE_TEST_CASE("Pool::forImage: structures rebuilt from a copy of a pool's i
   for (size_t i = 0; i < points.size(); i++) {
     REQUIRE(onMirror.signedDistance(points[i]) == triValues[i]);
   }
+}
+
+TEST_CASE("Pool::forImage: a block of any size, in memory the host may not read, with a location", "[PoolRebase]")
+{
+  // Not a multiple of PoolBaseAlign: the block is exactly the image, allocated and freed at that size.
+  constexpr size_t bytes = 1000;
+
+  Pool pool = Pool::forImage(hostMemoryResource(), bytes);
+
+  REQUIRE(pool.usedBytes() == bytes);
+  REQUIRE(pool.base() != nullptr);
+
+  std::memset(pool.base(), 0x5A, bytes);
+  pool.freeze();
+
+  // A resource the host cannot read: forImage() and location() take it, as mirror() does.
+  FakeDeviceResource deviceMemory;
+  Pool               device = Pool::forImage(deviceMemory, bytes);
+
+  device.freeze();
+
+  const PoolLocation location = device.location();
+
+  REQUIRE(location.isAttachedTo(device));
+  REQUIRE_FALSE(location.isAttachedTo(pool));
 }
 
 TEST_CASE("Pool::forImage: an empty image gives an empty pool", "[PoolRebase]")
