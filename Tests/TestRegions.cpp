@@ -195,7 +195,7 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, with no material, then 
 
   CHECK(unlabeled.getNumRegions() == 4U);
 
-  // An Overlay takes no BVH: however many operands it has, it is no union the large-union warning should flag.
+  // A large Overlay of solids is flagged like a large union (it can take a BVH); one through a BVH is not.
   {
     std::vector<SphereSDF<T>> many;
 
@@ -208,7 +208,8 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, with no material, then 
 
     quiet.m_largeUnionWarning = 0U;
 
-    CHECK(Tape<T>(crowd, Overlay(many), quiet).getLargestPlainUnion() == 0U);
+    CHECK(Tape<T>(crowd, Overlay(many), quiet).getLargestPlainUnion() == 80U);
+    CHECK(Tape<T>(crowd, Overlay(many, Accelerate::BVH), quiet).getLargestPlainUnion() == 0U);
     CHECK(Tape<T>(crowd, Union(many), quiet).getLargestPlainUnion() == 80U);
   }
   CHECK(materialName(unlabeled, 0) == "-");
@@ -3203,4 +3204,293 @@ TEMPLATE_TEST_CASE("regionNeighborhood: a setup translates by numbers and names,
   (void)far.addSubdomain({3U});
 
   REQUIRE(abortsWith([&] { (void)neighborhood.setup(far); }, "RegionNeighborhood: region 3 of subdomain 0"));
+}
+
+namespace {
+
+/**
+ * An assembly of regions that overlap, touch and nest: a half-space (an unbounded box), a box holding most of the
+ * rest, a grid of cubes sharing faces, spheres scattered over them (some moved there by a map), a sphere nested in
+ * another, a region covered by a later one, and a rounded smooth union whose values are only bounds when a_bounds.
+ */
+template <class T>
+std::vector<Expr<T>>
+assembly(const bool a_bounds = false)
+{
+  using Vec3 = Vec3T<T>;
+
+  std::vector<Expr<T>> parts;
+
+  parts.emplace_back(MaterialLabel(PlaneSDF<T>(Vec3(T(0), T(0), T(-1.5)), Vec3(T(0), T(0), T(1))), "ground"));
+  parts.emplace_back(MaterialLabel(BoxSDF<T>(Vec3(T(-2), T(-2), T(-1.5)), Vec3(T(2), T(2), T(1.5))), "air"));
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 2; k++) {
+        const Vec3 lo(T(-1.5) + T(i), T(-1.5) + T(j), T(-1) + T(k));
+
+        parts.emplace_back(MaterialLabel(BoxSDF<T>(lo, lo + Vec3::ones()), ((i + j + k) % 2 == 0) ? "steel" : "iron"));
+      }
+    }
+  }
+
+  std::mt19937                      rng(5);
+  std::uniform_real_distribution<T> where(T(-1.8), T(1.8));
+  std::uniform_real_distribution<T> size(T(0.15), T(0.6));
+
+  for (int s = 0; s < 10; s++) {
+    const Vec3 center(where(rng), where(rng), where(rng));
+    const T    radius = size(rng);
+
+    if (s % 2 == 0) {
+      parts.emplace_back(SphereSDF<T>(center, radius));
+    }
+    else {
+      parts.emplace_back(Translate(SphereSDF<T>(Vec3::zeros(), radius), center));
+    }
+  }
+
+  parts.emplace_back(MaterialLabel(SphereSDF<T>(Vec3(T(0.3), T(-0.2), T(0.1)), T(0.7)), "rubber"));
+  parts.emplace_back(SphereSDF<T>(Vec3(T(0.3), T(-0.2), T(0.1)), T(0.3)));
+
+  // Covered by the next region: a region with no volume.
+  parts.emplace_back(BoxSDF<T>(Vec3(T(1.1), T(1.1), T(0.6)), Vec3(T(1.3), T(1.3), T(0.8))));
+  parts.emplace_back(BoxSDF<T>(Vec3(T(1), T(1), T(0.5)), Vec3(T(1.4), T(1.4), T(0.9))));
+
+  if (a_bounds) {
+    parts.emplace_back(SmoothUnion(
+      SphereSDF<T>(Vec3(T(-1), T(1), T(1)), T(0.4)), SphereSDF<T>(Vec3(T(-0.5), T(1), T(1)), T(0.4)), T(0.2)));
+  }
+
+  return parts;
+}
+
+/**
+ * Points in and around an assembly: random ones, and ones on the faces its cubes share, where regions tie.
+ */
+template <class T>
+std::vector<Vec3T<T>>
+assemblyPoints()
+{
+  std::mt19937                      rng(11);
+  std::uniform_real_distribution<T> where(T(-2.4), T(2.4));
+
+  std::vector<Vec3T<T>> points;
+
+  for (int i = 0; i < 300; i++) {
+    points.emplace_back(where(rng), where(rng), where(rng));
+  }
+
+  for (int i = 0; i < 60; i++) {
+    points.emplace_back(T(-0.5), T(0.4) * where(rng), T(0.4) * where(rng));
+    points.emplace_back(T(0.4) * where(rng), T(0.5), T(0));
+  }
+
+  return points;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Overlay through a BVH: every region query gives what the same Overlay gives without one",
+                   "[Overlay][Tape][Domain]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions quiet;
+
+  quiet.m_largeUnionWarning = 0U;
+
+  const std::vector<Expr<T>> parts = assembly<T>();
+
+  const Tape<T> plain(pool, Overlay(parts), quiet);
+  const Tape<T> fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+
+  const uint32_t n = plain.getNumRegions();
+
+  REQUIRE(fast.getNumRegions() == n);
+  CHECK(plain.getNumBVHUnions() == 0U);
+  CHECK(fast.getNumBVHUnions() == 1U);
+
+  for (uint32_t k = 0; k < n; k++) {
+    CHECK(fast.getMaterialOf(k) == plain.getMaterialOf(k));
+  }
+
+  // Two subdomains (the air; the steel and iron cubes), the rest excluded, for the subdomains' functions.
+  DomainSetup setup;
+  DomainSetup cubes;
+
+  std::vector<uint32_t> grid;
+
+  for (uint32_t k = 3; k < 21; k++) {
+    grid.push_back(k);
+  }
+
+  (void)setup.addSubdomain({2});
+  (void)setup.addSubdomain(grid);
+
+  const Domain plainDomain(pool, plain, setup);
+  const Domain fastDomain(pool, fast, setup);
+
+  for (const Vec3& p : assemblyPoints<T>()) {
+    INFO("point " << p);
+
+    CHECK(fast.signedDistance(p) == plain.signedDistance(p));
+    CHECK(fast.region(p) == plain.region(p));
+
+    for (uint32_t k = 0; k < n; k++) {
+      INFO("region " << k);
+
+      CHECK(fast.signedDistance(p, k) == plain.signedDistance(p, k));
+
+      const SurfaceRef<T> a = fast.closestSurface(p, k);
+      const SurfaceRef<T> b = plain.closestSurface(p, k);
+
+      CHECK(a.m_surface == b.m_surface);
+      CHECK(a.m_ownerRegion == b.m_ownerRegion);
+      CHECK(a.m_neighborRegion == b.m_neighborRegion);
+      CHECK(a.m_neighborMaterial == b.m_neighborMaterial);
+    }
+
+    T fastValues[3];
+    T plainValues[3];
+
+    fastDomain.signedDistances(p, fastValues);
+    plainDomain.signedDistances(p, plainValues);
+
+    for (uint32_t l = 0; l < 3; l++) {
+      CHECK(fastValues[l] == plainValues[l]);
+    }
+
+    for (uint32_t d = 0; d < 2; d++) {
+      CHECK(fastDomain.signedDistance(p, d) == plainDomain.signedDistance(p, d));
+
+      const SurfaceRef<T> a = fastDomain.closestSurface(p, d);
+      const SurfaceRef<T> b = plainDomain.closestSurface(p, d);
+
+      CHECK(a.m_surface == b.m_surface);
+      CHECK(a.m_ownerRegion == b.m_ownerRegion);
+      CHECK(a.m_neighborRegion == b.m_neighborRegion);
+    }
+  }
+
+  // Rays from random points in random directions: the region changes along them, and a subdomain's surface.
+  std::mt19937                      rng(23);
+  std::uniform_real_distribution<T> where(T(-2.4), T(2.4));
+  std::uniform_real_distribution<T> unit(T(-1), T(1));
+
+  for (int r = 0; r < 120; r++) {
+    const Vec3    origin(where(rng), where(rng), where(rng));
+    const Vec3    direction = Vec3(unit(rng), unit(rng), unit(rng)) / Vec3(unit(rng), unit(rng), unit(rng)).length();
+    const RayT<T> ray{origin, direction / direction.length()};
+
+    INFO("ray from " << origin << " along " << ray.m_direction);
+
+    T t = T(0);
+
+    for (int step = 0; step < 12; step++) {
+      const SurfaceHitT<T> a = fast.firstRegionChange(ray, t, T(8));
+      const SurfaceHitT<T> b = plain.firstRegionChange(ray, t, T(8));
+
+      REQUIRE(a.m_hit.hit() == b.m_hit.hit());
+
+      if (!b.m_hit.hit()) {
+        break;
+      }
+
+      CHECK_THAT(a.m_hit.m_t, withinAbsT<T>(b.m_hit.m_t, tightMargin<T>()));
+      CHECK(a.m_surface.m_ownerRegion == b.m_surface.m_ownerRegion);
+      CHECK(a.m_surface.m_neighborRegion == b.m_surface.m_neighborRegion);
+      CHECK(a.m_surface.m_surface == b.m_surface.m_surface);
+
+      t = b.m_hit.m_t;
+    }
+
+    for (uint32_t d = 0; d < 2; d++) {
+      const SurfaceHitT<T> a = fast.firstSurface(ray, T(0), T(8), fastDomain.subdomains(), d);
+      const SurfaceHitT<T> b = plain.firstSurface(ray, T(0), T(8), plainDomain.subdomains(), d);
+
+      REQUIRE(a.m_hit.hit() == b.m_hit.hit());
+
+      if (b.m_hit.hit()) {
+        CHECK_THAT(a.m_hit.m_t, withinAbsT<T>(b.m_hit.m_t, tightMargin<T>()));
+        CHECK(a.m_surface.m_ownerRegion == b.m_surface.m_ownerRegion);
+        CHECK(a.m_surface.m_neighborRegion == b.m_surface.m_neighborRegion);
+      }
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE(
+  "Overlay through a BVH: with regions whose values are only bounds, the same signs, values no farther "
+  "from zero",
+  "[Overlay][Tape]",
+  EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions quiet;
+
+  quiet.m_largeUnionWarning = 0U;
+
+  const std::vector<Expr<T>> parts = assembly<T>(true);
+
+  const Tape<T> plain(pool, Overlay(parts), quiet);
+  const Tape<T> fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+
+  for (const Vec3T<T>& p : assemblyPoints<T>()) {
+    INFO("point " << p);
+
+    CHECK(fast.region(p) == plain.region(p));
+
+    for (uint32_t k = 0; k < plain.getNumRegions(); k++) {
+      const T a = fast.signedDistance(p, k);
+      const T b = plain.signedDistance(p, k);
+
+      INFO("region " << k << ": " << a << " and " << b);
+
+      CHECK((a < T(0)) == (b < T(0)));
+      CHECK(std::abs(a) <= std::abs(b));
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Overlay through a BVH: can be moved, but holds no Overlay and is not clipped, drilled or nested",
+                   "[Overlay]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto bvh = [] {
+    return Overlay(std::vector<SphereSDF<T>>{SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::ones(), T(1))},
+                   Accelerate::BVH);
+  };
+
+  const char* moved = "an Overlay through a BVH (Accelerate::BVH) can be moved, but not clipped, drilled or placed in "
+                      "another Overlay";
+
+  REQUIRE(abortsWith(
+    [] { (void)Overlay(std::vector<Expr<T>>{cable<T>(), SphereSDF<T>(Vec3::ones(), T(1))}, Accelerate::BVH); },
+    "Overlay: the regions of an Overlay through a BVH (Accelerate::BVH) are solids, not Overlays"));
+  REQUIRE(abortsWith([&] { (void)Overlay(SphereSDF<T>(Vec3::zeros(), T(3)), bvh()); }, moved));
+  REQUIRE(abortsWith([&] { (void)Overlay(SphereSDF<T>(Vec3::zeros(), T(3)), Translate(bvh(), Vec3::ones())); }, moved));
+  REQUIRE(abortsWith([&] { (void)Intersection(bvh(), SphereSDF<T>(Vec3::zeros(), T(3))); }, moved));
+  REQUIRE(abortsWith([&] { (void)Difference(bvh(), SphereSDF<T>(Vec3::zeros(), T(0.5))); }, moved));
+
+  // Moved, its regions are those of the Overlay, and its queries go through the BVH.
+  Pool pool(hostMemoryResource());
+
+  const Tape<T> moved1(pool, Translate(bvh(), Vec3(T(5), T(0), T(0))));
+
+  CHECK(moved1.getNumRegions() == 3U);
+  CHECK(moved1.region(Vec3(T(5), T(0), T(0))) == 1U);
+  CHECK(moved1.region(Vec3(T(6), T(1), T(1))) == 2U);
+  CHECK(moved1.region(Vec3::zeros()) == 0U);
+  CHECK(ExprIndex<T>(bvh()).getNode(0).m_operation == "Overlay (BVH)");
 }

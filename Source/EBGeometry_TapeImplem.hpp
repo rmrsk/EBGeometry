@@ -339,6 +339,16 @@ public:
   }
 
   /**
+   * @brief Whether the largest union evaluated as written is an Overlay (for the warning's advice).
+   * @return True if it is.
+   */
+  [[nodiscard]] bool
+  largestIsOverlay() const noexcept
+  {
+    return m_largestIsOverlay;
+  }
+
+  /**
    * @brief Set up.
    * @param[in,out] a_pool           Pool the BVHs are built in, and that pool-resident primitives must live in.
    * @param[in]     a_options        Compile settings.
@@ -532,6 +542,11 @@ private:
   uint32_t m_largestPlainUnion = 0;
 
   /**
+   * @brief Whether that union is an Overlay.
+   */
+  bool m_largestIsOverlay = false;
+
+  /**
    * @brief Append a clause and track the stacks.
    * @param[in,out] a_state  Sub-program state.
    * @param[in]     a_clause Clause.
@@ -673,9 +688,26 @@ private:
   }
 
   /**
+   * @brief Whether an Overlay holds another (nested Overlays take no BVH).
+   * @param[in] a_node The Overlay.
+   * @return True if an operand is a partition.
+   */
+  [[nodiscard]] static bool
+  holdsPartition(const ExprDetail::Node<T>& a_node) noexcept
+  {
+    for (const auto& child : a_node.m_children) {
+      if (child.node().m_partition) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * @brief How many objects a union evaluated as written evaluates: its operands, with those of the sharp
-   * unions evaluated as written directly under a sharp one counted in its place.
-   * @param[in] a_node The union (a Union or SmoothUnion not built with Accelerate::BVH).
+   * unions evaluated as written directly under a sharp one counted in its place (an Overlay's operands one each).
+   * @param[in] a_node The union (a Union, SmoothUnion or Overlay not built with Accelerate::BVH).
    * @return The count.
    */
   [[nodiscard]] uint32_t
@@ -688,7 +720,9 @@ private:
     for (const auto& child : a_node.m_children) {
       const ExprDetail::Node<T>& c = child.node();
 
-      const bool nested = (a_node.m_kind == Kind::Union && c.m_kind == Kind::Union && !this->useBVH(c));
+      // An Overlay's operands are regions, each one object, whatever it is.
+      const bool nested =
+        (a_node.m_kind == Kind::Union && !a_node.m_overlay && c.m_kind == Kind::Union && !this->useBVH(c));
 
       size += nested ? this->plainUnionSize(c) : 1U;
     }
@@ -1317,9 +1351,14 @@ private:
         this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
       }
       else {
-        // An Overlay takes no BVH, so it is not counted: the warning's advice would not apply.
-        if (a_node.m_kind == Kind::Union && !a_node.m_overlay) {
-          m_largestPlainUnion = Math::max(m_largestPlainUnion, this->plainUnionSize(a_node));
+        // An Overlay is counted when it could take a BVH: one of solids, not of Overlays.
+        if (a_node.m_kind == Kind::Union && (!a_node.m_overlay || !this->holdsPartition(a_node))) {
+          const uint32_t size = this->plainUnionSize(a_node);
+
+          if (size > m_largestPlainUnion) {
+            m_largestPlainUnion = size;
+            m_largestIsOverlay  = a_node.m_overlay;
+          }
         }
 
         const Op      op    = (a_node.m_kind == Kind::Union) ? Op::Min : Op::Max;
@@ -1381,7 +1420,12 @@ private:
       }
       else {
         if (isUnion) {
-          m_largestPlainUnion = Math::max(m_largestPlainUnion, this->plainUnionSize(a_node));
+          const uint32_t size = this->plainUnionSize(a_node);
+
+          if (size > m_largestPlainUnion) {
+            m_largestPlainUnion = size;
+            m_largestIsOverlay  = false;
+          }
         }
 
         // Only the two extreme values are blended, so they are tracked as the operands are evaluated.
@@ -1726,8 +1770,9 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
     TapeDetail::regionSolids(a_expr, 0U, path, solids);
 
     // The table: the number of operands n, each operand's record's offset, each region's material (the background
-    // first; two for an object with no Overlay), then the records: the number of masks above the region, their
-    // numbers (outermost first), and its programs, level 0 (every mask) to the last.
+    // first; two for an object with no Overlay), the BVH over the regions (see regionBVH()), then the records: the
+    // number of masks above the region, their numbers (outermost first), and its programs, level 0 (every mask) to the
+    // last.
     std::vector<uint32_t>&                                       table = staging.m_regionPrograms;
     std::vector<std::pair<const ExprDetail::Node<T>*, uint32_t>> masks;
 
@@ -1739,6 +1784,41 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
 
     for (uint32_t k = 0; k < regions.getNumRegions(); k++) {
       table.push_back(regions.getMaterialOf(k).value());
+    }
+
+    // An Overlay through a BVH is the only Overlay of its expression, and its regions are solids with no masks
+    // (Overlay() and the builder's checks): one BVH over the regions' numbers, each in its solid's box. A region with
+    // an empty box goes with the unbounded ones, which every query evaluates, as in a BVH union.
+    table.push_back(TapeDetail::NoRegionBVH);
+
+    if (a_expr.node().m_regionBVH) {
+      std::vector<uint32_t>                  numbers;
+      std::vector<BoundingVolumes::AABBT<T>> boxes;
+
+      for (size_t k = 0; k < solids.size(); k++) {
+        EBGEOMETRY_EXPECT(solids[k].m_masks.empty());
+
+        const BoundingVolumes::AABBT<T>& box = solids[k].m_levels.front().computeBoundingVolume();
+
+        numbers.push_back(static_cast<uint32_t>(k + 1));
+        boxes.push_back(ExprDetail::isEmpty(box) ? ExprDetail::everywhere<T>() : box);
+      }
+
+      const auto parts = CSGDetail::buildUnionParts<T, uint32_t, BranchingRatio>(
+        a_pool,
+        numbers,
+        boxes,
+        a_options.m_construction,
+        BVH::PackedBVH<T, uint32_t, BranchingRatio>::defaultConstructionOptions());
+
+      TapeDetail::UnionBVH<T, BranchingRatio> bvh;
+
+      bvh.m_bvh       = parts.bvh.layout();
+      bvh.m_unbounded = parts.unbounded.layout();
+
+      staging.m_unions.push_back(bvh);
+
+      table.back() = static_cast<uint32_t>(staging.m_unions.size() - 1);
     }
 
     for (size_t k = 0; k < solids.size(); k++) {
@@ -1820,8 +1900,12 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
 
   if (a_options.m_largeUnionWarning > 0U && staging.m_largestPlainUnion >= a_options.m_largeUnionWarning) {
     std::fprintf(stderr,
-                 "EBGeometry::Tape: a union of %u objects is evaluated as written; Union(objects, "
-                 "Accelerate::BVH) evaluates it through a BVH (TapeOptions::m_largeUnionWarning silences this)\n",
+                 compiler.largestIsOverlay()
+                   ? "EBGeometry::Tape: an Overlay of %u regions is evaluated as written; Overlay(regions, "
+                     "Accelerate::BVH) evaluates it and its region queries through a BVH "
+                     "(TapeOptions::m_largeUnionWarning silences this)\n"
+                   : "EBGeometry::Tape: a union of %u objects is evaluated as written; Union(objects, "
+                     "Accelerate::BVH) evaluates it through a BVH (TapeOptions::m_largeUnionWarning silences this)\n",
                  unsigned(staging.m_largestPlainUnion));
   }
 
@@ -3381,7 +3465,8 @@ EBGEOMETRY_HOST_DEVICE
 inline uint32_t
 Tape<T, UserPrimitives...>::getNumBVHUnions() const noexcept
 {
-  return m_layout.m_unions.size();
+  // The BVH over an Overlay's regions is stored with the unions, but is not one.
+  return m_layout.m_unions.size() - ((this->regionBVH() != TapeDetail::NoRegionBVH) ? 1U : 0U);
 }
 
 template <class T, class... UserPrimitives>
@@ -3467,6 +3552,97 @@ Tape<T, UserPrimitives...>::getNumRegions() const noexcept
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline uint32_t
+Tape<T, UserPrimitives...>::regionBVH() const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  // After the count, the records' offsets and the n + 1 materials.
+  return (n > 0U) ? m_layout.m_regionPrograms.at(this->base(), 2U * n + 2U) : TapeDetail::NoRegionBVH;
+}
+
+template <class T, class... UserPrimitives>
+template <class Visit, class Radius>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::visitRegionsNear(const Vec3T<T>& a_point, Visit&& a_visit, Radius&& a_radius) const noexcept
+{
+  EBGEOMETRY_EXPECT(this->regionBVH() != TapeDetail::NoRegionBVH);
+
+  const TapeDetail::UnionBVH<T, BranchingRatio>& parts = m_layout.m_unions.at(this->base(), this->regionBVH());
+
+  const UnionRoot bvh(parts.m_bvh, this->location());
+  const UnionRoot unbounded(parts.m_unbounded, this->location());
+
+  const auto others  = unbounded.getPrimitives();
+  const auto regions = bvh.getPrimitives();
+
+  for (uint32_t i = 0; i < others.size(); i++) {
+    a_visit(others[i]);
+  }
+
+  // The walk keeps its state in the callbacks.
+  struct Walk
+  {
+  } walk;
+
+  const auto leaf = [&regions, &a_visit](Walk&, const size_t a_offset, const size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      a_visit(regions[static_cast<uint32_t>(i)]);
+    }
+  };
+
+  // The point query's key is the squared distance to a box. A little beyond the radius, so that a solid equal to it
+  // (a tie, which the callers break by region) is not lost where the distance to its box rounds the other way.
+  const auto bound = [&a_radius](const Walk&) noexcept -> T {
+    const T radius = Math::max(T(0), a_radius()) * (T(1) + T(64) * Math::Limits<T>::epsilon());
+
+    return radius * radius;
+  };
+
+  bvh.traverse(BVH::PointQuery<T>{a_point}, walk, leaf, bound);
+}
+
+template <class T, class... UserPrimitives>
+template <class Visit, class Horizon>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::visitRegionsAlong(const RayT<T>& a_ray,
+                                              const T        a_tMin,
+                                              Visit&&        a_visit,
+                                              Horizon&&      a_horizon) const noexcept
+{
+  EBGEOMETRY_EXPECT(this->regionBVH() != TapeDetail::NoRegionBVH);
+
+  const TapeDetail::UnionBVH<T, BranchingRatio>& parts = m_layout.m_unions.at(this->base(), this->regionBVH());
+
+  const UnionRoot bvh(parts.m_bvh, this->location());
+  const UnionRoot unbounded(parts.m_unbounded, this->location());
+
+  const auto others  = unbounded.getPrimitives();
+  const auto regions = bvh.getPrimitives();
+
+  for (uint32_t i = 0; i < others.size(); i++) {
+    a_visit(others[i]);
+  }
+
+  struct Walk
+  {
+  } walk;
+
+  const auto leaf = [&regions, &a_visit](Walk&, const size_t a_offset, const size_t a_count) noexcept {
+    for (size_t i = a_offset; i < a_offset + a_count; i++) {
+      a_visit(regions[static_cast<uint32_t>(i)]);
+    }
+  };
+
+  const auto bound = [&a_horizon](const Walk&) noexcept -> T { return a_horizon(); };
+
+  bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), walk, leaf, bound);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::regionSolid(const uint32_t  a_region,
@@ -3520,6 +3696,22 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 
   const uint32_t n = this->numRegionOperands();
 
+  // Through the regions' BVH, only the solids whose boxes hold the point can.
+  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+    uint32_t found = 0U;
+
+    this->visitRegionsNear(
+      a_point,
+      [this, &a_point, &found](const uint32_t a_region) {
+        if (a_region > found && this->regionSolid(a_region, 0U, a_point) < T(0)) {
+          found = a_region;
+        }
+      },
+      []() { return T(0); });
+
+    return found;
+  }
+
   // The last region whose solid, with all its masks, holds the point: later regions are on top.
   for (uint32_t k = n; k > 0U; k--) {
     if (this->regionSolid(k, 0U, a_point) < T(0)) {
@@ -3552,6 +3744,24 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
   // Region k is its solid with its masks, minus each later solid without the masks the two share (see
   // TapeDetail::RegionSolid): max(S_k, -min_{j>k} S_j).
   T later = Math::Limits<T>::max();
+
+  // Through the regions' BVH (no masks), a later solid matters only where it is below -S_k: one holding the point,
+  // or, inside region k's solid, one nearer than its surface, or than the nearest later solid found so far. Any other
+  // is at least as far as its box, beyond that.
+  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+    const T own = this->regionSolid(a_region, 0U, a_point);
+
+    this->visitRegionsNear(
+      a_point,
+      [this, &a_point, a_region, &later](const uint32_t a_other) {
+        if (a_other > a_region) {
+          later = Math::min(later, this->regionSolid(a_other, 0U, a_point));
+        }
+      },
+      [own, &later]() { return Math::min((own < T(0)) ? -own : T(0), later); });
+
+    return Math::max(own, -later);
+  }
 
   for (uint32_t j = a_region + 1U; j <= n; j++) {
     later = Math::min(later, this->regionSolid(j, this->sharedMasks(a_region, j), a_point));
@@ -3611,6 +3821,66 @@ Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_v
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline TapeDetail::SubdomainSides<T>
+Tape<T, UserPrimitives...>::subdomainSides(const Subdomains& a_subdomains, const uint32_t a_subdomain) const noexcept
+{
+  return this->setSides([&a_subdomains, a_subdomain](const uint32_t a_region) {
+    return a_subdomains.subdomainOf(a_region) == a_subdomain;
+  });
+}
+
+template <class T, class... UserPrimitives>
+template <class InSet>
+EBGEOMETRY_HOST_DEVICE
+inline TapeDetail::SubdomainSides<T>
+Tape<T, UserPrimitives...>::setSides(InSet&& a_inSet) const noexcept
+{
+  TapeDetail::SubdomainSides<T> sides;
+
+  // Only a search through the regions' BVH reads them (regionDistancesWithin()).
+  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+    sides.m_in  = false;
+    sides.m_out = false;
+
+    for (uint32_t r = 0; r < this->getNumRegions() && !(sides.m_in && sides.m_out); r++) {
+      if (a_inSet(r)) {
+        sides.m_in = true;
+      }
+      else {
+        sides.m_out = true;
+      }
+    }
+  }
+
+  return sides;
+}
+
+template <class T, class... UserPrimitives>
+template <class Visit, class Radius>
+EBGEOMETRY_HOST_DEVICE
+inline void
+Tape<T, UserPrimitives...>::regionDistancesWithin(const Vec3T<T>& a_point,
+                                                  Visit&&         a_visit,
+                                                  Radius&&        a_radius) const noexcept
+{
+  if (this->regionBVH() == TapeDetail::NoRegionBVH) {
+    this->regionDistances(a_point, a_visit);
+
+    return;
+  }
+
+  // A region's function is never below its solid, nor its solid below the distance to its box (where the solids are
+  // distances): a region whose box is beyond the radius has a function beyond it too.
+  a_visit(0U, -this->wholeValue(a_point));
+
+  this->visitRegionsNear(
+    a_point,
+    [this, &a_point, &a_visit](const uint32_t a_region) { a_visit(a_region, this->signedDistance(a_point, a_region)); },
+    a_radius);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>&   a_point,
@@ -3625,14 +3895,19 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>&   a_point,
   T in  = Math::Limits<T>::max();
   T out = Math::Limits<T>::max();
 
-  this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
-    if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
-      in = Math::min(in, a_value);
-    }
-    else {
-      out = Math::min(out, a_value);
-    }
-  });
+  const TapeDetail::SubdomainSides<T> sides = this->subdomainSides(a_subdomains, a_subdomain);
+
+  this->regionDistancesWithin(
+    a_point,
+    [&](const uint32_t a_region, const T a_value) {
+      if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+        in = Math::min(in, a_value);
+      }
+      else {
+        out = Math::min(out, a_value);
+      }
+    },
+    [&]() { return sides.radius(in, out); });
 
   return T(0.5) * (in - out);
 }
@@ -3650,20 +3925,29 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
   uint32_t region  = Subdomains::None;
   uint32_t other   = Subdomains::None;
 
+  const TapeDetail::SubdomainSides<T> sides = this->subdomainSides(a_subdomains, a_subdomain);
+
   // The subdomain's region whose function is smallest, and the smallest of the regions outside it; on a tie, the
-  // lowest-numbered, as asked region by region.
-  this->regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
-    if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
-      if (a_value <= value) {
-        value  = a_value;
-        region = a_region;
+  // lowest-numbered, whatever the order the regions are visited in.
+  const auto smaller = [](const T a_value, const uint32_t a_region, const T a_best, const uint32_t a_bestRegion) {
+    return a_value < a_best || (a_value == a_best && (a_bestRegion == Subdomains::None || a_region < a_bestRegion));
+  };
+
+  this->regionDistancesWithin(
+    a_point,
+    [&](const uint32_t a_region, const T a_value) {
+      if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+        if (smaller(a_value, a_region, value, region)) {
+          value  = a_value;
+          region = a_region;
+        }
       }
-    }
-    else if (a_value <= outside) {
-      outside = a_value;
-      other   = a_region;
-    }
-  });
+      else if (smaller(a_value, a_region, outside, other)) {
+        outside = a_value;
+        other   = a_region;
+      }
+    },
+    [&]() { return sides.radius(value, outside); });
 
   if (region == Subdomains::None) {
     return SurfaceRef<T>();
@@ -3780,18 +4064,34 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
 
     first.m_t = a_tMax;
 
-    for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
-      const uint32_t record = m_layout.m_regionPrograms.at(base, k);
+    const auto trace = [&](const uint32_t a_region) {
+      if (a_region < Math::max(from, 1U)) {
+        return;
+      }
+
+      const uint32_t record = m_layout.m_regionPrograms.at(base, a_region);
       const uint32_t solid =
         m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
 
       const HitT<T> hit = this->traceProgram(solid, a_ray, start, first.m_t, a_options);
 
       // On a tie, the later region: it lies on top, as region() names the point.
-      if (hit.hit() && (!first.hit() || hit.m_t <= first.m_t)) {
+      if (hit.hit() && (!first.hit() || hit.m_t < first.m_t || (hit.m_t == first.m_t && a_region > entered))) {
         first   = hit;
         program = solid;
-        entered = k;
+        entered = a_region;
+      }
+    };
+
+    // Through the regions' BVH, only the solids whose boxes the ray enters before the first crossing so far.
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      // A little beyond the first crossing so far: a solid crossed there too (a tie, the later region's) is not lost
+      // where the ray's entry into its box rounds the other way.
+      this->visitRegionsAlong(a_ray, start, trace, [&first, nudge]() { return first.m_t + nudge; });
+    }
+    else {
+      for (uint32_t k = Math::max(from, 1U); k <= n; k++) {
+        trace(k);
       }
     }
 
@@ -3992,12 +4292,28 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     T        nearest = Math::Limits<T>::max();
     uint32_t across  = 0U;
 
-    for (uint32_t m = n; m > 0U; m--) {
-      const T value = this->regionSolid(m, 0U, a_point);
+    // Through the regions' BVH, nearest first: a solid is never below the distance to its box.
+    if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+      this->visitRegionsNear(
+        a_point,
+        [this, &a_point, &nearest, &across](const uint32_t a_region) {
+          const T value = this->regionSolid(a_region, 0U, a_point);
 
-      if (value < nearest) {
-        nearest = value;
-        across  = m;
+          if (value < nearest || (value == nearest && a_region > across)) {
+            nearest = value;
+            across  = a_region;
+          }
+        },
+        [&nearest]() { return nearest; });
+    }
+    else {
+      for (uint32_t m = n; m > 0U; m--) {
+        const T value = this->regionSolid(m, 0U, a_point);
+
+        if (value < nearest) {
+          nearest = value;
+          across  = m;
+        }
       }
     }
 
@@ -4014,6 +4330,10 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
   using V = CSGOps::Tagged<T>;
 
   const V own = this->regionSolidTagged(a_region, 0U, a_point);
+
+  if (this->regionBVH() != TapeDetail::NoRegionBVH) {
+    return this->closestRegionSurface(a_point, a_region, own);
+  }
 
   V later;
 
@@ -4092,6 +4412,96 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
       break;
     }
   }
+
+  surface.m_ownerRegion      = a_region;
+  surface.m_neighborRegion   = across;
+  surface.m_ownerMaterial    = this->getMaterialOf(surface.m_ownerRegion);
+  surface.m_neighborMaterial = this->getMaterialOf(surface.m_neighborRegion);
+
+  return surface;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline SurfaceRef<T>
+Tape<T, UserPrimitives...>::closestRegionSurface(const Vec3T<T>&          a_point,
+                                                 const uint32_t           a_region,
+                                                 const CSGOps::Tagged<T>& a_own) const noexcept
+{
+  using V = CSGOps::Tagged<T>;
+
+  // The later solid with the smallest value, as closestSurface() finds it region by region, upwards: of several with
+  // that value, the first, unless a later one of them holds the point (it lies on top), then the last of those. A
+  // later solid matters only below -S_k (see signedDistance(point, region)), so the walk looks no farther.
+  V        first;
+  V        top;
+  uint32_t firstRegion = 0U;
+  uint32_t topRegion   = 0U;
+
+  first.m_value = Math::Limits<T>::max();
+  first.m_tag   = CSGOps::NoTag;
+  first.m_point = a_point;
+
+  top = first;
+
+  const auto holds = [this, &a_point](const uint32_t a_other) {
+    return this->regionSolid(a_other, 0U, a_point) < T(0);
+  };
+
+  this->visitRegionsNear(
+    a_point,
+    [&](const uint32_t a_other) {
+      if (a_other <= a_region) {
+        return;
+      }
+
+      const V value = this->regionSolidTagged(a_other, 0U, a_point);
+
+      if (firstRegion == 0U || value.m_value < first.m_value) {
+        first       = value;
+        firstRegion = a_other;
+        topRegion   = 0U;
+      }
+      else if (value.m_value == first.m_value) {
+        // The tie's first region is now another; the one it replaces counts as a later one.
+        const uint32_t later = (a_other < firstRegion) ? firstRegion : a_other;
+        const V        kept  = (a_other < firstRegion) ? first : value;
+
+        if (a_other < firstRegion) {
+          first       = value;
+          firstRegion = a_other;
+        }
+
+        if (later > topRegion && holds(later)) {
+          top       = kept;
+          topRegion = later;
+        }
+      }
+    },
+    [&a_own, &first]() { return Math::min((a_own.m_value < T(0)) ? -a_own.m_value : T(0), first.m_value); });
+
+  const uint32_t met   = (topRegion > firstRegion) ? topRegion : firstRegion;
+  const V&       later = (topRegion > firstRegion) ? top : first;
+
+  const bool byLater = (met != 0U) && (-later.m_value > a_own.m_value);
+
+  SurfaceRef<T> surface = this->surfaceOf(this->leafOf(byLater ? later : a_own));
+
+  // Across an interface with a later region: that region, or one later still on top of it there. Across the
+  // region's own surface: the last other region that holds the point, or the background. Either holds the point, so
+  // its box does.
+  const uint32_t from   = byLater ? met : 0U;
+  uint32_t       across = from;
+
+  this->visitRegionsNear(
+    a_point,
+    [&](const uint32_t a_other) {
+      if (a_other > across && a_other != a_region && holds(a_other)) {
+        across = a_other;
+      }
+    },
+    []() { return T(0); });
 
   surface.m_ownerRegion      = a_region;
   surface.m_neighborRegion   = across;

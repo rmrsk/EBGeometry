@@ -223,6 +223,13 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
   for (size_t i = 0; i < a_children.size(); i++) {
     const Node<T>& child = a_children[i].node();
 
+    if (child.m_regionBVH) {
+      EBGEOMETRY_REQUIRE(a_kind == Kind::Affine,
+                         "%s: an Overlay through a BVH (Accelerate::BVH) can be moved, but not clipped, drilled or "
+                         "placed in another Overlay",
+                         a_overlay ? "Overlay" : kindName(a_kind));
+    }
+
     if (child.m_partition) {
       const bool clipped = (a_kind == Kind::Intersection) && (i == 0);
 
@@ -247,6 +254,7 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
   node->m_overlay     = a_overlay;
   node->m_partition   = a_overlay || ((a_kind == Kind::Affine || a_kind == Kind::Intersection) && firstIsPartition);
   node->m_namesRegion = (a_kind == Kind::Affine) && !a_children.empty() && a_children.front().node().m_namesRegion;
+  node->m_regionBVH   = (a_kind == Kind::Affine) && !a_children.empty() && a_children.front().node().m_regionBVH;
   node->m_children    = std::move(a_children);
 
   return node;
@@ -1033,7 +1041,7 @@ SurfaceLabel(const A& a_operand, FaceGroups a_groups)
 
 template <class A>
 inline Expr<ExprPrecision<A>>
-Overlay(const std::vector<A>& a_operands)
+Overlay(const std::vector<A>& a_operands, const Accelerate a_accelerate)
 {
   using T = ExprPrecision<A>;
 
@@ -1041,6 +1049,19 @@ Overlay(const std::vector<A>& a_operands)
 
   // A union with a flag: a Tape evaluates it as the union of its operands, the whole object.
   auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Union, ExprDetail::toExprs(a_operands), true);
+
+  // Through a BVH, every region is one solid: the region queries search the operands' boxes, which a nested Overlay's
+  // regions or a mask's cut would not be found by.
+  if (a_accelerate == Accelerate::BVH) {
+    for (const Expr<T>& child : node->m_children) {
+      EBGEOMETRY_REQUIRE(!child.node().m_partition,
+                         "Overlay: the regions of an Overlay through a BVH (Accelerate::BVH) are solids, not "
+                         "Overlays");
+    }
+
+    node->m_bvh       = true;
+    node->m_regionBVH = true;
+  }
 
   BoundingVolumes::AABBT<T> box;
   DistanceQuality           quality = DistanceQuality::Bound;
@@ -1209,7 +1230,7 @@ operationName(const Node<T>& a_node)
     return "Mollify";
   }
   case Kind::Union: {
-    return a_node.m_overlay ? std::string("Overlay") : "Union" + bvh;
+    return (a_node.m_overlay ? std::string("Overlay") : std::string("Union")) + bvh;
   }
   case Kind::Intersection: {
     return "Intersection";

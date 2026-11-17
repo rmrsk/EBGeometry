@@ -215,12 +215,38 @@ public:
       a_values[l] = Math::Limits<T>::max();
     }
 
-    m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+    const auto slotOf = [&subdomains, excluded](const uint32_t a_region) {
       const uint32_t subdomain = subdomains.subdomainOf(a_region);
-      const uint32_t slot      = (subdomain == Subdomains::None) ? excluded : subdomain;
 
-      a_values[slot] = Math::min(a_values[slot], a_value);
-    });
+      return (subdomain == Subdomains::None) ? excluded : subdomain;
+    };
+
+    // A search through the tape's regions' BVH waits only for the slots that have a region: those start at infinity,
+    // above the largest value, which the others keep.
+    if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
+      for (uint32_t r = 0; r < m_tape.getNumRegions(); r++) {
+        a_values[slotOf(r)] = Math::Limits<T>::infinity();
+      }
+    }
+
+    m_tape.regionDistancesWithin(
+      a_point,
+      [&](const uint32_t a_region, const T a_value) {
+        const uint32_t slot = slotOf(a_region);
+
+        a_values[slot] = Math::min(a_values[slot], a_value);
+      },
+      [&]() {
+        T radius = Math::Limits<T>::lowest();
+
+        for (uint32_t l = 0; l <= excluded; l++) {
+          if (a_values[l] != Math::Limits<T>::max()) {
+            radius = Math::max(radius, a_values[l]);
+          }
+        }
+
+        return radius;
+      });
 
     // A function's other term is the smallest of the others': the smallest of all, or the second smallest for the one
     // that has it.
