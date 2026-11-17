@@ -359,7 +359,9 @@ Test coverage
        4 and 8 and on a device against the host; with no bound every primitive once and ``AsStored``
        in stored order; an empty BVH calling nothing; ``BVH::RayQuery`` entry distances against the
        unit cube's slab answers, including rays in a face's plane, along an edge and with -0
-       components, single-box and K-wide paths agreeing; the nearest box a ray enters against brute
+       components, single-box and K-wide paths agreeing; rays that meet a box only along an edge
+       entering it, on the host and on a device, which they would not without the slab test's
+       widening; the nearest box a ray enters against brute
        force at K = 2, 4 and 8, and on a device; a missed box never entered under an infinite bound;
        the visit orders and both comparator forms; a visit callback accounting for whole subtrees
        and stopping the walk; a user query type with a composite key); ``BVH::TreeBVH::traverse`` passing an exception
