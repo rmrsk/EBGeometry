@@ -1,10 +1,31 @@
 Integrations
 ============
 
-This folder contains examples of coupling `EBGeometry` to a third-party application code:
+This folder contains examples of using `EBGeometry` with third-party code:
 
+* `MPI/` — uses `EBGeometry` under MPI: every rank holds the whole geometry, so its queries need no communication,
+  and a node can hold one copy of it.
 * `AMReX/` — couples `EBGeometry` signed distance functions to
   [AMReX](https://amrex-codes.github.io/amrex/)'s embedded-boundary grid generation.
+
+Unlike everything under `Examples/`, which is compiled and run on every pull request, nothing here is built as part
+of `EBGeometry`'s continuous integration: a change to the third-party code (or to `EBGeometry` itself) can break an
+integration without anyone noticing. Treat them as a starting point for your own integration.
+
+MPI
+---
+
+| Folder | What it shows |
+|---|---|
+| `OctreeLevelSet` | Queries without communication: an adaptive octree whose roots are split among the ranks in Morton order; each rank refines its roots toward the surface of a model's tape and the interfaces between its regions, and stores the signed distance at each leaf's corners (and the region), and writes its leaves as a VTK file that ParaView and VisIt open. |
+| `SharedGeometry` | Build once, one copy per node: rank 0 reads a model and compiles it into a tape; the other ranks rebuild the tape from its pool's bytes and its `Layout`, never reading the file, with one copy per node in an MPI shared-memory window (`MPI_Win_allocate_shared`) behind a `MemoryResource`. |
+
+They need an MPI installation and nothing else, and read the model `Examples/LanguageCSG/solid.ebg` by default. Each
+checks its own answers and exits with 1 on an error. They were last compiled and run in November 2026 with Open MPI
+4.1.6, in `float` and `double`. See the README in each folder.
+
+AMReX
+-----
 
 Each integration mirrors one or more of the native examples under [`Examples/`](../Examples/README.md) and hands
 the object it builds to AMReX's embedded-boundary grid generation:
@@ -19,10 +40,8 @@ the object it builds to AMReX's embedded-boundary grid generation:
 | `ManyObjects` | Thousands of objects in a BVH union: spheres packed in a cylinder, or a city of boxes (`scene = spheres` or `city`). |
 
 > [!IMPORTANT]
-> These integrations are **not CI-tested**. Unlike everything under `Examples/`, which is compiled and
-> run on every pull request, nothing here is built as part of `EBGeometry`'s continuous
-> integration -- doing so would require installing and maintaining a matching version of AMReX,
-> a third-party project with its own release cadence. All of them were last compiled and run in October 2026,
+> The AMReX integrations are not built in continuous integration: that would require installing and maintaining a
+> matching version of AMReX, a third-party project with its own release cadence. All of them were last compiled and run in October 2026,
 > on CPUs and on an NVIDIA GPU (CUDA), against AMReX's development branch (26.09); they have not been run
 > with HIP.
 > Treat them as a starting point for your own integration.

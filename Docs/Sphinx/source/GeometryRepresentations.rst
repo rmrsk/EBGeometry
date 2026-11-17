@@ -5,18 +5,18 @@ Geometry as a function
 
 Everything EBGeometry holds, whether a sphere, a triangle mesh, a cloud of particles, or a composition of
 thousands of them, is a function of a point: :math:`S(\mathbf{x})` says how far the point :math:`\mathbf{x}`
-is from the object, and on which side. The pages of this section describe the kinds of geometry, how they
-are composed, and the questions they answer:
+is from the object, and on which side. The pages of this section describe the kinds of geometry and how
+they are composed:
 
 * :ref:`Chap:Meshes`: triangle and polygon meshes as signed distance functions;
-* :ref:`Chap:BVH`: the bounding volume hierarchies that make a mesh, or many objects, fast to query;
-* :ref:`Chap:PointCloud`: points and spheres, and their nearest neighbors;
+* :ref:`Chap:PointCloud`: points and spheres;
 * :ref:`Chap:ConstructiveSolidGeometry` and :ref:`Chap:Tape`: composing objects, and compiling the
   composition into a program that runs on a CPU or a GPU;
 * :ref:`Chap:LeavesAndSurfaces` and :ref:`Chap:Regions`: which part of an object a point or a surface
-  belongs to, and objects made of several materials;
-* :ref:`Chap:Rays`, :ref:`Chap:RayTracing`, :ref:`Chap:SphereTracing` and :ref:`Chap:Rendering`: where a
-  ray or a particle's step meets the object, and pictures made that way.
+  belongs to, and objects made of several materials.
+
+The questions they answer are in :ref:`Chap:Queries`, and what makes the answers fast in :ref:`Chap:BVH` and
+:ref:`Chap:CloudSearch`.
 
 The :ref:`Chap:Glossary` defines the words these pages give a meaning of their own.
 

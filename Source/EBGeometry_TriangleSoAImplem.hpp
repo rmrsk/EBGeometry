@@ -251,6 +251,28 @@ TriangleSoAT<T, W>::signedDistanceAt(uint32_t a_lane, const Vec3T<T>& a_point) c
 template <class T, size_t W>
 EBGEOMETRY_HOST_DEVICE
 T
+TriangleSoAT<T, W>::closestPointAt(const uint32_t  a_lane,
+                                   const Vec3T<T>& a_point,
+                                   Vec3T<T>&       a_closestPoint,
+                                   Vec3T<T>&       a_normal) const noexcept
+{
+  EBGEOMETRY_EXPECT(a_lane < m_validCount);
+
+  TriangleDistance::Vec3V<T> closest{};
+  TriangleDistance::Vec3V<T> normal{};
+
+  const T d = TriangleDistance::closestPoint<T>(
+    LaneSource<T>{this, a_lane}, TriangleDistance::Vec3V<T>{a_point[0], a_point[1], a_point[2]}, closest, normal);
+
+  a_closestPoint = Vec3T<T>(closest.x, closest.y, closest.z);
+  a_normal       = Vec3T<T>(normal.x, normal.y, normal.z);
+
+  return d;
+}
+
+template <class T, size_t W>
+EBGEOMETRY_HOST_DEVICE
+T
 TriangleSoAT<T, W>::signedDistanceLane(uint32_t a_lane, const Vec3T<T>& a_point) const noexcept
 {
   EBGEOMETRY_EXPECT(a_lane < W);

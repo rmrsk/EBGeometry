@@ -585,6 +585,44 @@ FaceT<T>::signedDistance(const Vec3& a_x0, const Mesh& a_mesh) const noexcept
 template <class T>
 EBGEOMETRY_HOST_DEVICE
 inline T
+FaceT<T>::closestPoint(const Vec3& a_x0, const Mesh& a_mesh, Vec3& a_closestPoint, Vec3& a_normal) const noexcept
+{
+  EBGEOMETRY_EXPECT(m_halfEdge != UINT32_MAX);
+
+  // The edge signedDistance() picks outside the face: the first strictly nearest.
+  T retval = Math::Limits<T>::infinity();
+
+  for (EdgeIterator iter(a_mesh, *this); iter.ok(); ++iter) {
+    Vec3    point;
+    Vec3    normal;
+    const T curDist = a_mesh.getEdge(iter()).closestPoint(a_x0, a_mesh, point, normal);
+
+    if (std::abs(curDist) < std::abs(retval)) {
+      retval         = curDist;
+      a_closestPoint = point;
+      a_normal       = normal;
+    }
+  }
+
+  if (this->isPointInsideFace(a_x0, a_mesh)) {
+    const T d = m_normal.dot(a_x0 - m_centroid);
+
+    // Nearest the face, unless the point projects onto its boundary, where an edge or a vertex is as near:
+    // that feature is then the one the point lies on, with its pseudonormal. The distance is the face's.
+    if (std::abs(retval) > std::abs(d)) {
+      a_closestPoint = a_x0 - d * m_normal;
+      a_normal       = m_normal;
+    }
+
+    return d;
+  }
+
+  return retval;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline T
 FaceT<T>::rayCrossing(
   const Vec3& a_origin, const Vec3& a_direction, const T a_tMin, const T a_tMax, const Mesh& a_mesh) const noexcept
 {

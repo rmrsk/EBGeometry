@@ -302,8 +302,8 @@ public:
    * @brief Rebuild a handle from a stored layout and the location of the pool that holds it.
    * @details How a tape, a BVH union or a fused operation evaluates a cloud it stores as a layout. The handle answers
    * every query; it has no room for a rebuild(), which is called on the BVH build() returned. @p a_location must
-   * belong to the pool the layout was reserved from, or to a mirror of it; nothing is checked, since a device has no
-   * pool to check against.
+   * belong to the pool the layout was reserved from, to a mirror of it, or to a pool holding its image
+   * (Pool::forImage()); nothing is checked, since a device has no pool to check against.
    * @param[in] a_layout   The arrays.
    * @param[in] a_location Where they live.
    */

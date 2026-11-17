@@ -195,6 +195,36 @@ for any pool. A frozen pool in device memory can be mirrored to the host (``Pool
 like any other, and a ``rebasedView()`` onto the copy is the same structure on the host, as it was at the copy.
 :ref:`Chap:ExampleParticleNeighbors` keeps both its particles and its grid in device memory.
 
+.. _Sec:PoolImage:
+
+A pool from its image
+^^^^^^^^^^^^^^^^^^^^^
+
+A pool's *image* is its block's first ``usedBytes()`` bytes, from ``base()``. Every structure in it is offsets
+into the block, so the image holds them wherever it is copied: into another process, to a file and back, or into
+memory several processes share. ``Pool::mirror()`` copies a pool this process holds; an image that comes from
+elsewhere goes into a pool made with ``Pool::forImage(resource, bytes)``, a block of exactly ``bytes`` for the
+caller to fill, which is then frozen. Each structure is rebuilt from its ``layout()`` and ``pool.location()``, with
+its constructor that takes a layout and a location:
+
+.. code-block:: c++
+
+   // Where it was built: a frozen pool, and the layout of the structure to send.
+   send(built.base(), built.usedBytes());
+   send(tape.layout());
+
+   // Where it arrives: no file is read and nothing is compiled.
+   Pool pool = Pool::forImage(hostMemoryResource(), bytes);
+   receiveInto(pool.base(), bytes);
+   pool.freeze();
+   const Tape<T> copy(layout, pool.location());
+
+This builds a large geometry once and copies it to every process of a parallel run, keeps one copy per node in
+shared memory, or caches a build in a file for the next run. Nothing checks that the bytes are an image, or that a
+layout belongs to it: keep the two together. The program must be the same build, with the same precision and
+template parameters, as the one that wrote the image. The new pool is a root of its own, so it is mirrored to a
+device and its structures rebased onto the mirror as for any pool. :ref:`Chap:Integrations` shows it under MPI.
+
 .. _Sec:ResolvedAddresses:
 
 Resolved addresses do not survive a ``reserve``

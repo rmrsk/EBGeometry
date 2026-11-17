@@ -37,6 +37,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `Render/`     | One frame of the renderer (shadows, ambient occlusion) of the CSG solid through a tape (also with an orthographic camera) and of the armadillo as a `TriMeshSDF` |
 | `MeshCSG/`    | A mesh standing on a table, joined by a plain union through a tape and by a smooth union through a tape and fused: rays and renderer frames |
 | `RayCrossing/` | `firstCrossing()`, the first crossing without its normal, against `firstHit()`: a mesh, a CSG tape, and tapes holding a mesh (drilled, traced; smoothly joined to a ball, marched) |
+| `MeshClosestPoint/` | The mesh SDFs' `closestPoint()` and `gradient()` (TriMeshSDF, MeshSDF), against `signedDistance()` |
 | `ClosestPrimitive/` | A tape's `closestLeaf()`, the deciding leaf (CSG, a scene of fused parts, a drilled mesh) |
 | `ClosestSurface/` | A tape's `closestSurface()`, drilled into a cloud of spheres (a `SphereCloudBVH`, a `BVHUnion`), against `closestLeaf()` |
 | `SurfaceParts/` | A tape's surfaces with their parts and labels: `closestSurface()` on a union of boxes and on a mesh labeled by face groups, and `firstSurface()` at that mesh, against `closestLeaf()` and `firstHit()` |

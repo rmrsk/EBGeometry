@@ -10,7 +10,8 @@ cloud: ``PointCloudBVH`` (:file:`Source/EBGeometry_PointCloudBVH.hpp`) and ``Poi
 ``closestPoint`` / ``closestPoints`` / ``nearestNeighbor`` / ``nearestNeighbors`` /
 ``allNearestNeighbors`` -- return the same result type, and can be queried on a GPU. They differ in
 the spatial acceleration structure they build: a hierarchical tree, or a uniform grid. See
-:ref:`Chap:PointCloud` for the conceptual picture and the trade-off between the two. A third class,
+:ref:`Chap:PointCloud` for the conceptual picture and :ref:`Chap:CloudSearch` for the trade-off between the
+two. A third class,
 ``SphereCloudBVH`` (see :ref:`Sec:SphereCloudBVH`), holds spheres of differing radii and answers for their surfaces
 and for the contacts between them.
 
@@ -33,7 +34,7 @@ The classes store no per-point user data. Keep it in your own array and index it
 ``nearestNeighbor`` / ``nearestNeighbors`` (and the batch ``allNearestNeighbors``) answer a point
 already in the cloud, excluding it from its own result. ``PointCloudBVH`` additionally seeds such a
 search from the leaf the point lives in -- a strictly cheaper search an external point cannot use
-(see :ref:`Chap:PointCloud`).
+(see :ref:`Chap:CloudSearch`).
 
 Both classes keep their candidates in a ``PointCloud::KBest`` set (`doxygen
 <doxygen/html/classEBGeometry_1_1PointCloud_1_1KBest.html>`__): the k nearest found so far, sorted

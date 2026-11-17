@@ -103,6 +103,30 @@ each face makes at the vertex (see :numref:`Fig:Pseudonormal`):
 
 Both are computed when the mesh is built.
 
+.. _Sec:MeshGradient:
+
+The closest point and the gradient
+----------------------------------
+
+The search for the distance also finds where it is measured to: the closest point :math:`\mathbf{c}` on the
+mesh. From it, the gradient of the signed distance :math:`S` follows in closed form,
+
+.. math::
+
+   \nabla S(\mathbf{x}) = \operatorname{sign}\left(S(\mathbf{x})\right)\frac{\mathbf{x} - \mathbf{c}}{\left|\mathbf{x} - \mathbf{c}\right|},
+
+a unit vector: away from the closest point outside the mesh, toward it inside. Where :math:`\mathbf{c}` lies
+inside a face it is the face's normal; on an edge or a vertex, the direction from that feature to the point.
+It costs one distance query, where a finite-difference gradient costs six and needs a step smaller than the
+mesh's features. It also moves a point onto the surface in one step,
+:math:`\mathbf{c} = \mathbf{x} - S(\mathbf{x})\,\nabla S(\mathbf{x})`.
+
+The formula has no direction on the surface itself, where :math:`\mathbf{x} = \mathbf{c}`. There the gradient
+is the pseudonormal of the face, edge or vertex the point is on, the normal a mesh has at its edges and
+corners. At points with more than one closest point (the medial surface, inside a box along its diagonals)
+the distance has no gradient; the one reported is seen from the first closest face found, one of the
+one-sided gradients.
+
 .. _Chap:Triangles:
 
 Triangles in SIMD blocks
