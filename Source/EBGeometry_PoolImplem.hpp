@@ -186,6 +186,39 @@ Pool::freeze() noexcept
 }
 
 inline Pool
+Pool::forImage(MemoryResource& a_resource, const size_t a_bytes)
+{
+  EBGEOMETRY_REQUIRE(
+    a_bytes <= s_maxBytes, "Pool::forImage: an image of %zu bytes is more than a pool block can hold", a_bytes);
+
+  // MirrorTag: the resource may be one the host cannot read, as for a mirror; the block is exactly the image,
+  // with no slack, and is filled by the caller rather than reserved into.
+  Pool pool(a_resource, MirrorTag{});
+
+  if (a_bytes > 0) {
+    pool.m_control->m_base = a_resource.allocate(a_bytes, PoolBaseAlign);
+  }
+
+  pool.m_capacity = a_bytes;
+  pool.m_size     = a_bytes;
+
+  return pool;
+}
+
+inline PoolLocation
+Pool::location() const noexcept
+{
+  // Following the pool through its control block, as a structure's first reservation from it does; set
+  // directly rather than through attach(), whose check is for builders writing from the host, so that a pool
+  // in device memory gets a location too.
+  PoolLocation location;
+
+  location.m_control = m_control.get();
+
+  return location;
+}
+
+inline Pool
 Pool::mirror(const Pool& a_src, MemoryResource& a_dstResource)
 {
   // An unfrozen source could still grow after the copy, leaving the mirror stale.

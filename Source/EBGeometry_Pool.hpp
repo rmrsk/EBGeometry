@@ -197,7 +197,8 @@ public:
    * @param[in] a_resource     Memory resource that backs every allocation of this pool. Must
    *                           outlive the pool.
    * @param[in] a_initialBytes If non-zero, the initial block byte capacity to reserve up front
-   *                           (avoids the first grow). The block is still empty (@c usedBytes()==0).
+   *                           (avoids the first grow), rounded up to a multiple of @ref PoolBaseAlign (the
+   *                           resource is asked for that much). The block is still empty (@c usedBytes()==0).
    */
   EBGEOMETRY_HOST
   explicit Pool(MemoryResource& a_resource, size_t a_initialBytes = 0);
@@ -417,6 +418,44 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST
   static Pool
   mirror(const Pool& a_src, MemoryResource& a_dstResource);
+
+  /**
+   * @brief A pool for the image of a frozen pool: a block of exactly @p a_bytes from @p a_resource, with
+   *        usedBytes() equal to @p a_bytes, not yet frozen, for the caller to fill.
+   * @details A pool's @e image is its block's first usedBytes() bytes, from base(). Every structure in the pool
+   *          is offsets into that block, so the image holds them wherever it is copied. mirror() copies a pool
+   *          this process holds; forImage() is for an image that comes from elsewhere: another process (an
+   *          MPI broadcast), a file a previous run wrote, or a window of memory several processes share,
+   *          where it is already in place. The caller writes the image into base() (a host copy, a receive, a
+   *          read, or, for a resource the host cannot read, the device copy of its choice), then calls freeze(),
+   *          and rebuilds each structure from its layout and location(): @code
+   * Pool pool = Pool::forImage(hostMemoryResource(), bytes);
+   * MPI_Bcast(pool.base(), bytes, MPI_BYTE, 0, comm);
+   * pool.freeze();
+   * const Tape<T> tape(layout, pool.location());
+   *          @endcode
+   *          The pool is a root of its own: rebasedView() of a structure rebuilt this way onto a mirror of
+   *          this pool works as for any pool. Nothing checks that the bytes are an image, or that a layout
+   *          belongs to it: pairing them is the caller's job. Several pools may be made over one block that a
+   *          resource hands to each (a shared window); such a resource must not free the block per pool.
+   * @param[in] a_resource Where the block lives. Must outlive the pool.
+   * @param[in] a_bytes    The image's size, the source pool's usedBytes(). Zero gives an empty pool.
+   * @return The pool, its block allocated and unfilled.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  static Pool
+  forImage(MemoryResource& a_resource, size_t a_bytes);
+
+  /**
+   * @brief A location that follows this pool, for rebuilding a structure from its layout with its
+   *        (Layout, PoolLocation) constructor.
+   * @details Used with forImage(): a structure whose image was written into this pool is rebuilt with the
+   *          layout it had in the source pool. The pool must outlive the location and everything built on it.
+   * @return The location.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline PoolLocation
+  location() const noexcept;
 
 private:
   /// @brief Largest block, in bytes: the largest multiple of @ref PoolBaseAlign a @c size_t holds, so

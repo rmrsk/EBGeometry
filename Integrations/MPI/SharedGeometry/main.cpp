@@ -59,10 +59,9 @@ namespace {
 class SharedWindowResource final : public EBGeometry::MemoryResource
 {
 public:
-  // Collective over a_node. a_bytes is the block's size, the same on every rank; a pool rounds its block up to
-  // PoolBaseAlign, so the window holds that much.
-  SharedWindowResource(MPI_Comm a_node, const std::size_t a_bytes)
-    : m_node(a_node), m_bytes((a_bytes + EBGeometry::PoolBaseAlign - 1) & ~(EBGeometry::PoolBaseAlign - 1))
+  // Collective over a_node. a_bytes is the block's size, the same on every rank: the image's, which
+  // Pool::forImage() asks for exactly.
+  SharedWindowResource(MPI_Comm a_node, const std::size_t a_bytes) : m_node(a_node), m_bytes(a_bytes)
   {
     int nodeRank = 0;
 
@@ -159,19 +158,6 @@ broadcastBytes(void* a_data, const std::size_t a_bytes, const int a_root, MPI_Co
   }
 }
 
-// The location of the objects in a pool this rank did not build into: the pool on the window, whose bytes rank 0's
-// pool sent. Following the pool, as a handle that was built in it does. This is the one place that says how a handle
-// finds a pool filled from outside; a library call for it would replace this function.
-EBGeometry::PoolLocation
-locationOf(const EBGeometry::Pool& a_pool)
-{
-  EBGeometry::PoolLocation location;
-
-  location.attach(a_pool, "SharedGeometry");
-
-  return location;
-}
-
 // The points every rank evaluates: a regular lattice through the box around the object, the same on every rank.
 std::vector<Vec3>
 lattice(const Vec3& a_lo, const Vec3& a_hi)
@@ -252,20 +238,15 @@ run(int argc, char* argv[])
 
   // ── One copy per node ────────────────────────────────────────────────────────────────────────────────
   //
-  // A pool on the node's window, constructed with the block's size so that its block is the window from the start,
-  // and the block reserved whole. The first rank of each node receives the bytes from rank 0 straight into the window
-  // (rank 0 copies its own); then the pool is frozen on every rank, as a pool that is not built into any more.
+  // Every rank makes a pool for the image over the node's window (Pool::forImage()): a block of exactly the image's
+  // size, which the resource hands out as the window itself. The first rank of each node receives the bytes from
+  // rank 0 straight into the window (rank 0 copies its own); then the pool is frozen on every rank.
   int numNodes = 0; // Known on the first rank of each node only (they make up leaders), which includes rank 0.
   int status   = 0;
 
   {
     SharedWindowResource resource(node, bytes);
-    EBGeometry::Pool     pool(resource, bytes);
-
-    // The layout's offsets count from the start of the block, so the whole block is reserved at offset 0.
-    if (pool.reserve(bytes, 1, 1) != 0) {
-      MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+    EBGeometry::Pool     pool = EBGeometry::Pool::forImage(resource, bytes);
 
     if (nodeRank == 0) {
       if (rank == 0) {
@@ -289,9 +270,9 @@ run(int argc, char* argv[])
 
     // ── Rebuild the handle, on every rank ──────────────────────────────────────────────────────────────
     //
-    // The tape is its layout plus the location of the pool that holds it: here, this rank's pool on the window.
-    // Nothing is read or compiled.
-    const Tape tape(layout, locationOf(pool));
+    // The tape is its layout plus the location of the pool that holds it: here, this rank's pool on the window
+    // (Pool::location()). Nothing is read or compiled.
+    const Tape tape(layout, pool.location());
 
     // ── The same answers on every rank ─────────────────────────────────────────────────────────────────
     //

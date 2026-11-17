@@ -447,3 +447,82 @@ TEST_CASE("PoolLocation: a view of device-only memory used on the host fails an 
     "EBGeometry assertion failed: (m_hostAccessible)"));
 }
 #endif
+
+TEMPLATE_TEST_CASE("Pool::forImage: structures rebuilt from a copy of a pool's image answer like the originals",
+                   "[PoolRebase][PoolHandle]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Tri  = TriMeshSDF<T, 4, 4>;
+  using Tape = EBGeometry::Tape<T, Tri>;
+
+  // The image, the layouts and the answers of the originals; the originals and their pool are gone before the
+  // copy is read, so the copy can only answer from its own bytes.
+  std::vector<unsigned char> image;
+  typename Tri::Layout       triLayout;
+  typename Tape::Layout      tapeLayout;
+  std::vector<T>             triValues;
+  std::vector<T>             tapeValues;
+
+  {
+    Pool host(hostMemoryResource());
+
+    const auto mesh = Parser::readIntoDCEL<T>(dodecahedron(), host);
+    const Tri  tri(mesh, host, BVH::Construction::SAH, 4);
+    const Tape tape(host, Difference(Expr<T>(tri), SphereSDF<T>(Vec3T<T>::zeros(), T(0.5))));
+
+    host.freeze();
+
+    const auto* bytes = static_cast<const unsigned char*>(host.base());
+
+    image.assign(bytes, bytes + host.usedBytes());
+    triLayout  = tri.layout();
+    tapeLayout = tape.layout();
+
+    for (const auto& p : probes<T>()) {
+      triValues.push_back(tri.signedDistance(p));
+      tapeValues.push_back(tape.signedDistance(p));
+    }
+  }
+
+  Pool copy = Pool::forImage(hostMemoryResource(), image.size());
+
+  REQUIRE(copy.usedBytes() == image.size());
+  REQUIRE_FALSE(copy.isFrozen());
+
+  std::memcpy(copy.base(), image.data(), image.size());
+  copy.freeze();
+
+  const Tri  tri(triLayout, copy.location());
+  const Tape tape(tapeLayout, copy.location());
+
+  REQUIRE(tri.isAttachedTo(copy));
+
+  const auto points = probes<T>();
+
+  for (size_t i = 0; i < points.size(); i++) {
+    REQUIRE(tri.signedDistance(points[i]) == triValues[i]);
+    REQUIRE(tape.signedDistance(points[i]) == tapeValues[i]);
+  }
+
+  // The copy is a root of its own: a structure rebuilt on it rebases onto the copy's mirrors.
+  FakeManagedResource managed;
+  const Pool          mirror   = Pool::mirror(copy, managed);
+  const Tri           onMirror = tri.rebasedView(mirror);
+
+  for (size_t i = 0; i < points.size(); i++) {
+    REQUIRE(onMirror.signedDistance(points[i]) == triValues[i]);
+  }
+}
+
+TEST_CASE("Pool::forImage: an empty image gives an empty pool", "[PoolRebase]")
+{
+  Pool pool = Pool::forImage(hostMemoryResource(), 0);
+
+  REQUIRE(pool.usedBytes() == 0);
+  REQUIRE(pool.base() == nullptr);
+
+  pool.freeze();
+
+  REQUIRE(pool.isFrozen());
+}

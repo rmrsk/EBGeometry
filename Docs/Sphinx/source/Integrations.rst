@@ -35,9 +35,9 @@ library's public calls:
 * **Build once.** The geometry lives in a `Pool <doxygen/html/classEBGeometry_1_1Pool.html>`__
   (:ref:`Chap:MemoryModel`), which holds offsets rather than addresses, so its bytes are valid in any process. One
   rank builds the object (reads a mesh or a model, compiles a tape) and freezes its pool; the pool's size, its bytes
-  and the object's ``Layout`` (offsets only) are broadcast, and every other rank rebuilds the object with its
-  constructor that takes a layout and a `PoolLocation <doxygen/html/structEBGeometry_1_1PoolLocation.html>`__,
-  instead of reading and building it again.
+  and the object's ``Layout`` (offsets only) are broadcast. Every other rank receives the bytes into a pool made for
+  them with ``Pool::forImage()`` and rebuilds the object from its layout and the pool's ``location()``, instead of
+  reading and building it again (see :ref:`Sec:PoolImage`).
 * **One copy per node.** A `MemoryResource <doxygen/html/classEBGeometry_1_1MemoryResource.html>`__ of your own,
   over an MPI shared-memory window (``MPI_Win_allocate_shared``), backs the pool on every rank of a node. Only one rank of the node receives the bytes,
   and every rank reads that copy, wherever the window is mapped in its process. A node then holds the geometry once,
