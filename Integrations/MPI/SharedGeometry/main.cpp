@@ -127,6 +127,9 @@ public:
   }
 
   // Collective over the node: what any rank wrote to the window before the call is visible to every rank after it.
+  // Sync, barrier, sync is the pattern for load/store access to a shared window in MPI's unified memory model: the
+  // first sync completes this rank's writes, the barrier orders the ranks, and the second makes the others' writes
+  // visible to this rank's reads.
   void
   publish() const
   {
@@ -196,10 +199,10 @@ run(int argc, char* argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
   // The ranks of this node, and one communicator of the first rank of every node.
-  MPI_Comm node    = MPI_COMM_NULL;
-  MPI_Comm leaders = MPI_COMM_NULL;
-  int      nodeRank;
-  int      nodeSize;
+  MPI_Comm node     = MPI_COMM_NULL;
+  MPI_Comm leaders  = MPI_COMM_NULL;
+  int      nodeRank = 0;
+  int      nodeSize = 0;
 
   MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &node);
   MPI_Comm_rank(node, &nodeRank);
@@ -252,7 +255,7 @@ run(int argc, char* argv[])
   // A pool on the node's window, constructed with the block's size so that its block is the window from the start,
   // and the block reserved whole. The first rank of each node receives the bytes from rank 0 straight into the window
   // (rank 0 copies its own); then the pool is frozen on every rank, as a pool that is not built into any more.
-  int numNodes = 0;
+  int numNodes = 0; // Known on the first rank of each node only (they make up leaders), which includes rank 0.
   int status   = 0;
 
   {

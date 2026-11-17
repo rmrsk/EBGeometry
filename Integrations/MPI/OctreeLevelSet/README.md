@@ -27,8 +27,9 @@ leaf, with the cell data `levelset`, `level`, `rank` and, for a model with regio
 `OctreeLevelSet.pvtu`, which lists the pieces. Open `OctreeLevelSet.pvtu` in ParaView or VisIt; a threshold of
 `levelset` at 0 shows the object, and coloring by `rank` shows the partition. `make clean` removes the files.
 
-The default model is the classic CSG solid of the `LanguageCSG` example, `Examples/LanguageCSG/solid.ebg`; any other
-model can be given as the first argument, for example `Examples/LanguageDomains/cable/model.ebg`, which has regions.
+The default model is the classic CSG solid of the `LanguageCSG` example, `Examples/LanguageCSG/solid.ebg`, found by a path
+relative to this folder (`../../../Examples/LanguageCSG/solid.ebg`): run the program from here, or give a model as the
+first argument, for example `Examples/LanguageDomains/cable/model.ebg`, which has regions.
 The number of roots, the maximum level and the safety factor are constants at the top of `main.cpp`; each further
 level multiplies the number of leaves near the surface by about four.
 

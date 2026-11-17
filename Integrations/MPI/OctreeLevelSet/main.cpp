@@ -99,7 +99,8 @@ refine(const Tape&        a_tape,
 
 const char* const realType = std::is_same_v<T, float> ? "Float32" : "Float64";
 
-void
+// Each writer returns whether the file was written whole.
+bool
 writePiece(const std::string& a_file, const std::vector<Leaf>& a_leaves, const int a_rank, const bool a_regions)
 {
   std::ofstream out(a_file);
@@ -173,10 +174,13 @@ writePiece(const std::string& a_file, const std::vector<Leaf>& a_leaves, const i
   }
 
   out << "</CellData>\n</Piece>\n</UnstructuredGrid>\n</VTKFile>\n";
+  out.close();
+
+  return !out.fail();
 }
 
 // The file that lists the pieces, and declares what they hold.
-void
+bool
 writeMaster(const std::string& a_file, const int a_numRanks, const bool a_regions)
 {
   std::ofstream out(a_file);
@@ -201,6 +205,9 @@ writeMaster(const std::string& a_file, const int a_numRanks, const bool a_region
   }
 
   out << "</PUnstructuredGrid>\n</VTKFile>\n";
+  out.close();
+
+  return !out.fail();
 }
 
 int
@@ -245,6 +252,8 @@ run(int argc, char* argv[])
     codes.push_back(EBGeometry::SFC::Morton::encode(index));
   }
 
+  // A plain sort of the codes is enough for one grid of roots; a forest code would take this order from its own
+  // partitioning (p4est's, say) instead.
   std::sort(codes.begin(), codes.end());
 
   const std::size_t first = codes.size() * static_cast<std::size_t>(rank) / static_cast<std::size_t>(numRanks);
@@ -281,12 +290,23 @@ run(int argc, char* argv[])
   MPI_Reduce(counts.data(), totals.data(), static_cast<int>(counts.size()), MPI_LONG_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 
   // ── Output ───────────────────────────────────────────────────────────────────────────────────────────
-  writePiece(outputName + "_" + std::to_string(rank) + ".vtu", leaves, rank, regions);
+  // A file that cannot be written is reported by the rank that writes it, and fails the run on every rank.
+  const std::string piece = outputName + "_" + std::to_string(rank) + ".vtu";
 
   int status = 0;
 
+  if (!writePiece(piece, leaves, rank, regions)) {
+    std::cerr << "Rank " << rank << " cannot write " << piece << '\n';
+
+    status = 1;
+  }
+
   if (rank == 0) {
-    writeMaster(outputName + ".pvtu", numRanks, regions);
+    if (!writeMaster(outputName + ".pvtu", numRanks, regions)) {
+      std::cerr << "Rank 0 cannot write " << outputName << ".pvtu\n";
+
+      status = 1;
+    }
 
     long long numLeaves = 0;
 
@@ -300,8 +320,11 @@ run(int argc, char* argv[])
     const long long finest = 1LL << (3 * maxLevel);
     const long long cover  = static_cast<long long>(codes.size()) * finest;
 
-    std::cout << " (levels 0 to " << maxLevel << "), " << numLeaves << " in all\n"
-              << "Wrote " << outputName << ".pvtu and one " << outputName << "_<rank>.vtu per rank\n";
+    std::cout << " (levels 0 to " << maxLevel << "), " << numLeaves << " in all\n";
+
+    if (status == 0) {
+      std::cout << "Wrote " << outputName << ".pvtu and one " << outputName << "_<rank>.vtu per rank\n";
+    }
 
     if (totals[maxLevel + 1] != cover) {
       std::cerr << "The leaves cover " << totals[maxLevel + 1] << " of the cube's " << cover << " finest cells\n";
@@ -310,9 +333,11 @@ run(int argc, char* argv[])
     }
   }
 
-  MPI_Bcast(&status, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  int statusOverRanks = 0;
 
-  return status;
+  MPI_Allreduce(&status, &statusOverRanks, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  return statusOverRanks;
 }
 
 } // namespace

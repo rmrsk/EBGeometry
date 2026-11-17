@@ -17,14 +17,15 @@ The location a rank gives the tape (the pool on the window, which it did not bui
 function, `locationOf()`, with `PoolLocation::attach()`.
 
 Every rank then evaluates the same points through the shared copy and compares the values with those of rank 0's own
-build. Ranks other than the first of a node receive no bytes, so they can only get the answers through the window.
+build, bit for bit: every rank runs the same binary on the same bytes, so the values must be identical. Ranks other than the first of a node receive no bytes, so they can only get the answers through the window.
 The program exits with 1 if any value differs.
 
 On GPU nodes, each device still needs a copy of its own: freeze the shared pool and mirror it into device memory with
 `Pool::mirror()`, as on one rank.
 
-The default model is the classic CSG solid of the `LanguageCSG` example, `Examples/LanguageCSG/solid.ebg`; any other
-model can be given as the first argument.
+The default model is the classic CSG solid of the `LanguageCSG` example, `Examples/LanguageCSG/solid.ebg`, found by a path
+relative to this folder (`../../../Examples/LanguageCSG/solid.ebg`): run the program from here, or give a model as the
+first argument.
 
 This integration is not built or run in continuous integration.
 
