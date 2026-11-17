@@ -7,8 +7,10 @@ A coarse grid of root cells covers the box of a model (an `.ebg` file). The root
 (`SFC::Morton`) and cut into one contiguous run per rank, as an octree code such as p4est partitions its forest. Every
 rank reads the model and compiles it into a `Tape` of its own, so it holds the whole geometry. Each rank then refines
 its own roots, cell by cell: a cell is split into eight while the value at its center is, in magnitude, below its
-half-diagonal (times a small safety factor), up to a maximum level. Each leaf stores the signed distance at its
-center and, for a model with regions (an `overlay`), the region there (`Tape::region()`).
+half-diagonal (times a small safety factor), up to a maximum level. In a model with regions (an `overlay`), a cell is
+also split where a region changes in it, where one of its eight corners is in another region than its center
+(`Tape::region()`), so the interfaces between regions are refined as the surface is. Each leaf stores the signed
+distance at its center and, for a model with regions, the region there.
 
 None of this asks another rank anything. The only communication is one reduction at the end, for the summary rank 0
 prints: the leaves per level. The program also checks that the ranks' leaves cover the domain exactly once, and exits

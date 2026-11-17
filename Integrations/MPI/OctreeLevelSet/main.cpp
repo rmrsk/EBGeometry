@@ -4,10 +4,11 @@
 
 // An adaptive octree level set under MPI, without communication. A coarse grid of root cells covers the model's box,
 // and the roots are split among the ranks in Morton order, as an octree code (p4est, say) partitions its forest. Every
-// rank reads the model and compiles it into a tape of its own, refines its roots toward the surface, cell by cell, and
-// stores the signed distance (and the region, if the model has regions) on each leaf. None of that asks another rank
-// anything: each rank holds the whole geometry. One reduction at the end gives a summary, and every rank writes its
-// leaves as a VTK file (ASCII), which ParaView and VisIt open through the .pvtu file rank 0 writes. See README.md.
+// rank reads the model and compiles it into a tape of its own, refines its roots toward the surface and the interfaces
+// between regions, cell by cell, and stores the signed distance (and the region, if the model has regions) on each
+// leaf. None of that asks another rank anything: each rank holds the whole geometry. One reduction at the end gives a
+// summary, and every rank writes its leaves as a VTK file (ASCII), which ParaView and VisIt open through the .pvtu file
+// rank 0 writes. See README.md.
 
 #include <algorithm>
 #include <cmath>
@@ -43,7 +44,8 @@ using Tape = EBGeometry::Tape<T>;
 
 // The octree: rootsPerSide^3 root cells, each refined at most maxLevel times. A cell is refined while the surface may
 // pass through it: while the value at its center is, in magnitude, below its half-diagonal times safety (a little
-// above one, since a composition's value can be a bound rather than the exact distance).
+// above one, since a composition's value can be a bound rather than the exact distance). In a model with regions, a
+// cell is also refined where a region changes in it: where one of its corners is in another region than its center.
 constexpr unsigned int rootsPerSide = 8;
 constexpr int          maxLevel     = 2;
 constexpr T            safety       = T(1.2);
@@ -63,7 +65,23 @@ struct Leaf
   std::uint32_t region;
 };
 
-// Refines a cell toward the surface and appends its leaves, children in Morton order. Only this rank's tape is asked.
+// Whether a corner of the cell is in another region than a_region, the region at its center.
+bool
+regionChanges(const Tape& a_tape, const Vec3& a_lo, const T a_side, const std::uint32_t a_region)
+{
+  for (int corner = 0; corner < 8; corner++) {
+    const Vec3 offset(T(corner & 1), T((corner >> 1) & 1), T((corner >> 2) & 1));
+
+    if (a_tape.region(a_lo + a_side * offset) != a_region) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Refines a cell toward the surface, and toward the interfaces between regions, and appends its leaves, children in
+// Morton order. Only this rank's tape is asked.
 void
 refine(const Tape&        a_tape,
        const bool         a_regions,
@@ -76,7 +94,14 @@ refine(const Tape&        a_tape,
   const T    value        = a_tape.signedDistance(center);
   const T    halfDiagonal = T(0.5) * std::sqrt(T(3)) * a_side;
 
-  if (a_level < maxLevel && std::abs(value) < safety * halfDiagonal) {
+  const std::uint32_t region = a_regions ? a_tape.region(center) : 0U;
+
+  // The corners are asked only where the value alone would not refine, and only below the finest level.
+  const bool nearSurface = std::abs(value) < safety * halfDiagonal;
+  const bool refined =
+    a_level < maxLevel && (nearSurface || (a_regions && regionChanges(a_tape, a_lo, a_side, region)));
+
+  if (refined) {
     const T half = T(0.5) * a_side;
 
     for (int child = 0; child < 8; child++) {
@@ -88,7 +113,7 @@ refine(const Tape&        a_tape,
     return;
   }
 
-  a_leaves.push_back(Leaf{a_lo, a_side, a_level, value, a_regions ? a_tape.region(center) : 0U});
+  a_leaves.push_back(Leaf{a_lo, a_side, a_level, value, region});
 }
 
 // ── VTK output ─────────────────────────────────────────────────────────────────────────────────────────────
