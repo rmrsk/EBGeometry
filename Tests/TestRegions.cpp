@@ -3494,3 +3494,81 @@ TEMPLATE_TEST_CASE("Overlay through a BVH: can be moved, but holds no Overlay an
   CHECK(moved1.region(Vec3::zeros()) == 0U);
   CHECK(ExprIndex<T>(bvh()).getNode(0).m_operation == "Overlay (BVH)");
 }
+
+TEMPLATE_TEST_CASE(
+  "Overlay through a BVH: the region queries on a device match the same Overlay without one on the host",
+  "[Overlay][Tape][gpu]",
+  EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions quiet;
+
+  quiet.m_largeUnionWarning = 0U;
+
+  const std::vector<Expr<T>> parts = assembly<T>();
+
+  const Tape plain(pool, Overlay(parts), quiet);
+  const Tape fast(pool, Overlay(parts, Accelerate::BVH), quiet);
+
+  // The air and the ground, two subdomains; the rest excluded.
+  DomainSetup setup;
+
+  (void)setup.addSubdomain({2});
+  (void)setup.addSubdomain({1});
+
+  const Domain plainDomain(pool, plain, setup);
+  const Domain fastDomain(pool, fast, setup);
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  const std::vector<Vec3> points = assemblyPoints<T>();
+
+  const auto onDevice = evaluateOnDevice<RegionAnswer<T>>(
+    RegionQuery<T, Tape>{fast.rebasedView(device), fastDomain.rebasedView(device)}, points);
+  const auto onHost = evaluateOnHost<RegionAnswer<T>>(RegionQuery<T, Tape>{plain, plainDomain}, points);
+
+  size_t differ = 0;
+
+  for (size_t i = 0; i < points.size(); i++) {
+    INFO("point " << points[i]);
+
+    const RegionAnswer<T>& d = onDevice[i];
+    const RegionAnswer<T>& h = onHost[i];
+
+    // Where two choices are equally right (a point on a surface), the device's rounding may pick the other.
+    differ += (d.m_region != h.m_region || d.m_minus != h.m_minus || d.m_plus != h.m_plus ||
+               d.m_surface != h.m_surface || d.m_from != h.m_from || d.m_to != h.m_to || d.m_subdomain != h.m_subdomain)
+                ? 1U
+                : 0U;
+
+    for (uint32_t k = 0; k < 3; k++) {
+      CHECK_THAT(d.m_values[k], withinAbsT<T>(h.m_values[k], looseMargin<T>()));
+      CHECK(d.m_visited[k] == d.m_values[k]);
+    }
+
+    for (uint32_t k = 0; k < 2; k++) {
+      CHECK_THAT(d.m_subdomainValues[k], withinAbsT<T>(h.m_subdomainValues[k], looseMargin<T>()));
+    }
+
+    for (uint32_t l = 0; l < 3; l++) {
+      CHECK_THAT(d.m_functions[l], withinAbsT<T>(h.m_functions[l], looseMargin<T>()));
+    }
+
+    CHECK_THAT(d.m_t, withinAbsT<T>(h.m_t, looseMargin<T>()));
+  }
+
+  CHECK(differ <= points.size() / 20U);
+}

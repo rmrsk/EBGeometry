@@ -221,11 +221,20 @@ public:
       return (subdomain == Subdomains::None) ? excluded : subdomain;
     };
 
-    // A search through the tape's regions' BVH waits only for the slots that have a region: those start at infinity,
-    // above the largest value, which the others keep.
-    if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
-      for (uint32_t r = 0; r < m_tape.getNumRegions(); r++) {
-        a_values[slotOf(r)] = Math::Limits<T>::infinity();
+    // A search through the tape's regions' BVH waits for the slots with a region other than the background (whose value
+    // comes first, and is final) still to visit: counted per slot up to 255, beyond which a slot is waited for to the
+    // end, and with more slots than counted here, every slot.
+    constexpr uint32_t Counted = 64U;
+
+    uint8_t left[Counted] = {};
+
+    const bool counted = m_tape.regionBVH() != TapeDetail::NoRegionBVH && excluded < Counted;
+
+    if (counted) {
+      for (uint32_t l = 0; l <= excluded; l++) {
+        const uint32_t count = subdomains.getNumRegionsIn((l == excluded) ? Subdomains::None : l);
+
+        left[l] = uint8_t(Math::min(count, 255U));
       }
     }
 
@@ -235,12 +244,16 @@ public:
         const uint32_t slot = slotOf(a_region);
 
         a_values[slot] = Math::min(a_values[slot], a_value);
+
+        if (counted && a_region > 0U && left[slot] > 0U && left[slot] < 255U) {
+          left[slot]--;
+        }
       },
       [&]() {
         T radius = Math::Limits<T>::lowest();
 
         for (uint32_t l = 0; l <= excluded; l++) {
-          if (a_values[l] != Math::Limits<T>::max()) {
+          if (!counted || left[l] > 0U) {
             radius = Math::max(radius, a_values[l]);
           }
         }

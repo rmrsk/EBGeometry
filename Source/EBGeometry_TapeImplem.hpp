@@ -3824,32 +3824,15 @@ EBGEOMETRY_HOST_DEVICE
 inline TapeDetail::SubdomainSides<T>
 Tape<T, UserPrimitives...>::subdomainSides(const Subdomains& a_subdomains, const uint32_t a_subdomain) const noexcept
 {
-  return this->setSides([&a_subdomains, a_subdomain](const uint32_t a_region) {
-    return a_subdomains.subdomainOf(a_region) == a_subdomain;
-  });
-}
-
-template <class T, class... UserPrimitives>
-template <class InSet>
-EBGEOMETRY_HOST_DEVICE
-inline TapeDetail::SubdomainSides<T>
-Tape<T, UserPrimitives...>::setSides(InSet&& a_inSet) const noexcept
-{
   TapeDetail::SubdomainSides<T> sides;
 
-  // Only a search through the regions' BVH reads them (regionDistancesWithin()).
+  // Only a search through the regions' BVH reads them (regionDistancesWithin()); the table counts each subdomain's
+  // regions other than the background.
   if (this->regionBVH() != TapeDetail::NoRegionBVH) {
-    sides.m_in  = false;
-    sides.m_out = false;
+    const uint32_t others = this->getNumRegions() - 1U;
 
-    for (uint32_t r = 0; r < this->getNumRegions() && !(sides.m_in && sides.m_out); r++) {
-      if (a_inSet(r)) {
-        sides.m_in = true;
-      }
-      else {
-        sides.m_out = true;
-      }
-    }
+    sides.m_in  = Math::min(a_subdomains.getNumRegionsIn(a_subdomain), others);
+    sides.m_out = others - sides.m_in;
   }
 
   return sides;
@@ -3873,9 +3856,85 @@ Tape<T, UserPrimitives...>::regionDistancesWithin(const Vec3T<T>& a_point,
   // distances): a region whose box is beyond the radius has a function beyond it too.
   a_visit(0U, -this->wholeValue(a_point));
 
+  // The regions whose boxes hold the point first, with their solids. The walk is depth first, nearest child first, so
+  // while a caller still waits for a set with no value yet (its radius is unbounded) it visits the whole of the nearest
+  // subtree before the next: a region holding the point (a matrix around many parts) would come after every part in
+  // that subtree. Up to Held of them; with more, every region is asked on its own as the walk reaches it.
+  constexpr uint32_t Held = 8U;
+
+  uint32_t held[Held];
+  T        solids[Held];
+  uint32_t numHeld = 0U;
+  bool     more    = false;
+
   this->visitRegionsNear(
     a_point,
-    [this, &a_point, &a_visit](const uint32_t a_region) { a_visit(a_region, this->signedDistance(a_point, a_region)); },
+    [&](const uint32_t a_region) {
+      if (numHeld < Held) {
+        held[numHeld]   = a_region;
+        solids[numHeld] = this->regionSolid(a_region, 0U, a_point);
+
+        numHeld++;
+      }
+      else {
+        more = true;
+      }
+    },
+    []() { return T(0); });
+
+  if (more) {
+    this->visitRegionsNear(
+      a_point,
+      [this, &a_point, &a_visit](const uint32_t a_region) {
+        a_visit(a_region, this->signedDistance(a_point, a_region));
+      },
+      a_radius);
+
+    return;
+  }
+
+  // Region k's function is max(S_k, -min_{j>k} S_j), and a later solid lowers it only below zero, so where it holds the
+  // point: those are all held. Only the last region whose solid holds the point (the point's region) is cut by later
+  // solids that do not, those nearer than its surface, and asks for them (signedDistance(point, region)).
+  uint32_t top = 0U;
+
+  for (uint32_t i = 0; i < numHeld; i++) {
+    if (solids[i] < T(0) && held[i] > top) {
+      top = held[i];
+    }
+  }
+
+  const auto function = [&](const uint32_t a_region, const T a_solid) {
+    if (a_region == top) {
+      return this->signedDistance(a_point, a_region);
+    }
+
+    T later = Math::Limits<T>::max();
+
+    for (uint32_t i = 0; i < numHeld; i++) {
+      if (held[i] > a_region && solids[i] < T(0)) {
+        later = Math::min(later, solids[i]);
+      }
+    }
+
+    return Math::max(a_solid, -later);
+  };
+
+  for (uint32_t i = 0; i < numHeld; i++) {
+    a_visit(held[i], function(held[i], solids[i]));
+  }
+
+  this->visitRegionsNear(
+    a_point,
+    [&](const uint32_t a_region) {
+      for (uint32_t i = 0; i < numHeld; i++) {
+        if (held[i] == a_region) {
+          return;
+        }
+      }
+
+      a_visit(a_region, function(a_region, this->regionSolid(a_region, 0U, a_point)));
+    },
     a_radius);
 }
 
@@ -3895,17 +3954,21 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>&   a_point,
   T in  = Math::Limits<T>::max();
   T out = Math::Limits<T>::max();
 
-  const TapeDetail::SubdomainSides<T> sides = this->subdomainSides(a_subdomains, a_subdomain);
+  TapeDetail::SubdomainSides<T> sides = this->subdomainSides(a_subdomains, a_subdomain);
 
   this->regionDistancesWithin(
     a_point,
     [&](const uint32_t a_region, const T a_value) {
-      if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+      const bool member = a_subdomains.subdomainOf(a_region) == a_subdomain;
+
+      if (member) {
         in = Math::min(in, a_value);
       }
       else {
         out = Math::min(out, a_value);
       }
+
+      sides.visited(a_region, member);
     },
     [&]() { return sides.radius(in, out); });
 
@@ -3925,7 +3988,7 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
   uint32_t region  = Subdomains::None;
   uint32_t other   = Subdomains::None;
 
-  const TapeDetail::SubdomainSides<T> sides = this->subdomainSides(a_subdomains, a_subdomain);
+  TapeDetail::SubdomainSides<T> sides = this->subdomainSides(a_subdomains, a_subdomain);
 
   // The subdomain's region whose function is smallest, and the smallest of the regions outside it; on a tie, the
   // lowest-numbered, whatever the order the regions are visited in.
@@ -3936,7 +3999,9 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
   this->regionDistancesWithin(
     a_point,
     [&](const uint32_t a_region, const T a_value) {
-      if (a_subdomains.subdomainOf(a_region) == a_subdomain) {
+      const bool member = a_subdomains.subdomainOf(a_region) == a_subdomain;
+
+      if (member) {
         if (smaller(a_value, a_region, value, region)) {
           value  = a_value;
           region = a_region;
@@ -3946,6 +4011,8 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>&   a_point,
         outside = a_value;
         other   = a_region;
       }
+
+      sides.visited(a_region, member);
     },
     [&]() { return sides.radius(value, outside); });
 

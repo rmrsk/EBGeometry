@@ -138,19 +138,23 @@ public:
     T out   = Math::Limits<T>::max();
 
     // A region the search leaves out has a positive function beyond the radius, so beyond the field too (field >= in).
-    const TapeDetail::SubdomainSides<T> sides =
-      m_tape.setSides([this](const uint32_t a_region) { return this->isVisible(a_region); });
+    TapeDetail::SubdomainSides<T> sides =
+      this->sidesOf([this](const uint32_t a_region) { return this->isVisible(a_region); });
 
     m_tape.regionDistancesWithin(
       a_point,
       [&](const uint32_t a_region, const T a_value) {
-        if (this->isVisible(a_region)) {
+        const bool visible = this->isVisible(a_region);
+
+        if (visible) {
           field = Math::min(field, std::abs(a_value));
           in    = Math::min(in, a_value);
         }
         else {
           out = Math::min(out, a_value);
         }
+
+        sides.visited(a_region, visible);
       },
       [&]() { return sides.radius(field, out); });
 
@@ -735,14 +739,23 @@ private:
       return (subdomain < Excluded) ? uint32_t(subdomain) : Excluded;
     };
 
-    // The slots that have a region, which a search through the regions' BVH waits for (every slot without one).
-    uint64_t present = ~uint64_t(0);
+    // How many regions other than the background (whose value comes first, and is final) each slot still has for a
+    // search through the regions' BVH to visit: it waits for the slots with one left. Counted up to 255, beyond which a
+    // slot is waited for to the end.
+    uint8_t left[Slots] = {};
 
+    // The settings name regions below 64 only; the rest are all excluded, counted at once.
     if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
-      present = 0U;
+      const uint32_t n = m_tape.getNumRegions();
 
-      for (uint32_t r = 0; r < m_tape.getNumRegions(); r++) {
-        present |= uint64_t(1) << slotOf(r);
+      for (uint32_t r = 1; r < Math::min(n, 64U); r++) {
+        uint8_t& count = left[slotOf(r)];
+
+        count = (count < 255U) ? uint8_t(count + 1U) : count;
+      }
+
+      if (n > 64U) {
+        left[Excluded] = uint8_t(Math::min(uint32_t(left[Excluded]) + (n - 64U), 255U));
       }
     }
 
@@ -752,12 +765,16 @@ private:
         const uint32_t l = slotOf(a_region);
 
         smallest[l] = Math::min(smallest[l], a_value);
+
+        if (a_region > 0U && left[l] > 0U && left[l] < 255U) {
+          left[l]--;
+        }
       },
       [&]() {
         T radius = Math::Limits<T>::lowest();
 
         for (uint32_t l = 0; l < Slots; l++) {
-          if (((present >> l) & 1U) != 0U) {
+          if (left[l] > 0U) {
             radius = Math::max(radius, smallest[l]);
           }
         }
@@ -805,21 +822,55 @@ private:
       return a_section ? (a_region < 64U && ((section >> a_region) & 1U) != 0U) : this->isVisible(a_region);
     };
 
-    const TapeDetail::SubdomainSides<T> sides = m_tape.setSides(member);
+    TapeDetail::SubdomainSides<T> sides = this->sidesOf(member);
 
     m_tape.regionDistancesWithin(
       a_point,
       [&](const uint32_t a_region, const T a_value) {
-        if (member(a_region)) {
+        const bool isMember = member(a_region);
+
+        if (isMember) {
           in = Math::min(in, a_value);
         }
         else {
           out = Math::min(out, a_value);
         }
+
+        sides.visited(a_region, isMember);
       },
       [&]() { return sides.radius(in, out); });
 
     return (in < Math::Limits<T>::max()) ? T(0.5) * (in - out) : Math::Limits<T>::max();
+  }
+
+  /**
+   * @brief How many regions other than the background are on each side of a set, for a search through the tape's
+   * regions' BVH (see Tape::regionDistancesWithin()). The settings name regions below 64 only, so the regions from 64 on
+   * are all on the side the first of them is, counted at once.
+   * @tparam InSet A callable taking (uint32_t region) and returning whether the region is in the set.
+   * @param[in] a_inSet The set.
+   * @return The counts; none without the regions' BVH, where the search reads neither.
+   */
+  template <class InSet>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline TapeDetail::SubdomainSides<T>
+  sidesOf(InSet&& a_inSet) const noexcept
+  {
+    TapeDetail::SubdomainSides<T> sides;
+
+    if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
+      const uint32_t n = m_tape.getNumRegions();
+
+      for (uint32_t r = 1; r < Math::min(n, 64U); r++) {
+        (a_inSet(r) ? sides.m_in : sides.m_out)++;
+      }
+
+      if (n > 64U) {
+        (a_inSet(64U) ? sides.m_in : sides.m_out) += n - 64U;
+      }
+    }
+
+    return sides;
   }
 
   /**

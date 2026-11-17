@@ -36,8 +36,12 @@ constexpr std::size_t SmokeQueries   = 1000;
 // Spheres in the one-region assembly, and its rays per case.
 constexpr std::size_t AssemblySpheres      = 512;
 constexpr std::size_t SmokeAssemblySpheres = 16;
-constexpr std::size_t HostRays             = 50000;
-constexpr std::size_t PairRays             = 262144;
+
+// The parts of an Overlay through a BVH, a region each.
+constexpr std::size_t Parts      = 512;
+constexpr std::size_t SmokeParts = 16;
+constexpr std::size_t HostRays   = 50000;
+constexpr std::size_t PairRays   = 262144;
 
 template <class T>
 using Vec3 = EBGeometry::Vec3T<T>;
@@ -348,6 +352,135 @@ addOperation(Perf::Suite& a_suite)
   });
 }
 
+// The matrix with many parts on top, a region each: an Overlay through a BVH of the matrix and spheres that overlap
+// their neighbors, as an assembly read as one region per part.
+template <class T>
+EBGeometry::Expr<T>
+parts(const std::size_t a_parts)
+{
+  const auto centers = Perf::pointsInBox<T>(Perf::cube(T(0.05), T(0.95)), a_parts, Perf::Seed::Inclusions);
+  const T    radius  = T(0.4) / T(std::cbrt(double(a_parts)));
+
+  std::vector<EBGeometry::Expr<T>> operands{matrix<T>()};
+
+  for (const auto& c : centers) {
+    operands.emplace_back(EBGeometry::SphereSDF<T>(c, radius));
+  }
+
+  return EBGeometry::Overlay(operands, EBGeometry::Accelerate::BVH);
+}
+
+// The parts' domain: the matrix, and the parts, two subdomains.
+inline EBGeometry::DomainSetup
+partsDomain(const std::size_t a_parts)
+{
+  EBGeometry::DomainSetup domain;
+
+  (void)domain.addSubdomain({1U});
+
+  std::vector<uint32_t> all;
+
+  for (std::size_t i = 0; i < a_parts; i++) {
+    all.push_back(static_cast<uint32_t>(2 + i));
+  }
+
+  (void)domain.addSubdomain(all);
+
+  return domain;
+}
+
+template <class T, Operation Op>
+void
+addParts(Perf::Suite& a_suite)
+{
+  const std::string prec = Perf::precisionName<T>();
+  const std::string name = operationName(Op);
+
+  a_suite.add(Perf::caseName({"Regions", "parts", name, prec, "host"}), [=](Perf::Case& c) {
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+    const std::size_t           n = c.size(Parts, SmokeParts);
+    const EBGeometry::Tape<T>   tape(pool, parts<T>(n));
+    const std::size_t           tapeBytes = pool.usedBytes();
+    const EBGeometry::Domain<T> domain(pool, tape, partsDomain(n));
+    const auto                  points = Perf::pointsInBox<T>(
+      matrix<T>().computeBoundingVolume(), c.size(HostQueries, SmokeQueries), Perf::Seed::TapeQueries);
+
+    std::vector<RegionHit<T>> hits;
+
+    Perf::measureHostQuery(c, Query<T, Op>{tape, domain}, points, hits);
+
+    c.checksum(checksumOf(hits));
+    c.poolBytes(tapeBytes);
+    c.param("parts", n);
+  });
+
+  a_suite.add(Perf::caseName({"Regions", "parts", name, prec, "hostdevice"}), [=](Perf::Case& c) {
+    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
+
+    const std::size_t           n = c.size(Parts, SmokeParts);
+    const EBGeometry::Tape<T>   tape(pool, parts<T>(n));
+    const EBGeometry::Domain<T> domain(pool, tape, partsDomain(n));
+    const auto                  points = Perf::pointsInBox<T>(
+      matrix<T>().computeBoundingVolume(), c.size(PairQueries, SmokeQueries), Perf::Seed::TapeQueries);
+
+    const auto hits = Perf::measureHostAndDevice<RegionHit<T>>(
+      c,
+      pool,
+      points,
+      [&](const EBGeometry::Pool& a_pool) {
+        return Query<T, Op>{tape.rebasedView(a_pool), domain.rebasedView(a_pool)};
+      },
+      agreeValue<T>);
+
+    c.checksum(checksumOf(hits));
+    c.param("parts", n);
+  });
+}
+
+template <class T>
+void
+addPartsRays(Perf::Suite& a_suite)
+{
+  const std::string prec = Perf::precisionName<T>();
+
+  const auto origins = [](const std::size_t a_n) {
+    return Perf::pointsInBox<T>(Perf::cube(T(-1), T(2)), a_n, Perf::Seed::RayOrigins);
+  };
+
+  a_suite.add(Perf::caseName({"Regions", "parts", "firstRegionChange", prec, "host"}), [=](Perf::Case& c) {
+    EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
+    const std::size_t         n = c.size(Parts, SmokeParts);
+    const EBGeometry::Tape<T> tape(pool, parts<T>(n));
+    const auto                rays = origins(c.size(HostRays, SmokeQueries));
+
+    std::vector<RegionHit<T>> hits;
+
+    Perf::measureHostQuery(c, RayQuery<T, true>{tape}, rays, hits);
+
+    c.checksum(checksumOf(hits));
+    c.poolBytes(pool.usedBytes());
+    c.param("parts", n);
+  });
+
+  a_suite.add(Perf::caseName({"Regions", "parts", "firstRegionChange", prec, "hostdevice"}), [=](Perf::Case& c) {
+    EBGeometry::Pool          pool(EBGeometry::hostMemoryResource());
+    const std::size_t         n = c.size(Parts, SmokeParts);
+    const EBGeometry::Tape<T> tape(pool, parts<T>(n));
+    const auto                rays = origins(c.size(PairRays, SmokeQueries));
+
+    const auto hits = Perf::measureHostAndDevice<RegionHit<T>>(
+      c,
+      pool,
+      rays,
+      [&](const EBGeometry::Pool& a_pool) { return RayQuery<T, true>{tape.rebasedView(a_pool)}; },
+      agreeValue<T>);
+
+    c.checksum(checksumOf(hits));
+    c.param("parts", n);
+  });
+}
+
 template <class T>
 void
 addPrecision(Perf::Suite& a_suite)
@@ -358,6 +491,9 @@ addPrecision(Perf::Suite& a_suite)
   addOperation<T, Operation::DomainLabels>(a_suite);
   addRays<T, true>(a_suite);
   addRays<T, false>(a_suite);
+  addParts<T, Operation::Region>(a_suite);
+  addParts<T, Operation::DomainLabels>(a_suite);
+  addPartsRays<T>(a_suite);
 }
 
 } // namespace

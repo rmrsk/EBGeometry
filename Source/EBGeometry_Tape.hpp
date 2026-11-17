@@ -339,27 +339,45 @@ struct Program
 inline constexpr uint32_t LeafProgram = uint32_t(1) << 31;
 
 /**
- * @brief Which sides of a subdomain have regions: in it, and not in it (the background included).
- * @details Internal helper; not part of the public API. A search through the regions' BVH for the smallest function on
- * each side waits only for a side that has a region (see Tape::regionDistancesWithin()).
+ * @brief How many regions other than the background each side of a subdomain (in it, and not in it) still has for a
+ * search through the regions' BVH to visit.
+ * @details Internal helper; not part of the public API. The search for the smallest function on each side waits only
+ * for a side with a region still to visit (see Tape::regionDistancesWithin()); the background's value comes first and
+ * is final. Read only by that search: without the regions' BVH every region is visited, and the counts mean nothing.
  * @tparam T Floating-point precision.
  */
 template <class T>
 struct SubdomainSides
 {
   /**
-   * @brief Whether a region is in the subdomain.
+   * @brief The regions in the subdomain still to visit.
    */
-  bool m_in = true;
+  uint32_t m_in = 0;
 
   /**
-   * @brief Whether a region is not.
+   * @brief The regions not in it still to visit.
    */
-  bool m_out = true;
+  uint32_t m_out = 0;
+
+  /**
+   * @brief Count a region visited.
+   * @param[in] a_region The region.
+   * @param[in] a_in     Whether it is in the subdomain.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visited(const uint32_t a_region, const bool a_in) noexcept
+  {
+    uint32_t& left = a_in ? m_in : m_out;
+
+    if (a_region > 0U && left > 0U) {
+      left--;
+    }
+  }
 
   /**
    * @brief How far the search still has to look: the larger of the two sides' smallest functions so far, of the sides
-   * that have a region.
+   * with a region still to visit.
    * @param[in] a_in  The smallest function in the subdomain so far.
    * @param[in] a_out The smallest outside it so far.
    * @return The radius.
@@ -370,11 +388,11 @@ struct SubdomainSides
   {
     T radius = Math::Limits<T>::lowest();
 
-    if (m_in) {
+    if (m_in > 0U) {
       radius = a_in;
     }
 
-    if (m_out) {
+    if (m_out > 0U) {
       radius = Math::max(radius, a_out);
     }
 
@@ -2110,19 +2128,8 @@ private:
   closestRegionSurface(const Vec3T<T>& a_point, uint32_t a_region, const CSGOps::Tagged<T>& a_own) const noexcept;
 
   /**
-   * @brief Which sides of a set of regions have regions, for a search through the regions' BVH (both, without one,
-   * where the search reads neither).
-   * @tparam InSet A callable taking (uint32_t region) and returning whether the region is in the set.
-   * @param[in] a_inSet The set.
-   * @return The sides.
-   */
-  template <class InSet>
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline TapeDetail::SubdomainSides<T>
-  setSides(InSet&& a_inSet) const noexcept;
-
-  /**
-   * @brief Which sides of a subdomain have regions (see setSides()).
+   * @brief How many regions other than the background each side of a subdomain has, for a search through the regions'
+   * BVH (none counted without one, where the search reads neither).
    * @param[in] a_subdomains The subdomains.
    * @param[in] a_subdomain  The subdomain.
    * @return The sides.
@@ -2178,8 +2185,8 @@ private:
    * be below a_radius() when the search reaches it. Without the regions' BVH, every region, as regionDistances()
    * visits them; with it, in no particular order, the regions whose boxes are within the radius of the point (the
    * others' functions are larger than the radius was, where the regions' solids are distances).
-   * @details A caller's radius is the largest of the minima it still needs: a set with no region in it has none to
-   * wait for.
+   * @details A caller's radius is the largest of the minima it still needs: a set whose regions other than the
+   * background (whose value comes first, and is final) have all been visited has none to wait for.
    * @tparam Visit  A callable taking (uint32_t region, T value).
    * @tparam Radius A callable taking nothing and returning T.
    * @param[in] a_point  Point.
