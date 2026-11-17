@@ -688,26 +688,32 @@ private:
   }
 
   /**
-   * @brief Whether an Overlay holds another (nested Overlays take no BVH).
-   * @param[in] a_node The Overlay.
-   * @return True if an operand is a partition.
+   * @brief How many regions a partition holds: an Overlay's operands, each nested Overlay's regions counted in its
+   * place, through maps and masks.
+   * @param[in] a_node The partition.
+   * @return The count.
    */
-  [[nodiscard]] static bool
-  holdsPartition(const ExprDetail::Node<T>& a_node) noexcept
+  [[nodiscard]] static uint32_t
+  numRegionsOf(const ExprDetail::Node<T>& a_node) noexcept
   {
-    for (const auto& child : a_node.m_children) {
-      if (child.node().m_partition) {
-        return true;
-      }
+    if (!a_node.m_overlay) {
+      return numRegionsOf(a_node.m_children.front().node());
     }
 
-    return false;
+    uint32_t count = 0U;
+
+    for (const auto& child : a_node.m_children) {
+      count += child.node().m_partition ? numRegionsOf(child.node()) : 1U;
+    }
+
+    return count;
   }
 
   /**
    * @brief How many objects a union evaluated as written evaluates: its operands, with those of the sharp
-   * unions evaluated as written directly under a sharp one counted in its place (an Overlay's operands one each).
-   * @param[in] a_node The union (a Union, SmoothUnion or Overlay not built with Accelerate::BVH).
+   * unions evaluated as written directly under a sharp one counted in its place.
+   * @param[in] a_node The union (a Union or SmoothUnion not built with Accelerate::BVH; an Overlay counts its regions
+   * instead, see numRegionsOf()).
    * @return The count.
    */
   [[nodiscard]] uint32_t
@@ -720,9 +726,7 @@ private:
     for (const auto& child : a_node.m_children) {
       const ExprDetail::Node<T>& c = child.node();
 
-      // An Overlay's operands are regions, each one object, whatever it is.
-      const bool nested =
-        (a_node.m_kind == Kind::Union && !a_node.m_overlay && c.m_kind == Kind::Union && !this->useBVH(c));
+      const bool nested = (a_node.m_kind == Kind::Union && c.m_kind == Kind::Union && !this->useBVH(c));
 
       size += nested ? this->plainUnionSize(c) : 1U;
     }
@@ -1351,9 +1355,10 @@ private:
         this->push(a_state, clause(Op::UnionBVH, bvh), 1, 0);
       }
       else {
-        // An Overlay is counted when it could take a BVH: one of solids, not of Overlays.
-        if (a_node.m_kind == Kind::Union && (!a_node.m_overlay || !this->holdsPartition(a_node))) {
-          const uint32_t size = this->plainUnionSize(a_node);
+        // An Overlay is counted by its regions, those of the Overlays in it included (so the outermost counts most),
+        // when it could take a BVH: when none of them is clipped or drilled.
+        if (a_node.m_kind == Kind::Union && (!a_node.m_overlay || !ExprDetail::hasMask(a_node))) {
+          const uint32_t size = a_node.m_overlay ? numRegionsOf(a_node) : this->plainUnionSize(a_node);
 
           if (size > m_largestPlainUnion) {
             m_largestPlainUnion = size;
@@ -3893,9 +3898,10 @@ Tape<T, UserPrimitives...>::regionDistancesWithin(const Vec3T<T>& a_point,
     return;
   }
 
-  // Region k's function is max(S_k, -min_{j>k} S_j), and a later solid lowers it only below zero, so where it holds the
-  // point: those are all held. Only the last region whose solid holds the point (the point's region) is cut by later
-  // solids that do not, those nearer than its surface, and asks for them (signedDistance(point, region)).
+  // Region k's function is max(S_k, -min_{j>k} S_j): a later solid raises it above S_k only where that solid is
+  // negative, so where it holds the point, and those are all held. Only the last region whose solid holds the point
+  // (the point's own region) has S_k below zero with no later solid holding the point: it is raised by later solids
+  // nearer than its surface, which it asks for (signedDistance(point, region)).
   uint32_t top = 0U;
 
   for (uint32_t i = 0; i < numHeld; i++) {
@@ -4363,12 +4369,12 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     if (this->regionBVH() != TapeDetail::NoRegionBVH) {
       this->visitRegionsNear(
         a_point,
-        [this, &a_point, &nearest, &across](const uint32_t a_region) {
-          const T value = this->regionSolid(a_region, 0U, a_point);
+        [this, &a_point, &nearest, &across](const uint32_t a_other) {
+          const T value = this->regionSolid(a_other, 0U, a_point);
 
-          if (value < nearest || (value == nearest && a_region > across)) {
+          if (value < nearest || (value == nearest && a_other > across)) {
             nearest = value;
-            across  = a_region;
+            across  = a_other;
           }
         },
         [&nearest]() { return nearest; });

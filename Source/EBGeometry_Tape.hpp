@@ -1226,7 +1226,8 @@ public:
   /**
    * @brief The most objects in one union evaluated as written (one not built with Accelerate::BVH), nested
    * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with. An Overlay evaluated as
-   * written counts its regions, unless it holds another Overlay (which takes no BVH).
+   * written counts its regions, those of the Overlays in it included, unless one of them is clipped or drilled (it
+   * could then take no BVH).
    * @return The count (0 if the tape has no such union).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

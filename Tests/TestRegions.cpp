@@ -210,6 +210,13 @@ TEMPLATE_TEST_CASE("Overlay: the background is region 0, with no material, then 
 
     CHECK(Tape<T>(crowd, Overlay(many), quiet).getLargestPlainUnion() == 80U);
     CHECK(Tape<T>(crowd, Overlay(many, Accelerate::BVH), quiet).getLargestPlainUnion() == 0U);
+
+    // An Overlay holding a group counts the group's regions too; with a group clipped, it could take no BVH.
+    const auto air = BoxSDF<T>(Vec3T<T>(T(-1), T(-1), T(-1)), Vec3T<T>(T(81), T(1), T(1)));
+
+    CHECK(Tape<T>(crowd, Overlay(air, Overlay(many)), quiet).getLargestPlainUnion() == 81U);
+    CHECK(Tape<T>(crowd, Overlay(air, Difference(Overlay(many), SphereSDF<T>(Vec3T<T>::zeros(), T(0.1)))), quiet)
+            .getLargestPlainUnion() == 80U);
     CHECK(Tape<T>(crowd, Union(many), quiet).getLargestPlainUnion() == 80U);
   }
   CHECK(materialName(unlabeled, 0) == "-");
@@ -3256,8 +3263,12 @@ assembly(const bool a_bounds = false)
   // A group of regions: an Overlay of a ring of spheres, moved.
   std::vector<Expr<T>> ring;
 
-  for (int i = 0; i < 4; i++) {
-    ring.emplace_back(SphereSDF<T>(Vec3(T(0.35) * T(i % 2), T(0.35) * T(i / 2), T(0)), T(0.25)));
+  ring.reserve(4);
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      ring.emplace_back(SphereSDF<T>(Vec3(T(0.35) * T(i), T(0.35) * T(j), T(0)), T(0.25)));
+    }
   }
 
   parts.emplace_back(Translate(Overlay(ring), Vec3(T(-1.2), T(-1.2), T(0.8))));
@@ -3285,6 +3296,8 @@ assemblyPoints()
   std::uniform_real_distribution<T> where(T(-2.4), T(2.4));
 
   std::vector<Vec3T<T>> points;
+
+  points.reserve(420);
 
   for (int i = 0; i < 300; i++) {
     points.emplace_back(where(rng), where(rng), where(rng));

@@ -3496,19 +3496,26 @@ private:
 
     const bool bvh = a_node.m_number != 0.0;
 
-    // A large overlay searched region by region: the tape's large-union warning, as a diagnostic here.
-    if (!bvh && names.size() >= TapeOptions().m_largeUnionWarning) {
-      this->warning(a_node.m_span,
-                    "an overlay of " + std::to_string(names.size()) +
-                      " regions is searched region by region; overlay(bvh = true) { ... } searches it through a BVH");
-    }
-
     V value;
 
     try {
       value = composed(Overlay(operands, bvh ? Accelerate::BVH : Accelerate::None), a_node.m_span, true, names);
     } catch (const RequireError& e) {
       throw Error(a_node.m_span, "overlay: " + checkMessage(e));
+    }
+
+    // A large overlay searched region by region: the tape's large-union warning, as a diagnostic here. The names count
+    // the groups too, so they are an upper bound for the regions, counted only then.
+    const uint32_t large = TapeOptions().m_largeUnionWarning;
+
+    if (!bvh && names.size() >= large) {
+      const uint32_t numRegions = ExprIndex<T>(*value.m_shape->m_expr).getNumRegions() - 1U;
+
+      if (numRegions >= large) {
+        this->warning(a_node.m_span,
+                      "an overlay of " + std::to_string(numRegions) +
+                        " regions is searched region by region; overlay(bvh = true) { ... } searches it through a BVH");
+      }
     }
 
     std::vector<const V*> regions;
