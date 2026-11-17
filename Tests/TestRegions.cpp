@@ -3253,6 +3253,15 @@ assembly(const bool a_bounds = false)
   parts.emplace_back(MaterialLabel(SphereSDF<T>(Vec3(T(0.3), T(-0.2), T(0.1)), T(0.7)), "rubber"));
   parts.emplace_back(SphereSDF<T>(Vec3(T(0.3), T(-0.2), T(0.1)), T(0.3)));
 
+  // A group of regions: an Overlay of a ring of spheres, moved.
+  std::vector<Expr<T>> ring;
+
+  for (int i = 0; i < 4; i++) {
+    ring.emplace_back(SphereSDF<T>(Vec3(T(0.35) * T(i % 2), T(0.35) * T(i / 2), T(0)), T(0.25)));
+  }
+
+  parts.emplace_back(Translate(Overlay(ring), Vec3(T(-1.2), T(-1.2), T(0.8))));
+
   // Covered by the next region: a region with no volume.
   parts.emplace_back(BoxSDF<T>(Vec3(T(1.1), T(1.1), T(0.6)), Vec3(T(1.3), T(1.3), T(0.8))));
   parts.emplace_back(BoxSDF<T>(Vec3(T(1), T(1), T(0.5)), Vec3(T(1.4), T(1.4), T(0.9))));
@@ -3460,9 +3469,11 @@ TEMPLATE_TEST_CASE(
   }
 }
 
-TEMPLATE_TEST_CASE("Overlay through a BVH: can be moved, but holds no Overlay and is not clipped, drilled or nested",
-                   "[Overlay]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE(
+  "Overlay through a BVH: can be moved and hold groups, but nothing in it is clipped or drilled, nor is "
+  "it nested",
+  "[Overlay]",
+  EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -3476,8 +3487,19 @@ TEMPLATE_TEST_CASE("Overlay through a BVH: can be moved, but holds no Overlay an
                       "another Overlay";
 
   REQUIRE(abortsWith(
-    [] { (void)Overlay(std::vector<Expr<T>>{cable<T>(), SphereSDF<T>(Vec3::ones(), T(1))}, Accelerate::BVH); },
-    "Overlay: the regions of an Overlay through a BVH (Accelerate::BVH) are solids, not Overlays"));
+    [] {
+      (void)Overlay(std::vector<Expr<T>>{Difference(cable<T>(), BoxSDF<T>(Vec3::zeros(), Vec3::ones())),
+                                         SphereSDF<T>(Vec3::ones(), T(1))},
+                    Accelerate::BVH);
+    },
+    "Overlay: an Overlay through a BVH (Accelerate::BVH) has no masks: an Overlay in it can be moved, but not clipped "
+    "or drilled"));
+
+  // A group (a nested Overlay, moved or not) is fine.
+  CHECK(
+    ExprIndex<T>(Overlay(std::vector<Expr<T>>{Translate(cable<T>(), Vec3::ones()), SphereSDF<T>(Vec3::ones(), T(1))},
+                         Accelerate::BVH))
+      .getNumRegions() == 4U);
   REQUIRE(abortsWith([&] { (void)Overlay(SphereSDF<T>(Vec3::zeros(), T(3)), bvh()); }, moved));
   REQUIRE(abortsWith([&] { (void)Overlay(SphereSDF<T>(Vec3::zeros(), T(3)), Translate(bvh(), Vec3::ones())); }, moved));
   REQUIRE(abortsWith([&] { (void)Intersection(bvh(), SphereSDF<T>(Vec3::zeros(), T(3))); }, moved));

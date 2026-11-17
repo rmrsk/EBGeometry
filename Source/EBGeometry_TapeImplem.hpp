@@ -1786,8 +1786,8 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
       table.push_back(regions.getMaterialOf(k).value());
     }
 
-    // An Overlay through a BVH is the only Overlay of its expression, and its regions are solids with no masks
-    // (Overlay() and the builder's checks): one BVH over the regions' numbers, each in its solid's box. A region with
+    // An Overlay through a BVH is the outermost partition of its expression, and no region in it has masks (Overlay()
+    // and the builder's checks): one BVH over the regions' numbers, each in its solid's box. A region with
     // an empty box goes with the unbounded ones, which every query evaluates, as in a BVH union.
     table.push_back(TapeDetail::NoRegionBVH);
 

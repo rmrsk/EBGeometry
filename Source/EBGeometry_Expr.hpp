@@ -970,9 +970,9 @@ SurfaceLabel(const A& a_operand, FaceGroups a_groups);
  * the whole object as a BVH union of the operands, and answers the region queries (Tape::region(),
  * Tape::signedDistance(p, region), Tape::closestSurface(), Tape::firstRegionChange(), Tape::firstSurface(), a
  * subdomain's function, ...) through a BVH over the operands' boxes, visiting only the regions near the point or the
- * ray instead of every region: for an assembly of many parts, a region per part. Its operands are then plain solids
- * (maps and labels allowed), and the Overlay itself can be moved but not clipped, drilled or placed in another
- * Overlay; anything else aborts with a message, in every build. With operands whose values are only bounds
+ * ray instead of every region: for an assembly of many parts, a region per part. No region of it may then be clipped
+ * or drilled (its operands are solids, or Overlays of solids, moved or not), and the Overlay itself can be moved but
+ * not clipped, drilled or placed in another Overlay; anything else aborts with a message, in every build. With operands whose values are only bounds
  * (DistanceQuality::Bound), a value can be nearer zero than Accelerate::None's, with the same sign, as with
  * Union(objects, Accelerate::BVH).
  * @tparam A Shape or Expr type.

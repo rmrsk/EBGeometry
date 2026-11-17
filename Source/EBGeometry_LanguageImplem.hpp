@@ -3431,7 +3431,7 @@ private:
   }
 
   /**
-   * @brief overlay { region name = shape [material name] ... }.
+   * @brief overlay [(bvh = true)] { region name = shape [material name] ... }.
    * @param[in] a_node The overlay.
    * @return The partition.
    */
@@ -3494,10 +3494,19 @@ private:
       shapes.push_back(value);
     }
 
+    const bool bvh = a_node.m_number != 0.0;
+
+    // A large overlay searched region by region: the tape's large-union warning, as a diagnostic here.
+    if (!bvh && names.size() >= TapeOptions().m_largeUnionWarning) {
+      this->warning(a_node.m_span,
+                    "an overlay of " + std::to_string(names.size()) +
+                      " regions is searched region by region; overlay(bvh = true) { ... } searches it through a BVH");
+    }
+
     V value;
 
     try {
-      value = composed(Overlay(operands), a_node.m_span, true, names);
+      value = composed(Overlay(operands, bvh ? Accelerate::BVH : Accelerate::None), a_node.m_span, true, names);
     } catch (const RequireError& e) {
       throw Error(a_node.m_span, "overlay: " + checkMessage(e));
     }
@@ -4954,7 +4963,7 @@ private:
     case NK::Overlay: {
       const std::string inner = a_indent + "  ";
 
-      a_out += "overlay {";
+      a_out += (a_node.m_number != 0.0) ? "overlay(bvh = true) {" : "overlay {";
 
       this->trailing(a_out, a_node.m_span.m_line);
 

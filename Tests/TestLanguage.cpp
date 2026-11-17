@@ -1683,3 +1683,72 @@ TEMPLATE_TEST_CASE("Language: a domain's own object keeps its regions and their 
 
   CHECK_THROWS_AS(model.domainObject("heat"), Language::Error);
 }
+
+TEMPLATE_TEST_CASE("Language: overlay(bvh = true) searches its regions through a BVH, and a large plain overlay warns",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const std::string regions = R"(
+  region air  = box((-2, -2, -2), (2, 2, 2)) material air
+  region one  = sphere((-0.5, 0, 0), 0.6) material steel
+  region two  = sphere((0.5, 0, 0), 0.6) material steel
+  region core = sphere((0.5, 0, 0), 0.2)
+}
+)";
+
+  const auto plain = Language::parse<T>("ebg 0\nobject overlay {" + regions, "plain.ebg", pool);
+  const auto fast  = Language::parse<T>("ebg 0\nobject overlay(bvh = true) {" + regions, "fast.ebg", pool);
+  const auto off   = Language::parse<T>("ebg 0\nobject overlay(bvh = false) {" + regions, "off.ebg", pool);
+
+  const Tape<T> plainTape(pool, plain.object());
+  const Tape<T> fastTape(pool, fast.object());
+
+  CHECK(plainTape.getNumBVHUnions() == 0U);
+  CHECK(fastTape.getNumBVHUnions() == 1U);
+  CHECK(Tape<T>(pool, off.object()).getNumBVHUnions() == 0U);
+  CHECK(fast.index().getNumRegions() == plain.index().getNumRegions());
+
+  for (int i = 0; i < 64; i++) {
+    const Vec3T<T> p(T(-2.5) + T(0.08) * T(i), T(0.05) * T(i % 7), T(0.03) * T(i % 5));
+
+    CHECK(fastTape.region(p) == plainTape.region(p));
+    CHECK(fastTape.signedDistance(p, 1U) == plainTape.signedDistance(p, 1U));
+  }
+
+  // The printer keeps the option; what it prints reads as the same model.
+  const std::string printed = Language::print(fast);
+
+  CHECK_THAT(printed, Catch::Matchers::ContainsSubstring("object overlay(bvh = true) {"));
+  CHECK(Language::print(Language::parse<T>(printed, "printed.ebg", pool)) == printed);
+  CHECK_THAT(Language::print(off), Catch::Matchers::ContainsSubstring("object overlay {"));
+
+  // One option, written as a literal.
+  const char* option = "an overlay takes one option, written (bvh = true) or (bvh = false)";
+
+  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(fast = true) {" + regions).m_message,
+             Catch::Matchers::ContainsSubstring(option));
+  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(bvh = 1) {" + regions).m_message,
+             Catch::Matchers::ContainsSubstring(option));
+  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(true) {" + regions).m_message,
+             Catch::Matchers::ContainsSubstring(option));
+
+  // A plain overlay of many regions warns, suggesting the BVH; one through it does not.
+  std::string many;
+
+  for (int i = 0; i < 64; i++) {
+    many += "  region r" + std::to_string(i) + " = sphere((" + std::to_string(i) + ", 0, 0), 0.4)\n";
+  }
+
+  const auto large = Language::parse<T>("ebg 0\nobject overlay {\n" + many + "}\n", "large.ebg", pool);
+
+  REQUIRE(large.warnings().size() == 1U);
+  CHECK_THAT(large.warnings()[0].m_message,
+             Catch::Matchers::ContainsSubstring("an overlay of 64 regions is searched region by region; overlay(bvh = "
+                                                "true) { ... } searches it through a BVH"));
+  CHECK(
+    Language::parse<T>("ebg 0\nobject overlay(bvh = true) {\n" + many + "}\n", "large.ebg", pool).warnings().empty());
+}

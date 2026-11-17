@@ -261,6 +261,35 @@ makeNode(const Kind a_kind, std::vector<Expr<T>> a_children, const bool a_overla
 }
 
 /**
+ * @brief Whether a partition clips or drills some of its regions: a mask (an Intersection whose first operand is a
+ * partition) at or below the node, among the partitions.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_node The node.
+ * @return True if a mask is there.
+ */
+template <class T>
+[[nodiscard]] inline bool
+hasMask(const Node<T>& a_node)
+{
+  if (!a_node.m_partition) {
+    return false;
+  }
+
+  if (a_node.m_kind == Kind::Intersection) {
+    return true;
+  }
+
+  for (const Expr<T>& child : a_node.m_children) {
+    if (hasMask(child.node())) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * @brief Convert a list of shapes or Exprs to Exprs.
  * @details Internal helper; not part of the public API.
  * @tparam A Shape or Expr type.
@@ -1050,13 +1079,13 @@ Overlay(const std::vector<A>& a_operands, const Accelerate a_accelerate)
   // A union with a flag: a Tape evaluates it as the union of its operands, the whole object.
   auto node = ExprDetail::makeNode<T>(ExprDetail::Kind::Union, ExprDetail::toExprs(a_operands), true);
 
-  // Through a BVH, every region is one solid: the region queries search the operands' boxes, which a nested Overlay's
-  // regions or a mask's cut would not be found by.
+  // Through a BVH, every region is one solid with no masks: the region queries search the regions' boxes, which a
+  // mask's cut would not be found by. A nested Overlay (a group of regions) is fine, unclipped.
   if (a_accelerate == Accelerate::BVH) {
     for (const Expr<T>& child : node->m_children) {
-      EBGEOMETRY_REQUIRE(!child.node().m_partition,
-                         "Overlay: the regions of an Overlay through a BVH (Accelerate::BVH) are solids, not "
-                         "Overlays");
+      EBGEOMETRY_REQUIRE(!ExprDetail::hasMask(child.node()),
+                         "Overlay: an Overlay through a BVH (Accelerate::BVH) has no masks: an Overlay in it can be "
+                         "moved, but not clipped or drilled");
     }
 
     node->m_bvh       = true;
