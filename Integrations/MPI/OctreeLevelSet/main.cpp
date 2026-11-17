@@ -322,10 +322,6 @@ run(int argc, char* argv[])
 
     std::cout << " (levels 0 to " << maxLevel << "), " << numLeaves << " in all\n";
 
-    if (status == 0) {
-      std::cout << "Wrote " << outputName << ".pvtu and one " << outputName << "_<rank>.vtu per rank\n";
-    }
-
     if (totals[maxLevel + 1] != cover) {
       std::cerr << "The leaves cover " << totals[maxLevel + 1] << " of the cube's " << cover << " finest cells\n";
 
@@ -336,6 +332,11 @@ run(int argc, char* argv[])
   int statusOverRanks = 0;
 
   MPI_Allreduce(&status, &statusOverRanks, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  // Only once every rank has reported: a piece another rank failed to write is known here, not before.
+  if (rank == 0 && statusOverRanks == 0) {
+    std::cout << "Wrote " << outputName << ".pvtu and one " << outputName << "_<rank>.vtu per rank\n";
+  }
 
   return statusOverRanks;
 }
