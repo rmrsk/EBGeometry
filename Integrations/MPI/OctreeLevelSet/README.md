@@ -24,16 +24,23 @@ leaves out.
 Output
 ------
 
-Every rank writes its leaves as `OctreeLevelSet_<rank>.vtu`, a VTK XML unstructured grid in ASCII: one hexahedron per
-leaf, with the cell data `levelset`, `level`, `rank` and, for a model with regions, `region`. Rank 0 writes
-`OctreeLevelSet.pvtu`, which lists the pieces. Open `OctreeLevelSet.pvtu` in ParaView or VisIt; a threshold of
+Every rank writes its leaves as `OctreeLevelSet_<rank>.vtu`, a VTK XML unstructured grid whose arrays are appended as
+raw binary (no compression, and no library needed to write it), which VisIt and ParaView read much faster than text:
+one hexahedron per leaf, with the cell data `levelset`, `level`, `rank` and, for a model with regions, `region`. Rank 0
+writes `OctreeLevelSet.pvtu`, which lists the pieces. Open `OctreeLevelSet.pvtu` in ParaView or VisIt; a threshold of
 `levelset` at 0 shows the object, and coloring by `rank` shows the partition. `make clean` removes the files.
 
 The default model is the classic CSG solid of the `LanguageCSG` example, `Examples/LanguageCSG/solid.ebg`, found by a path
 relative to this folder (`../../../Examples/LanguageCSG/solid.ebg`): run the program from here, or give a model as the
 first argument, for example `Examples/LanguageDomains/cable/model.ebg`, which has regions.
-The number of roots, the maximum level and the safety factor are constants at the top of `main.cpp`; each further
-level multiplies the number of leaves near the surface by about four.
+`--max-level N` sets the maximum level (default 2, at most 10); each further level multiplies the number of leaves
+near the surface, and the size of the output, by about four. The number of roots and the safety factor are constants
+at the top of `main.cpp`.
+
+The program runs on the host only. Each rank refines its roots recursively, cell by cell, asking its tape one point at
+a time. The tape can run on a GPU, but this program does not use one: refining on a device would go level by level
+instead, evaluating all of a level's cell centers in one `GPU::transform()` call on a mirrored pool, then splitting the
+cells that need it.
 
 This integration is not built or run in continuous integration.
 
@@ -55,6 +62,7 @@ Running
 
     mpirun -n 4 ./OctreeLevelSet.ex
     mpirun -n 4 ./OctreeLevelSet.ex ../../../Examples/LanguageDomains/cable/model.ebg
+    mpirun -n 4 ./OctreeLevelSet.ex --max-level 4
 
 or `make run NP=4`. It writes its files in the folder it runs in. Add `--oversubscribe` to Open MPI's `mpirun` to run
 more ranks than the machine has cores.
