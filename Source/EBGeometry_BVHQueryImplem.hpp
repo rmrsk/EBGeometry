@@ -344,9 +344,19 @@ pointDistance2InRow(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, cons
  * - An axis whose t0 or t1 is NaN (a zero direction component with the origin exactly on a face, 0 * inf)
  *   imposes no constraint: the ray lies in that face's plane, and the box is entered, not missed.
  * - The exit is widened by |exit| * 2 gamma(3) (Ize, "Robust BVH ray traversal", JCGT 2013), so rounding
- *   cannot make a ray through a face or edge shared by two boxes miss both.
- * Only subtractions, products, comparisons and selects: nothing a compiler can contract into a fused
- * multiply-add, so the scalar and SIMD paths agree bit for bit.
+ *   cannot make a ray that meets a box only along an edge or at a corner (entry = exit in exact arithmetic)
+ *   miss it.
+ *
+ * Fused multiply-adds: t0 and t1 are a difference times the inverse direction, which no compiler can contract.
+ * That is the form Ize's bound covers; his later correction (the "FMA Correction" note) is about the form
+ * fma(b, 1/d, -o/d), which this code never takes. The widening, exit + |exit| * widen, can be contracted, and
+ * is: by GCC on the scalar and SIMD paths, by nvcc on a device, and by Clang on the scalar path but not the
+ * SIMD one (whose product and sum are separate intrinsics). A fused widening rounds once instead of twice, so
+ * it is never less robust; what can differ between paths is the last bit of the exit, and so whether a ray
+ * that meets a box within an ulp of an edge enters it. That decides only which boxes a traversal visits,
+ * never an answer: the leaves decide those. The entry, which orders the traversal, is not widened and agrees
+ * bit for bit. About one ray in a hundred that meet a box only along an edge is missed without the widening,
+ * fused or not; none with it.
  * @tparam V Scalar or SIMD::Pack.
  * @param[in] a_lo     Lower corner, per axis.
  * @param[in] a_hi     Upper corner, per axis.

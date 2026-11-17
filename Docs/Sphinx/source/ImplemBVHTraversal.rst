@@ -203,11 +203,13 @@ single SIMD batch where the ``(K, T)`` pair has a compiled path (see :ref:`Chap:
 with a scalar loop otherwise, which is also what device code runs; ``RayQuery`` does the same for its
 slab test. The paths agree bit for bit, so a query answered on a build with no SIMD returns what the
 same query returns on an AVX-512 build or on a device. The one exception is a compiler that contracts
-the scalar path's multiply and add into a fused multiply-add (Clang by default, and GCC in its GNU
-language modes, whenever FMA is enabled, e.g. by ``-march=native``): ``PointQuery``'s paths can then
-differ in the last bit. ``RayQuery`` is robust at the edges: a ray through a face or edge shared by
-two boxes enters at least one of them, and a ray lying in a box's face plane is not counted as
-missing it.
+a multiply and an add into a fused multiply-add (GCC and nvcc by default, Clang within one expression,
+wherever the hardware has FMA; on the host, e.g. with ``-march=native``): ``PointQuery``'s paths can
+then differ in the last bit, and so can whether a ray that grazes a box's edge within rounding enters
+it. That changes only which boxes a ray query visits, never its answer, and ``RayQuery``'s entry
+distances still agree bit for bit. ``RayQuery`` is robust at the edges: a ray that meets a box only
+along an edge or at a corner enters it, a ray through a face or edge shared by two boxes enters at least
+one of them, and a ray lying in a box's face plane is not counted as missing it.
 
 .. _Sec:TraversalStack:
 
