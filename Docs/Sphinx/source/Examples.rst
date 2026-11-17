@@ -8,9 +8,9 @@ dependencies.  Each one can be built directly with a compiler, with GNU Make, or
 (see :ref:`Chap:Building`), and every folder ships all three (a ``GNUmakefile``, a
 ``CMakeLists.txt``, and a plain ``main.cpp`` compilable with a single compiler invocation).
 
-Examples that couple EBGeometry to a third-party application code's embedded-boundary grid
-generation live separately under :file:`Integrations/` instead,
-and additionally require that platform to be installed — see :ref:`Chap:Integrations`.
+Programs that use EBGeometry with third-party code (MPI, or an application code's embedded-boundary grid
+generation) live separately under :file:`Integrations/` instead, and additionally require that code to be
+installed — see :ref:`Chap:Integrations`.
 
 .. important::
 

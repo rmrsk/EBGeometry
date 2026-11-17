@@ -51,5 +51,20 @@ cmake --preset release-test
 cmake --build --preset release-test --parallel "$(nproc)"
 ctest --preset release-test
 
+section "MPI integrations -- built and run on four ranks, as CI's Integrations-MPI job does"
+if command -v mpicxx >/dev/null && command -v mpirun >/dev/null; then
+  for dir in Integrations/MPI/*/; do
+    name=$(basename "$dir")
+    cmake -S "$dir" -B "build/mpi/$name" -DCMAKE_BUILD_TYPE=Debug -DEBGEOMETRY_ENABLE_ASSERTIONS=ON -DCMAKE_CXX_FLAGS=-Werror
+    cmake --build "build/mpi/$name" --parallel "$(nproc)"
+    (cd "$dir" && mpirun -n 4 --oversubscribe "./$name.ex")
+    make -C "$dir" clean
+    make -C "$dir" PRECISION=float
+    make -C "$dir" run NP=4 MPIRUN="mpirun --oversubscribe"
+  done
+else
+  echo "Skipped: no MPI installation (mpicxx, mpirun) found."
+fi
+
 echo ""
 echo "All checks passed."

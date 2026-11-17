@@ -130,6 +130,14 @@ only lane that compiles the viewer window (:ref:`Sec:ConfigViewer`). It builds a
 builds every example that calls ``Render::view()`` and runs them without a display, where ``view()``
 returns at once, and builds them again with ``make VIEWER=SDL2``.
 
+Integrations-MPI
+~~~~~~~~~~~~~~~~
+
+Installs Open MPI and builds every MPI integration (:file:`Integrations/MPI/`, see :ref:`Sec:ParallelUse`) twice:
+through its ``CMakeLists.txt`` (Debug, assertions on, ``-Werror``) and through its ``GNUmakefile`` in ``float``
+precision. Each build runs on four ranks (``mpirun -n 4 --oversubscribe``). The AMReX integrations are not built.
+Both tiers.
+
 Performance-smoke
 ~~~~~~~~~~~~~~~~~
 
@@ -237,6 +245,7 @@ Dependency graph
     +-- Examples-CMake
     +-- Examples-FloatPrecision
     +-- Viewer-SDL2
+    +-- Integrations-MPI
     +-- Performance-smoke
     +-- Performance-receipt
     +-- Build-documentation

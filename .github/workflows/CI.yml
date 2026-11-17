@@ -340,6 +340,37 @@ jobs:
             make -C "Examples/$example" VIEWER=SDL2
           done
 
+  # The MPI integrations (Integrations/MPI/) are maintained: each is built through CMake (Debug, assertions on,
+  # warnings as errors) and through GNU make in float precision, and each build runs on four ranks. They need only
+  # Open MPI and the mesh in Examples/data/, so the job is cheap and runs in both tiers.
+  Integrations-MPI:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    name: Integrations (MPI)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Open MPI
+        uses: ./.github/actions/apt-install
+        with:
+          packages: libopenmpi-dev openmpi-bin
+      - name: Build and run every MPI integration
+        run: |
+          set -euo pipefail
+          for dir in Integrations/MPI/*/; do
+            name=$(basename "$dir")
+            echo "::group::$name (CMake, double)"
+            cmake -S "$dir" -B "build/mpi/$name" -DCMAKE_BUILD_TYPE=Debug -DEBGEOMETRY_ENABLE_ASSERTIONS=ON -DCMAKE_CXX_FLAGS=-Werror
+            cmake --build "build/mpi/$name" --parallel $(nproc)
+            (cd "$dir" && mpirun -n 4 --oversubscribe "./$name.ex")
+            echo "::endgroup::"
+            echo "::group::$name (GNU make, float)"
+            make -C "$dir" clean
+            make -C "$dir" PRECISION=float
+            make -C "$dir" run NP=4 MPIRUN="mpirun --oversubscribe"
+            echo "::endgroup::"
+          done
+
   # The performance probes (Performance/): built and run at their small --smoke sizes on every event,
   # which checks they still compile and run; it times nothing.
   Performance-smoke:
@@ -642,7 +673,7 @@ jobs:
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.
     if: always()
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Viewer-SDL2, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Viewer-SDL2, Integrations-MPI, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every dependency to have succeeded
