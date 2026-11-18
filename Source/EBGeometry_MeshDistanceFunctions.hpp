@@ -813,8 +813,8 @@ public:
    * @brief The point of the mesh closest to a_point, the face it lies on, and the pseudonormal there.
    * @details The nearest-triangle search of the host's signedDistance(), on the host and on a device, then the closest
    *          point on the winning triangle (TriangleAoSoA::closestPointAt()). The signed distance is the winning
-   *          triangle's, signed as signedDistance() signs it on the host: equal to it bit for bit on the host, and to
-   *          rounding on a device.
+   *          triangle's, signed as signedDistance() signs it on the host: equal to it to rounding, on the host too,
+   *          since the compiler may fuse multiplies and adds differently in the two.
    * @param[in] a_point Query point. Must be finite.
    * @return The closest point, its face id and pseudonormal, and the signed distance.
    */

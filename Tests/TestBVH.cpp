@@ -783,10 +783,10 @@ TEMPLATE_TEST_CASE("Mesh SDFs: closestPoint and gradient match the unit cube's c
 
     const ClosestPoint<T> cp = a_sdf.closestPoint(a_p);
 
-    // The face it reports is one the point lies on, its distance is the signed distance, and the point is
-    // on the surface.
+    // The face it reports is one the point lies on, its distance is the signed distance (to rounding: the
+    // compiler may fuse multiplies and adds differently in the two), and the point is on the surface.
     REQUIRE(cp.faceId < 6U);
-    REQUIRE(cp.signedDistance == a_sdf.signedDistance(a_p));
+    REQUIRE_THAT(cp.signedDistance, withinAbsT(a_sdf.signedDistance(a_p), tightMargin<T>()));
     REQUIRE_THAT((a_p - cp.point).length(), withinAbsT(std::abs(cp.signedDistance), tightMargin<T>()));
     REQUIRE_THAT(std::abs(a_sdf.signedDistance(cp.point)), withinAbsT(T(0), tightMargin<T>()));
     REQUIRE_THAT(cp.normal.length(), withinAbsT(T(1), tightMargin<T>()));
