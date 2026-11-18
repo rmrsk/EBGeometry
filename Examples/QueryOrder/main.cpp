@@ -136,12 +136,12 @@ try {
   //
   // The particles, room for the distances and room for the order, in one pool mirrored where the launches run (a
   // GPU's memory in a GPU build, host memory otherwise), next to the mirrored mesh.
-  EBGeometry::Pool                      io(EBGeometry::hostMemoryResource());
-  EBGeometry::PODVector<Particle>       particles;
-  EBGeometry::PODVector<T>              distances;
-  EBGeometry::PODVector<std::uint32_t>  order;
-  const std::vector<T>                  zeros(numParticles, T(0));
-  const std::vector<std::uint32_t>      none(numParticles, 0U);
+  EBGeometry::Pool                     io(EBGeometry::hostMemoryResource());
+  EBGeometry::PODVector<Particle>      particles;
+  EBGeometry::PODVector<T>             distances;
+  EBGeometry::PODVector<std::uint32_t> order;
+  const std::vector<T>                 zeros(numParticles, T(0));
+  const std::vector<std::uint32_t>     none(numParticles, 0U);
 
   particles.reserveFrom(io, numParticles);
   distances.reserveFrom(io, numParticles);
