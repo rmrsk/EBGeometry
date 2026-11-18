@@ -48,7 +48,8 @@ Clean everywhere, with a lane-dependent repro, means a toolchain suspect.
 ## 5. Test the toolchain
 
 - Another ptxas on the same PTX: get it from NVIDIA's PyPI wheels (`nvidia-cuda-nvcc-cu12` and the like; running a
-  downloaded binary needs the user's approval), take nvcc's command list with `--dryrun`, and swap the ptxas line.
+  downloaded binary needs the user's approval; extract each wheel into its own new, empty directory in the
+  scratchpad), take nvcc's command list with `--dryrun`, and swap the ptxas line.
 - A newer driver or toolkit, where the user can provide one (CUDA 13 needs driver 580 or newer).
 - Search NVIDIA's CUDA Toolkit release notes ("resolved issues", compiler) for the symptom.
 

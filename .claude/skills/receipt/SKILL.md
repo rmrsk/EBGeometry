@@ -16,7 +16,7 @@ for performance". This is how to carry them out.
 ## Before any timed run
 
 Timings are only meaningful on a quiet machine. Other agents share it and start timed runs directly.
-- Wait for the maintainer's go that the machine is quiet; never use the `perf-slot` (Slurm) wrapper, which is dead.
+- Wait for the maintainer's go that the machine is quiet; never use the `perf-slot` (Slurm) wrapper still found on some PATHs: other agents start timed runs outside its queue, so it gives no exclusivity.
 - Check `pgrep -fa run-performance` and `nvidia-smi` for other runs, and `uptime` for load.
 - Run the comparison directly, in the background.
 - On the GPU, the device also drives the desktop: check `nvidia-smi` for compute apps and utilization (a viewer or
@@ -51,7 +51,7 @@ stale. No extra rounds or repeated full runs while the code still moves.
 
    ```bash
    Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
-   Scripts/run-performance.sh compare origin/<base> <pr-branch> --gpu cuda --gpu-arch 86 \
+   Scripts/run-performance.sh compare origin/<base> <pr-branch> --gpu cuda --gpu-arch <local GPU's, e.g. 86> \
                               --cuda-compiler <nvcc> --record                      # + device section
    ```
 

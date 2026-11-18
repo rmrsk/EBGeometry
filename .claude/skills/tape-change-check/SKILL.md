@@ -41,11 +41,11 @@ __global__ void __launch_bounds__(128) k(__grid_constant__ const Tape<float> t, 
 ```
 
 ```bash
-nvcc -std=c++17 -O3 -arch=sm_86 -cubin -Xptxas -v -I<side> kreg.cu -o /dev/null 2>&1 | grep -E "registers|stack|spill"
+nvcc -std=c++17 -O3 -arch=sm_<local GPU> -cubin -Xptxas -v -I<side> kreg.cu -o /dev/null 2>&1 | grep -E "registers|stack|spill"
 ```
 
-The registers, stack frame and spills must match the base's for both kernels (168 registers each, when this was
-written). The sixteen-evaluation kernel is the most sensitive: the single one can stay put while it jumps to 255.
+The registers, stack frame and spills must match the base's for both kernels: the base's figures are the reference,
+whatever they are (168 registers each on sm_86 when this was written). The sixteen-evaluation kernel is the most sensitive: the single one can stay put while it jumps to 255.
 Add the `firstHit()` kernel when the change reaches ray code, and a kernel of a tape listing the feature when you add
 a `TapeFeature` (a plain `Tape<float>` must be unchanged; the feature's tape may grow).
 
@@ -72,7 +72,7 @@ The receipt does not measure compile time. Time a Debug CUDA proxy (four kernels
 `signedDistance()` and `firstHit()`) on both sides:
 
 ```bash
-/usr/bin/time -f "%e s %M KB" nvcc -g -std=c++17 -arch=sm_86 -DEBGEOMETRY_ENABLE_ASSERTIONS -I<side> proxy.cu -c -o /dev/null
+/usr/bin/time -f "%e s %M KB" nvcc -g -std=c++17 -arch=sm_<local GPU> -DEBGEOMETRY_ENABLE_ASSERTIONS -I<side> proxy.cu -c -o /dev/null
 ```
 
 A large jump means a new distance or loop is being inlined into every call level of every tape kernel. Bisect by

@@ -12,8 +12,8 @@ ones are done.
 ## 1. The review sparring (while the PR is a draft)
 
 - Request a round by commenting `@claude review` on the PR, after a push that changes code or docs.
-- The reply comes as an issue comment from **`github-actions[bot]`** (not `claude[bot]`), whose body starts with
-  `**Claude finished @... task in ...`. When waiting for it, take a timestamp before posting and filter on either
+- The reply comes as an issue comment whose body starts with `**Claude finished @... task in ...`. On this
+  repository its author has been **`github-actions[bot]`**, though it may show as `claude[bot]`. When waiting for it, take a timestamp before posting and filter on either
   login, on "finished" in the body, and on `since=`.
 - The review may say it skipped files; say what it did not read when reporting it.
 - Fix each blocking finding in a new commit, push, and request another round. Each optional suggestion is taken,

@@ -251,7 +251,7 @@ in genuinely contribution/testing-oriented docs like `ContributionGuidelines.rst
 
 **Claude audits the `.rst` docs of every PR before promoting it out of draft (see "Promote once"
 below), not only when explicitly asked.** Treat a documentation audit of the PR's changes as part of
-finishing the work, following the steps below, even if the user hasn't separately requested a docs
+finishing the work, following the `docs-audit` skill, even if the user hasn't separately requested a docs
 pass; a PR that is already out of draft (`gh pr view <number> --json isDraft`) and changes again is
 audited again.
 
@@ -283,7 +283,7 @@ manual-stage hooks (clang-tidy, the debug build, the documentation figures, Sphi
 this script or explicit `pre-commit run --hook-stage manual`. The Doxygen hook runs whenever a
 header, `EBGeometry.hpp`, `Docs/mainpage.md` or `Docs/doxygen.conf` changes; codespell covers
 `Source/`, `Docs/`, `Examples/` (except `Examples/data/`), `Tests/` (except `Tests/data/`), `Integrations/`, `Scripts/`,
-`.github/` and the top-level text files.
+`.github/`, `.claude/` and the top-level text files.
 
 `.clang-tidy` and `.pre-commit-config.yaml` define the static-analysis/formatting rules; CI
 (`.github/workflows/CI.yml`) runs the same hooks plus a much larger build/test matrix (multiple
