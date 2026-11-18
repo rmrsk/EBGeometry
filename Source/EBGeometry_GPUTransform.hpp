@@ -28,6 +28,10 @@
  * - GPU::transform(query, in, out) over two std::vector's: a convenience that also allocates device
  *   memory, copies the inputs in and the results back, and frees. Timing it includes those copies.
  *
+ * Each call also takes an order, a permutation of the indices to run them in (GPU::mortonOrder() gives one for
+ * queries at points, in EBGeometry_GPUOrder.hpp): the results land where they would without it, and queries at
+ * nearby points run side by side, which is faster when the inputs arrive in no spatial order.
+ *
  * Every launch takes its block size as a template parameter (GPU::DefaultBlockSize unless given), so
  * that the kernel can carry it as launch bounds. Every call is synchronous: it returns once the
  * kernel has finished. Every transform requires as many results as inputs, and results of exactly the
@@ -252,6 +256,115 @@ template <unsigned int BlockSize          = DefaultBlockSize,
 EBGEOMETRY_HOST
 inline void
 transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a_out);
+
+/**
+ * @brief Run a functor on every index, in a given order: a_f(a_order[i]) for i = 0, ..., a_n - 1.
+ * @details parallelFor() with the indices taken through a permutation, so that neighboring threads (a warp on a
+ * device, consecutive iterations on the host) run indices the caller knows to be close: mortonOrder() gives one
+ * that puts queries at nearby points side by side, so that they walk the same parts of a BVH. Every index still
+ * runs once, and the functor sees the index itself, not its position in the order, so its results land where the
+ * unordered parallelFor() puts them: only the speed changes. The order must be a permutation of 0, ..., a_n - 1, in
+ * memory the launch can read; its size is checked (it aborts with a message otherwise), each entry is checked to be
+ * below a_n with assertions on, and that no entry repeats is the caller's responsibility (a repeated index would
+ * run twice, and another not at all). An order is worth computing once and reusing while the points stay put.
+ * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
+ * @tparam F         Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
+ * std::size_t.
+ * @param[in] a_n     Number of indices.
+ * @param[in] a_f     The functor.
+ * @param[in] a_order The order: a_n indices, a permutation of 0, ..., a_n - 1.
+ */
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class F>
+EBGEOMETRY_HOST
+inline void
+parallelFor(uint32_t a_n, const F& a_f, PODSpan<const uint32_t> a_order);
+
+/**
+ * @brief Run a query on every input in a given order: a_out[o] = a_query(a_in[o]) for o = a_order[i], i = 0, 1, ...
+ * @details The span transform() run through the ordered parallelFor(), with its requirements on the order: every
+ * result lands where the unordered transform() puts it, and only the speed changes. Unlike the unordered overload,
+ * the results may not overwrite the inputs in place, since a thread could then overwrite an input that another
+ * thread has not read yet: the inputs and the results must not overlap, which aborts with a message otherwise.
+ * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
+ * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
+ * const In&.
+ * @tparam In        Input type, const or not.
+ * @tparam Out       Result type: the query's result type, not const.
+ * @param[in]  a_query The query.
+ * @param[in]  a_in    The inputs, in memory the device can read.
+ * @param[out] a_out   The results, in memory the device can write; as many as there are inputs, not overlapping them.
+ * @param[in]  a_order The order (mortonOrder(), say): as many entries as inputs, a permutation of their indices.
+ */
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class Query,
+          class In,
+          class Out>
+EBGEOMETRY_HOST
+inline void
+transform(const Query& a_query, PODSpan<In> a_in, PODSpan<Out> a_out, PODSpan<const uint32_t> a_order);
+
+/**
+ * @brief Run a query on every input of a pool-resident array in a given order, writing the results into another
+ * array in the same pool: out[o] = a_query(in[o]) for o = order[i].
+ * @details The pool transform() with the order of the ordered span overload: the pool is checked as there, the
+ * order is a third array in the same pool, and the inputs and the results must not overlap.
+ * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
+ * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
+ * const In&.
+ * @tparam In        Input type.
+ * @tparam Out       Result type: the query's result type.
+ * @param[in] a_query The query.
+ * @param[in] a_pool  The frozen, device-accessible pool holding the three arrays.
+ * @param[in] a_in    The inputs.
+ * @param[in] a_out   The results' array, as many elements as a_in, not overlapping it; its elements are written.
+ * @param[in] a_order The order: as many entries as a_in, a permutation of their indices.
+ */
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class Query,
+          class In,
+          class Out>
+EBGEOMETRY_HOST
+inline void
+transform(const Query&               a_query,
+          const Pool&                a_pool,
+          const PODVector<In>&       a_in,
+          const PODVector<Out>&      a_out,
+          const PODVector<uint32_t>& a_order);
+
+/**
+ * @brief Run a query on every input in a given order, from host memory to host memory: a_out[o] = a_query(a_in[o])
+ * for o = a_order[i].
+ * @details The std::vector transform() with the order of the ordered span overload; in a CUDA or HIP build the
+ * order is copied to the device with the inputs.
+ * @tparam BlockSize Threads per block; see parallelFor().
+ * @tparam MinResidentThreads Threads to keep resident, in a CUDA build; see parallelFor().
+ * @tparam Query     Trivially copyable functor with an EBGEOMETRY_HOST_DEVICE call operator taking a
+ * const In&.
+ * @tparam In        Trivially copyable input type.
+ * @tparam Out       Result type: the query's result type.
+ * @param[in]  a_query The query.
+ * @param[in]  a_in    The inputs.
+ * @param[out] a_out   The results, in input order; as many elements as a_in.
+ * @param[in]  a_order The order (mortonOrder(), say): as many entries as a_in, a permutation of their indices.
+ */
+template <unsigned int BlockSize          = DefaultBlockSize,
+          unsigned int MinResidentThreads = DefaultMinResidentThreads,
+          class Query,
+          class In,
+          class Out>
+EBGEOMETRY_HOST
+inline void
+transform(const Query&                 a_query,
+          const std::vector<In>&       a_in,
+          std::vector<Out>&            a_out,
+          const std::vector<uint32_t>& a_order);
 
 } // namespace GPU
 } // namespace EBGeometry
