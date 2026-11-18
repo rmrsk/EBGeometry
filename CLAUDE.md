@@ -533,6 +533,11 @@ review. The rules elsewhere in this file (branching, tests, examples, performanc
 apply; this section sets the order and the points where Claude stops for the user.
 
 1. **The first reply is a plan, not code.** Claude restates the feature in a sentence or two, and:
+   - **looks for earlier attempts first**: closed issues and closed, unmerged pull requests on the same idea
+     (`gh issue list --state closed --search "<keywords>"`, `gh pr list --state closed --search "<keywords>"`,
+     and the `wontfix` label). When one exists, the plan starts from its findings (what was tried, what it
+     measured, why it was dropped) and says what is different this time; without a new reason, Claude
+     recommends against redoing it.
    - **proposes a branch name**: short, kebab-case, saying what the feature is (`exact-annulus`,
      `receipt-semicolons`), off `main`. The branch, and the worktree it is developed in, are created only
      once the user agrees.
@@ -612,6 +617,12 @@ to the maintainer.
 reply on its thread with what changed, and leave resolving the thread to the reviewer. Then verify again
 what the change affects (the tests; a new receipt if the library or the probes changed; another
 `@claude review`) before saying the PR is ready again.
+
+**Dropping an investigated feature.** When a prototype or a pull request is abandoned, its issue is closed as
+*not planned*, with the `wontfix` label and a findings comment: what was tried, the measurements, why it was
+dropped, and where the prototype lives (a branch, or "not kept"). A closed pull request gets the same comment, or
+points to the issue's. The comment is written for someone who has not read the thread, so that a later request can
+be judged against it instead of rediscovering it.
 
 **After the merge.** Claude takes no action on its own once a PR merges: the roadmap, the issues and the
 branches are the maintainer's. It asks whether the branch's worktree should be removed (and removes it only
