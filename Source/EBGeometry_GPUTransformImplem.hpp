@@ -77,6 +77,59 @@ struct Apply
   }
 };
 
+/**
+ * @brief The functor the ordered parallelFor() runs: a_f(a_order[i]).
+ * @tparam F Functor type.
+ */
+template <class F>
+struct Ordered
+{
+  /// @brief The functor.
+  F m_f;
+
+  /// @brief The order.
+  const uint32_t* m_order;
+
+  /// @brief Number of indices, for the bound checked with assertions on.
+  uint32_t m_n;
+
+  /**
+   * @brief Run the functor on the index at position i of the order.
+   * @param[in] a_i Position in the order.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(std::size_t a_i) const
+  {
+    const uint32_t index = m_order[a_i];
+
+    EBGEOMETRY_EXPECT(index < m_n);
+
+    m_f(std::size_t(index));
+  }
+};
+
+/**
+ * @brief Abort unless the inputs and the results of an ordered transform are disjoint.
+ * @tparam In  Input type.
+ * @tparam Out Result type.
+ * @param[in] a_in  The inputs.
+ * @param[in] a_out The results.
+ */
+template <class In, class Out>
+EBGEOMETRY_HOST
+inline void
+requireDisjoint(const PODSpan<In> a_in, const PODSpan<Out> a_out)
+{
+  const auto inBegin  = reinterpret_cast<std::uintptr_t>(a_in.m_ptr);
+  const auto outBegin = reinterpret_cast<std::uintptr_t>(a_out.m_ptr);
+  const auto inEnd    = inBegin + std::uintptr_t(a_in.size()) * sizeof(In);
+  const auto outEnd   = outBegin + std::uintptr_t(a_out.size()) * sizeof(Out);
+
+  EBGEOMETRY_REQUIRE(a_in.size() == 0 || a_out.size() == 0 || inEnd <= outBegin || outEnd <= inBegin,
+                     "GPU::transform: in a given order, the inputs and the results must not overlap");
+}
+
 #if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
 
 /**
@@ -296,6 +349,124 @@ transform(const Query& a_query, const std::vector<In>& a_in, std::vector<Out>& a
 #else
   transform<BlockSize, MinResidentThreads>(
     a_query, PODSpan<const In>{a_in.data(), count}, PODSpan<Out>{a_out.data(), count});
+#endif
+}
+
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class F>
+inline void
+parallelFor(const uint32_t a_n, const F& a_f, const PODSpan<const uint32_t> a_order)
+{
+  static_assert(std::is_trivially_copyable_v<F>, "GPU::parallelFor: a functor must be trivially copyable");
+
+  EBGEOMETRY_REQUIRE(a_order.size() == a_n,
+                     "GPU::parallelFor: the order must have one entry per index (%u indices, %u entries)",
+                     unsigned(a_n),
+                     unsigned(a_order.size()));
+
+  parallelFor<BlockSize, MinResidentThreads>(std::size_t(a_n), TransformDetail::Ordered<F>{a_f, a_order.m_ptr, a_n});
+}
+
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class Query, class In, class Out>
+inline void
+transform(const Query& a_query, const PODSpan<In> a_in, const PODSpan<Out> a_out, const PODSpan<const uint32_t> a_order)
+{
+  using Result = TransformResult<Query, std::remove_const_t<In>>;
+
+  static_assert(std::is_trivially_copyable_v<Query>, "GPU::transform: a query must be trivially copyable");
+  static_assert(!std::is_const_v<Out>, "GPU::transform: the results must be writable");
+  static_assert(std::is_same_v<Out, Result>, "GPU::transform: the results must have the query's result type");
+
+  EBGEOMETRY_REQUIRE(a_in.size() == a_out.size(),
+                     "GPU::transform: there must be as many results as inputs (%u inputs, %u results)",
+                     a_in.size(),
+                     a_out.size());
+
+  TransformDetail::requireDisjoint(a_in, a_out);
+
+  parallelFor<BlockSize, MinResidentThreads>(
+    a_in.size(), TransformDetail::Apply<Query, In, Out>{a_query, a_in.m_ptr, a_out.m_ptr}, a_order);
+}
+
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class Query, class In, class Out>
+inline void
+transform(const Query&               a_query,
+          const Pool&                a_pool,
+          const PODVector<In>&       a_in,
+          const PODVector<Out>&      a_out,
+          const PODVector<uint32_t>& a_order)
+{
+  EBGEOMETRY_REQUIRE(a_pool.isFrozen(), "GPU::transform: the pool must be frozen");
+  EBGEOMETRY_REQUIRE(a_pool.resource().isDeviceAccessible(),
+                     "GPU::transform: the pool must be in device-accessible memory (a mirror into "
+                     "GPU::memoryResource(), or managed memory)");
+  EBGEOMETRY_REQUIRE(a_in.endByte() <= a_pool.usedBytes() && a_out.endByte() <= a_pool.usedBytes() &&
+                       a_order.endByte() <= a_pool.usedBytes(),
+                     "GPU::transform: the arrays must fit inside the pool (they end at bytes %llu, %llu and %llu, the "
+                     "pool holds %zu)",
+                     static_cast<unsigned long long>(a_in.endByte()),
+                     static_cast<unsigned long long>(a_out.endByte()),
+                     static_cast<unsigned long long>(a_order.endByte()),
+                     a_pool.usedBytes());
+
+  const void* const inBase = a_pool.base();
+
+  transform<BlockSize, MinResidentThreads>(a_query, a_in.bind(inBase), a_out.bind(a_pool.base()), a_order.bind(inBase));
+}
+
+template <unsigned int BlockSize, unsigned int MinResidentThreads, class Query, class In, class Out>
+inline void
+transform(const Query&                 a_query,
+          const std::vector<In>&       a_in,
+          std::vector<Out>&            a_out,
+          const std::vector<uint32_t>& a_order)
+{
+  static_assert(std::is_trivially_copyable_v<In>, "GPU::transform: an input must be trivially copyable");
+  static_assert(std::is_trivially_copyable_v<Out>, "GPU::transform: a result must be trivially copyable");
+  static_assert(!std::is_same_v<In, bool> && !std::is_same_v<Out, bool>,
+                "GPU::transform: std::vector<bool> has no contiguous storage; use char or a struct instead");
+  static_assert(std::is_same_v<Out, TransformResult<Query, In>>,
+                "GPU::transform: the results must have the query's result type");
+
+  const std::size_t n = a_in.size();
+
+  EBGEOMETRY_REQUIRE(a_out.size() == n && a_order.size() == n,
+                     "GPU::transform: there must be as many results and order entries as inputs (%zu inputs, %zu "
+                     "results, %zu entries)",
+                     n,
+                     a_out.size(),
+                     a_order.size());
+  EBGEOMETRY_REQUIRE(n <= std::size_t(UINT32_MAX), "GPU::transform: at most 2^32 - 1 inputs (%zu)", n);
+
+  if (n == 0) {
+    return;
+  }
+
+  const auto count = static_cast<uint32_t>(n);
+
+#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
+  // EBGEOMETRY_GPU_CHECK aborts on an error, so no path leaves this block with an allocation.
+  In*       in    = nullptr;
+  Out*      out   = nullptr;
+  uint32_t* order = nullptr;
+
+  EBGEOMETRY_GPU_CHECK(memAlloc(reinterpret_cast<void**>(&in), sizeof(In) * n));
+  EBGEOMETRY_GPU_CHECK(memAlloc(reinterpret_cast<void**>(&out), sizeof(Out) * n));
+  EBGEOMETRY_GPU_CHECK(memAlloc(reinterpret_cast<void**>(&order), sizeof(uint32_t) * n));
+  EBGEOMETRY_GPU_CHECK(memcpy(in, a_in.data(), sizeof(In) * n, MemcpyHostToDevice));
+  EBGEOMETRY_GPU_CHECK(memcpy(order, a_order.data(), sizeof(uint32_t) * n, MemcpyHostToDevice));
+
+  transform<BlockSize, MinResidentThreads>(
+    a_query, PODSpan<const In>{in, count}, PODSpan<Out>{out, count}, PODSpan<const uint32_t>{order, count});
+
+  EBGEOMETRY_GPU_CHECK(memcpy(a_out.data(), out, sizeof(Out) * n, MemcpyDeviceToHost));
+  EBGEOMETRY_GPU_CHECK(memFree(in));
+  EBGEOMETRY_GPU_CHECK(memFree(out));
+  EBGEOMETRY_GPU_CHECK(memFree(order));
+#else
+  transform<BlockSize, MinResidentThreads>(a_query,
+                                           PODSpan<const In>{a_in.data(), count},
+                                           PODSpan<Out>{a_out.data(), count},
+                                           PODSpan<const uint32_t>{a_order.data(), count});
 #endif
 }
 

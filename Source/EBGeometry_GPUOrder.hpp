@@ -69,4 +69,6 @@ mortonOrder(const std::vector<Vec3T<T>>& a_points);
 } // namespace GPU
 } // namespace EBGeometry
 
+#include "EBGeometry_GPUOrderImplem.hpp"
+
 #endif
