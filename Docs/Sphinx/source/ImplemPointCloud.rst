@@ -95,11 +95,9 @@ than a single build needs. Without it the BVH holds just what its cloud uses, an
    bvh.rebuild(MySource{...}, n);                                                  // after the points move
    const auto view = bvh.rebasedView(pool);                                        // for the next kernel
 
-A tree deeper than the traversal stack allows (``BVH::DeviceTraversalDepth`` levels on a device,
-``BVH::HostTraversalDepth`` on the host) aborts the program: in ``build()`` or ``rebuild()`` for the side it runs
-on, and in ``rebasedView()`` for a device. Only a cloud of many points packed far closer together than its extent
-comes near that limit, but a code that rebuilds every step can meet it once its points cluster that far. A larger
-target leaf size makes the tree shallower, and a build on the host allows a deeper one.
+No arrangement of the points makes a build or a rebuild fail: the tree is at most ``BVH::DeviceTraversalDepth``
+levels deep (see :ref:`Sec:TraversalStack`), however closely the points cluster, on the host and on a device, so
+a code that rebuilds every step can let its points move freely, and every tree can be queried on a device.
 
 See the `PointCloudBVH doxygen page
 <doxygen/html/classEBGeometry_1_1PointCloudBVH.html>`__ for the full interface, and

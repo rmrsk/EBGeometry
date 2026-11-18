@@ -783,10 +783,10 @@ TEMPLATE_TEST_CASE("Mesh SDFs: closestPoint and gradient match the unit cube's c
 
     const ClosestPoint<T> cp = a_sdf.closestPoint(a_p);
 
-    // The face it reports is one the point lies on, its distance is the signed distance, and the point is
-    // on the surface.
+    // The face it reports is one the point lies on, its distance is the signed distance (to rounding: the
+    // compiler may fuse multiplies and adds differently in the two), and the point is on the surface.
     REQUIRE(cp.faceId < 6U);
-    REQUIRE(cp.signedDistance == a_sdf.signedDistance(a_p));
+    REQUIRE_THAT(cp.signedDistance, withinAbsT(a_sdf.signedDistance(a_p), tightMargin<T>()));
     REQUIRE_THAT((a_p - cp.point).length(), withinAbsT(std::abs(cp.signedDistance), tightMargin<T>()));
     REQUIRE_THAT(std::abs(a_sdf.signedDistance(cp.point)), withinAbsT(T(0), tightMargin<T>()));
     REQUIRE_THAT(cp.normal.length(), withinAbsT(T(1), tightMargin<T>()));
@@ -3497,6 +3497,164 @@ TEMPLATE_TEST_CASE("PackedBVH: a tree too deep for traverse()'s fixed stack is r
   check(std::integral_constant<size_t, 2>{});
   check(std::integral_constant<size_t, 4>{});
   check(std::integral_constant<size_t, 16>{});
+}
+
+TEMPLATE_TEST_CASE("PackedBVH: every build of points along a line, each half as far from the origin as the one before, "
+                   "is shallow enough for a device, holds every point once in a box around it, and finds the nearest",
+                   "[BVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using AABB = BoundingVolumes::AABBT<T>;
+  using Vec3 = Vec3T<T>;
+  using Pnt  = BareTestPoint<T>;
+
+  constexpr size_t K = 4;
+
+  using Packed = BVH::PackedBVH<T, Pnt, K>;
+
+  // A split by space (SAH, the midpoint, ClusterSAH's clusters) cuts off about one point per level here, so these
+  // builds made trees about as deep as there are points: up to 40 levels for these 120.
+  constexpr int N = 120;
+
+  std::vector<Vec3>                 positions;
+  std::vector<std::pair<Pnt, AABB>> primsAndBVs;
+
+  for (int i = 0; i < N; i++) {
+    const Vec3 x(std::ldexp(T(1), -i), T(0), T(0));
+
+    positions.push_back(x);
+    primsAndBVs.emplace_back(Pnt{x}, AABB(x, x));
+  }
+
+  // Each point's number, from its distance to the origin (exactly 2^-i).
+  const auto numberOf = [](const Pnt& a_point) { return -std::ilogb(a_point.m_pos[0]); };
+
+  const auto check = [&](const Packed& a_bvh) {
+    const auto nodes = a_bvh.getNodes();
+    const auto prims = a_bvh.getPrimitives();
+
+    std::vector<std::pair<uint32_t, size_t>> stack{{0U, size_t(1)}};
+    std::vector<int>                         seen(N, 0);
+
+    size_t depth = 0;
+
+    while (!stack.empty()) {
+      const auto [index, level] = stack.back();
+
+      stack.pop_back();
+
+      depth = std::max(depth, level);
+
+      const auto& node = nodes[index];
+
+      if (!node.isLeaf()) {
+        for (const uint32_t child : node.getChildOffsets()) {
+          stack.emplace_back(child, level + 1);
+        }
+
+        continue;
+      }
+
+      const AABB box = a_bvh.getBoundingVolume(node);
+
+      for (uint32_t p = node.getPrimitivesOffset(); p < node.getPrimitivesOffset() + node.getNumPrimitives(); p++) {
+        const Vec3& x = prims[p].m_pos;
+
+        seen[numberOf(prims[p])]++;
+
+        CHECK(x[0] >= box.getLowCorner()[0]);
+        CHECK(x[0] <= box.getHighCorner()[0]);
+      }
+    }
+
+    CHECK(depth <= BVH::DeviceTraversalDepth);
+    CHECK(std::count(seen.begin(), seen.end(), 1) == N);
+
+    const auto pruneDist2 = [](const T& a_state) noexcept -> T { return a_state; };
+
+    for (int j = 0; j < N; j += 7) {
+      const Vec3 q(T(0.75) * std::ldexp(T(1), -j), std::ldexp(T(1), -j), T(0));
+
+      T state = std::numeric_limits<T>::max();
+
+      const auto evalLeaf = [&prims, &q](T& a_state, size_t a_offset, size_t a_count) noexcept {
+        for (size_t i = 0; i < a_count; i++) {
+          a_state = std::min(a_state, (prims[a_offset + i].m_pos - q).length2());
+        }
+      };
+
+      a_bvh.traverse(BVH::PointQuery{q}, state, evalLeaf, pruneDist2);
+
+      T brute = std::numeric_limits<T>::max();
+
+      for (const auto& x : positions) {
+        brute = std::min(brute, (x - q).length2());
+      }
+
+      CHECK(state == brute);
+    }
+  };
+
+  // A device view of each, which is checked against the device depth.
+  const auto mirrors = [](Pool& a_pool, const Packed& a_bvh) {
+    return !aborts([&] {
+      a_pool.freeze();
+
+      DeviceAccessibleHostResource managed;
+
+      const Pool   mirror = Pool::mirror(a_pool, managed);
+      const Packed view   = a_bvh.rebasedView(mirror);
+
+      (void)view;
+    });
+  };
+
+  const std::pair<BVH::Construction, const char*> constructions[] = {
+    {BVH::Construction::CentroidSplit, "CentroidSplit"},
+    {BVH::Construction::MidpointSplit, "MidpointSplit"},
+    {BVH::Construction::SAH, "SAH"},
+    {BVH::Construction::ClusterSAH, "ClusterSAH"},
+    {BVH::Construction::Morton, "Morton"},
+    {BVH::Construction::Nested, "Nested"},
+    {BVH::Construction::Hilbert, "Hilbert"}};
+
+  for (const auto& [construction, name] : constructions) {
+    INFO(name);
+
+    Pool         pool(hostMemoryResource());
+    const Packed bvh = Packed::build(pool, primsAndBVs, construction);
+
+    check(bvh);
+    CHECK(mirrors(pool, bvh));
+  }
+
+  // A TreeBVH, partitioned by SAH and packed.
+  {
+    INFO("TreeBVH, BinnedSAHPartitioner, packed");
+
+    BVH::PrimAndBVList<Pnt, AABB> list;
+
+    for (const auto& x : positions) {
+      list.emplace_back(std::make_shared<Pnt>(Pnt{x}), AABB(x, x));
+    }
+
+    using Tree = BVH::TreeBVH<T, Pnt, AABB, K>;
+
+    auto tree = std::make_shared<Tree>(list);
+
+    const typename Tree::LeafPredicate stopCrit = [](const Tree& a_node) noexcept -> bool {
+      return a_node.getPrimitives().size() < K;
+    };
+
+    tree->topDownSortAndPartition(BVH::BinnedSAHPartitioner<T, Pnt, AABB, K>, stopCrit);
+
+    Pool         pool(hostMemoryResource());
+    const Packed bvh = tree->pack(pool);
+
+    check(bvh);
+    CHECK(mirrors(pool, bvh));
+  }
 }
 
 TEMPLATE_TEST_CASE("PackedBVH: the traversal stack holds one entry per level below the root, at every branching "

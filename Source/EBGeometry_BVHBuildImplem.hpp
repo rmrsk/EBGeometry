@@ -36,6 +36,209 @@ namespace EBGeometry {
 namespace BVH {
 
 template <class T, class P, size_t K>
+EBGEOMETRY_HOST
+inline void
+PackedBVH<T, P, K>::boundDepth(std::vector<Node>& a_linearNodes,
+                               std::vector<BV>&   a_nodeBoxes,
+                               std::vector<P>&    a_primitives)
+{
+  const size_t numNodes = a_linearNodes.size();
+
+  if (numNodes == 0) {
+    return;
+  }
+
+  constexpr size_t Limit = DeviceTraversalDepth;
+
+  // Each node's height (a leaf is 1). Children come after their parent in the pre-order array, so one sweep from the
+  // back sees every child first. This is all a tree within the bound costs.
+  std::vector<size_t> height(numNodes, 1);
+
+  for (size_t i = numNodes; i-- > 0;) {
+    const Node& node = a_linearNodes[i];
+
+    if (!node.isLeaf()) {
+      for (const uint32_t child : node.getChildOffsets()) {
+        height[i] = Math::max(height[i], height[child] + 1);
+      }
+    }
+  }
+
+  if (height[0] <= Limit) {
+    return;
+  }
+
+  // Each node's primitive count and largest leaf, in the same way.
+  std::vector<size_t> count(numNodes, 0);
+  std::vector<size_t> largest(numNodes, 0);
+
+  for (size_t i = numNodes; i-- > 0;) {
+    const Node& node = a_linearNodes[i];
+
+    if (node.isLeaf()) {
+      count[i]   = node.getNumPrimitives();
+      largest[i] = node.getNumPrimitives();
+
+      continue;
+    }
+
+    for (const uint32_t child : node.getChildOffsets()) {
+      count[i]   = count[i] + count[child];
+      largest[i] = Math::max(largest[i], largest[child]);
+    }
+  }
+
+  // Levels of a subtree of a_count primitives cut into K equal parts down to leaves of at most a_leaf.
+  const auto balancedHeight = [](size_t a_count, const size_t a_leaf) noexcept {
+    size_t levels = 1;
+
+    while (a_count > a_leaf && a_count >= K) {
+      a_count = (a_count + K - 1) / K;
+      levels++;
+    }
+
+    return levels;
+  };
+
+  // How many levels a subtree needs at least: as it is, or built again.
+  const auto fewestLevels = [&](const uint32_t a_node) {
+    return Math::min(height[a_node], balancedHeight(count[a_node], Math::max(largest[a_node], size_t{1})));
+  };
+
+  std::vector<Node> nodes;
+  std::vector<BV>   boxes;
+  std::vector<P>    prims;
+
+  nodes.reserve(numNodes);
+  boxes.reserve(numNodes);
+  prims.reserve(a_primitives.size());
+
+  // A subtree built again: its primitives, in order, each with the box of the leaf it was in.
+  std::vector<std::pair<uint32_t, uint32_t>> units;
+
+  size_t leafSize = 1;
+
+  const auto balanced = [&](const auto& a_self, const size_t a_begin, const size_t a_end) -> uint32_t {
+    const auto   index = static_cast<uint32_t>(nodes.size());
+    const size_t n     = a_end - a_begin;
+
+    nodes.push_back(Node{});
+    boxes.push_back(a_nodeBoxes[units[a_begin].second]);
+
+    if (n <= leafSize || n < K) {
+      nodes[index].setPrimitivesOffset(static_cast<uint32_t>(prims.size()));
+      nodes[index].setNumPrimitives(static_cast<uint32_t>(n));
+
+      BV box = a_nodeBoxes[units[a_begin].second];
+
+      for (size_t u = a_begin; u < a_end; u++) {
+        const BV& from = a_nodeBoxes[units[u].second];
+
+        box = BV(min(box.getLowCorner(), from.getLowCorner()), max(box.getHighCorner(), from.getHighCorner()));
+
+        prims.push_back(a_primitives[units[u].first]);
+      }
+
+      boxes[index] = box;
+
+      return index;
+    }
+
+    for (size_t k = 0; k < K; k++) {
+      const uint32_t child = a_self(a_self, a_begin + n * k / K, a_begin + n * (k + 1) / K);
+
+      nodes[index].setChildOffset(child, k);
+
+      const BV& box = (k == 0) ? boxes[child] : boxes[index];
+
+      boxes[index] = BV(min(box.getLowCorner(), boxes[child].getLowCorner()),
+                        max(box.getHighCorner(), boxes[child].getHighCorner()));
+    }
+
+    return index;
+  };
+
+  // Copy node a_node at depth a_depth (the root is 1): as it is if its subtree fits, else built again if one of its
+  // children could not be brought within the bound below it.
+  const auto copy = [&](const auto& a_self, const uint32_t a_node, const size_t a_depth) -> uint32_t {
+    const Node& node = a_linearNodes[a_node];
+
+    bool keep = (a_depth - 1 + height[a_node] <= Limit);
+
+    if (!keep && !node.isLeaf()) {
+      keep = true;
+
+      for (const uint32_t child : node.getChildOffsets()) {
+        keep = keep && (a_depth + fewestLevels(child) <= Limit);
+      }
+    }
+
+    if (!keep) {
+      EBGEOMETRY_REQUIRE(a_depth - 1 + fewestLevels(a_node) <= Limit,
+                         "BVH::PackedBVH: %zu primitives do not fit in %zu levels at branching factor %zu",
+                         count[a_node],
+                         Limit,
+                         K);
+
+      units.clear();
+      leafSize = Math::max(largest[a_node], size_t{1});
+
+      std::vector<uint32_t> stack{a_node};
+
+      while (!stack.empty()) {
+        const Node& next = a_linearNodes[stack.back()];
+        const auto  leaf = stack.back();
+
+        stack.pop_back();
+
+        if (next.isLeaf()) {
+          for (uint32_t p = 0; p < next.getNumPrimitives(); p++) {
+            units.emplace_back(next.getPrimitivesOffset() + p, leaf);
+          }
+        }
+        else {
+          for (size_t k = K; k-- > 0;) {
+            stack.push_back(next.getChildOffsets()[k]);
+          }
+        }
+      }
+
+      return balanced(balanced, 0, units.size());
+    }
+
+    const auto index = static_cast<uint32_t>(nodes.size());
+
+    nodes.push_back(Node{});
+    boxes.push_back(a_nodeBoxes[a_node]);
+
+    if (node.isLeaf()) {
+      nodes[index].setPrimitivesOffset(static_cast<uint32_t>(prims.size()));
+      nodes[index].setNumPrimitives(node.getNumPrimitives());
+
+      for (uint32_t p = 0; p < node.getNumPrimitives(); p++) {
+        prims.push_back(a_primitives[node.getPrimitivesOffset() + p]);
+      }
+
+      return index;
+    }
+
+    for (size_t k = 0; k < K; k++) {
+      const uint32_t child = a_self(a_self, a_linearNodes[a_node].getChildOffsets()[k], a_depth + 1);
+
+      nodes[index].setChildOffset(child, k);
+    }
+
+    return index;
+  };
+
+  copy(copy, 0U, 1);
+
+  a_linearNodes = std::move(nodes);
+  a_nodeBoxes   = std::move(boxes);
+  a_primitives  = std::move(prims);
+}
+
+template <class T, class P, size_t K>
 inline PackedBVH<T, P, K>::PackedBVH(Pool&                                                          a_pool,
                                      const TreeBVH<T, P, EBGeometry::BoundingVolumes::AABBT<T>, K>& a_tree)
 {
@@ -84,6 +287,9 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
   };
 
   dfs(a_tree);
+
+  PackedBVH::boundDepth(nodes, boxes, prims);
+
   this->finalize(a_pool, nodes, boxes, prims);
 }
 
@@ -145,6 +351,8 @@ inline PackedBVH<T, P, K>::PackedBVH(Pool&                                      
   dfs(a_tree);
 
   detail::appendAliased(prims, dstStorage);
+
+  PackedBVH::boundDepth(nodes, boxes, prims);
 
   this->finalize(a_pool, nodes, boxes, prims);
 }
@@ -322,6 +530,8 @@ PackedBVH<T, P, K>::buildBottomUp(Pool& a_pool, std::vector<std::pair<P, BV>> a_
 
   relayout(scratchRoot);
 
+  PackedBVH::boundDepth(nodes, boxes, prims);
+
   return PackedBVH(a_pool, nodes, boxes, prims);
 }
 
@@ -452,6 +662,8 @@ PackedBVH<T, P, K>::buildTopDown(Pool&                                  a_pool,
   };
 
   build(std::move(wrapped));
+
+  PackedBVH::boundDepth(nodes, boxes, prims);
 
   return PackedBVH(a_pool, nodes, boxes, prims);
 }
@@ -717,6 +929,8 @@ PackedBVH<T, P, K>::buildClusterSAH(Pool& a_pool, std::vector<std::pair<P, BV>> 
   build(0, clusters.size());
 
   detail::appendAliased(prims, primBlock);
+
+  PackedBVH::boundDepth(nodes, boxes, prims);
 
   return PackedBVH(a_pool, nodes, boxes, prims);
 }

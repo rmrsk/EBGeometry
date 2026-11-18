@@ -106,20 +106,35 @@ radixSplit(const MortonKey* a_keys, const uint32_t a_lo, const uint32_t a_hi) no
 /**
  * @brief Cut the sorted keys [a_lo, a_hi) into K ranges, a node's children: K - 1 binary cuts, the first giving
  * K/2 parts to the left, each made by radixSplit() and moved in to leave every part at least
- * max(1, floor((a_hi - a_lo) / (4K))) keys.
+ * max(1, floor((a_hi - a_lo) / (4K))) keys; or, with @p a_even, K parts of equal count.
  * @details Internal helper; not part of the public API.
  * @tparam K Branching factor.
  * @param[in]  a_keys   The sorted keys.
  * @param[in]  a_lo     First key of the range.
  * @param[in]  a_hi     One past the range's last key; at least a_lo + K.
+ * @param[in]  a_even   Whether to cut into parts of equal count, regardless of the keys.
  * @param[out] a_bounds Range k is [a_bounds[k], a_bounds[k + 1]).
  */
 template <size_t K>
 EBGEOMETRY_HOST_DEVICE
 inline void
-splitRange(const MortonKey* a_keys, const uint32_t a_lo, const uint32_t a_hi, Array<uint32_t, K + 1>& a_bounds) noexcept
+splitRange(const MortonKey*        a_keys,
+           const uint32_t          a_lo,
+           const uint32_t          a_hi,
+           const bool              a_even,
+           Array<uint32_t, K + 1>& a_bounds) noexcept
 {
   EBGEOMETRY_EXPECT(a_hi >= a_lo + K);
+
+  if (a_even) {
+    const uint64_t n = a_hi - a_lo;
+
+    for (size_t k = 0; k <= K; k++) {
+      a_bounds[k] = a_lo + static_cast<uint32_t>(n * k / K);
+    }
+
+    return;
+  }
 
   const uint32_t quota = Math::max(uint32_t{1}, (a_hi - a_lo) / static_cast<uint32_t>(4 * K));
 
@@ -296,6 +311,9 @@ struct SplitEmit
   /// @brief The largest leaf.
   uint32_t m_leafSize;
 
+  /// @brief Whether the level is cut into parts of equal count (see splitRange()).
+  bool m_even;
+
   /**
    * @brief Cut node m_begin + @p a_i, if it is not a leaf.
    * @param[in] a_i The node's index in its level.
@@ -317,7 +335,7 @@ struct SplitEmit
 
     Array<uint32_t, K + 1> bounds;
 
-    splitRange<K>(m_keys, node.m_lo, node.m_hi, bounds);
+    splitRange<K>(m_keys, node.m_lo, node.m_hi, m_even, bounds);
 
     node.m_firstChild = first;
 
@@ -776,8 +794,22 @@ CloudBVH<T, K, W, Prim>::shape(
   }
 
   // Step 3: the levels, breadth first. Each is [begin, end) of the node array, and its cut nodes' children are the
-  // next level.
-  const std::size_t maxDepth = m_parallel ? BVH::DeviceTraversalDepth : BVH::HostTraversalDepth;
+  // next level. Cut into parts of equal count, a node needs at most as many levels as the root would (balanced
+  // below); so the levels from evenFrom on are cut that way, and no cloud makes the tree deeper than a device
+  // traversal allows, on either side. Morton cuts of a real cloud reach their leaves well before evenFrom (level 25
+  // for a million points in leaves of 64 at K = 4), so its tree is as Morton cuts alone make it.
+  const std::size_t maxDepth = BVH::DeviceTraversalDepth;
+
+  std::size_t balanced = 1;
+
+  for (uint64_t c = a_numItems; c > m_leafSize; c = (c + K - 1U) / K) {
+    balanced++;
+  }
+
+  EBGEOMETRY_REQUIRE(
+    balanced <= maxDepth, "%s: %u %s do not fit in %zu levels", a_who, unsigned(a_numItems), Prim::Plural, maxDepth);
+
+  const std::size_t evenFrom = maxDepth + 1U - balanced;
 
   std::vector<uint32_t> levels{0, 1};
 
@@ -805,7 +837,10 @@ CloudBVH<T, K, W, Prim>::shape(
                        a_who,
                        unsigned(capacity));
 
-    this->run(end - begin, SplitEmit<K>{keys, nodes, rows, begin, end, m_leafSize});
+    // This level's nodes are levels.size() - 1 deep, the root 1.
+    const bool even = (levels.size() - 1U >= evenFrom);
+
+    this->run(end - begin, SplitEmit<K>{keys, nodes, rows, begin, end, m_leafSize, even});
 
     if (cut == 0) {
       break;

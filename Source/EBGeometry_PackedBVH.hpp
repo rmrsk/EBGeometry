@@ -121,7 +121,8 @@ struct ConstructionOptions
 /**
  * @brief Deepest tree, in node levels (the root alone is one level), that a host traversal handles.
  * @details The traversals keep a fixed stack with one entry per level below the root, so the limit is
- * the same for every K. Every PackedBVH is checked against it when it is built. The stack takes 255
+ * the same for every K. A node array given to the adopt constructor is checked against it; the library's
+ * own builds stay within DeviceTraversalDepth. The stack takes 255
  * entries of 4 + K bytes rounded up to a multiple of 4: 2 KB at K = 4.
  */
 inline constexpr size_t HostTraversalDepth = 256;
@@ -129,8 +130,10 @@ inline constexpr size_t HostTraversalDepth = 256;
 /**
  * @brief Deepest tree, in node levels, that a device traversal handles.
  * @details Smaller than the host value, since device stack memory is per thread: 31 entries of 4 + K
- * bytes rounded up to a multiple of 4, 248 bytes at K = 4. PackedBVH::rebasedView() checks every
- * device view against it.
+ * bytes rounded up to a multiple of 4, 248 bytes at K = 4. Every build of the library (the static
+ * builds, TreeBVH::pack(), PointCloudBVH and SphereCloudBVH) stays within it whatever its input, so any
+ * of their trees can be traversed on a device; PackedBVH::rebasedView() checks every device view against
+ * it, which only an adopted node array can fail.
  */
 inline constexpr size_t DeviceTraversalDepth = 32;
 
@@ -329,7 +332,8 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * Instances are built directly from a list of (primitive, bounding volume) pairs with build(),
  * buildTopDown(), buildBottomUp() or buildClusterSAH(), by packing a TreeBVH with TreeBVH::pack() (same
  * primitive type) or TreeBVH::packWith() (type-converting pack), or by adopting a node array built
- * elsewhere.
+ * elsewhere. A build or a pack is at most DeviceTraversalDepth levels deep whatever its input; an adopted
+ * node array is taken as it is.
  *
  * PackedBVH imposes no interface requirement on P by itself -- it holds primitives opaquely and
  * only ever hands their range back to a caller-supplied leaf callback of traverse(). Nearest-surface
@@ -1235,6 +1239,26 @@ private:
   EBGEOMETRY_HOST
   static inline void
   requireWellFormed(const std::vector<Node>& a_linearNodes, const size_t a_numPrimitives);
+
+  /**
+   * @brief Bring a built tree within DeviceTraversalDepth levels, so that no input makes a build fail and every
+   * build can be traversed on a device.
+   * @details Called by every static build and by the TreeBVH constructors, before finalize(); a node array given
+   * to the adopt constructor is taken as it is, and checked. A tree within the bound, which every builder gives
+   * for real inputs, is left exactly as it is. Otherwise every node that fits is kept, and each subtree that
+   * would reach too deep is built again over its own primitives, in their order: cut into K parts of equal count
+   * down to leaves no larger than its largest one (or of fewer than K primitives, which cannot be cut into K), so
+   * it needs about log_K of its primitives levels. A new
+   * leaf's box encloses the boxes of the leaves its primitives came from, which contain them: looser than a
+   * fitted box, but valid, and only in the subtrees a degenerate input made too deep. A subtree is built again
+   * as deep in the tree as the bound allows, so the cut keeps as much of the builder's tree as it can.
+   * @param[in,out] a_linearNodes Node array, a well-formed pre-order flattening; rewritten if too deep.
+   * @param[in,out] a_nodeBoxes   Each node's box, indexed like @p a_linearNodes.
+   * @param[in,out] a_primitives  Primitive array the leaves index into.
+   */
+  EBGEOMETRY_HOST
+  static inline void
+  boundDepth(std::vector<Node>& a_linearNodes, std::vector<BV>& a_nodeBoxes, std::vector<P>& a_primitives);
 
   /**
    * @brief Populate m_childAabbSoA and m_rootBox from the completed m_linearNodes array and its boxes,
