@@ -6,7 +6,7 @@ QueryOrder
 Running queries at points that arrive in no spatial order in an order that keeps nearby points together (see
 :ref:`Sec:QueryOrder`). `GPU::mortonOrder() <doxygen/html/namespaceEBGeometry_1_1GPU.html>`__ gives the order, and
 ``GPU::parallelFor`` and ``GPU::transform`` run in it; every result still lands at its input's index, so only the
-time changes. The example times a million particles' distances to a mesh in the order they arrived and in Morton
+time changes. The example times 200,000 particles' distances to a mesh in the order they arrived and in Morton
 order. A plain C++ build runs the launches as host loops on one core, a GPU build on the device. It opens no window.
 The source is at :file:`Examples/QueryOrder/main.cpp`, in the following sections.
 

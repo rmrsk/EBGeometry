@@ -5,7 +5,7 @@ This folder shows how to run queries at points that arrive in no spatial order i
 points together: `EBGeometry::GPU::mortonOrder()` gives the order, and `GPU::parallelFor()` and
 `GPU::transform()` run in it. Every result still lands at its input's index; only the time changes.
 
-The points are a million particles in a mesh's box, stored in the order they arrived, as a simulation would
+The points are 200,000 particles in a mesh's box, stored in the order they arrived, as a simulation would
 hold them: each with a position and a velocity. The order is read from the particles themselves, through a
 *source* (a functor returning particle i's position), so they are not copied into an array of points. The
 example times each particle's distance to the mesh in the order they arrived, the order's computation (done

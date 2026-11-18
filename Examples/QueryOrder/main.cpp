@@ -33,7 +33,7 @@ constexpr std::size_t W = 4;
 
 using Mesh = EBGeometry::TriMeshSDF<T, K, W>;
 
-constexpr std::uint32_t numParticles = 1000000;
+constexpr std::uint32_t numParticles = 200000;
 
 namespace {
 
