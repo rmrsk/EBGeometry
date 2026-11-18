@@ -239,33 +239,8 @@ finishing the work, following the steps below, even if the user hasn't separatel
 pass; a PR that is already out of draft (`gh pr view <number> --json isDraft`) and changes again is
 audited again.
 
-Before treating a code change as finished, look at what you actually staged/changed
-(`git diff --staged --name-only`, or `git diff HEAD --name-only` if not yet staged) and, for each
-changed `Source/*.hpp` file:
-
-1. **Confirm no `literalinclude` crept back in**: `grep -rn "literalinclude" Docs/Sphinx/source/`
-   must return nothing. If it does, replace it with a Doxygen link as described above.
-2. **Grep for renamed/removed identifiers** in prose: if you renamed a class, method, or
-   parameter, `grep -rn "<oldName>" Docs/Sphinx/source/ Docs/mainpage.md README.md CLAUDE.md` to
-   catch stale references -- a Doxygen link doesn't automatically break when the linked class is
-   renamed the way a literalinclude would, so this needs an explicit check.
-3. **If you added a new public class/function**, add it to `Tests/InstantiateAll.cpp` (for
-   clang-tidy/compile coverage under both precisions, per the existing convention) and check
-   whether it deserves a mention on the relevant `Docs/Sphinx/source/Implem*.rst` implementation
-   page (concrete API, Doxygen-linked) and/or its concept page in the same section of the guide
-   (Geometry, Queries, Acceleration or Where it runs; conceptual picture, no implementation classes
-   named), the geometry-by-queries table of `Overview.rst` if it adds a cell, and/or a row in a
-   `Docs/Sphinx/source/TestingLocally.rst`-style coverage table, matching how existing sibling classes are
-   documented.
-4. **If you changed a function's signature** (added/removed/renamed a parameter, changed a return
-   type), update its Doxygen `@param`/`@tparam`/`@return` comment in the same header -- `doxygen
-   doxygen.conf` (`WARN_AS_ERROR = FAIL_ON_WARNINGS`) will catch a genuinely missing `@param` for a
-   new parameter, but won't catch a stale description that no longer matches what the parameter
-   does, or a `Docs/Sphinx/source/*.rst` page that still describes the old signature.
-5. **Rebuild the Sphinx HTML docs** (see below) and check for build warnings -- a broken internal
-   cross-reference (`:ref:`/`:numref:`/`:eq:`) will not stop a plain `make html`, but usually
-   surfaces as a warning, and CI's Sphinx build (like the `sphinx-build-html` hook) runs with `-W`,
-   so any warning fails it.
+The audit itself (renamed identifiers, new public classes, changed signatures, Doxygen links, the Sphinx
+rebuild) is the `docs-audit` skill (`.claude/skills/docs-audit/SKILL.md`).
 
 The `check-docs` pre-commit hook (`Scripts/CheckDocs.py`, default stage: it runs on every commit
 that changes a `Docs/Sphinx/source/*.rst` file, and CI's Doxygen-check job runs it too) enforces the
@@ -396,74 +371,24 @@ shows times and judges none). Once the code is final, while the PR is still a dr
 the full comparison and records the receipt, as below. The code is final only once the `@claude review`
 rounds have converged (see "Human review" below): the receipt is recorded after them, never before or
 alongside them, since a fix from a round would make it stale. No hardening in between: no extra rounds, no repeated full runs while the code still
-moves. `Performance/` holds the
-probes (one program per component, many named cases, `component/input/operation/precision/side`);
-`Scripts/run-performance.sh` is the one way in (its logic is `Performance/RunPerformance.cmake` and
-`Performance/Compare.cmake`, needing only CMake, git and a compiler; `--help` lists everything); the
-full description is `Docs/Sphinx/source/PerformanceTesting.rst`.
+moves. How to run both, read the verdicts and fill the PR's *Performance* section is the `receipt` skill
+(`.claude/skills/receipt/SKILL.md`); the tooling is described in `Docs/Sphinx/source/PerformanceTesting.rst`.
+The rules it carries out:
 
-1. **Run the comparison against the PR's base**, from the top of the branch's worktree, once the code is
-   final and before the PR is promoted (`--smoke` first gives a one-minute check that both sides build and every case runs
-   with the same answers). Its defaults, 2 rounds of 3 repetitions, are the least that gives a verdict,
-   and take about eight minutes for every case, builds included; a probe that compiled to the same code on
-   both sides is not run (listed as such in the report), so a PR touching one component runs only the probes
-   it reaches (`--no-skip` runs them all), and a side built before with the same code and settings is reused
-   from `build/performance/cache` (`--no-cache` builds afresh):
-
-   ```bash
-   Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
-   Scripts/run-performance.sh compare origin/<base> <pr-branch> --gpu cuda --gpu-arch 86 \
-                              --cuda-compiler <nvcc>                               # + device
-   ```
-
-   Add the device run whenever the PR touches code a device runs (`EBGEOMETRY_HOST_DEVICE`
-   functions, `GPU::`, the pool/`rebasedView` machinery, the packed layouts). The receipt's runs never take
-   `--test-builds`: its build costs come from the probe builds the comparison does anyway, while the Debug
-   CUDA builds of the heaviest tests take about 45 minutes a side. That option, and timing ptxas on a changed
-   target, are manual checks for a draft's quick look when the PR changes device ray or render code. The device run compares the
-   `hostdevice` pairs, which also report the host's time on every hardware thread but one, the device's speedup and
-   whether the host and device answers agree. Nothing else should be running on the machine; each
-   case runs in a fresh process, alternating between the sides (a host comparison pinned to one core). (`Scripts/run-performance.sh` with no command
-   runs every case of the current tree, and a glob such as `'PointCloudBVH/*'` runs a subset.)
-   Run the host comparison on the PR branch with its code committed and `--record`: it writes the
-   PR's **performance receipt**, `Performance/receipt.md` (its host section; the device run with
-   `--record` adds a device section), which CI requires (see 4). It refuses a smoke run, a glob,
-   uncommitted changes to the library or the probes, or a run with skipped cases (a fresh worktree needs
-   `git submodule update --init` for the mesh cases).
-2. **Report the result to the user in the terminal** (the table and the "Run it manually" block that
-   the comparison prints), **commit the receipt** to the PR branch (pushing it, like any push, needs
-   the user's go-ahead), **and carry the figures in the PR**: paste `build/performance/compare/report.md`
-   into the *Performance* section of the PR body (`.github/pull_request_template.md`), replacing an
-   older report. A PR that changes neither the library nor the probes keeps the receipt it inherited.
-3. **Act on the verdicts** (the comparison ends with one `VERDICT:` line, green, yellow or red; a change
-   counts only outside the 95% bootstrap interval):
-   - **minor** (3% to 10% slower, or 3% to 10% more pool bytes): tell the user which cases, by how
-     much, and the likely cause if the diff shows one, and **ask whether it should be investigated
-     further** before going on. A yellow receipt fails CI until fixed or accepted (see 4).
-   - **MAJOR** (10% or more): **red-flag it**. The PR must not be merged until the regression is
-     fixed, or the user explicitly accepts it; record the reason in the PR's *Performance* section and
-     on the receipt's `**Accepted:**` line (replacing its `-`).
-   - A **differing checksum** (of the values or of the points found) or **host/device disagreements**
-     are flagged whatever the timing says: the sides computed different answers.
-   - A **lost** case (ran on the base, skipped or missing on the PR) is red: find out why it no longer
-     runs before reading the timings.
-   - **Build costs** (the report's last section: each probe's compile CPU time and peak memory, and every
-     device kernel whose registers, stack or spills changed) are reported, not judged: they do not enter
-     the verdict or CI. Report any flag to the user like a minor regression, with the kernels behind it,
-     and say whether it is expected (new code) or not.
-   - A flagged case is already confirmed: the comparison reruns every case flagged after its two rounds
-     with 8 more (`--confirm-rounds`) and judges it on all ten, so a flag in the verdict is not one noisy
-     round. Do not rerun until a result passes.
-4. **CI times nothing; it checks the receipt** (`Performance-receipt` in `.github/workflows/CI.yml`,
-   `Performance/CheckReceipt.cmake`, required by `CI-passed`), on a PR that is ready for review (a
-   draft only gets a notice). It fails when the PR changes the library
-   or the probes and its receipt has no host section, or when any section present (host, or a device
-   one) measured other code (any later code change makes it stale; a later docs-only commit does not),
-   measured an outdated base (rebase and record again), or is not green and has no reason on its
-   `**Accepted:**` line under the section's heading (a yellow verdict, a minor regression or a changed
-   checksum, needs one too); a pass on an accepted verdict shows as a warning. Write an accepted reason
-   into the receipt only when the user explicitly accepts that verdict, and give it as the user did:
-   CI cannot tell who wrote it, and git history shows only that it was pushed from the user's account.
+- **Timed runs need a quiet machine**: the maintainer's go, and no other agent's run going.
+- **The receipt** (`Performance/receipt.md`, written by `Scripts/run-performance.sh compare origin/<base> --record`
+  on the committed branch, plus a device section when the PR touches code a device runs) is committed to the PR
+  branch; pushing it needs the user's go-ahead. The PR body's *Performance* section summarizes its verdicts and
+  points to it; the full report is not pasted there. A PR that changes neither the library nor the probes keeps
+  the receipt it inherited.
+- **Verdicts.** A **minor** regression (3% to 10% slower, or 3% to 10% more pool bytes): tell the user and ask
+  whether to investigate before going on. A **MAJOR** one (10% or more) is red-flagged: the PR is not merged until
+  it is fixed or the user explicitly accepts it. A differing checksum, a host/device disagreement or a lost case is
+  flagged whatever the timing says. Build costs are reported, not judged. A flagged case is already confirmed; do
+  not rerun until a result passes.
+- **CI checks the receipt, not the timings** (`Performance-receipt`, required by `CI-passed`), on a PR that is
+  ready for review. A reason goes on a receipt's `**Accepted:**` line only when the user explicitly accepts that
+  verdict, and in the user's words: CI cannot tell who wrote it.
 
 **Coverage: how wide the probes are, and when to add to them.** The probes cover each public
 structure where its cost lives: its build, its queries, and any in-place update (a refit), in both
@@ -579,7 +504,7 @@ A pull request is handed to the maintainer for review when all of these hold:
 - **The last `@claude review` on the final head has no blocking finding**, and each finding was fixed or
   answered.
 - **The docs agree with the code** (the audit and the rules above), and **the PR body describes the final
-  state**, with the performance report and the *Where to look* section.
+  state**, with the performance summary and the *Where to look* section.
 
 **Promote once.** A PR's full CI matrix runs when it leaves draft, and again on every push after that, so
 a push after promotion costs a whole run. Claude therefore finishes everything while the PR is a draft
@@ -590,33 +515,15 @@ still needed after promotion (a CI failure, a reviewer's comment) goes in one pu
 
 **Marking it ready.** Claude marks a PR ready for review (`gh pr ready`) only when the maintainer asks for
 it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other
-conditions hold. Getting a PR ready for human review always includes all of these, in this order:
-1. **the review sparring:** the `@claude review` rounds (below), until a round has no blocking finding;
-2. **the receipt**, recorded on the code the rounds converged on (which needs the maintainer's
-   quiet-machine go), committed and pushed, its report in the PR body;
-3. **promotion** out of draft, with the labels below;
-4. **a fully green CI:** the full matrix that promotion starts, `CI-passed` included.
-
-A PR that is still a draft, or whose full CI run has not passed, has not been handed over, whatever else
-holds. It also includes labeling: Claude assigns the PR the labels, from the repository's existing set (`gh label list`;
-never a new one), that say what it changes (`bug`, `performance`, `gpu`, `ray tracing`, `documentation`,
-...), and the same to the issues it closes.
-
-**`@claude review` rounds.** Request a review after each push that changes code or docs, and stop when a
-round has no blocking finding. Each optional suggestion is either taken or declined with a one-line reason
-in the hand-over summary. At most five rounds: if the fifth still has a blocking finding, stop and bring it
-to the maintainer.
-
-**The hand-over.**
-- The PR template's *Where to look* section: the files and places that carry the risk, what was verified
-  and how, and what was not (no HIP run, no device run, a configuration not built).
-- A short summary in the session: that the PR is ready, what changed since the maintainer last looked,
-  and what needs their decision.
+conditions hold. Getting it ready always takes, in this order: the `@claude review` rounds until one has no
+blocking finding (at most five; a fifth with a blocking finding goes to the maintainer), the receipt on the code
+they converged on, promotion with labels from the existing set (never a new one, and the same on the issues it
+closes), and a fully green full CI. A PR that is still a draft, or whose full CI run has not passed, has not been
+handed over. The procedure, with the hand-over summary and the handling of a reviewer's comments, is the
+`hand-over` skill (`.claude/skills/hand-over/SKILL.md`).
 
 **The reviewer's comments.** Fix each in a new commit (never force-push over commits that were reviewed),
-reply on its thread with what changed, and leave resolving the thread to the reviewer. Then verify again
-what the change affects (the tests; a new receipt if the library or the probes changed; another
-`@claude review`) before saying the PR is ready again.
+reply on its thread with what changed, and leave resolving the thread to the reviewer.
 
 **Dropping an investigated feature.** When a prototype or a pull request is abandoned, its issue is closed as
 *not planned*, with the `wontfix` label and a findings comment: what was tried, the measurements, why it was
