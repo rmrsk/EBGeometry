@@ -1104,8 +1104,9 @@ TriMeshSDF<T, K, W>::closestPoint(const Vec3T<T>& a_point) const noexcept
 
   (void)group.closestPointAt(nearest.lane, a_point, result.point, result.normal);
 
-  // The value signedDistance() returns on the host, bit for bit there (the scalar kernel's may differ from
-  // the SIMD one's in the last place). The point and normal come from the scalar kernel, so within a unit in
+  // The value signedDistance() returns on the host, from the same call, but to rounding only: the two inlined
+  // copies may fuse multiplies and adds differently (the scalar kernel's may also differ from the SIMD one's
+  // in the last place). The point and normal come from the scalar kernel, so within a unit in
   // the last place of the surface the sign and the pseudonormal could disagree; gradient() returns the
   // pseudonormal there anyway, being within its tolerance.
   result.signedDistance = group.signedDistanceAt(nearest.lane, a_point);

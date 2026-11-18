@@ -12,12 +12,14 @@
 #include "TestGPU.hpp"
 #include "TestPointCloudQueries.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <set>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -992,4 +994,95 @@ TEST_CASE("PointCloudBVH: rejects a zero leaf size, a rebuild without room or of
       (void)view;
     },
     "PointCloudBVH::rebasedView: the pool must be the object's own pool or a mirror of it"));
+}
+
+TEMPLATE_TEST_CASE("PointCloudBVH: a cloud made against its Morton cuts is shallow enough for a device, and its "
+                   "queries match brute force",
+                   "[PointCloudBVH]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // At K = 2 each node is one radix cut. A point spanning the box makes a point's cell its coordinates, so each
+  // group of points below sits in the cell whose code has one bit set, the largest first, and is the smallest part
+  // a cut gives (an eighth of the points left). Each cut takes off one group: Morton cuts alone made this tree 68
+  // levels deep.
+  std::vector<std::pair<SFC::Code, Vec3T<T>>> cells;
+
+  for (size_t axis = 0; axis < 3; axis++) {
+    for (unsigned int bit = 0; bit < SFC::ValidBits; bit++) {
+      SFC::Index cell{0, 0, 0};
+      Vec3T<T>   x = Vec3T<T>::zeros();
+
+      cell[axis] = 1U << bit;
+      x[axis]    = T(1U << bit);
+
+      cells.emplace_back(SFC::Morton::encode(cell), x);
+    }
+  }
+
+  std::sort(cells.begin(), cells.end(), [](const auto& a_x, const auto& a_y) { return a_x.first > a_y.first; });
+
+  constexpr uint32_t N = 1U << 16;
+
+  const T top = T(SFC::ValidSpan);
+
+  std::vector<Vec3T<T>> pos{Vec3T<T>(top, top, top)};
+
+  uint32_t left = N - 1U;
+
+  for (const auto& cell : cells) {
+    const uint32_t group = std::max(uint32_t{1}, left / 8U);
+
+    pos.insert(pos.end(), group, cell.second);
+
+    left -= group;
+  }
+
+  pos.insert(pos.end(), left, Vec3T<T>::zeros());
+
+  REQUIRE(pos.size() == N);
+
+  Pool pool(hostMemoryResource());
+
+  const auto cloud = PointCloudBVH<T, 2, 4>::build(pool, pos, 2);
+  const auto nodes = cloud.getBVH().getNodes();
+
+  std::vector<std::pair<uint32_t, size_t>> stack{{0U, size_t(1)}};
+
+  size_t depth = 0;
+
+  while (!stack.empty()) {
+    const auto [index, level] = stack.back();
+
+    stack.pop_back();
+
+    depth = std::max(depth, level);
+
+    if (!nodes[index].isLeaf()) {
+      for (const uint32_t child : nodes[index].getChildOffsets()) {
+        stack.emplace_back(child, level + 1);
+      }
+    }
+  }
+
+  CHECK(depth <= BVH::DeviceTraversalDepth);
+
+  // Built through GPU::parallelFor(), it is the same tree.
+  Pool parallelPool(parallelBuildResource());
+
+  requireSameTree(PointCloudBVH<T, 2, 4>::build(parallelPool, pos, 2), cloud);
+
+  // Between the groups, and at a few of them.
+  for (size_t c = 0; c < cells.size(); c += 5) {
+    for (const T scale : {T(1), T(0.75), T(1.5)}) {
+      const Vec3T<T> q = scale * cells[c].second + Vec3T<T>(T(0.25), T(0.5), T(0));
+
+      const auto hit   = cloud.closestPoint(q);
+      const auto truth = bruteForce<T>(pos, q, 1, N);
+
+      REQUIRE(hit.index < N);
+      CHECK((pos[hit.index] - q).length2() == truth[0]);
+    }
+  }
 }
