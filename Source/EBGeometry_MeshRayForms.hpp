@@ -32,7 +32,10 @@ namespace EBGeometry {
  * first and stopping at boxes farther than the nearest crossing so far. Exact, and callable on a device.
  * @details A crossing is reported from either side of a triangle; it is entering where the ray runs against
  * the triangle's outward normal. HitT::m_primitive is the id of the face the triangle was cut from (see
- * TriMeshSDF::getClosestFace()) and HitT::m_normal is the triangle's normal.
+ * TriMeshSDF::getClosestFace()) and HitT::m_normal is the triangle's normal. Where the ray crosses several
+ * triangles within a few ulps of the nearest crossing (through an edge or a vertex they share), the one with the
+ * lowest face id is the hit, so that the host and a device, which round the crossings differently, name the same
+ * face and normal.
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor.
  * @tparam W Triangles per leaf group.
@@ -101,7 +104,9 @@ struct RayForm<TriMeshSDF<T, K, W>>
  * first and stopping at boxes farther than the nearest crossing so far. Exact, and callable on a device.
  * @details A crossing is reported from either side of a face; it is entering where the ray runs against the
  * face's outward normal. HitT::m_primitive is the face's id (see MeshSDF::getClosestFace()) and
- * HitT::m_normal its normal. The faces are taken to be planar and convex (see DCEL::FaceT::rayCrossing()).
+ * HitT::m_normal its normal. The faces are taken to be planar and convex (see DCEL::FaceT::rayCrossing()). Where
+ * the ray crosses several faces within a few ulps of the nearest crossing (through an edge or a vertex they
+ * share), the one with the lowest id is the hit, so that the host and a device name the same face.
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor.
  */
@@ -296,6 +301,72 @@ faceHit(const RayT<T>& a_ray, const T a_t, const uint32_t a_face, const Vec3T<T>
 }
 
 /**
+ * @brief How far past a mesh's nearest crossing so far its first hit still looks: crossings within a few ulps of
+ * the nearest are one tie, which the face with the lowest id wins (see replacesNearest()).
+ * @details Internal helper; not part of the public API. A ray through an edge or a vertex shared by several faces
+ * crosses each of them at the same point, at distances that differ by each face's rounding: a few ulps of the
+ * distance and of the ray origin's coordinates, as the crossing test's own widening measures them
+ * (TriangleRay::crossing()). A host and a device round them differently (a device fuses multiplies and adds), so
+ * the strictly nearest crossing picks one face on one side and another on the other, with another normal. The
+ * window is 16 ulps of the distance plus the origin's coordinates: on a float armadillo (99,976 triangles) seen
+ * from about 300 away, the faces at a vertex crossed 0 to 9 ulps apart, and a host's and a device's crossing of one
+ * face 1 to 4. Ties broken by the lowest face id in that window left one pixel of 262,144 with another face on the
+ * device (a ray grazing an edge, which one side's widened inside test counts as crossing a face and the other does
+ * not), against 35 broken by distance alone.
+ * @tparam T Floating-point precision.
+ * @param[in] a_ray      Ray.
+ * @param[in] a_nearestT The nearest crossing so far.
+ * @param[in] a_found    Whether there is one.
+ * @param[in] a_tMax     End of the query's interval, which the reach never passes.
+ * @return How far along the ray a face may still be crossed and win: a_tMax until a crossing is found.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+tieReach(const RayT<T>& a_ray, const T a_nearestT, const bool a_found, const T a_tMax) noexcept
+{
+  if (!a_found) {
+    return a_tMax;
+  }
+
+  const Vec3T<T>& o = a_ray.m_origin;
+  const T         window =
+    T(16) * Math::Limits<T>::epsilon() * (std::abs(a_nearestT) + std::abs(o[0]) + std::abs(o[1]) + std::abs(o[2]));
+
+  return Math::min(a_nearestT + window, a_tMax);
+}
+
+/**
+ * @brief Whether a face's crossing replaces a mesh's nearest crossing so far in its first hit: there is none so
+ * far, or it is nearer by more than the tie window, or within the window with a lower face id (see tieReach()).
+ * @details Internal helper; not part of the public API. Every mesh SDF's firstHit() keeps its nearest crossing
+ * with this rule, so the face it names does not depend on the order the walk visits the faces, nor on the rounding
+ * of the crossings' distances, for crossings within the window.
+ * @tparam T Floating-point precision.
+ * @param[in] a_ray         Ray.
+ * @param[in] a_t           The face's crossing (finite).
+ * @param[in] a_face        The face's id.
+ * @param[in] a_nearestT    The nearest crossing so far.
+ * @param[in] a_nearestFace Its face's id, UINT32_MAX for none so far.
+ * @return Whether the face's crossing is the nearest now.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline bool
+replacesNearest(
+  const RayT<T>& a_ray, const T a_t, const uint32_t a_face, const T a_nearestT, const uint32_t a_nearestFace) noexcept
+{
+  if (a_nearestFace == UINT32_MAX) {
+    return true;
+  }
+
+  const T reach  = tieReach(a_ray, a_nearestT, true, Math::Limits<T>::infinity());
+  const T window = reach - a_nearestT;
+
+  return a_t < a_nearestT - window || (a_t <= reach && a_face < a_nearestFace);
+}
+
+/**
  * @brief The nearest crossings of a mesh along a ray, in order, as a BVH walk finds them: at most Capacity,
  * enough for the spans a list holds and one more.
  * @details Internal helper; not part of the public API. Once full, a nearer crossing replaces the farthest,
@@ -442,21 +513,31 @@ RayForm<TriMeshSDF<T, K, W>>::firstHit(const TriMeshSDF<T, K, W>& a_shape,
   const auto bvh    = a_shape.getRoot();
   const auto groups = bvh.getPrimitives();
 
-  const auto leaf = [&groups, &a_ray, a_tMin](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
+  // Lane by lane, so that a tie within a group goes to its lowest face id too (RayDetail::replacesNearest()).
+  const auto leaf = [&groups, &a_ray, a_tMin, a_tMax](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      uint32_t face   = UINT32_MAX;
-      Vec3T<T> normal = Vec3T<T>::zeros();
+      const auto& group = groups[static_cast<uint32_t>(i)];
+      const T     reach = RayDetail::tieReach(a_ray, a_state.m_t, a_state.m_face != UINT32_MAX, a_tMax);
 
-      const T t = groups[static_cast<uint32_t>(i)].rayCrossing(
-        a_ray.m_origin, a_ray.m_direction, a_tMin, a_state.m_t, face, normal);
+      T crossings[W];
 
-      if (face != UINT32_MAX && t <= a_state.m_t) {
-        a_state = Nearest{t, face, normal};
+      group.rayCrossings(a_ray.m_origin, a_ray.m_direction, a_tMin, reach, crossings);
+
+      for (uint32_t lane = 0; lane < uint32_t(W); lane++) {
+        const T        t    = crossings[lane];
+        const uint32_t face = group.getFaceId(lane);
+
+        if (t < Math::Limits<T>::infinity() &&
+            RayDetail::replacesNearest(a_ray, t, face, a_state.m_t, a_state.m_face)) {
+          a_state = Nearest{t, face, group.getNormal(lane)};
+        }
       }
     }
   };
 
-  const auto bound = [](const Nearest& a_state) noexcept -> T { return a_state.m_t; };
+  const auto bound = [&a_ray, a_tMax](const Nearest& a_state) noexcept -> T {
+    return RayDetail::tieReach(a_ray, a_state.m_t, a_state.m_face != UINT32_MAX, a_tMax);
+  };
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), nearest, leaf, bound);
 
@@ -534,19 +615,23 @@ RayForm<MeshSDF<T, K>>::firstHit(const MeshSDF<T, K>& a_shape,
   const auto mesh    = a_shape.getMesh();
   const auto faceIds = bvh.getPrimitives();
 
-  const auto leaf = [&faceIds, &mesh, &a_ray, a_tMin](Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
+  const auto leaf = [&faceIds, &mesh, &a_ray, a_tMin, a_tMax](
+                      Nearest& a_state, size_t a_offset, size_t a_count) noexcept {
     for (size_t i = a_offset; i < a_offset + a_count; i++) {
-      const uint32_t face = faceIds[static_cast<uint32_t>(i)];
-      const T        t = mesh.getFace(face).rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, a_state.m_t, mesh);
+      const uint32_t face  = faceIds[static_cast<uint32_t>(i)];
+      const T        reach = RayDetail::tieReach(a_ray, a_state.m_t, a_state.m_face != UINT32_MAX, a_tMax);
+      const T        t     = mesh.getFace(face).rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, reach, mesh);
 
-      // A crossing (finite: none is +infinity, however far the interval goes) is within the nearest so far.
-      if (t < Math::Limits<T>::infinity()) {
+      // A crossing is finite: none is +infinity, however far the interval goes.
+      if (t < Math::Limits<T>::infinity() && RayDetail::replacesNearest(a_ray, t, face, a_state.m_t, a_state.m_face)) {
         a_state = Nearest{t, face};
       }
     }
   };
 
-  const auto bound = [](const Nearest& a_state) noexcept -> T { return a_state.m_t; };
+  const auto bound = [&a_ray, a_tMax](const Nearest& a_state) noexcept -> T {
+    return RayDetail::tieReach(a_ray, a_state.m_t, a_state.m_face != UINT32_MAX, a_tMax);
+  };
 
   bvh.traverse(BVH::RayQuery<T>(a_ray.m_origin, a_ray.m_direction, a_tMin), nearest, leaf, bound);
 
@@ -604,9 +689,10 @@ RayForm<FlatMeshSDF<T>>::firstHit(const FlatMeshSDF<T>& a_shape,
   uint32_t face    = UINT32_MAX;
 
   for (uint32_t i = 0; i < mesh.numFaces(); i++) {
-    const T t = mesh.getFace(i).rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, nearest, mesh);
+    const T reach = RayDetail::tieReach(a_ray, nearest, face != UINT32_MAX, a_tMax);
+    const T t     = mesh.getFace(i).rayCrossing(a_ray.m_origin, a_ray.m_direction, a_tMin, reach, mesh);
 
-    if (t < Math::Limits<T>::infinity()) {
+    if (t < Math::Limits<T>::infinity() && RayDetail::replacesNearest(a_ray, t, i, nearest, face)) {
       nearest = t;
       face    = i;
     }
