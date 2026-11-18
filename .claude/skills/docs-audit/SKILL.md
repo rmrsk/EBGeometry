@@ -14,7 +14,7 @@ each changed `Source/*.hpp` file:
 1. **No `literalinclude` crept back in**: `grep -rn "literalinclude" Docs/Sphinx/source/` must return nothing. If it
    does, replace it with a Doxygen link.
 2. **Renamed or removed identifiers in prose**: for a renamed class, method or parameter,
-   `grep -rn "<oldName>" Docs/Sphinx/source/ Docs/mainpage.md README.md CLAUDE.md`. A Doxygen link does not break
+   `grep -rn "<oldName>" Docs/Sphinx/source/ Docs/mainpage.md README.md CLAUDE.md .claude/skills/`. A Doxygen link does not break
    when the linked class is renamed, so this needs an explicit check.
 3. **A new public class or function**:
    - add it to `Tests/InstantiateAll.cpp` (clang-tidy and compile coverage under both precisions);
@@ -37,6 +37,11 @@ each changed `Source/*.hpp` file:
 **A new Doxygen link**: build Doxygen (`cd Docs && doxygen doxygen.conf`) and check that the target `.html` file and
 anchor exist under `Docs/doxygen/html/`. A wrong mangled class name or a stale member anchor gives a silently
 broken link.
+
+**`CLAUDE.md` and the skills.** When the PR renames or removes a file, a script or one of its options, a probe, a
+preset or a function they cite, or changes a procedure they describe, update them in the same PR. When they
+disagree with each other or with the code, report it to the maintainer with the fix proposed (`CLAUDE.md`, "This
+file and the skills").
 
 **Then read the pages the change touches.** The `check-docs` hook (`Scripts/CheckDocs.py`) only catches the banned
 directive; whether a page still describes what the code does needs a read-through. Check each changed or

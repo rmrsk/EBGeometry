@@ -19,6 +19,10 @@ Timings are only meaningful on a quiet machine. Other agents share it and start 
 - Wait for the maintainer's go that the machine is quiet; never use the `perf-slot` (Slurm) wrapper, which is dead.
 - Check `pgrep -fa run-performance` and `nvidia-smi` for other runs, and `uptime` for load.
 - Run the comparison directly, in the background.
+- On the GPU, the device also drives the desktop: check `nvidia-smi` for compute apps and utilization (a viewer or
+  a browser left running skews every device timing). For an ad-hoc A/B outside the comparison, build the variants
+  as separate binaries, alternate them over several rounds, and call one slower only when the ranges do not overlap.
+- Do not occupy the machine (builds and tests included) while another agent records a receipt.
 
 ## The quick look (a draft, after each change to the library or the probes)
 

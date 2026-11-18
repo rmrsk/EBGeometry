@@ -2,6 +2,22 @@
 
 Guidance for Claude Code (or any agent) working in this repository.
 
+## This file and the skills
+
+The rules are here; the step-by-step procedures are project skills in `.claude/skills/` (`receipt`, `hand-over`,
+`docs-audit`, `tape-change-check`, `new-csg-operation`, `new-example`, `device-crash-triage`), each loaded when its
+task comes up. A rule is stated here even when a skill carries it out; a skill holds the how, never a rule of its own.
+
+Both go stale as the code and the workflow change, so they are maintained like the docs:
+- **Checked with every change they describe.** A PR that renames a file, a script, a probe, a preset or a function
+  that this file or a skill cites updates it in the same PR (the `docs-audit` skill greps them too). A rule that the
+  code no longer follows, two places that disagree (this file and a skill, a skill and a script's `--help`), or a
+  procedure that no longer works is reported to the maintainer when found, with the fix proposed.
+- **Trouble from a rule is reported.** When following a rule or a skill led to trouble (a wasted run, a step that
+  could not be done as written, a rule that contradicted another or the maintainer's instruction, the same
+  correction needed twice), Claude tells the maintainer what happened and proposes how to amend the rule. It does
+  not quietly work around it, and it changes this file or a skill only with the maintainer's agreement.
+
 ## What this is
 
 EBGeometry is a **header-only C++17 library** for:
