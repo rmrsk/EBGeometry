@@ -18,7 +18,7 @@ repos:
     rev: v2.2.6
     hooks:
       - id: codespell
-        files: ^(Source|Docs|Examples|Tests|Integrations|Scripts|\.github)/|^[^/]+\.(md|txt|hpp)$
+        files: ^(Source|Docs|Examples|Tests|Integrations|Scripts|\.github|\.claude)/|^[^/]+\.(md|txt|hpp)$
         exclude: ^(Tests|Examples)/data/
         args:
           - "--ignore-words=.codespellignore"

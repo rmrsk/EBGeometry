@@ -97,7 +97,10 @@ BVH trees can reduce this to :math:`\mathcal{O}\left(\log N\right)` complexity, 
 BVH traversal-and-pruning machinery described in :ref:`Chap:BVH` for mesh signed distances. Pruning
 skips objects whose bounding boxes are farther away than the best value found so far, which is only
 sound when the objects' values are distances or bounds on them, not when only their signs mean
-anything. :ref:`Chap:ExampleManyObjects` compares the two.
+anything. :ref:`Chap:ExampleManyObjects` compares the two. Another way to prune is to shorten the tape itself
+per region of space, as libfive does :cite:`libfive,Keeter2020`: an octree over the object stores, for each cell,
+the tape with the operands that cannot decide the value anywhere in that cell removed, so a point runs only its
+cell's shorter tape.
 
 Describing and evaluating a composed object
 --------------------------------------------
