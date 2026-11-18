@@ -735,6 +735,29 @@ isPermutation(const std::vector<uint32_t>& a_order)
   return true;
 }
 
+// The order computed on the host: the order's array in a pool in host memory, the points read where they are.
+template <class T>
+std::vector<uint32_t>
+orderOnHost(const std::vector<Vec3T<T>>& a_points)
+{
+  const auto n = static_cast<uint32_t>(a_points.size());
+
+  Pool                pool(hostMemoryResource());
+  PODVector<uint32_t> order;
+
+  order.reserveSizedFrom(pool, n);
+
+  GPU::mortonOrder(pool, PointCloud::FromArray<T>{a_points.data()}, n, order);
+
+  std::vector<uint32_t> result(n);
+
+  for (uint32_t i = 0; i < n; i++) {
+    result[i] = order.at(pool.base(), i);
+  }
+
+  return result;
+}
+
 // The order computed where a pool is: the points and room for the order in one pool, mirrored into device memory,
 // the order read back. The source reads the points in the mirror.
 template <class T>
@@ -852,7 +875,7 @@ TEMPLATE_TEST_CASE("GPU::mortonOrder: a permutation that keeps nearby points tog
     INFO("points " << n);
 
     const std::vector<Vec3T<T>> points = scatteredPoints<T>(n);
-    const std::vector<uint32_t> order  = GPU::mortonOrder(points);
+    const std::vector<uint32_t> order  = orderOnHost(points);
 
     REQUIRE(order.size() == n);
     CHECK(isPermutation(order));
@@ -887,7 +910,7 @@ TEST_CASE("GPU::mortonOrder: a regular grid is visited octant by octant, and equ
     }
   }
 
-  const std::vector<uint32_t> order = GPU::mortonOrder(points);
+  const std::vector<uint32_t> order = orderOnHost(points);
 
   for (uint32_t block = 0; block < 8; block++) {
     const Vec3T<double>& first = points[order[8 * block]];
@@ -904,8 +927,8 @@ TEST_CASE("GPU::mortonOrder: a regular grid is visited octant by octant, and equ
   // Equal points come in index order; a single point is the order {0}.
   const std::vector<Vec3T<double>> same(5, Vec3T<double>(1.0, 2.0, 3.0));
 
-  CHECK(GPU::mortonOrder(same) == std::vector<uint32_t>{0, 1, 2, 3, 4});
-  CHECK(GPU::mortonOrder(std::vector<Vec3T<double>>()).empty());
+  CHECK(orderOnHost(same) == std::vector<uint32_t>{0, 1, 2, 3, 4});
+  CHECK(orderOnHost(std::vector<Vec3T<double>>()).empty());
 }
 
 TEMPLATE_TEST_CASE("GPU::mortonOrder: from a source over a user's own data, as from the positions",
@@ -947,7 +970,7 @@ TEMPLATE_TEST_CASE("GPU::mortonOrder: from a source over a user's own data, as f
 
   const Pool back = Pool::mirror(devicePool, hostMemoryResource());
 
-  const std::vector<uint32_t> expected = GPU::mortonOrder(positions);
+  const std::vector<uint32_t> expected = orderOnHost(positions);
 
   for (uint32_t i = 0; i < n; i++) {
     CHECK(order.at(back.base(), i) == expected[i]);
@@ -1038,7 +1061,7 @@ TEMPLATE_TEST_CASE("GPU::transform in an order: the same results as without, ove
 
   const std::vector<Vec3T<T>> points = scatteredPoints<T>(2000);
   const std::vector<T>        onHost = evaluateOnHost<T>(query, points);
-  const std::vector<uint32_t> order  = GPU::mortonOrder(points);
+  const std::vector<uint32_t> order  = orderOnHost(points);
   const auto                  n      = static_cast<uint32_t>(points.size());
 
   // Vectors.
@@ -1136,7 +1159,12 @@ TEST_CASE("GPU::mortonOrder: a point that is not finite, or an order array of an
 
       points[1][2] = std::nan("");
 
-      (void)GPU::mortonOrder(points); // must abort
+      Pool                pool(hostMemoryResource());
+      PODVector<uint32_t> order;
+
+      order.reserveSizedFrom(pool, 3);
+
+      GPU::mortonOrder(pool, PointCloud::FromArray<double>{points.data()}, 3U, order); // must abort
     },
     "GPU::mortonOrder: every point must be finite"));
 

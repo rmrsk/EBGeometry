@@ -18,6 +18,7 @@
 // Our includes
 #include "EBGeometry_Array.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -191,6 +192,95 @@ template <class Curve = Morton, class T>
 order(const std::vector<Vec3T<T>>& a_points);
 
 } // namespace SFC
+
+/**
+ * @brief The Morton grid and sort key shared by the cloud BVH builds and GPU::mortonOrder().
+ * @details Internal; not part of the public API. One definition, so that the builds and the query order put a point
+ * in the same cell, on the host and on a device.
+ */
+namespace SFCDetail {
+
+/**
+ * @brief A point's sort key: its cell's Morton code, then its index, so that no two keys are equal and every sort
+ * (std::sort on the host, GPU::bitonicSort() on a device) gives the one order.
+ */
+struct MortonKey
+{
+  /// @brief The Morton code of the point's cell.
+  uint64_t m_code;
+
+  /// @brief The point's index.
+  uint32_t m_index;
+
+  /**
+   * @brief Whether this key sorts before @p a_other: by code, then by index.
+   * @param[in] a_other The other key.
+   * @return True if this key comes first.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  operator<(const MortonKey& a_other) const noexcept
+  {
+    return m_code < a_other.m_code || (m_code == a_other.m_code && m_index < a_other.m_index);
+  }
+};
+
+/**
+ * @brief The Morton grid over a box: a point's cell is (p / 2 - lo / 2) * scale, clamped to [0, SFC::ValidSpan].
+ * @details Cubic cells, the box's longest side spanning the grid. The coordinates are halved before subtracting, so
+ * that a box wider than the largest finite value of T still has a finite extent; halving is exact, so the host and a
+ * device compute the same cells.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct MortonGrid
+{
+  /// @brief Half the box's lower corner.
+  Vec3T<T> m_halfLo;
+
+  /// @brief Cells per unit of halved length (0 for a box of one point).
+  T m_scale;
+
+  /**
+   * @brief The grid over a box.
+   * @param[in] a_lo The box's lower corner.
+   * @param[in] a_hi The box's upper corner.
+   * @return The grid.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static MortonGrid
+  over(const Vec3T<T>& a_lo, const Vec3T<T>& a_hi) noexcept
+  {
+    const Vec3T<T> halfLo = T(0.5) * a_lo;
+    const Vec3T<T> extent = T(0.5) * a_hi - halfLo;
+    const T        side   = Math::max(extent[0], Math::max(extent[1], extent[2]));
+
+    return MortonGrid{halfLo, (side > T(0)) ? T(SFC::ValidSpan) / side : T(0)};
+  }
+
+  /**
+   * @brief A point's key.
+   * @param[in] a_point The point; finite.
+   * @param[in] a_index Its index.
+   * @return The key.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  MortonKey
+  key(const Vec3T<T>& a_point, const uint32_t a_index) const noexcept
+  {
+    SFC::Index cell;
+
+    for (int dir = 0; dir < 3; dir++) {
+      const T scaled = (T(0.5) * a_point[dir] - m_halfLo[dir]) * m_scale;
+
+      cell[dir] = static_cast<unsigned int>(Math::clamp(scaled, T(0), T(SFC::ValidSpan)));
+    }
+
+    return MortonKey{SFC::Morton::encode(cell), a_index};
+  }
+};
+
+} // namespace SFCDetail
 
 } // namespace EBGeometry
 

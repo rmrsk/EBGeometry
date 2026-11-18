@@ -20,7 +20,6 @@
 // Std includes
 #include <cstdint>
 #include <type_traits>
-#include <vector>
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
@@ -37,11 +36,12 @@ namespace GPU {
  * @details The points come from a source: a trivially copyable functor whose const call operator takes an index
  * (uint32_t) and returns that point's Vec3T, as PointCloudBVH::build() takes (PointCloud::FromArray wraps an
  * array). It reads them from the caller's own data, so a struct of particles or an array of coordinates needs no
- * copy into points first. For a pool in device-accessible memory the order is computed by launches (on the device
- * in a CUDA or HIP build, so the source must be callable there and its data device-readable); for any other pool,
- * on the host. Both give the same order, element for element, as does the std::vector overload. The order is
- * written into an array the caller reserved, so a frozen pool (a mirror) will do; the scratch (a key per point,
- * rounded up to a power of two on a device, and the box's) is reserved in a temporary pool on the pool's resource
+ * copy into points first. In a CUDA or HIP build, for a pool in device-accessible memory, the order is computed by
+ * launches on the device, so the source must be callable there and its data device-readable; otherwise (any other
+ * pool, or a host build) it is computed on the host. Both give the same order, element for element; for a
+ * std::vector of points on the host, SFC::order<SFC::Morton>() gives a Morton order too. The order is written into
+ * an array the caller reserved, so a frozen pool (a mirror) will do; the scratch (a key per point, rounded up to a
+ * power of two on a device, and the box's) is reserved in a temporary pool on the pool's resource
  * and released before returning. Aborts with a message unless a_order has a_count entries ending inside the pool's
  * used bytes, a_count is at most 2^31, and every point is finite.
  * @tparam Source Source of the points.
@@ -54,17 +54,6 @@ template <class Source>
 EBGEOMETRY_HOST
 inline void
 mortonOrder(const Pool& a_pool, const Source& a_source, uint32_t a_count, const PODVector<uint32_t>& a_order);
-
-/**
- * @brief The order to run queries at these points in, computed on the host; see the pool overload.
- * @tparam T Precision.
- * @param[in] a_points The points; at most 2^31, all finite.
- * @return The order: a permutation of the points' indices.
- */
-template <class T>
-[[nodiscard]] EBGEOMETRY_HOST
-inline std::vector<uint32_t>
-mortonOrder(const std::vector<Vec3T<T>>& a_points);
 
 } // namespace GPU
 } // namespace EBGeometry

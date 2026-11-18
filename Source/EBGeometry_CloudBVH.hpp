@@ -27,6 +27,7 @@
 #include "EBGeometry_PointCloud.hpp"
 #include "EBGeometry_PointCloudDetail.hpp"
 #include "EBGeometry_Pool.hpp"
+#include "EBGeometry_SFC.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -35,28 +36,9 @@ namespace PointCloudDetail {
 
 /**
  * @brief A primitive's sort key in a cloud BVH build: its center's Morton code, ties broken by its cloud index.
- * @details Internal; not part of the public API.
+ * @details Internal; not part of the public API. The key GPU::mortonOrder() sorts too.
  */
-struct MortonKey
-{
-  /// @brief The Morton code of the primitive center's cell.
-  uint64_t m_code;
-
-  /// @brief The primitive's cloud index.
-  uint32_t m_index;
-
-  /**
-   * @brief Whether this key sorts before @p a_other: by code, then by cloud index.
-   * @param[in] a_other The other key.
-   * @return True if this key comes first.
-   */
-  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  inline bool
-  operator<(const MortonKey& a_other) const noexcept
-  {
-    return m_code < a_other.m_code || (m_code == a_other.m_code && m_index < a_other.m_index);
-  }
-};
+using MortonKey = SFCDetail::MortonKey;
 
 /**
  * @brief One node of a cloud BVH build, in breadth-first order.
