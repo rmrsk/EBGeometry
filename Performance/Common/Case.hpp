@@ -249,7 +249,8 @@ public:
    * counterparts). The other case must compute the same answers over the same inputs, and may be in
    * another probe; the ratio is noted, never judged.
    * @param[in] a_case  The other case's full name.
-   * @param[in] a_label How the note names the ratio ("tape/fused").
+   * @param[in] a_label How the note names the ratio, the other case first: "<other>/<this>" ("tape/fused" on
+   * a fused case naming its tape counterpart).
    */
   void
   relativeTo(const std::string& a_case, const std::string& a_label)

@@ -6,7 +6,7 @@
 // it, and as a RegionView of that tape (what ebgstudio draws of a model read through the language). Each is asked the
 // same things: firstHit() and firstCrossing() on rays from random points in the mesh's box grown to twice its size
 // towards its center, and one whole frame with shadows and ambient occlusion. The tape and the view give the mesh's
-// answers, so each of their cases is noted relative to the mesh's (tape/mesh, view/mesh): the cost of reaching a mesh
+// answers, so each of their cases is noted relative to the mesh's (mesh/tape, mesh/view): the cost of reaching a mesh
 // through a tape, which a probe of one kind of shape never shows. A host build runs the host cases (a frame on one
 // thread); a CUDA or HIP build runs host/device pairs. In a probe of its own, so that adding it changes no other
 // probe's translation unit (see Performance/Fused). See ../README.md and PerformanceTesting.rst.
@@ -358,12 +358,12 @@ addPrecision(Perf::Suite& a_suite)
   addQuery<T, Mesh<T>, FirstCrossing>(a_suite, "mesh", "firstCrossing", "");
   addFrame<T, Mesh<T>>(a_suite, "mesh", "");
 
-  addQuery<T, MeshTape<T>, FirstHit>(a_suite, "tape", "firstHit", "tape/mesh");
-  addQuery<T, MeshTape<T>, FirstCrossing>(a_suite, "tape", "firstCrossing", "tape/mesh");
-  addFrame<T, MeshTape<T>>(a_suite, "tape", "tape/mesh");
+  addQuery<T, MeshTape<T>, FirstHit>(a_suite, "tape", "firstHit", "mesh/tape");
+  addQuery<T, MeshTape<T>, FirstCrossing>(a_suite, "tape", "firstCrossing", "mesh/tape");
+  addFrame<T, MeshTape<T>>(a_suite, "tape", "mesh/tape");
 
-  addQuery<T, MeshView<T>, FirstHit>(a_suite, "view", "firstHit", "view/mesh");
-  addFrame<T, MeshView<T>>(a_suite, "view", "view/mesh");
+  addQuery<T, MeshView<T>, FirstHit>(a_suite, "view", "firstHit", "mesh/view");
+  addFrame<T, MeshView<T>>(a_suite, "view", "mesh/view");
 }
 
 } // namespace

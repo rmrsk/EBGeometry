@@ -1037,7 +1037,7 @@ Family                                Build  Measures
 under ``--smoke``) as a ``TriMeshSDF`` (input ``mesh``), as a ``Tape`` holding only it (``tape``), and as a
 ``RegionView`` of that tape (``view``), which is what ``ebgstudio`` draws of a model read through the language. They
 give the mesh's answers, so each ``tape`` and ``view`` case is noted relative to its ``mesh`` case (the comparison
-notes ``tape/mesh`` and ``view/mesh``): the cost of reaching a mesh through a tape. The rays start at random points
+notes ``mesh/tape`` and ``mesh/view``): the cost of reaching a mesh through a tape. The rays start at random points
 in the mesh's box grown to twice its size and point at its center.
 
 ====================================  =====  =====================================================
