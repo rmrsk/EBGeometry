@@ -144,18 +144,16 @@ PackedBVH<T, P, K>::boundDepth(std::vector<Node>& a_linearNodes,
       return index;
     }
 
-    BV box = boxes[index];
-
     for (size_t k = 0; k < K; k++) {
       const uint32_t child = a_self(a_self, a_begin + n * k / K, a_begin + n * (k + 1) / K);
 
       nodes[index].setChildOffset(child, k);
 
-      box = BV(min(box.getLowCorner(), boxes[child].getLowCorner()),
-               max(box.getHighCorner(), boxes[child].getHighCorner()));
-    }
+      const BV& box = (k == 0) ? boxes[child] : boxes[index];
 
-    boxes[index] = box;
+      boxes[index] = BV(min(box.getLowCorner(), boxes[child].getLowCorner()),
+                        max(box.getHighCorner(), boxes[child].getHighCorner()));
+    }
 
     return index;
   };

@@ -1247,7 +1247,8 @@ private:
    * to the adopt constructor is taken as it is, and checked. A tree within the bound, which every builder gives
    * for real inputs, is left exactly as it is. Otherwise every node that fits is kept, and each subtree that
    * would reach too deep is built again over its own primitives, in their order: cut into K parts of equal count
-   * down to leaves no larger than its largest one, so it needs about log_K of its primitives levels. A new
+   * down to leaves no larger than its largest one (or of fewer than K primitives, which cannot be cut into K), so
+   * it needs about log_K of its primitives levels. A new
    * leaf's box encloses the boxes of the leaves its primitives came from, which contain them: looser than a
    * fitted box, but valid, and only in the subtrees a degenerate input made too deep. A subtree is built again
    * as deep in the tree as the bound allows, so the cut keeps as much of the builder's tree as it can.
