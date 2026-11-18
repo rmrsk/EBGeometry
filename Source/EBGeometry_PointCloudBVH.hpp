@@ -56,10 +56,16 @@ namespace EBGeometry {
  *    the highest bit where the range's first and last codes differ set, its points so far left of the
  *    Morton curve's split plane, or at its middle when every code is equal. Each cut keeps at least
  *    floor(n / (4K)) points (and one) per part on either side, n the node's size: a cut further out is
- *    moved in to that quota. The quota bounds the depth (a child holds at most about (3K + 1) / (4K)
- *    of its parent) and the node count (every leaf below an interior node holds at least
- *    floor((max(a_targetLeafSize, K) + 1) / (4K)) points), which is what lets build() reserve room
- *    for a rebuild of any cloud of a given size. Each level is one launch: a node's children go at
+ *    moved in to that quota. The quota bounds the node count (every leaf below an interior node holds at
+ *    least floor((max(a_targetLeafSize, K) + 1) / (4K)) points), which is what lets build() reserve room
+ *    for a rebuild of any cloud of a given size. It also bounds a child at about (3K + 1) / (4K) of its
+ *    parent, which does not keep every cloud within BVH::DeviceTraversalDepth levels: a cloud whose
+ *    codes are made to leave each cut its smallest part does not. So the levels from
+ *    DeviceTraversalDepth + 1 - H on, H being the levels a tree of all the points cut into K equal parts
+ *    needs, are cut into K parts of equal count instead, which keeps every tree within that depth, on
+ *    the host and on a device. A real cloud reaches its leaves long before (level 25 for a million
+ *    points in leaves of 64 at K = 4), so its tree is the Morton cuts' alone. Each level is one launch: a
+ *    node's children go at
  *    the next level's offset plus K times its rank among the level's interior nodes (an exclusive
  *    scan).
  * 4. Each node's subtree size, the levels from the deepest up, with each node's box; then each node's
@@ -155,13 +161,9 @@ public:
    * there. Both give the same tree, array for array. The build reads each point from the source four
    * times (for the box, its key, its leaf's box and its group), so an expensive source pays that. A
    * point with a non-finite coordinate is rejected: on the host by its index, through
-   * GPU::parallelFor() only as "a point". A tree deeper than the traversal stack allows (BVH::HostTraversalDepth
-   * on the host, BVH::DeviceTraversalDepth through GPU::parallelFor()) aborts the build, as every
-   * EBGEOMETRY_REQUIRE does; only a cloud of many points packed far closer than its extent comes near
-   * either. A larger a_targetLeafSize makes the tree shallower, and a host build allows the deeper tree.
-   * The quota of each cut (see the class) only bounds a child at about (3K + 1) / (4K) of its parent,
-   * which does not keep every cloud of 2^31 points within 32 levels; Morton cuts of real clouds are
-   * close to halves. Freeze the pool and take
+   * GPU::parallelFor() only as "a point". The tree is at most BVH::DeviceTraversalDepth levels deep
+   * whatever the points (see the class), so no arrangement of them makes the build fail, and every tree
+   * can be queried on a device. Freeze the pool and take
    * rebasedView() to query a BVH in device memory in a kernel.
    *
    * The scratch arrays (the keys, the box, the build's nodes and two scans' values) are reserved from
@@ -210,9 +212,8 @@ public:
    * @details The same tree as a new build() from these positions with the same target leaf size,
    * reserving nothing in the pool: it runs where the build did, and works on a frozen pool (the host keeps
    * one small vector of level offsets). Needs room reserved by
-   * build()'s a_maxPoints; more points than maxPoints() is rejected, and a non-finite point or a tree
-   * too deep aborts, as in build(): a code that rebuilds every step meets this only if its cloud becomes
-   * that clustered. A view taken with rebasedView() before the rebuild still describes
+   * build()'s a_maxPoints; more points than maxPoints() is rejected, and a non-finite point aborts, as in
+   * build(). A view taken with rebasedView() before the rebuild still describes
    * the old tree (its array sizes): take a new one, which copies nothing. Call it on the BVH build()
    * returned, not on a view or a deepCopy().
    * @tparam Source A source of positions, as for build().
@@ -337,8 +338,8 @@ public:
    * @brief Produce a copy of this object that resolves against @p a_pool.
    * @details Same contract as PackedBVH::rebasedView(): mirror the pool first, then rebase, then
    * copy the returned value into a kernel. The BVH and the cloud arrays are offsets into one pool,
-   * so rebasing the one location rebases everything. A snapshot for a kernel is rejected for a tree
-   * deeper than BVH::DeviceTraversalDepth.
+   * so rebasing the one location rebases everything. Every tree a build makes is shallow enough for
+   * a device traversal (see build()).
    *
    * @code
    * Pool devicePool = Pool::mirror(hostPool, deviceMemoryResource());

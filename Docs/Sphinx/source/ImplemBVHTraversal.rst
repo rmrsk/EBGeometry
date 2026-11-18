@@ -221,10 +221,12 @@ nothing and runs unchanged on a device. That bounds the depth of a tree it can w
 the host (``BVH::HostTraversalDepth``) and 32 on a device (``BVH::DeviceTraversalDepth``, smaller since
 device stack memory is per thread), at every ``K``.
 
-Every ``PackedBVH`` is checked against the host depth when it is built, and every device view
-against the device depth when ``rebasedView()`` makes it, in every build: a tree too deep aborts with
-a message giving its depth, rather than overflowing the stack, which in Release would be a silent
-out-of-bounds write.
+No input makes the library's builds too deep for either: the static builds, ``TreeBVH::pack()`` and the
+point and sphere clouds keep every tree within the device depth, so any of them can be traversed on a
+device, even for points that crowd ever closer together. A node array adopted from elsewhere is taken
+as it is: it is checked against the host depth when it is adopted, and every device view against the device
+depth when ``rebasedView()`` makes it, in every build. A tree too deep aborts with a message giving its
+depth, rather than overflowing the stack, which in Release would be a silent out-of-bounds write.
 
 Splitting the bound from the leaf callback like this is what lets very different searches share one
 walk: a nearest-neighbor search over a point cloud tracks a plain running squared distance as its state

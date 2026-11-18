@@ -377,8 +377,9 @@ Test coverage
        boxes as the host's sweep), and refusing a frozen pool, a schedule for another BVH (of the same
        size in the same pool too) and one from another pool; and every ``BVH::TreeBVH`` node's
        box exactly the union of what it encloses, after both builds and after a refit. Also the
-       build-time checks: a tree too deep for the host or device traversal stack at ``K`` = 2, 4 and
-       16, every kind of malformed node array (a leaf with no primitives among them), and a
+       build-time checks: an adopted tree too deep for the host or device traversal stack at ``K`` = 2,
+       4 and 16, every build of points crowding ever closer together within the device depth, every kind
+       of malformed node array (a leaf with no primitives among them), and a
        partitioner that returns an empty partition, all rejected; a tree at the host depth limit,
        visited deepest first, filling the traversal stack to its last entry; ``traverse()`` visiting
        leaves in the order of a recursive depth-first search; a level
@@ -590,8 +591,9 @@ Test coverage
        ``build()`` in device-accessible memory giving the host's tree array for array (over leaf
        sizes, branching factors, widths and skewed clouds), positions read through a source,
        ``rebuild()`` on a frozen pool (the tree of a fresh build, nothing reserved, the least
-       balanced cloud included), a device-memory build queried on the device and mirrored back, and
-       rejection of a cloud it cannot index, a zero leaf size, a rebuild without room, or a rebase
+       balanced cloud included), a device-memory build queried on the device and mirrored back, a
+       cloud made against its Morton cuts kept within the device depth and queried against brute
+       force, and rejection of a cloud it cannot index, a zero leaf size, a rebuild without room, or a rebase
        onto a pool that is not its own.
        The query functors it shares with ``TestPointCloudHashGrid`` are in
        :file:`Tests/TestPointCloudQueries.hpp`.
