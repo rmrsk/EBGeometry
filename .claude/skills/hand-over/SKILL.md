@@ -16,6 +16,9 @@ ones are done.
   repository its author has been **`github-actions[bot]`**, though it may show as `claude[bot]`. When waiting for it, take a timestamp before posting and filter on either
   login, on "finished" in the body, and on `since=`.
 - The review may say it skipped files; say what it did not read when reporting it.
+- A round may reread only the latest commit and repeat earlier suggestions as still open. Check any such item
+  against the pushed branch (`git show origin/<branch>:<file>`) before acting on it, and say in the summary when a
+  round's list was stale.
 - Fix each blocking finding in a new commit, push, and request another round. Each optional suggestion is taken,
   or declined with a one-line reason kept for the hand-over summary.
 - Stop when a round has no blocking finding. At most five rounds: if the fifth still has one, stop and bring it to
@@ -46,7 +49,11 @@ body's *Performance* section.
 
 ## 5. A fully green CI
 
-Wait for the full matrix on the final head, `CI-passed` included (it also checks the receipt). A PR that is still a
+Wait for the full matrix on the final head, `CI-passed` included (it also checks the receipt). Promotion cancels the
+draft-tier run of the same head, so `gh pr checks` briefly shows its jobs as failed (cancelled, with no duration and
+unexpanded matrix names). Watch the run promotion started instead: the newest `pull_request` run in
+`gh run list --branch <branch>`, followed with `gh run watch <id>`; cancelled jobs of a superseded run are not
+failures. A PR that is still a
 draft, or whose full run has not passed, has not been handed over.
 
 ## 6. The summary
