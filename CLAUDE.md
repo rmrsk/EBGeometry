@@ -457,6 +457,11 @@ what gates the `.rst` documentation audit described above (which begins once the
 draft). If a non-draft PR was already opened, convert it back with
 `gh pr ready --undo <number>`.
 
+**Labels from the start.** Claude labels a PR when it opens it, from the repository's existing set (`gh label list`;
+never a new label), by what the PR changes (`bug`, `performance`, `gpu`, `ray tracing`, `documentation`, ...), and
+gives the issues it closes the same labels. When the PR is marked ready for human review, Claude checks the labels
+against what the PR changes by then, adding and removing as needed, on the PR and on the issues it closes.
+
 When opening a PR, **always use the repository's pull-request template**
 (`.github/pull_request_template.md`) — its `# Summary` sections (`Background`, `Solution`,
 `Side-effects`, `Alternative solutions`, `Performance`, `Where to look`) followed by the
@@ -533,8 +538,8 @@ still needed after promotion (a CI failure, a reviewer's comment) goes in one pu
 it ("get it ready for human review"). Otherwise the PR stays a draft, and Claude reports that the other
 conditions hold. Getting it ready always takes, in this order: the `@claude review` rounds until one has no
 blocking finding (at most five; a fifth with a blocking finding goes to the maintainer), the receipt on the code
-they converged on, promotion with labels from the existing set (never a new one, and the same on the issues it
-closes), and a fully green full CI. A PR that is still a draft, or whose full CI run has not passed, has not been
+they converged on, promotion with its labels checked against the final state (see "Labels from the start"), and a
+fully green full CI. A PR that is still a draft, or whose full CI run has not passed, has not been
 handed over. The procedure, with the hand-over summary and the handling of a reviewer's comments, is the
 `hand-over` skill (`.claude/skills/hand-over/SKILL.md`).
 

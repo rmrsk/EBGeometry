@@ -38,9 +38,9 @@ body's *Performance* section.
 
 - Only when the maintainer has asked for it ("get it ready for human review"). Otherwise stop here and report that
   the other conditions hold.
-- `gh pr ready <number>`, and label the PR from the existing set (`gh label list`; never a new label) by what it
-  changes (`bug`, `performance`, `gpu`, `ray tracing`, `documentation`, ...). Give the issues it closes the same
-  labels.
+- `gh pr ready <number>`, and check the labels set when the PR was opened against what it changes now: add and remove
+  (`gh pr edit --add-label/--remove-label`), from the existing set only (`gh label list`; never a new label), on the
+  PR and on the issues it closes.
 - Promotion starts CI's full matrix. Every later push runs it again, so a fix still needed after promotion (a CI
   failure, a reviewer's comment) goes in one push, never several.
 
