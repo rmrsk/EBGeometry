@@ -229,6 +229,7 @@ mortonOrder(const Pool& a_pool, const Source& a_source, const uint32_t a_count, 
 
   const BoundingVolumes::AABBT<T> box = boundingBoxOf<T>(a_source, a_count, corners.data(base));
 
+  // boundingBoxOf() gives a box with a corner at -infinity when any point is not finite, so this checks every point.
   OrderDetail::requireFinite(box.getLowCorner(), box.getHighCorner());
 
   const SFCDetail::MortonGrid<T> grid = SFCDetail::MortonGrid<T>::over(box.getLowCorner(), box.getHighCorner());

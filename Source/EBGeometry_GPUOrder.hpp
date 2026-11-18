@@ -40,8 +40,8 @@ namespace GPU {
  * launches on the device, so the source must be callable there and its data device-readable; otherwise (any other
  * pool, or a host build) it is computed on the host. Both give the same order, element for element; for a
  * std::vector of points on the host, SFC::order<SFC::Morton>() gives a Morton order too. The order is written into
- * an array the caller reserved, so a frozen pool (a mirror) will do; the scratch (a key per point, rounded up to a
- * power of two on a device, and the box's) is reserved in a temporary pool on the pool's resource
+ * an array the caller reserved, so a frozen pool (a mirror) will do; the scratch (a 16-byte key per point, rounded up
+ * to a power of two on a device, and the box's) is reserved in a temporary pool on the pool's resource
  * and released before returning. Aborts with a message unless a_order has a_count entries ending inside the pool's
  * used bytes, a_count is at most 2^31, and every point is finite.
  * @tparam Source Source of the points.
