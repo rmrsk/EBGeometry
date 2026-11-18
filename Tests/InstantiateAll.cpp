@@ -290,17 +290,31 @@ instantiateFunctionTemplates()
     GPU::transform<128, 0>(query, points, results);
     GPU::transform(query, PODSpan<const Vec3T<T>>{points.data(), 1}, PODSpan<T>{results.data(), 1});
 
+    const std::vector<uint32_t> identity{0U};
+
+    GPU::transform(query, points, results, identity);
+    GPU::transform(query,
+                   PODSpan<const Vec3T<T>>{points.data(), 1},
+                   PODSpan<T>{results.data(), 1},
+                   PODSpan<const uint32_t>{identity.data(), 1});
+    GPU::parallelFor(1U, [](std::size_t) {}, PODSpan<const uint32_t>{identity.data(), 1});
+
     Pool                pool(emulatedDeviceMemoryResource());
     PODVector<Vec3T<T>> in;
     PODVector<T>        out;
+    PODVector<uint32_t> order;
 
     in.reserveFrom(pool, 1);
     out.reserveFrom(pool, 1);
+    order.reserveFrom(pool, 1);
     in.assign(pool.base(), points.data(), 1);
     out.assign(pool.base(), results.data(), 1);
+    order.assign(pool.base(), identity.data(), 1);
     pool.freeze();
 
     GPU::transform(query, pool, in, out);
+    GPU::transform(query, pool, in, out, order);
+    GPU::mortonOrder(pool, PointCloud::FromArray<T>{points.data()}, 1U, order);
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
 

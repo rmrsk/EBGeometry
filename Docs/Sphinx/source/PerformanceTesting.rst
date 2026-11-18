@@ -63,6 +63,7 @@ What is in Performance/
      Domain/main.cpp          a domain with many subdomains and surface groups
      DomainObject/main.cpp    a domain compiled on its own, against the whole object
      MeshTape/main.cpp        a mesh in a tape and in a view of regions, against the mesh
+     QueryOrder/main.cpp      queries in Morton order: the order, and queries run in it
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -1051,6 +1052,21 @@ Family                                Build  Measures
                                              ambient occlusion
 ``<input>/<operation>``               GPU    the rays at 262,144 on both sides, and the pixels of a
                                              512 x 512 frame through ``Render::PixelQuery``
+====================================  =====  =====================================================
+
+**QueryOrder** (``Performance/QueryOrder``): queries run in Morton order (see :ref:`Chap:RunningOnGPU`):
+``GPU::mortonOrder()`` over a million random points in the unit cube, and the armadillo's signed distance (a
+``TriMeshSDF``) at 100,000 random points in its box, run as the points were drawn and through the ordered
+``GPU::transform()``. The ordered case names the other and notes ``arrived/ordered``. On the host, the order is
+computed for a pool in host memory; in a pair, the device computes it for a pool in device memory and the two orders
+must agree element for element.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``random/mortonOrder``                both   the order of a million points
+``armadillo/distance-arrived``        both   the distances, the points as drawn
+``armadillo/distance-ordered``        both   the same distances, in the points' Morton order
 ====================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see
