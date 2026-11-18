@@ -23,6 +23,8 @@ registers. The best setting depends on the device, the query and the precision, 
 The launches run on arrays already on the device (spans of a mirrored pool), so that what is timed is
 the kernel alone, not allocations and copies.
 
+The order the queries run in matters too, when the points arrive in no spatial order: see `QueryOrder`.
+
 Building
 --------
 
