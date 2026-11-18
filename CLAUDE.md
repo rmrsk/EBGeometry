@@ -295,7 +295,8 @@ for review (marking it ready re-runs CI) and every push to `main` run the full m
 uses all the runner's cores. Its
 `CI-passed` job, the one to require for merging, fails whenever any job it depends on fails, is
 canceled or is skipped (a draft's skipped full-tier jobs excepted); `GPU-HIP` (a device compile) is one of those required jobs, while
-`GPU-CUDA` and `Static-analysis` are advisory (`continue-on-error`).
+`GPU-CUDA` and `Static-analysis` (clang-tidy, split into three shards on runners of their own) are advisory
+(`continue-on-error`).
 
 ## Whitespace conventions clang-format does not enforce
 

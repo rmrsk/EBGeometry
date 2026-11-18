@@ -107,9 +107,12 @@ jobs:
       - name: Run check-device-math (pre-commit hook)
         run: pre-commit run --show-diff-on-failure --color=always check-device-math --all-files
 
+  # Every translation unit pulls in the header-only library's templates, so linting them all on one runner
+  # takes most of the timeout and grows with every test and example. The units are split into disjoint shards,
+  # one runner each: every n-th unit of the sorted list, n the number of shards in the matrix.
   Static-analysis:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: Static analysis (clang-tidy)
+    name: Static analysis (clang-tidy, shard ${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: ${{ !github.event.pull_request.draft }}
@@ -117,6 +120,10 @@ jobs:
     # (const-correctness, narrowing conversions, ...). Set continue-on-error to
     # false to make this a hard gate once that backlog has been reviewed.
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -135,8 +142,22 @@ jobs:
           cmake --preset debug \
             -DCMAKE_CXX_COMPILER=clang++-14 \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-      - name: Run clang-tidy over the library headers
-        run: run-clang-tidy-18 -p build/debug -quiet '(Tests/|Examples/).*\.cpp'
+      - name: Run clang-tidy over this shard's translation units
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(jq -r '.[].file' build/debug/compile_commands.json \
+            | grep -E '/(Tests|Examples)/.*\.cpp$' | sort -u \
+            | awk -v s=${{ matrix.shard }} -v n=${{ strategy.job-total }} 'NR % n == s % n')
+          echo "Shard ${{ matrix.shard }} of ${{ strategy.job-total }}: ${#files[@]} translation units"
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::shard ${{ matrix.shard }} has no translation units"
+            exit 1
+          fi
+          # run-clang-tidy searches each path with the arguments joined as one regex: anchor each file at both
+          # ends, its dots escaped, so that one name never matches another.
+          regexes=()
+          for f in "${files[@]}"; do regexes+=("^${f//./\\.}\$"); done
+          run-clang-tidy-18 -p build/debug -quiet "${regexes[@]}"
 
   # The example lanes loop over every folder under Examples/ with a main.cpp, as Examples/CMakeLists.txt
   # does: the folders are the only list of examples.

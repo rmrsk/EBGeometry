@@ -77,7 +77,9 @@ Static-analysis
 
 Runs ``clang-tidy-18`` (via ``run-clang-tidy-18``) over every ``Tests/*.cpp`` and ``Examples/*.cpp``
 translation unit, using a compile-command database exported from the ``debug`` preset built with
-``clang++-14``. Marked ``continue-on-error: true`` (there is a known review backlog), so it is
+``clang++-14``. The units are split into three disjoint shards, each on a runner of its own (every third unit of
+the sorted list; the job's matrix sets the number), since every unit pulls in the library's templates and one runner would take
+most of the timeout; each shard prints how many units it lints. Marked ``continue-on-error: true`` (there is a known review backlog), so it is
 advisory and does not gate ``CI-passed``. Full tier only.
 
 The example lanes below run every example: every folder under :file:`Examples/` with a
@@ -230,7 +232,7 @@ Dependency graph
 .. code-block:: text
 
    Formatting, Codespell, Reuse, Doxygen-check
-    +-- Static-analysis          (advisory; not required by CI-passed)
+    +-- Static-analysis          (three shards; advisory, not required by CI-passed)
     +-- Linux-GNU
     +-- Linux-Intel
     +-- Examples-GNUMake
