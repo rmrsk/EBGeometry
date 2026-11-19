@@ -2097,6 +2097,32 @@ private:
   /**
    * @brief The body of evaluate(), inlined into it, and into signedDistance() for a tape that calls no
    * sub-program (at depth 0 the evaluator calls no level below, so inlining it multiplies nothing).
+   * @details How fast the host evaluates a plain tape depends on how GCC compiles this function and its
+   * callers, not only on the work it does: registers and block layout are allocated over the whole loop, and
+   * whether the caller's loop is unswitched on the call depth, or the evaluator inlined into it, follows
+   * their sizes. Measured on the Tape probe (GCC 13.3, -O3 -march=native, functions aligned to 64 bytes, one
+   * pinned core, base and variant binaries alternated over five or six rounds), with changes that no probe
+   * tape executes:
+   *   - changes that leave evaluateBody<0> as compiled (a sub-program clause's code, which compiles out at
+   *     depth 0; a shape past DispatchSplit; code in the tape's compiler) moved the cases by at most 1.5%,
+   *     against a noise of about 1%;
+   *   - changes to the switch itself (a new clause kind with a short loop; a branch that never runs, added to
+   *     the Abs case) moved them by -5% to +6% (chain16 float +6.4%; csg float -4.5% and +5.7%).
+   * Aligning loops, jumps or labels (-falign-loops=64, -falign-jumps=64, -falign-labels=64, or
+   * -Wa,-mbranches-within-32B-boundaries) left these swings in place, and Clang 19 shows them too (up to
+   * 12%). On the device (nvcc 12.5, sm_86), the same two changes flipped a float firstHit() kernel from 255
+   * to 40 registers, with the signedDistance() kernels unchanged at 168.
+   *
+   * A hand-shaped dispatch was tried and dropped: the sub-program clauses, and any later clause kind, in one
+   * function kept out of line on the host, tested before the switch and marked noipa (so that GCC does not
+   * allocate the caller's registers from the registers the callee clobbers). It left this function the same,
+   * instruction for instruction, when a clause kind was added or a sub-program clause changed. But the
+   * restructuring itself moved the plain tapes by -17% to +24% against this layout, in each of the six
+   * variants tried: the smaller evaluator changed whether GCC unswitched the caller's loop on the call depth
+   * and whether it inlined the evaluator into a loop of 16 evaluations, and keeping the depth-0 entry out of
+   * line cost the one-sphere tape and the chain of 16 spheres 18-24%. So a change to any clause here is a new draw of the
+   * layout, and the Tape cases of its receipt can move by several percent either way for that reason alone
+   * (see "Reading the verdicts" in PerformanceTesting.rst).
    * @tparam D How deep the sub-program's own calls may still nest.
    * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_program  Sub-program.

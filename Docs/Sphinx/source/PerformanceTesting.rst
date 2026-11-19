@@ -370,6 +370,18 @@ way, in any probe) shows that case's time over its own (``tape/fused``, say), wi
 baseline's beside it when the two differ by 3% or more; it is noted, never judged. Flagged cases are
 listed again under the table.
 
+The cases of the interpreted ``Tape`` (the ``Tape`` probe, and the tape cases of the others) depend on how
+the compiler lays out the evaluator, not only on the work it does. A change to the evaluator's own code, even
+to a clause these tapes never run or a new kind of clause, is a new draw of that layout: on the host, its
+tape cases can move by several percent either way for that reason alone, and on a device, a kernel that
+evaluates a tape can change its register count. Aligning loops and jumps does not prevent it, and Clang does
+the same. So before reading a Tape verdict as a change's cost, check whether the code a plain tape compiles
+changed: compare the out-of-line evaluator functions of both sides' ``PerfTape`` (``nm -C -S``) and the
+ptxas figures of the tape kernels. Where neither changed, a moved Tape case is a real cost, or noise; where
+the evaluator changed, a move of a few percent is expected, and a larger one, or one that the other tape
+cases do not share, is worth a look before it is accepted. The measurements behind this are in the comment of
+``Tape::evaluateBody()``.
+
 Build costs
 ^^^^^^^^^^^
 
