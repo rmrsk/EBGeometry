@@ -403,6 +403,9 @@ The rules it carries out:
   it is fixed or the user explicitly accepts it. A differing checksum, a host/device disagreement or a lost case is
   flagged whatever the timing says. Build costs are reported, not judged. A flagged case is already confirmed; do
   not rerun until a result passes.
+- **A receipt stands on the PR's own base**: the base it is built on, its merge-base with `main`. `main` moving on
+  without the PR leaves the receipt valid; a rebase (for a conflict, or by choice) moves the base, and the receipt
+  is recorded again.
 - **CI checks the receipt, not the timings** (`Performance-receipt`, required by `CI-passed`), on a PR that is
   ready for review. A reason goes on a receipt's `**Accepted:**` line only when the user explicitly accepts that
   verdict, and in the user's words: CI cannot tell who wrote it.
@@ -552,6 +555,17 @@ reply on its thread with what changed, and leave resolving the thread to the rev
 dropped, and where the prototype lives (a branch, or "not kept"). A closed pull request gets the same comment, or
 points to the issue's. The comment is written for someone who has not read the thread, so that a later request can
 be judged against it instead of rediscovering it.
+
+**Merging.** `main` requires linear history but not that a branch be up to date, so a PR whose full CI and receipt
+passed on its own base merges without waiting for the others, and without rebasing, unless it conflicts with
+`main`. Each receipt measures one PR against its own base, never two PRs together, which leaves two rules:
+- **Combinations are compared once.** When code PRs built on the same base have merged without either being
+  measured with the other (neither rebased onto the other), Claude asks for the quiet-machine go and runs
+  `Scripts/run-performance.sh compare <their shared base> origin/main` once, and reports the verdict to the user
+  like a PR's. Otherwise a slowdown of the two together becomes the base every later receipt starts from.
+- **A red `main` stops the merges.** When CI on a push to `main` fails, or a combined comparison is red, nothing
+  else merges until it is fixed or the user decides otherwise. GitHub does not enforce this; Claude does, and says
+  so before advising a merge order.
 
 **After the merge.** Claude takes no action on its own once a PR merges: the roadmap, the issues and the
 branches are the maintainer's. It asks whether the branch's worktree should be removed (and removes it only

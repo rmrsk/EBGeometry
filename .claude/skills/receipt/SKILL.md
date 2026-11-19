@@ -42,6 +42,9 @@ The code is final only after the `@claude review` rounds have converged; a fix f
 stale. No extra rounds or repeated full runs while the code still moves.
 
 1. **Run the comparison against the PR's base**, from the top of the branch's worktree, with the code committed.
+   The receipt must have measured the base the branch is built on (its merge-base with `origin/<base>`), so rebase
+   the branch onto `origin/<base>` first; a receipt recorded against a newer `origin/<base>` than the branch is
+   built on fails CI.
    `--smoke` first gives a one-minute check that both sides build and every case runs with the same answers. The
    defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take about eight minutes for every
    case, builds included. A probe that compiled to the same code on both sides is not run (listed as such in the
@@ -103,7 +106,9 @@ stale. No extra rounds or repeated full runs while the code still moves.
    - the PR changes the library or the probes and its receipt has no host section;
    - any section present (host, or a device one) measured other code (any later code change makes it stale; a
      later docs-only commit does not);
-   - a section measured an outdated base (rebase and record again);
+   - a section measured another base than the one the branch is built on (it was rebased since, or the receipt
+     measured a newer base: rebase and record again). The base branch moving on without the PR does not make
+     the receipt stale;
    - a section is not green and has no reason on its `**Accepted:**` line under the section's heading (a yellow
      verdict, a minor regression or a changed checksum needs one too). A pass on an accepted verdict shows as a
      warning.

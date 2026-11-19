@@ -425,7 +425,7 @@ section that measured other code.
 Each section names the code it measured by two fingerprints: hashes of git's tree entries for what a
 comparison measures, the library (``Source/``, ``EBGeometry.hpp``) and the probes (``Performance/``,
 except its ``README.md`` and the receipt). CI's ``Performance-receipt`` job
-(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch. It
+(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for the base it is built on. It
 requires the host section, checks every section present (a device section is optional, but once
 recorded it must pass like the host one), and passes only when, for each,
 
@@ -433,8 +433,10 @@ recorded it must pass like the host one), and passes only when, for each,
   that adds it, so a later commit that changes only documentation or CI keeps it valid, while any
   change to the library or the probes makes it stale. An old receipt never stands for new code: a pull
   request that changes code and keeps the receipt it inherited fails;
-* the base branch's code is the base the section measured. When the base branch's code moves on (another
-  pull request merged), the pull request is rebased and its comparison recorded again;
+* the base the pull request is built on (where it forked from the base branch) is the base the section
+  measured. The base branch moving on (another pull request merged) leaves the receipt valid, since the
+  pull request's code is still built on what it measured; a rebase moves its base, and the comparison is
+  recorded again;
 * the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
   ``**Accepted:**`` line under that section's heading (the reason may wrap over several lines, up to the
   next blank line) (a minor regression that is expected, answers that
@@ -459,9 +461,12 @@ outside contributor, but not whether an agent working under the maintainer's acc
 maintainer's say-so; that rests on the rule that an agent writes a reason only on the maintainer's
 explicit acceptance (``CLAUDE.md``).
 
-Two pull requests that both pass can still race: once one merges and changes the base's code, the
-other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
-before merging makes CI check it again.
+Two pull requests built on the same base are each measured against that base, never with each other.
+Once both have merged, the base branch holds a combination no receipt measured; a slowdown that comes
+from the two together would then become the base every later comparison starts from. When that happens,
+the combination is compared once against the shared base,
+``Scripts/run-performance.sh compare <shared base> origin/main``, on a quiet machine, and judged like a
+pull request's comparison.
 
 In continuous integration and in pull requests
 ----------------------------------------------
