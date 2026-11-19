@@ -49,8 +49,8 @@
 #              costs (reported, not judged)                           default: 10 / 25
 #   RECORD     ON: write the result as this comparison's section of     default: OFF
 #              the performance receipt, Performance/receipts/<branch>-<fingerprint>.md (see Receipt.cmake),
-#              to commit with the pull request; CI checks it. Only for a full comparison of committed code: not with SMOKE or
-#              CASES, and not while the measured paths have uncommitted changes.
+#              to commit with the pull request; CI checks it. Only for a full comparison of committed code:
+#              not with SMOKE or CASES, and not while the measured paths have uncommitted changes.
 
 cmake_minimum_required(VERSION 3.16)
 
@@ -127,6 +127,10 @@ if(RECORD)
     # The receipt goes into the checked-out branch's file, so the commit measured must be the one checked out.
     execute_process(COMMAND git rev-parse --verify --quiet "${HEAD}^{commit}" WORKING_DIRECTORY "${REPO}"
                     OUTPUT_VARIABLE measured OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    if(measured STREQUAL "")
+      message(FATAL_ERROR "Compare.cmake: HEAD (${HEAD}) is not a commit")
+    endif()
     execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE checked_out
                     OUTPUT_STRIP_TRAILING_WHITESPACE)
 

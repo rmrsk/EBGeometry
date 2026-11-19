@@ -10,8 +10,9 @@
 #
 # A pull request that changes none of what a comparison measures (see Receipt.cmake: the library and the
 # probes) needs no receipt: it passes, whatever receipts it inherited. Otherwise it must add or change exactly
-# one file under Performance/receipts/ (its branch's receipt, written by --record), which must have a host section, and every section it has (host, and cuda or hip when a device
-# comparison was recorded) must
+# one file under Performance/receipts/ (its branch's receipt, written by --record; the earlier receipts it
+# deletes do not count), which must have a host section, and every section it has (host, and cuda or hip when
+# a device comparison was recorded) must
 #
 #   * have measured this code:     its head fingerprint is HEAD_REF's;
 #   * have measured its own base:  its base fingerprint is that of the merge-base of HEAD_REF and

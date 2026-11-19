@@ -181,7 +181,8 @@ endfunction()
 # code's (perf_receipt_file()). Every other receipt in FILE's directory is deleted (pruned): those are the receipts
 # of pull requests merged before this one, kept in git's history, so the directory holds only the few merged since
 # a receipt was last recorded. A pruned receipt never conflicts: only its own pull request writes it, and that has
-# merged; two pull requests deleting the same one merge cleanly. The other sections are kept only if they
+# merged; two pull requests deleting the same one merge cleanly. (Only merged pull requests' receipts are on a
+# branch's base, so an unmerged pull request's receipt is never pruned by another.) The other sections are kept only if they
 # measured the same code against the same base (both fingerprints equal), and dropped otherwise, so a
 # receipt never carries a stale section. The arguments are parsed with PARSE_ARGV, which keeps the
 # semicolons of a quoted REPORT (every yellow or red verdict has one, #227); an argument that does not
