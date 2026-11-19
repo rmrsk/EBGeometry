@@ -435,8 +435,8 @@ recorded it must pass like the host one), and passes only when, for each,
   request that changes code and keeps the receipt it inherited fails;
 * the base the pull request is built on (where it forked from the base branch) is the base the section
   measured. The base branch moving on (another pull request merged) leaves the receipt valid, since the
-  pull request's code is still built on what it measured; a rebase moves its base, and the comparison is
-  recorded again;
+  pull request's code is still built on what it measured; a rebase onto a base whose library or probes
+  changed moves its base, and the comparison is recorded again;
 * the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
   ``**Accepted:**`` line under that section's heading (the reason may wrap over several lines, up to the
   next blank line) (a minor regression that is expected, answers that

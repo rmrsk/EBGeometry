@@ -404,8 +404,8 @@ The rules it carries out:
   flagged whatever the timing says. Build costs are reported, not judged. A flagged case is already confirmed; do
   not rerun until a result passes.
 - **A receipt stands on the PR's own base**: the base it is built on, its merge-base with `main`. `main` moving on
-  without the PR leaves the receipt valid; a rebase (for a conflict, or by choice) moves the base, and the receipt
-  is recorded again.
+  without the PR leaves the receipt valid; a rebase (for a conflict, or by choice) onto a `main` whose library or
+  probes changed moves the base, and the receipt is recorded again.
 - **CI checks the receipt, not the timings** (`Performance-receipt`, required by `CI-passed`), on a PR that is
   ready for review. A reason goes on a receipt's `**Accepted:**` line only when the user explicitly accepts that
   verdict, and in the user's words: CI cannot tell who wrote it.
