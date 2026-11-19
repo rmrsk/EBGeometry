@@ -39,6 +39,7 @@ What is in Performance/
      SphereContacts/main.cpp  SphereCloudBVH's contacts between spheres
      SphereCloudRays/main.cpp SphereCloudBVH's rays, alone, fused and in a tape
      Mesh/main.cpp            TriMeshSDF and MeshSDF
+     MeshIngest/main.cpp      reading a mesh file into a soup, a DCEL mesh and triangles
      MeshReconcile/main.cpp   reconciling a moved DCEL mesh where its pool is
      BVH/main.cpp             PackedBVH::traverse() itself
      BVHRefit/main.cpp        refitting a PackedBVH where its pool is
@@ -686,6 +687,21 @@ Case                                  Build  Measures
                                              sweep)
 ``uniform/refit``                     GPU    10 refits in device memory, a launch per tree level,
                                              against the host's in host memory
+====================================  =====  =====================================================
+
+**MeshIngest** (``Performance/MeshIngest``): reading the armadillo's OBJ file (49,990 vertices, 99,976
+triangles), on the host. Each repetition reads the file afresh.
+
+====================================  =====  =====================================================
+Case                                  Build  Measures
+====================================  =====  =====================================================
+``armadillo/read-soup``               host   ``Parser::readIntoPolygonSoup()``: the parse, merging
+                                             the vertices and removing degenerate faces
+``armadillo/clean``                   host   ``PolygonSoup::clean()`` alone, of the soup a binary
+                                             STL file gives (three copies of every triangle's
+                                             vertices)
+``armadillo/read-dcel``               host   ``Parser::readIntoDCEL()``
+``armadillo/read-triangles``          host   ``Parser::readIntoTriangles()``
 ====================================  =====  =====================================================
 
 **MeshReconcile** (``Performance/MeshReconcile``): reconciling the armadillo mesh after its vertices were
