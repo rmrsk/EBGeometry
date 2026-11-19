@@ -77,7 +77,7 @@ orderOn(EBGeometry::MemoryResource& a_resource, const std::vector<Vec3<T>>& a_po
   const Pool there  = Pool::mirror(host, a_resource);
   const auto source = EBGeometry::PointCloud::FromArray<T>{points.data(static_cast<const void*>(there.base()))};
 
-  a_run([&] { EBGeometry::GPU::mortonOrder(there, source, n, order); });
+  a_run([&] { EBGeometry::GPU::mortonOrder(there, source, order); });
 
   const Pool                 back = Pool::mirror(there, EBGeometry::hostMemoryResource());
   std::vector<std::uint32_t> result(n);

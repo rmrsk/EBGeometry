@@ -184,28 +184,25 @@ onHost(const Source& a_source, const uint32_t a_count, uint32_t* a_order)
 
 template <class Source>
 inline void
-mortonOrder(const Pool& a_pool, const Source& a_source, const uint32_t a_count, const PODVector<uint32_t>& a_order)
+mortonOrder(MemoryResource& a_where, const Source& a_source, const PODSpan<uint32_t> a_order)
 {
   using T = OrderDetail::SourcePrecision<Source>;
 
   static_assert(std::is_trivially_copyable_v<Source>, "GPU::mortonOrder: the source must be trivially copyable");
 
-  EBGEOMETRY_REQUIRE(a_count <= (uint32_t(1) << 31), "GPU::mortonOrder: at most 2^31 points (%u)", unsigned(a_count));
-  EBGEOMETRY_REQUIRE(a_order.size() == a_count && a_order.endByte() <= a_pool.usedBytes(),
-                     "GPU::mortonOrder: the order must have one entry per point (%u points, %u entries) and lie in "
-                     "the pool",
-                     unsigned(a_count),
-                     unsigned(a_order.size()));
+  const uint32_t count = a_order.size();
 
-  if (a_count == 0) {
+  EBGEOMETRY_REQUIRE(count <= (uint32_t(1) << 31), "GPU::mortonOrder: at most 2^31 points (%u)", unsigned(count));
+
+  if (count == 0) {
     return;
   }
 
-  uint32_t* order = a_order.data(a_pool.base());
+  uint32_t* order = a_order.begin();
 
   // A host build's launches are host loops, where a sort of the keys beats a bitonic network.
-  if (!enabled || !a_pool.resource().isDeviceAccessible()) {
-    OrderDetail::onHost<T>(a_source, a_count, order);
+  if (!enabled || !a_where.isDeviceAccessible()) {
+    OrderDetail::onHost<T>(a_source, count, order);
 
     return;
   }
@@ -213,21 +210,21 @@ mortonOrder(const Pool& a_pool, const Source& a_source, const uint32_t a_count, 
   // Where the launches run: the box, the keys padded to a power of two, a bitonic sort, the order read off them.
   uint32_t padded = 1;
 
-  while (padded < a_count) {
+  while (padded < count) {
     padded *= 2;
   }
 
-  Pool scratch(a_pool.resource());
+  Pool scratch(a_where);
 
   PODVector<SFCDetail::MortonKey> keys;
   PODVector<Vec3T<T>>             corners;
 
   keys.reserveSizedFrom(scratch, padded);
-  corners.reserveSizedFrom(scratch, boundingBoxScratchSize(a_count));
+  corners.reserveSizedFrom(scratch, boundingBoxScratchSize(count));
 
   void* base = scratch.base();
 
-  const BoundingVolumes::AABBT<T> box = boundingBoxOf<T>(a_source, a_count, corners.data(base));
+  const BoundingVolumes::AABBT<T> box = boundingBoxOf<T>(a_source, count, corners.data(base));
 
   // boundingBoxOf() gives a box with a corner at -infinity when any point is not finite, so this checks every point.
   OrderDetail::requireFinite(box.getLowCorner(), box.getHighCorner());
@@ -236,9 +233,21 @@ mortonOrder(const Pool& a_pool, const Source& a_source, const uint32_t a_count, 
 
   SFCDetail::MortonKey* sorted = keys.data(base);
 
-  parallelFor(padded, OrderDetail::MakeKeys<T, Source>{a_source, grid, sorted, a_count});
+  parallelFor(padded, OrderDetail::MakeKeys<T, Source>{a_source, grid, sorted, count});
   bitonicSort(sorted, padded);
-  parallelFor(a_count, OrderDetail::ReadOrder{sorted, order});
+  parallelFor(count, OrderDetail::ReadOrder{sorted, order});
+}
+
+template <class Source>
+inline void
+mortonOrder(const Pool& a_pool, const Source& a_source, PODVector<uint32_t>& a_order)
+{
+  EBGEOMETRY_REQUIRE(a_order.endByte() <= a_pool.usedBytes(),
+                     "GPU::mortonOrder: the order must lie in the pool (it ends at byte %zu of %zu)",
+                     size_t(a_order.endByte()),
+                     size_t(a_pool.usedBytes()));
+
+  mortonOrder(a_pool.resource(), a_source, a_order.bind(a_pool.base()));
 }
 
 } // namespace GPU

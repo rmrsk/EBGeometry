@@ -31,29 +31,61 @@ namespace EBGeometry {
 namespace GPU {
 
 /**
- * @brief The order to run queries at a source's points in: the permutation of 0, ..., a_count - 1 that sorts the
- * points along a Morton curve over their bounding box, ties broken by index. Computed where the pool's memory is.
- * @details The points come from a source: a trivially copyable functor whose const call operator takes an index
- * (uint32_t) and returns that point's Vec3T, as PointCloudBVH::build() takes (PointCloud::FromArray wraps an
- * array). It reads them from the caller's own data, so a struct of particles or an array of coordinates needs no
- * copy into points first. In a CUDA or HIP build, for a pool in device-accessible memory, the order is computed by
- * launches on the device, so the source must be callable there and its data device-readable; otherwise (any other
- * pool, or a host build) it is computed on the host. Both give the same order, element for element; for a
- * std::vector of points on the host, SFC::order<SFC::Morton>() gives a Morton order too. The order is written into
- * an array the caller reserved, so a frozen pool (a mirror) will do; the scratch (a 16-byte key per point, rounded up
- * to a power of two on a device, and the box's) is reserved in a temporary pool on the pool's resource
- * and released before returning. Aborts with a message unless a_order has a_count entries ending inside the pool's
- * used bytes, a_count is at most 2^31, and every point is finite.
+ * @brief Write into a_order the order to run queries at a source's points in: the permutation of 0, ..., n - 1
+ * (n = a_order.size()) that sorts the points along a Morton curve over their bounding box, ties broken by index.
+ * Runs on the device, with a bitonic sort, when a_where's memory is device-accessible in a CUDA or HIP build; on the
+ * host, with a sort, otherwise. Both give the same order, element for element.
+ * @details Queries that arrive in no spatial order make neighboring threads walk unrelated parts of a BVH or a mesh.
+ * Run in this order (the ordered GPU::parallelFor() and GPU::transform()), nearby points run side by side, share
+ * cache lines and diverge less, while every result still lands at its own index. That pays for queries that read
+ * memory (BVHs, meshes, point clouds), not for an analytic shape, whose distance reads none. The order depends on the
+ * points only: compute it once and reuse it while they stay put. Any permutation works with the ordered launches,
+ * so a caller with its own space-filling curve or sort can pass its own order instead; this is a convenience.
+ *
+ * The points come from a source: a trivially copyable functor whose const call operator takes an index (uint32_t)
+ * and returns that point's Vec3T (PointCloud::FromArray wraps an array), so a struct of particles needs no copy into
+ * points first. The source and a_order are used where a_where's memory is, so they must be readable (and a_order
+ * writable) there: device or managed memory for a device-accessible a_where, host memory otherwise. This is not
+ * checked.
+ *
+ * Scratch, a 16-byte key per point (on a device rounded up to a power of two) and a few bytes for the box, is
+ * allocated on a_where and released before returning. Aborts with a message unless n is at most 2^31 and every point
+ * is finite.
+ *
+ * @code
+ * PODVector<uint32_t> order;
+ * order.reserveFrom(pool, n);
+ * Pool device = Pool::mirror(pool, deviceResource);
+ * const PODSpan<uint32_t> o = order.bind(device.base());
+ *
+ * GPU::mortonOrder(deviceResource, Positions{particles}, o); // once, while the particles stay put
+ * GPU::parallelFor(n, query, o);                             // every time the queries run
+ * @endcode
  * @tparam Source Source of the points.
- * @param[in] a_pool   The pool holding a_order; its resource decides where the order is computed.
- * @param[in] a_source The points.
- * @param[in] a_count  Number of points.
- * @param[in] a_order  The order's array: a_count entries in a_pool, which are written.
+ * @param[in]  a_where  The resource whose memory decides where the order is computed, and which holds the scratch.
+ * @param[in]  a_source The points.
+ * @param[out] a_order  The order, one entry per point.
  */
 template <class Source>
 EBGEOMETRY_HOST
 inline void
-mortonOrder(const Pool& a_pool, const Source& a_source, uint32_t a_count, const PODVector<uint32_t>& a_order);
+mortonOrder(MemoryResource& a_where, const Source& a_source, PODSpan<uint32_t> a_order);
+
+/**
+ * @brief Write into a_order, an array in a_pool, the order to run queries at a source's points in; the span overload
+ * on a_pool's resource, for an order reserved in a pool.
+ * @details See the span overload for the order, the source and where it runs. a_pool may be frozen (a mirror),
+ * since nothing is reserved in it. Aborts with a message unless a_order lies within a_pool's used bytes, and in the
+ * cases the span overload aborts in.
+ * @tparam Source Source of the points.
+ * @param[in]  a_pool   The pool holding a_order; its resource decides where the order is computed.
+ * @param[in]  a_source The points.
+ * @param[out] a_order  The order, one entry per point, in a_pool.
+ */
+template <class Source>
+EBGEOMETRY_HOST
+inline void
+mortonOrder(const Pool& a_pool, const Source& a_source, PODVector<uint32_t>& a_order);
 
 } // namespace GPU
 } // namespace EBGeometry

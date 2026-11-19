@@ -166,8 +166,7 @@ try {
 
   // The order is computed once, where the pool is, from the particles themselves; while they stay put, every
   // later launch reuses it.
-  const double ordering =
-    timeIt([&] { EBGeometry::GPU::mortonOrder(deviceIO, Positions{devParticles}, numParticles, order); });
+  const double ordering = timeIt([&] { EBGeometry::GPU::mortonOrder(deviceIO, Positions{devParticles}, order); });
 
   const EBGeometry::PODSpan<const std::uint32_t> inOrder = order.bind(static_cast<const void*>(deviceIO.base()));
 

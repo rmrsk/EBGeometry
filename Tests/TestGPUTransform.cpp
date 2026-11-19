@@ -735,25 +735,17 @@ isPermutation(const std::vector<uint32_t>& a_order)
   return true;
 }
 
-// The order computed on the host: the order's array in a pool in host memory, the points read where they are.
+// The order computed on the host, into the caller's own array: no pool, the points read where they are.
 template <class T>
 std::vector<uint32_t>
 orderOnHost(const std::vector<Vec3T<T>>& a_points)
 {
   const auto n = static_cast<uint32_t>(a_points.size());
 
-  Pool                pool(hostMemoryResource());
-  PODVector<uint32_t> order;
-
-  order.reserveSizedFrom(pool, n);
-
-  GPU::mortonOrder(pool, PointCloud::FromArray<T>{a_points.data()}, n, order);
-
   std::vector<uint32_t> result(n);
 
-  for (uint32_t i = 0; i < n; i++) {
-    result[i] = order.at(pool.base(), i);
-  }
+  GPU::mortonOrder(
+    hostMemoryResource(), PointCloud::FromArray<T>{a_points.data()}, PODSpan<uint32_t>{result.data(), n});
 
   return result;
 }
@@ -781,7 +773,7 @@ orderInMirroredPool(const std::vector<Vec3T<T>>& a_points)
 
   const void* const deviceBase = devicePool.base();
 
-  GPU::mortonOrder(devicePool, PointCloud::FromArray<T>{points.data(deviceBase)}, n, order);
+  GPU::mortonOrder(devicePool, PointCloud::FromArray<T>{points.data(deviceBase)}, order);
 
   const Pool back = Pool::mirror(devicePool, hostMemoryResource());
 
@@ -790,6 +782,36 @@ orderInMirroredPool(const std::vector<Vec3T<T>>& a_points)
   for (uint32_t i = 0; i < n; i++) {
     result[i] = order.at(back.base(), i);
   }
+
+  return result;
+}
+
+// The order computed in the caller's own device memory, with no pool: the points and the order allocated on the
+// device resource directly, the order copied back.
+template <class T>
+std::vector<uint32_t>
+orderInOwnMemory(const std::vector<Vec3T<T>>& a_points)
+{
+  const auto n = static_cast<uint32_t>(a_points.size());
+
+  MemoryResource& device = EBGeometryTestGPU::deviceTestResource();
+  MemoryResource& host   = hostMemoryResource();
+
+  const size_t pointBytes = std::max<size_t>(1, n * sizeof(Vec3T<T>));
+  const size_t orderBytes = std::max<size_t>(1, n * sizeof(uint32_t));
+
+  auto* points = static_cast<Vec3T<T>*>(device.allocate(pointBytes, alignof(Vec3T<T>)));
+  auto* order  = static_cast<uint32_t*>(device.allocate(orderBytes, alignof(uint32_t)));
+
+  device.copy(points, device, a_points.data(), host, n * sizeof(Vec3T<T>));
+
+  GPU::mortonOrder(device, PointCloud::FromArray<T>{points}, PODSpan<uint32_t>{order, n});
+
+  std::vector<uint32_t> result(n);
+
+  device.copy(result.data(), host, order, device, n * sizeof(uint32_t));
+  device.deallocate(order, orderBytes, alignof(uint32_t));
+  device.deallocate(points, pointBytes, alignof(Vec3T<T>));
 
   return result;
 }
@@ -880,8 +902,9 @@ TEMPLATE_TEST_CASE("GPU::mortonOrder: a permutation that keeps nearby points tog
     REQUIRE(order.size() == n);
     CHECK(isPermutation(order));
 
-    // Element for element the same where the pool is: on a device in a GPU build.
+    // Element for element the same where the pool is, and in the caller's own memory: on a device in a GPU build.
     CHECK(orderInMirroredPool(points) == order);
+    CHECK(orderInOwnMemory(points) == order);
 
     if (n >= 1000U) {
       // Visiting the points in the order is a far shorter walk than in their given order.
@@ -966,7 +989,7 @@ TEMPLATE_TEST_CASE("GPU::mortonOrder: from a source over a user's own data, as f
 
   const void* const deviceBase = devicePool.base();
 
-  GPU::mortonOrder(devicePool, ParticlePositions<T>{stored.data(deviceBase)}, n, order);
+  GPU::mortonOrder(devicePool, ParticlePositions<T>{stored.data(deviceBase)}, order);
 
   const Pool back = Pool::mirror(devicePool, hostMemoryResource());
 
@@ -982,7 +1005,7 @@ TEMPLATE_TEST_CASE("GPU::mortonOrder: from a source over a user's own data, as f
 
   hostOrder.reserveSizedFrom(hostOnly, n);
 
-  GPU::mortonOrder(hostOnly, ParticlePositions<T>{particles.data()}, n, hostOrder);
+  GPU::mortonOrder(hostOnly, ParticlePositions<T>{particles.data()}, hostOrder);
 
   for (uint32_t i = 0; i < n; i++) {
     CHECK(hostOrder.at(hostOnly.base(), i) == expected[i]);
@@ -1151,7 +1174,7 @@ TEST_CASE("GPU::transform in an order: results written over the inputs abort", "
     "GPU::transform: in a given order, the inputs and the results must not overlap"));
 }
 
-TEST_CASE("GPU::mortonOrder: a point that is not finite, or an order array of another size, aborts", "[GPU][death]")
+TEST_CASE("GPU::mortonOrder: a point that is not finite, or an order array outside the pool, aborts", "[GPU][death]")
 {
   REQUIRE(abortsWith(
     [] {
@@ -1164,7 +1187,7 @@ TEST_CASE("GPU::mortonOrder: a point that is not finite, or an order array of an
 
       order.reserveSizedFrom(pool, 3);
 
-      GPU::mortonOrder(pool, PointCloud::FromArray<double>{points.data()}, 3U, order); // must abort
+      GPU::mortonOrder(pool, PointCloud::FromArray<double>{points.data()}, order); // must abort
     },
     "GPU::mortonOrder: every point must be finite"));
 
@@ -1172,12 +1195,15 @@ TEST_CASE("GPU::mortonOrder: a point that is not finite, or an order array of an
     [] {
       const std::vector<Vec3T<double>> points(3, Vec3T<double>::ones());
 
+      Pool                other(hostMemoryResource());
       Pool                pool(hostMemoryResource());
+      PODVector<uint32_t> before;
       PODVector<uint32_t> order;
 
-      order.reserveSizedFrom(pool, 2);
+      before.reserveSizedFrom(other, 5);
+      order.reserveSizedFrom(other, 3);
 
-      GPU::mortonOrder(pool, PointCloud::FromArray<double>{points.data()}, 3U, order); // must abort
+      GPU::mortonOrder(pool, PointCloud::FromArray<double>{points.data()}, order); // must abort
     },
-    "GPU::mortonOrder: the order must have one entry per point (3 points, 2 entries)"));
+    "GPU::mortonOrder: the order must lie in the pool"));
 }

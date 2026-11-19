@@ -314,7 +314,8 @@ instantiateFunctionTemplates()
 
     GPU::transform(query, pool, in, out);
     GPU::transform(query, pool, in, out, order);
-    GPU::mortonOrder(pool, PointCloud::FromArray<T>{points.data()}, 1U, order);
+    GPU::mortonOrder(pool, PointCloud::FromArray<T>{points.data()}, order);
+    GPU::mortonOrder(hostMemoryResource(), PointCloud::FromArray<T>{points.data()}, order.bind(pool.base()));
     (void)GPU::deviceAvailable();
     (void)GPU::memoryResource();
 

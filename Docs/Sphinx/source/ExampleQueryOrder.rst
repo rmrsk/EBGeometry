@@ -43,7 +43,7 @@ In arrival order, then in Morton order
 .. code-block:: c++
 
    GPU::parallelFor(numParticles, query);                                        // as they arrived
-   GPU::mortonOrder(deviceIO, Positions{devParticles}, numParticles, order);     // once
+   GPU::mortonOrder(deviceIO, Positions{devParticles}, order);                   // once
    GPU::parallelFor(numParticles, query, order.bind(deviceBase));               // in Morton order
 
 The order is computed where its pool is: on the device for the mirror of a GPU build, from the particles there. It

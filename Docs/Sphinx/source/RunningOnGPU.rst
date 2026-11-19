@@ -226,7 +226,7 @@ input's index, so nothing has to be put back: only the time changes.
 .. code-block:: c++
 
    // Once, while the points stay put: the order, computed where the pool is (on the device, for a mirror).
-   GPU::mortonOrder(deviceIO, Positions{particles}, n, order);
+   GPU::mortonOrder(deviceIO, Positions{particles}, order);
 
    // Every launch over those points, in that order.
    GPU::parallelFor(n, query, order.bind(deviceBase));
@@ -236,7 +236,12 @@ The order reads the points through a *source*: any trivially copyable functor th
 clouds' builds take (``PointCloud::FromArray`` wraps an array). A program's own data, particles that carry more than a
 position or coordinates in separate arrays, therefore needs no copy into points first. The order goes into an array the
 caller reserved, so it can live in a frozen mirror. With a pool in host memory it is computed on the host, the same
-order element for element.
+order element for element. Points and an order array that a program keeps in its own memory need no pool: the other
+form takes a memory resource, which says where the order is computed, and the order as a ``PODSpan`` over the
+program's array, ``GPU::mortonOrder(resource, source, PODSpan<uint32_t>{array, n})``. Either way the points and the
+order must be readable where it runs. Any permutation works with the ordered launches, so a program with its own
+space-filling curve can pass its own order instead. The order pays for queries that read memory (BVHs, meshes, point
+clouds), not for analytic shapes, whose distances read none.
 
 It pays for inputs in no spatial order. Points that are already coherent (a grid swept cell by cell, the cells of an
 AMReX box) gain little. Computing the order costs about as much as a cheap query over the same points, so it pays
