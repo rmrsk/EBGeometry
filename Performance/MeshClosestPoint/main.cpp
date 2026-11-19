@@ -168,7 +168,7 @@ addClosestPoint(Perf::Suite& a_suite, const std::string& a_input, const std::siz
     c.poolBytes(pool.usedBytes());
 
     if (a_hostQueries == TriHostQueries) {
-      c.relativeTo(ref, "closestPoint/signedDistance");
+      c.relativeTo(ref, "signedDistance/closestPoint");
     }
   });
 
@@ -237,7 +237,7 @@ addPrecision(Perf::Suite& a_suite)
 
     c.checksum(checksumOf(gradients));
     c.poolBytes(pool.usedBytes());
-    c.relativeTo(Perf::caseName({"MeshClosestPoint", "tri", "closestPoint", prec, "host"}), "gradient/closestPoint");
+    c.relativeTo(Perf::caseName({"MeshClosestPoint", "tri", "closestPoint", prec, "host"}), "closestPoint/gradient");
   });
 }
 
