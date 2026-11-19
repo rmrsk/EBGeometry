@@ -35,7 +35,7 @@ namespace EBGeometry {
  * TriMeshSDF::getClosestFace()) and HitT::m_normal is the triangle's normal. Where the ray crosses several
  * triangles within a few ulps of the nearest crossing (through an edge or a vertex they share), the one with the
  * lowest face id is the hit, so that the host and a device, which round the crossings differently, name the same
- * face and normal.
+ * face and normal. HitT::m_t is then that face's crossing, which can be a few ulps past the nearest one.
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor.
  * @tparam W Triangles per leaf group.
@@ -106,7 +106,8 @@ struct RayForm<TriMeshSDF<T, K, W>>
  * face's outward normal. HitT::m_primitive is the face's id (see MeshSDF::getClosestFace()) and
  * HitT::m_normal its normal. The faces are taken to be planar and convex (see DCEL::FaceT::rayCrossing()). Where
  * the ray crosses several faces within a few ulps of the nearest crossing (through an edge or a vertex they
- * share), the one with the lowest id is the hit, so that the host and a device name the same face.
+ * share), the one with the lowest id is the hit, so that the host and a device name the same face. HitT::m_t is
+ * then that face's crossing, which can be a few ulps past the nearest one.
  * @tparam T Floating-point precision.
  * @tparam K BVH branching factor.
  */
@@ -340,8 +341,11 @@ tieReach(const RayT<T>& a_ray, const T a_nearestT, const bool a_found, const T a
  * @brief Whether a face's crossing replaces a mesh's nearest crossing so far in its first hit: there is none so
  * far, or it is nearer by more than the tie window, or within the window with a lower face id (see tieReach()).
  * @details Internal helper; not part of the public API. Every mesh SDF's firstHit() keeps its nearest crossing
- * with this rule, so the face it names does not depend on the order the walk visits the faces, nor on the rounding
- * of the crossings' distances, for crossings within the window.
+ * with this rule. Where every crossing of the tie lies within one window of the strictly nearest, which is the case
+ * at a shared edge or vertex (a few ulps apart against a window of 16), the face it names depends neither on the
+ * order the walk visits the faces nor on the rounding of their distances. A chain of crossings spread over more than
+ * one window can still go either way: a replacing face moves the window with it, and a rule that does not would
+ * have to remember the crossings it passed over.
  * @tparam T Floating-point precision.
  * @param[in] a_ray         Ray.
  * @param[in] a_t           The face's crossing (finite).
