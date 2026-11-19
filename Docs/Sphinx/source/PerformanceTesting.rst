@@ -64,6 +64,7 @@ What is in Performance/
      DomainObject/main.cpp    a domain compiled on its own, against the whole object
      MeshTape/main.cpp        a mesh in a tape and in a view of regions, against the mesh
      QueryOrder/main.cpp      queries in Morton order: the order, and queries run in it
+     EBGrid/main.cpp          a mesh's distances at a grid's cell centers, as an EB generator asks
      LaunchTuning/main.cpp    GPU::transform()'s launch settings (device only)
      Common/                  the harness every probe includes (PerfHarness.hpp includes it all):
        Format.hpp               units, padding, terminal style, tables         (shared with PerfCompare)
@@ -1081,6 +1082,24 @@ Case                                  Build  Measures
 ``armadillo/distance-arrived``        both   the distances, the points as drawn
 ``armadillo/distance-ordered``        both   the same distances, in the points' Morton order
 ====================================  =====  =====================================================
+
+**EBGrid** (``Performance/EBGrid``): an embedded-boundary workload: the armadillo's signed distance, as a
+``TriMeshSDF`` and as a ``MeshSDF``, at the cell centers of a uniform grid on a cube around it, the domain split into
+boxes of cells and visited box by box and, in a box, cell by cell with x fastest, as AMReX and Chombo generate an
+embedded boundary. The same points run in three orders: the grid's, their Morton order (``GPU::mortonOrder()``) and
+shuffled from a fixed seed. The grid order is the workload; Morton order bounds what reordering can still give on it,
+and the shuffled order what the grid's coherence is worth. The Morton and shuffled cases name the grid's and note
+``grid/morton`` and ``grid/shuffled``. Each case puts its results back in grid order before its checksum, so the three
+orders of one function share it. A pair runs a grid of 64 x 64 x 64 cells in boxes of 32 x 32 x 32 (in grid order a
+warp takes one row of a box); the host, on one core, a grid of 32 x 32 x 32 cells in boxes of 16 x 16 x 16.
+
+======================================  =====  =====================================================
+Case                                    Build  Measures
+======================================  =====  =====================================================
+``<SDF>/armadillo/distance-grid``       both   the distances, box by box and cell by cell
+``<SDF>/armadillo/distance-morton``     both   the same distances, in the points' Morton order
+``<SDF>/armadillo/distance-shuffled``   both   the same distances, shuffled
+======================================  =====  =====================================================
 
 **LaunchTuning** (``Performance/LaunchTuning``): the launch settings of ``GPU::transform()`` (see
 :ref:`Chap:RunningOnGPU`), the block size and the threads a CUDA kernel is asked to keep resident on a
