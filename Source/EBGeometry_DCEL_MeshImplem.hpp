@@ -148,6 +148,9 @@ MeshT<T>::sanityCheck(const std::string a_id) const
                                             {e_noFace, 0},
                                             {v_noEdge, 0}};
 
+  // One face's vertices at a time, in storage reused throughout rather than allocated for every face.
+  std::vector<uint32_t> vertices;
+
   for (uint32_t i = 0; i < this->numFaces(); i++) {
     const auto& f = this->getFace(i);
 
@@ -165,7 +168,12 @@ MeshT<T>::sanityCheck(const std::string a_id) const
       continue;
     }
 
-    auto vertices = f.gatherVertexIndices(*this);
+    vertices.clear();
+
+    for (EdgeIteratorT<T> edgeIt(*this, f); edgeIt.ok(); ++edgeIt) {
+      vertices.push_back(this->getEdge(edgeIt()).getVertexIndex());
+    }
+
     std::sort(vertices.begin(), vertices.end());
     auto       it           = std::unique(vertices.begin(), vertices.end());
     const bool noDuplicates = (it == vertices.end());
@@ -486,24 +494,48 @@ MeshT<T>::reconcileVertices()
   // Transient (not stored) adjacency: for each vertex, every face touching it, found by walking
   // each face's own boundary loop (nextEdge only -- no pair edge needed, so this works even on a
   // non-watertight/"dirty" mesh). Rebuilt here and discarded once vertex normals are computed;
-  // VertexT itself stores no per-vertex face list.
-  std::vector<std::vector<uint32_t>> facesTouchingVertex(this->numVertices());
+  // VertexT itself stores no per-vertex face list. The lists are stored one after another, vertex v's
+  // in faces[first[v]] to faces[first[v + 1] - 1] in increasing face order, counted in one pass and
+  // filled in a second, rather than a vector per vertex, which would allocate as it grows.
+  const uint32_t numVertices = this->numVertices();
+
+  std::vector<size_t> first(size_t(numVertices) + 1, 0);
 
   for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
-    for (const uint32_t vertexIndex : this->getFace(faceIndex).gatherVertexIndices(*this)) {
-      EBGEOMETRY_REQUIRE(vertexIndex < facesTouchingVertex.size(),
+    for (EdgeIteratorT<T> edgeIt(*this, this->getFace(faceIndex)); edgeIt.ok(); ++edgeIt) {
+      const uint32_t vertexIndex = this->getEdge(edgeIt()).getVertexIndex();
+
+      EBGEOMETRY_REQUIRE(vertexIndex < numVertices,
                          "DCEL::MeshT::reconcileVertices: face %u references vertex %u, but the mesh has %zu vertices",
                          unsigned(faceIndex),
                          unsigned(vertexIndex),
-                         facesTouchingVertex.size());
+                         size_t(numVertices));
 
-      facesTouchingVertex[vertexIndex].push_back(faceIndex);
+      first[size_t(vertexIndex) + 1]++;
     }
   }
 
-  for (uint32_t vertexIndex = 0; vertexIndex < this->numVertices(); vertexIndex++) {
-    auto&       v           = this->getVertex(vertexIndex);
-    const auto& faceIndices = facesTouchingVertex[vertexIndex];
+  for (uint32_t vertexIndex = 0; vertexIndex < numVertices; vertexIndex++) {
+    first[size_t(vertexIndex) + 1] += first[vertexIndex];
+  }
+
+  std::vector<uint32_t> faces(first[numVertices]);
+  std::vector<size_t>   fill(first.begin(), first.end() - 1);
+
+  for (uint32_t faceIndex = 0; faceIndex < this->numFaces(); faceIndex++) {
+    for (EdgeIteratorT<T> edgeIt(*this, this->getFace(faceIndex)); edgeIt.ok(); ++edgeIt) {
+      faces[fill[this->getEdge(edgeIt()).getVertexIndex()]++] = faceIndex;
+    }
+  }
+
+  // One vertex's list at a time, as computeVertexNormalAngleWeighted() takes it, in storage reused throughout.
+  std::vector<uint32_t> faceIndices;
+
+  for (uint32_t vertexIndex = 0; vertexIndex < numVertices; vertexIndex++) {
+    auto& v = this->getVertex(vertexIndex);
+
+    faceIndices.assign(faces.begin() + static_cast<std::ptrdiff_t>(first[vertexIndex]),
+                       faces.begin() + static_cast<std::ptrdiff_t>(first[size_t(vertexIndex) + 1]));
 
     // A vertex no face uses (an OBJ file may list one) is never the closest feature of any face, so
     // its normal is never read; it gets a zero normal instead of one computed from nothing.

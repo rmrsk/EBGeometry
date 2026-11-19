@@ -409,11 +409,17 @@ Parser::readSTL(const std::string& a_filename)
     size_t      lineNumber = 0;
     std::string line;
 
+    // One stream for every line, reset to each in turn: constructing a stream per line would cost as much
+    // as reading the numbers.
+    std::stringstream sstream;
+
     while (std::getline(filestream, line)) {
       lineNumber++;
 
-      std::stringstream sstream(line);
-      std::string       keyword;
+      sstream.str(line);
+      sstream.clear();
+
+      std::string keyword;
 
       sstream >> keyword;
 
@@ -443,6 +449,7 @@ Parser::readSTL(const std::string& a_filename)
         }
 
         facets.emplace_back();
+        facets.back().reserve(3);
         groups.face();
 
         inFacet = true;
@@ -525,6 +532,8 @@ Parser::readSTL(const std::string& a_filename)
       fstream.read(record, 50);
 
       std::vector<size_t> facet;
+
+      facet.reserve(3);
 
       for (int v = 0; v < 3; v++) {
         float xyz[3];
@@ -1346,7 +1355,7 @@ Parser::readVTK(const std::string& a_filename)
                 }
               }
               if (faceIndices.size() > 0) {
-                facets.emplace_back(faceIndices);
+                facets.emplace_back(std::move(faceIndices));
               }
             }
           }
@@ -1376,7 +1385,7 @@ Parser::readVTK(const std::string& a_filename)
                 break;
               }
 
-              facets.emplace_back(faceIndices);
+              facets.emplace_back(std::move(faceIndices));
             }
             std::getline(filestream, line); // Consume rest of line
           }
@@ -1699,7 +1708,7 @@ Parser::readVTK(const std::string& a_filename)
                 }
               }
               if (faceIndices.size() > 0) {
-                facets.emplace_back(faceIndices);
+                facets.emplace_back(std::move(faceIndices));
               }
             }
           }
@@ -1732,7 +1741,7 @@ Parser::readVTK(const std::string& a_filename)
                 break;
               }
 
-              facets.emplace_back(faceIndices);
+              facets.emplace_back(std::move(faceIndices));
             }
           }
         }
@@ -2046,11 +2055,18 @@ Parser::readOBJ(const std::string& a_filename)
     std::string line;
     size_t      lineNumber = 0;
 
+    // One stream for every line, and one for every face index, each reset to its next string in turn:
+    // constructing a stream per line and per index would cost as much as reading the numbers.
+    std::stringstream sstream;
+    std::stringstream tokstream;
+
     while (std::getline(filestream, line)) {
       lineNumber++;
 
-      std::stringstream sstream(line);
-      std::string       keyword;
+      sstream.str(line);
+      sstream.clear();
+
+      std::string keyword;
       sstream >> keyword;
 
       if (keyword == "v") {
@@ -2073,13 +2089,16 @@ Parser::readOBJ(const std::string& a_filename)
         std::vector<size_t> facet;
         std::string         token;
 
+        facet.reserve(4);
+
         while (sstream >> token) {
           // Some exporters end a face line with a comment.
           if (token[0] == '#') {
             break;
           }
 
-          std::stringstream tokstream(token.substr(0, token.find('/')));
+          tokstream.str(token.substr(0, token.find('/')));
+          tokstream.clear();
 
           long idx = 0;
           tokstream >> idx;
@@ -2099,7 +2118,7 @@ Parser::readOBJ(const std::string& a_filename)
 
         // Skip degenerate faces (points/lines); polygons with three or more vertices are supported.
         if (facet.size() >= 3) {
-          facets.emplace_back(facet);
+          facets.emplace_back(std::move(facet));
           groups.face();
         }
       }

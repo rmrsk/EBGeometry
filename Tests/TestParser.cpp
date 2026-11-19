@@ -8,6 +8,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 
+#include <array>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -382,6 +383,72 @@ TEST_CASE("Soup::findTopologyDefect reports faces that cannot be joined into a h
 
   // Three faces on one edge: whatever their orientation, one direction is used twice.
   REQUIRE_FALSE(Soup::findTopologyDefect({{0, 1, 2}, {1, 0, 3}, {1, 0, 4}}).empty());
+}
+
+TEST_CASE("Soup::findTopologyDefect reports the first edge, in face order, that an earlier face ran along", "[Parser]")
+{
+  // Random triangles over a set of vertices, from soups with no defect to soups with many. The reference walks
+  // the edges in face order and compares each with every edge before it.
+  const auto reference = [](const std::vector<std::vector<size_t>>& a_facets) -> std::string {
+    std::vector<std::array<size_t, 3>> edges; // From, to, facet.
+
+    for (size_t f = 0; f < a_facets.size(); f++) {
+      for (size_t i = 0; i < 3; i++) {
+        const size_t from = a_facets[f][i];
+        const size_t to   = a_facets[f][(i + 1) % 3];
+
+        for (const auto& e : edges) {
+          if (e[0] == from && e[1] == to) {
+            return "faces " + std::to_string(e[2]) + " and " + std::to_string(f) + " both run from vertex " +
+                   std::to_string(from) + " to vertex " + std::to_string(to) +
+                   ": they are oriented inconsistently, or more than two faces share that edge";
+          }
+        }
+
+        edges.push_back({from, to, f});
+      }
+    }
+
+    return std::string();
+  };
+
+  size_t numWithDefect = 0;
+  size_t state         = 12345;
+
+  const auto next = [&state](size_t a_n) {
+    state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+
+    return (state >> 33) % a_n;
+  };
+
+  for (const size_t numVertices : {50, 400, 3000, 1000000}) {
+    for (size_t trial = 0; trial < 5; trial++) {
+      std::vector<std::vector<size_t>> facets;
+
+      for (size_t f = 0; f < 200; f++) {
+        const size_t a = next(numVertices);
+        const size_t b = (a + 1 + next(numVertices - 2)) % numVertices;
+
+        size_t c = next(numVertices);
+
+        while (c == a || c == b) {
+          c = next(numVertices);
+        }
+
+        facets.push_back({a, b, c});
+      }
+
+      const std::string expected = reference(facets);
+
+      REQUIRE(Soup::findTopologyDefect(facets) == expected);
+
+      numWithDefect += expected.empty() ? 0 : 1;
+    }
+  }
+
+  // Both outcomes occur.
+  REQUIRE(numWithDefect > 0);
+  REQUIRE(numWithDefect < 20);
 }
 
 TEMPLATE_TEST_CASE("Parser: OBJ vertices that no face uses, and comments after a face, are ignored",
