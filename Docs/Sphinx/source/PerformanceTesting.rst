@@ -20,7 +20,7 @@ What a pull request does
    ``Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1``.
 #. **Once the code is final**, run the full comparison against its base on the committed branch, with
    ``--record`` (and with ``--gpu cuda`` when it touches device code), and commit the receipt it writes,
-   ``Performance/receipt.md`` (see `The performance receipt`_).
+   ``Performance/receipts/<branch>-<fingerprint>.md`` (see `The performance receipt`_).
 #. **Act on the verdict** (see `Reading the verdicts`_): a minor regression is explained or fixed, a major
    one fixed or explicitly accepted by the maintainer, and a changed answer explained.
 #. **Summarize** the verdicts in the pull request's *Performance* section, pointing to the receipt.
@@ -84,7 +84,7 @@ What is in Performance/
      CheckReceipt.cmake       CI's check of the receipt
      TestReceipt.cmake        checks that the receipt writer keeps a report whole
      TestBuildCost.cmake      checks the build-cost tools
-     receipt.md               the performance receipt
+     receipts/                the performance receipts, one per pull request
      CMakeLists.txt
 
 Each folder with a ``main.cpp`` is a *probe*: one program per component, holding many *cases*. A case is
@@ -409,10 +409,18 @@ pull request as its *receipt*:
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipt.md
-   git add Performance/receipt.md && git commit -m "Performance receipt"
+   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipts/<branch>-<fingerprint>.md
+   git add -A Performance/receipts && git commit -m "Performance receipt"
 
-The receipt is one file, ``Performance/receipt.md``, with a section per comparison: the host comparison,
+The receipt is one file per pull request, ``Performance/receipts/<branch>-<fingerprint>.md``: the branch it is
+recorded on (so it is recorded on the pull request's branch, checked out) and the start of the fingerprint
+of the code it measured. Pull requests therefore never write the same receipt and never conflict over one.
+Writing a receipt deletes the other receipts in the directory, those of pull requests merged before, so the
+directory holds only the few merged since a receipt was last recorded, and ``git add -A`` commits the
+deletions with the new receipt. Deleting them never conflicts either: only its own pull request writes a
+receipt, and that one has merged, while two pull requests deleting the same receipt merge cleanly. CI
+checks the one receipt a pull request adds or changes; a pull request that adds or changes two fails. A
+receipt has a section per comparison: the host comparison,
 which ``--record`` writes and CI requires, and, when the change touches device code, a device
 comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
 commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
@@ -425,7 +433,7 @@ section that measured other code.
 Each section names the code it measured by two fingerprints: hashes of git's tree entries for what a
 comparison measures, the library (``Source/``, ``EBGeometry.hpp``) and the probes (``Performance/``,
 except its ``README.md`` and the receipt). CI's ``Performance-receipt`` job
-(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for its base branch. It
+(``Performance/CheckReceipt.cmake``) recomputes them for the pull request and for the base it is built on. It
 requires the host section, checks every section present (a device section is optional, but once
 recorded it must pass like the host one), and passes only when, for each,
 
@@ -433,8 +441,10 @@ recorded it must pass like the host one), and passes only when, for each,
   that adds it, so a later commit that changes only documentation or CI keeps it valid, while any
   change to the library or the probes makes it stale. An old receipt never stands for new code: a pull
   request that changes code and keeps the receipt it inherited fails;
-* the base branch's code is the base the section measured. When the base branch's code moves on (another
-  pull request merged), the pull request is rebased and its comparison recorded again;
+* the base the pull request is built on (where it forked from the base branch) is the base the section
+  measured. The base branch moving on (another pull request merged) leaves the receipt valid, since the
+  pull request's code is still built on what it measured; a rebase onto a base whose library or probes
+  changed moves its base, and the comparison is recorded again;
 * the verdict is green, or a yellow or red verdict is accepted: the reason replaces the ``-`` on the
   ``**Accepted:**`` line under that section's heading (the reason may wrap over several lines, up to the
   next blank line) (a minor regression that is expected, answers that
@@ -444,7 +454,7 @@ recorded it must pass like the host one), and passes only when, for each,
   commit that wrote the reason, and the account that pushed it.
 
 A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
-request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
+request's receipt is in the base branch's history, so ``git log -p -- Performance/receipts`` is the
 performance history of the branch, one comparison per change. Device sections appear where a change
 was measured on a GPU; regular device measurement is left to a future nightly run.
 
@@ -459,9 +469,12 @@ outside contributor, but not whether an agent working under the maintainer's acc
 maintainer's say-so; that rests on the rule that an agent writes a reason only on the maintainer's
 explicit acceptance (``CLAUDE.md``).
 
-Two pull requests that both pass can still race: once one merges and changes the base's code, the
-other's receipt is stale. Branch protection that requires a pull request to be up to date with its base
-before merging makes CI check it again.
+Two pull requests built on the same base are each measured against that base, never with each other.
+Once both have merged, the base branch holds a combination no receipt measured; a slowdown that comes
+from the two together would then become the base every later comparison starts from. When that happens,
+the combination is compared once against the shared base,
+``Scripts/run-performance.sh compare <shared base> origin/main``, on a quiet machine, and judged like a
+pull request's comparison.
 
 In continuous integration and in pull requests
 ----------------------------------------------

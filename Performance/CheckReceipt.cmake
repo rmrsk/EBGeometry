@@ -2,20 +2,25 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-# Check a pull request's performance receipt: that the comparison was run, on this code, against the
-# current base, and that its verdicts may be merged. Run by CI's Performance-receipt job; it needs only
+# Check a pull request's performance receipt: that the comparison was run, on this code, against the base
+# it is built on, and that its verdicts may be merged. Run by CI's Performance-receipt job; it needs only
 # CMake and git (with the base branch and the pull request's history fetched).
 #
 #   cmake -DBASE_REF=origin/main -DHEAD_REF=<the pull request's head commit> -P Performance/CheckReceipt.cmake
 #
 # A pull request that changes none of what a comparison measures (see Receipt.cmake: the library and the
-# probes) needs no receipt: it passes, whatever receipt it inherited. Otherwise Performance/receipt.md at
-# HEAD_REF must have a host section, and every section it has (host, and cuda or hip when a device
-# comparison was recorded) must
+# probes) needs no receipt: it passes, whatever receipts it inherited. Otherwise it must add or change exactly
+# one file under Performance/receipts/ (its branch's receipt, written by --record; the earlier receipts it
+# deletes do not count), which must have a host section, and every section it has (host, and cuda or hip when
+# a device comparison was recorded) must
 #
 #   * have measured this code:     its head fingerprint is HEAD_REF's;
-#   * have measured today's base:  its base fingerprint is BASE_REF's, so a base whose code moved on
-#                                  since needs a rebase and a new comparison;
+#   * have measured its own base:  its base fingerprint is that of the merge-base of HEAD_REF and
+#                                  BASE_REF, the base the pull request's code is built on. A pull request
+#                                  keeps its receipt while BASE_REF moves on without it; a rebase changes
+#                                  its base and needs a new comparison. Merges that land on BASE_REF
+#                                  meanwhile are not measured together by any one receipt; CLAUDE.md
+#                                  says when that combination is compared;
 #   * be green, or be accepted:    a yellow or red verdict passes only with a reason on its
 #                                  "**Accepted:**" line, under the section's heading; on GitHub, the
 #                                  check then also warns, so a pass on an accepted regression shows.
@@ -58,7 +63,7 @@ macro(finish passed)
   return()
 endmacro()
 
-# What the receipt must match: this code, and the base as it is now.
+# What the receipt must match: this code, and the base it is built on (the fork point from BASE_REF).
 execute_process(COMMAND git merge-base ${BASE_REF} ${HEAD_REF} WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE fork
                 OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE rc ERROR_VARIABLE err)
 
@@ -68,7 +73,6 @@ if(NOT rc EQUAL 0)
 endif()
 
 perf_fingerprint(${HEAD_REF} head_now)
-perf_fingerprint(${BASE_REF} base_now)
 perf_fingerprint(${fork} fork_now)
 
 if(head_now STREQUAL fork_now)
@@ -76,19 +80,39 @@ if(head_now STREQUAL fork_now)
   finish(TRUE)
 endif()
 
-# The receipt, as the pull request committed it.
-execute_process(COMMAND git show ${HEAD_REF}:${PERF_RECEIPT_FILE} WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE receipt
-                RESULT_VARIABLE rc ERROR_QUIET)
+# The receipt: the one file under the receipts directory that the pull request adds or changes, as committed.
+execute_process(COMMAND git diff --name-only --diff-filter=AMR ${fork} ${HEAD_REF} -- ${PERF_RECEIPT_DIR}
+                WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE receipt_files OUTPUT_STRIP_TRAILING_WHITESPACE)
+string(REPLACE "\n" ";" receipt_files "${receipt_files}")
+list(LENGTH receipt_files nreceipts)
+
+if(nreceipts GREATER 1)
+  string(REPLACE ";" ", " listed "${receipt_files}")
+  say("**More than one receipt.** This pull request changes ${listed}; a pull request carries one receipt,")
+  say("its branch's. Keep that one and restore the others.")
+  finish(FALSE)
+endif()
+
+set(receipt "")
+set(rc 1)
+
+if(nreceipts EQUAL 1)
+  execute_process(COMMAND git show ${HEAD_REF}:${receipt_files} WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE receipt
+                  RESULT_VARIABLE rc ERROR_QUIET)
+endif()
+
 perf_receipt_section("${receipt}" host host_section)
 
 if(NOT rc EQUAL 0 OR host_section STREQUAL "")
-  say("**No performance receipt.** This pull request changes the library or the probes, and")
-  say("${PERF_RECEIPT_FILE} has no host comparison. Run the comparison locally, on a quiet machine, and")
-  say("commit the receipt it writes:")
+  say("**No performance receipt.** This pull request changes the library or the probes, and adds no receipt")
+  say("with a host comparison under ${PERF_RECEIPT_DIR}/. Run the comparison locally, on a quiet machine, on")
+  say("the pull request's branch, and commit the receipt it writes:")
   say("")
   say("    ${rerun}")
   finish(FALSE)
 endif()
+
+say("Receipt: `${receipt_files}`.")
 
 set(passed TRUE)
 
@@ -128,9 +152,11 @@ foreach(side IN LISTS PERF_RECEIPT_SIDES)
     set(fresh FALSE)
   endif()
 
-  if(NOT r_base-fingerprint STREQUAL base_now)
-    say("- **Stale base**: it compared against `${r_base}`, and ${BASE_REF}'s code has changed since. Rebase")
-    say("  on ${BASE_REF}, then record it again and commit it: `${again}`")
+  if(NOT r_base-fingerprint STREQUAL fork_now)
+    string(SUBSTRING "${fork}" 0 7 fork_short)
+    say("- **Other base**: it compared against `${r_base}`, while this pull request is built on `${fork_short}`")
+    say("  (it was rebased, or the receipt measured a newer ${BASE_REF}). Rebase on ${BASE_REF} if needed, then")
+    say("  record it again and commit it: `${again}`")
     set(fresh FALSE)
   endif()
 
@@ -168,7 +194,7 @@ foreach(side IN LISTS PERF_RECEIPT_SIDES)
   endif()
 
   if(fresh)
-    say("- It measured this code, against ${BASE_REF} as it is now.")
+    say("- It measured this code, against the base it is built on.")
   endif()
 endforeach()
 

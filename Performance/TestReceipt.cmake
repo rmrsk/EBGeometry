@@ -24,13 +24,16 @@ set(report "**VERDICT: 2 minor regressions; rerun them with --rounds 10 before d
 | `A/b/c/float/host` | 1.00 ms | 1.05 ms | +5.0% |
 | `A/b/c/double/host` | 2.00 ms | 2.00 ms | +0.0% |")
 
+# A receipt of an earlier pull request in the same directory is pruned when one is written.
+file(WRITE "${REPO}/${PERF_RECEIPT_DIR}/earlier.md" "an earlier pull request's receipt\n")
+
 foreach(side host cuda)
   perf_write_receipt(
     SIDE ${side} LEVEL 1 BASE_REF origin/main BASE aaaaaaa HEAD bbbbbbb BASE_FINGERPRINT 1111 HEAD_FINGERPRINT 2222
-    CASES 2 ROUNDS 2 REPS 3 REPORT "${report}\nThese runs failed: x; y\n")
+    CASES 2 ROUNDS 2 REPS 3 REPORT "${report}\nThese runs failed: x; y\n" FILE ${PERF_RECEIPT_DIR}/test.md)
 endforeach()
 
-file(READ "${REPO}/${PERF_RECEIPT_FILE}" receipt)
+file(READ "${REPO}/${PERF_RECEIPT_DIR}/test.md" receipt)
 
 foreach(side host cuda)
   perf_receipt_section("${receipt}" ${side} section)
@@ -55,4 +58,8 @@ foreach(side host cuda)
   endif()
 endforeach()
 
-message(STATUS "TestReceipt.cmake: both sections keep their whole report")
+if(EXISTS "${REPO}/${PERF_RECEIPT_DIR}/earlier.md")
+  message(FATAL_ERROR "TestReceipt.cmake: the earlier receipt was not pruned")
+endif()
+
+message(STATUS "TestReceipt.cmake: both sections keep their whole report, and an earlier receipt is pruned")

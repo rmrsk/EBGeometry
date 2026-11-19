@@ -1,6 +1,6 @@
 ---
 name: receipt
-description: Vet an EBGeometry pull request for performance - the quick look on a draft after a change to Source/ or Performance/, and the full comparison that records the performance receipt (Performance/receipt.md) before promotion, with how to read and act on its verdicts and what goes in the PR's Performance section. Use when a PR changes the library or the probes, when asked for a receipt, a performance comparison or a quick look, or when CI's Performance-receipt check fails.
+description: Vet an EBGeometry pull request for performance - the quick look on a draft after a change to Source/ or Performance/, and the full comparison that records the performance receipt (Performance/receipts/<branch>-<fingerprint>.md) before promotion, with how to read and act on its verdicts and what goes in the PR's Performance section. Use when a PR changes the library or the probes, when asked for a receipt, a performance comparison or a quick look, or when CI's Performance-receipt check fails.
 ---
 
 # Performance vetting of a pull request
@@ -42,6 +42,9 @@ The code is final only after the `@claude review` rounds have converged; a fix f
 stale. No extra rounds or repeated full runs while the code still moves.
 
 1. **Run the comparison against the PR's base**, from the top of the branch's worktree, with the code committed.
+   The receipt must have measured the base the branch is built on (its merge-base with `origin/<base>`), so rebase
+   the branch onto `origin/<base>` first; a receipt recorded against a newer `origin/<base>` than the branch is
+   built on fails CI.
    `--smoke` first gives a one-minute check that both sides build and every case runs with the same answers. The
    defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take about eight minutes for every
    case, builds included. A probe that compiled to the same code on both sides is not run (listed as such in the
@@ -62,9 +65,12 @@ stale. No extra rounds or repeated full runs while the code still moves.
    - The receipt's runs never take `--test-builds`: its build costs come from the probe builds the comparison
      does anyway, while the Debug CUDA builds of the heaviest tests take about 45 minutes a side.
    - Each case runs in a fresh process, alternating between the sides (a host comparison pinned to one core).
-   - `--record` writes `Performance/receipt.md` (the host section; the device run adds a device section). It
-     refuses a smoke run, a glob, uncommitted changes to the library or the probes, or a run with skipped cases (a
-     fresh worktree needs `git submodule update --init` for the mesh cases).
+   - `--record` writes `Performance/receipts/<branch>-<fingerprint>.md`, named after the branch checked out and the
+     code it measured (the host section; the device run adds a device section to the same file), and deletes the
+     other receipts there (earlier PRs'; they stay in git's history). Commit both with `git add -A
+     Performance/receipts`. Record it on the PR's branch, in its worktree. It refuses a detached HEAD, a HEAD
+     argument other than the checked-out commit, a smoke run, a glob, uncommitted changes to the library or the
+     probes, or a run with skipped cases (a fresh worktree needs `git submodule update --init` for the mesh cases).
    - `Scripts/run-performance.sh` with no command runs every case of the current tree, and a glob such as
      `'PointCloudBVH/*'` runs a subset.
 
@@ -73,7 +79,7 @@ stale. No extra rounds or repeated full runs while the code still moves.
      prints.
    - Commit the receipt to the PR branch. Pushing it, like any push, needs the user's go-ahead.
    - In the PR body's *Performance* section, write a few lines, not the report: each side's verdict, the flagged
-     cases with their change, any accepted reason, and a pointer to `Performance/receipt.md`. The full report is
+     cases with their change, any accepted reason, and a pointer to `Performance/receipts/<branch>-<fingerprint>.md`. The full report is
      long and is committed in the receipt anyway.
    - A PR that changes neither the library nor the probes keeps the receipt it inherited.
 
@@ -103,7 +109,9 @@ stale. No extra rounds or repeated full runs while the code still moves.
    - the PR changes the library or the probes and its receipt has no host section;
    - any section present (host, or a device one) measured other code (any later code change makes it stale; a
      later docs-only commit does not);
-   - a section measured an outdated base (rebase and record again);
+   - a section measured another base than the one the branch is built on (it was rebased since, or the receipt
+     measured a newer base: rebase and record again). The base branch moving on without the PR does not make
+     the receipt stale;
    - a section is not green and has no reason on its `**Accepted:**` line under the section's heading (a yellow
      verdict, a minor regression or a changed checksum needs one too). A pass on an accepted verdict shows as a
      warning.

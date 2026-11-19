@@ -48,9 +48,9 @@
 #   BUILD_MINOR / BUILD_MAJOR  percent more compile CPU time or memory that is flagged in the build
 #              costs (reported, not judged)                           default: 10 / 25
 #   RECORD     ON: write the result as this comparison's section of     default: OFF
-#              the performance receipt, Performance/receipt.md (see Receipt.cmake), to commit with the pull
-#              request; CI checks it. Only for a full comparison of committed code: not with SMOKE or
-#              CASES, and not while the measured paths have uncommitted changes.
+#              the performance receipt, Performance/receipts/<branch>-<fingerprint>.md (see Receipt.cmake),
+#              to commit with the pull request; CI checks it. Only for a full comparison of committed code:
+#              not with SMOKE or CASES, and not while the measured paths have uncommitted changes.
 
 cmake_minimum_required(VERSION 3.16)
 
@@ -123,7 +123,25 @@ if(RECORD)
       message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) measures committed code; commit or stash these "
                           "first:\n${changes}")
     endif()
+  else()
+    # The receipt goes into the checked-out branch's file, so the commit measured must be the one checked out.
+    execute_process(COMMAND git rev-parse --verify --quiet "${HEAD}^{commit}" WORKING_DIRECTORY "${REPO}"
+                    OUTPUT_VARIABLE measured OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    if(measured STREQUAL "")
+      message(FATAL_ERROR "Compare.cmake: HEAD (${HEAD}) is not a commit")
+    endif()
+    execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE checked_out
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    if(NOT measured STREQUAL checked_out)
+      message(FATAL_ERROR "Compare.cmake: a receipt (RECORD) is written to the checked-out branch's file, so HEAD "
+                          "(${HEAD}) must be the commit checked out")
+    endif()
   endif()
+
+  # Stops here, before anything is built, on a detached HEAD.
+  perf_receipt_file(receipt_file)
 endif()
 
 # Run a command with its output captured (compiler warnings would otherwise bury the report); show
@@ -1044,7 +1062,7 @@ if(NOT verdict STREQUAL verdict_again)
   message(FATAL_ERROR "Compare.cmake: PerfCompare's report and verdict calls disagree (${verdict}, ${verdict_again})")
 endif()
 
-# The receipt (RECORD): this comparison's section of Performance/receipt.md (Receipt.cmake), for
+# The receipt (RECORD): this comparison's section of the branch's receipt file (Receipt.cmake), for
 # CheckReceipt.cmake and readers. Every verdict is recorded; only a green one passes CI on its own, a
 # yellow or red one once a reason replaces the "-" on its "**Accepted:**" line.
 if(RECORD)
@@ -1069,7 +1087,7 @@ if(RECORD)
   perf_write_receipt(
     SIDE ${receipt_side} LEVEL ${level} BASE_REF ${BASE} BASE ${base_sha} HEAD ${head_sha}
     BASE_FINGERPRINT ${base_fingerprint} HEAD_FINGERPRINT ${head_fingerprint} CASES ${njobs} ROUNDS ${ROUNDS}
-    REPS ${REPS} REPORT "${report_text}\n${notes}")
+    REPS ${REPS} REPORT "${report_text}\n${notes}" FILE ${receipt_file})
 endif()
 
 if(SMOKE)
