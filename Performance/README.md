@@ -46,6 +46,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `DomainObject/` | A domain compiled on its own (`regionNeighborhood()`) against the whole object: an assembly of 216 balls in air, a domain in one ball; its functions and a point's label on both tapes |
 | `MeshTape/`   | A mesh in a tape against the mesh alone: the armadillo as a `TriMeshSDF`, as a `Tape` holding only it, and as a `RegionView` of that tape; `firstHit()`, `firstCrossing()` and a renderer frame on each |
 | `QueryOrder/` | Queries in Morton order: `GPU::mortonOrder()` where its pool is, and a mesh's distances at random points as drawn and in their Morton order (the ordered `GPU::transform()`), on the host and on a device |
+| `EBGrid/`    | An embedded-boundary workload: a mesh's distances (`TriMeshSDF`, `MeshSDF`) at the cell centers of a grid of boxes around it, box by box and cell by cell, in Morton order and shuffled, on the host and on a device |
 | `LaunchTuning/` | `GPU::transform()`'s launch settings (block size, minimum resident threads) on a mesh distance, a tape's rays and a point cloud; device only |
 | `Common/`     | the harness every probe includes (`PerfHarness.hpp` includes it all) |
 | `Tools/`      | `PerfCompare`, which compares two sets of results; `BuildCost`, the compiler launcher that records what each compile costs, and `BuildCompare`, which compares two builds' costs |
