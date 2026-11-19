@@ -189,11 +189,8 @@ struct MortonKeys
   /// @brief The primitives.
   Source m_source;
 
-  /// @brief Half the cloud box's lower corner.
-  Vec3T<T> m_halfLo;
-
-  /// @brief Cells per half unit length: the code's span over half the box's longest side.
-  T m_scale;
+  /// @brief The Morton grid over the cloud's box (of the primitives' centers).
+  SFCDetail::MortonGrid<T> m_grid;
 
   /// @brief The keys.
   MortonKey* m_keys;
@@ -217,18 +214,7 @@ struct MortonKeys
       return;
     }
 
-    const Vec3T<T> p = Prim::center(m_source(i));
-
-    SFC::Index cell;
-
-    for (size_t axis = 0; axis < 3; axis++) {
-      // In halves, so that a box wider than the largest finite value does not overflow.
-      const T offset = (T(0.5) * p[axis] - m_halfLo[axis]) * m_scale;
-
-      cell[axis] = static_cast<unsigned int>(Math::min(T(SFC::ValidSpan), Math::max(T(0), offset)));
-    }
-
-    m_keys[i] = MortonKey{SFC::Morton::encode(cell), i};
+    m_keys[i] = m_grid.key(Prim::center(m_source(i)), i);
   }
 };
 
@@ -778,13 +764,10 @@ CloudBVH<T, K, W, Prim>::shape(
 
   // Step 2: the keys, sorted. GPU::bitonicSort() sorts a power of two of them, the padding last; the host sorts
   // the primitives' only. The keys are distinct, so both give one order.
-  const Vec3T<T> halfLo = T(0.5) * box.getLowCorner();
-  const Vec3T<T> extent = T(0.5) * box.getHighCorner() - halfLo;
-  const T        side   = Math::max(extent[0], Math::max(extent[1], extent[2]));
-  const T        scale  = (side > T(0)) ? T(SFC::ValidSpan) / side : T(0);
-  const uint32_t count  = m_parallel ? keyCount(a_numItems) : a_numItems;
+  const auto     grid  = SFCDetail::MortonGrid<T>::over(box.getLowCorner(), box.getHighCorner());
+  const uint32_t count = m_parallel ? keyCount(a_numItems) : a_numItems;
 
-  this->run(count, MortonKeys<T, Prim, Source>{a_source, halfLo, scale, keys, a_numItems});
+  this->run(count, MortonKeys<T, Prim, Source>{a_source, grid, keys, a_numItems});
 
   if (m_parallel) {
     GPU::bitonicSort(keys, count);

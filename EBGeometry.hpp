@@ -38,6 +38,7 @@
 #include "Source/EBGeometry_FunctionQueries.hpp"
 #include "Source/EBGeometry_GPU.hpp"
 #include "Source/EBGeometry_GPUAlgorithms.hpp"
+#include "Source/EBGeometry_GPUOrder.hpp"
 #include "Source/EBGeometry_GPURuntime.hpp"
 #include "Source/EBGeometry_GPUTransform.hpp"
 #include "Source/EBGeometry_Macros.hpp"

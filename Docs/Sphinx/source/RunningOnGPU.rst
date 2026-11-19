@@ -211,6 +211,45 @@ atomics, so the results do not depend on thread scheduling. The arrays must be m
 memory in a CUDA or HIP build. ``PointCloudHashGrid::build()`` and ``PointCloudBVH::build()`` build on them when
 their pool is in device memory (:ref:`Chap:ImplemPointCloud`).
 
+.. _Sec:QueryOrder:
+
+Queries in Morton order
+-----------------------
+
+Queries that arrive in no spatial order (a simulation's particles, points sampled at random) run slower than the same
+queries in order: on a device, the threads of a warp walk unrelated parts of a BVH and wait for each other, and on
+the host each query reads memory far from the last one's. `GPU::mortonOrder() <doxygen/html/namespaceEBGeometry_1_1GPU.html>`__
+gives an order that puts queries at nearby points side by side, along a Morton curve, and ``GPU::parallelFor`` and
+``GPU::transform`` take it as a last argument and run the queries in that order. Every result still lands at its
+input's index, so nothing has to be put back: only the time changes.
+
+.. code-block:: c++
+
+   // Once, while the points stay put: the order, computed where the pool is (on the device, for a mirror).
+   GPU::mortonOrder(deviceIO, Positions{particles}, order);
+
+   // Every launch over those points, in that order.
+   GPU::parallelFor(n, query, order.bind(deviceBase));
+   GPU::transform(distance, deviceIO, points, results, order);
+
+The order reads the points through a *source*: any trivially copyable functor that returns point ``i``, as the point
+clouds' builds take (``PointCloud::FromArray`` wraps an array). A program's own data, particles that carry more than a
+position or coordinates in separate arrays, therefore needs no copy into points first. The order goes into an array the
+caller reserved, so it can live in a frozen mirror. With a pool in host memory it is computed on the host, the same
+order element for element. Points and an order array that a program keeps in its own memory need no pool: the other
+form takes a memory resource, which says where the order is computed, and the order as a ``PODSpan`` over the
+program's array, ``GPU::mortonOrder(resource, source, PODSpan<uint32_t>{array, n})``. Either way the points and the
+order must be readable where it runs. Any permutation works with the ordered launches, so a program with its own
+space-filling curve can pass its own order instead. The order pays for queries that read memory (BVHs, meshes, point
+clouds), not for analytic shapes, whose distances read none.
+
+It pays for inputs in no spatial order. Points that are already coherent (a grid swept cell by cell, the cells of an
+AMReX box) gain little. Computing the order costs about as much as a cheap query over the same points, so it pays
+most when the queries are expensive, or when the order serves many launches. In an order, ``GPU::transform`` cannot
+write its results over its inputs. A program that wants the same coherence in its own memory can reorder its arrays
+by the order, which renumbers its points: that is the program's choice. :ref:`Chap:ExampleQueryOrder` times both
+orders on a mesh.
+
 Large queries
 -------------
 

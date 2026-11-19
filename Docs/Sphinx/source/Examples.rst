@@ -17,7 +17,7 @@ installed — see :ref:`Chap:Integrations`.
    Several examples read a mesh from the ``common-3d-test-models`` git submodule by default
    (:ref:`Chap:ExampleMeshSDF`, :ref:`Chap:ExampleMeshClosestPoint`, :ref:`Chap:ExampleMeshCSG`, :ref:`Chap:ExampleShell`,
    :ref:`Chap:ExampleSurfaceLabels`, :ref:`Chap:ExampleRepetition`, :ref:`Chap:ExampleTwist`,
-   :ref:`Chap:ExampleRayTracing`, :ref:`Chap:ExampleDeviceTuning`). Clone the repository with ``--recurse-submodules``, or run
+   :ref:`Chap:ExampleRayTracing`, :ref:`Chap:ExampleDeviceTuning`, :ref:`Chap:ExampleQueryOrder`). Clone the repository with ``--recurse-submodules``, or run
    ``git submodule update --init`` in it (see :ref:`Sec:Cloning`).
 
 The examples teach; the unit tests verify. An example shows the calls a user would write, in the
@@ -57,7 +57,7 @@ first group:
 #. :ref:`Chap:ExamplesExtending`: :ref:`OctreeBoundingVolume <Chap:ExampleOctreeBoundingVolume>`,
    :ref:`CustomShape <Chap:ExampleCustomShape>`, :ref:`Twist <Chap:ExampleTwist>`.
 #. :ref:`Chap:ExamplesTuning`: :ref:`HostTuning <Chap:ExampleHostTuning>`, :ref:`DeviceTuning
-   <Chap:ExampleDeviceTuning>`, :ref:`BuildBVH <Chap:ExampleBuildBVH>`.
+   <Chap:ExampleDeviceTuning>`, :ref:`QueryOrder <Chap:ExampleQueryOrder>`, :ref:`BuildBVH <Chap:ExampleBuildBVH>`.
 
 Every example that runs on a device has the same four parts, in this order: the query functor
 ("the code that runs on either side"), the construction of the geometry, its use on the host

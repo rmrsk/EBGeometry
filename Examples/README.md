@@ -8,7 +8,7 @@ in the order you would write them, and prints results you can read. It does not 
 answers.
 
 **Several examples read a mesh from the `common-3d-test-models` git submodule by default** (`MeshSDF`, `MeshClosestPoint`,
-`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `SurfaceLabels`, `DeviceTuning`): clone the repository with `--recurse-submodules`, or run
+`MeshCSG`, `Repetition`, `RayTracing`, `Twist`, `Shell`, `SurfaceLabels`, `DeviceTuning`, `QueryOrder`): clone the repository with `--recurse-submodules`, or run
 `git submodule update --init` in it.
 
 The reading order:
@@ -66,7 +66,8 @@ The reading order:
 
 29. `HostTuning`: the BVH branching factor and SIMD width tuned to the host's SIMD flags, against the portable defaults.
 30. `DeviceTuning`: `GPU::transform()`'s block size and register budget, timed on a sample of the queries, the fastest kept.
-31. `BuildBVH`: comparing the BVH construction methods by build time.
+31. `QueryOrder`: particles queried against a mesh in the order they arrived, then in `GPU::mortonOrder()`'s order.
+32. `BuildBVH`: comparing the BVH construction methods by build time.
 
 Every example that builds a shape (`Shapes`, `BasicCSG`, `LanguageCSG`, `SmoothCSG`, `Transforms`, `Repetition`,
 `ValueOperations`, `FusedCSG`, `MeshSDF`, `MeshClosestPoint`, `MeshCSG`, `Shell`, `SurfaceLabels`, `Materials`, `LanguageDomains`, `NestedBVH`,

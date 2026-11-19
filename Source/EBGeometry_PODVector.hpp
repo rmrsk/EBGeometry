@@ -102,6 +102,18 @@ struct PODSpan
   {
     return m_size;
   }
+
+  /**
+   * @brief The same elements, read-only.
+   * @tparam U The element type; the conversion exists only for a span whose elements are not already const.
+   * @return A span over the same elements that cannot write them.
+   */
+  template <class U = T, std::enable_if_t<!std::is_const_v<U>, int> = 0>
+  EBGEOMETRY_HOST_DEVICE
+  operator PODSpan<const U>() const noexcept
+  {
+    return PODSpan<const U>{m_ptr, m_size};
+  }
 };
 
 static_assert(std::is_trivially_copyable_v<PODSpan<float>>, "PODSpan<float> must be trivially copyable");

@@ -182,6 +182,24 @@ TEMPLATE_TEST_CASE("PODVector: bind() PODSpan iterates the same values as at()",
   REQUIRE(idx == vec.size());
 }
 
+TEMPLATE_TEST_CASE("PODSpan: a span converts to a read-only span over the same elements",
+                   "[PODVector]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  STATIC_REQUIRE(std::is_convertible_v<PODSpan<T>, PODSpan<const T>>);
+  STATIC_REQUIRE_FALSE(std::is_convertible_v<PODSpan<const T>, PODSpan<T>>);
+
+  std::vector<T> values = {T(1), T(2), T(3)};
+
+  const PODSpan<T>       span{values.data(), 3};
+  const PODSpan<const T> readOnly = span;
+
+  REQUIRE(readOnly.size() == 3);
+  REQUIRE(readOnly.begin() == values.data());
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Alignment of reserved sub-regions
 // ─────────────────────────────────────────────────────────────────────────────
