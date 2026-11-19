@@ -379,8 +379,8 @@ the same. So before reading a Tape verdict as a change's cost, check whether the
 changed: compare the out-of-line evaluator functions of both sides' ``PerfTape`` (``nm -C -S``) and the
 ptxas figures of the tape kernels. Where neither changed, a moved Tape case is a real cost, or noise; where
 the evaluator changed, a move of a few percent is expected, and a larger one, or one that the other tape
-cases do not share, is worth a look before it is accepted. The measurements behind this are in the comment of
-``Tape::evaluateBody()``.
+cases do not share, is worth a look before it is accepted. The measurements behind this are in the comments
+of the tape's header, ``Source/EBGeometry_Tape.hpp``.
 
 Build costs
 ^^^^^^^^^^^
