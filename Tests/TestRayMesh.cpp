@@ -4,7 +4,8 @@
 
 // Unit tests for the ray queries of mesh SDFs: a TriMeshSDF, MeshSDF and FlatMeshSDF of the unit cube
 // against a slab test (TestRayHelpers.hpp), sliver faces, a fine mesh far from the origin, a segment through an
-// open mesh's hole, short rays at a mesh in a tape, and device evaluation.
+// open mesh's hole, short rays at a mesh in a tape, rays through edges and vertices that faces share, and device
+// evaluation.
 
 #include "TestRayHelpers.hpp"
 
@@ -422,6 +423,140 @@ TEMPLATE_TEST_CASE("Ray: a mesh in a tape is inside or outside rightly where a s
   }
 }
 
+namespace {
+
+// A ray aimed at a point where faces meet, and the lowest id among the faces holding it.
+template <class T>
+struct SharedPointRay
+{
+  RayT<T>  ray;
+  uint32_t face;
+};
+
+// Rays at every grid vertex and edge midpoint of a unit cube whose sides are a_n x a_n grids of faces (gridCube()),
+// where two to six faces meet, each from outside along the line from the cube's center, so that the point is the
+// ray's first crossing. Every coordinate is a multiple of 1 / (2 a_n), exact in either precision.
+template <class T>
+std::vector<SharedPointRay<T>>
+sharedPointRays(const PolygonSoup<T>& a_soup, const size_t a_n)
+{
+  using Vec3 = Vec3T<T>;
+
+  const Vec3 center = T(0.5) * Vec3::ones();
+  const auto step   = T(1) / T(2 * a_n);
+
+  // A face holds a point when the point is in its box (the faces are squares in the cube's sides).
+  const auto lowestFaceAt = [&a_soup](const Vec3& a_point) {
+    const auto& vertices = a_soup.getVertexCoordinates();
+    const auto& faces    = a_soup.getFacets();
+
+    for (size_t f = 0; f < faces.size(); f++) {
+      Vec3 lo = vertices[faces[f][0]];
+      Vec3 hi = lo;
+
+      for (const size_t v : faces[f]) {
+        lo = min(lo, vertices[v]);
+        hi = max(hi, vertices[v]);
+      }
+
+      bool inside = true;
+
+      for (size_t d = 0; d < 3; d++) {
+        inside = inside && a_point[d] >= lo[d] && a_point[d] <= hi[d];
+      }
+
+      if (inside) {
+        return static_cast<uint32_t>(f);
+      }
+    }
+
+    return UINT32_MAX;
+  };
+
+  std::vector<SharedPointRay<T>> rays;
+
+  for (size_t i = 0; i <= 2 * a_n; i++) {
+    for (size_t j = 0; j <= 2 * a_n; j++) {
+      for (size_t k = 0; k <= 2 * a_n; k++) {
+        const Vec3 p(T(i) * step, T(j) * step, T(k) * step);
+
+        // On the surface, and not a face's center: on a grid line in one of its in-plane axes at least.
+        const bool onSide = i == 0 || j == 0 || k == 0 || i == 2 * a_n || j == 2 * a_n || k == 2 * a_n;
+        const int  lines  = int(i % 2 == 0) + int(j % 2 == 0) + int(k % 2 == 0);
+
+        if (!onSide || lines < 2) {
+          continue;
+        }
+
+        const Vec3 out = normalized(p - center);
+
+        rays.push_back(SharedPointRay<T>{RayT<T>{p + T(2) * out, -out}, lowestFaceAt(p)});
+      }
+    }
+  }
+
+  return rays;
+}
+
+// The face a ray hits first, as a number: -1 for none.
+template <class T, class Shape>
+struct HitFace
+{
+  Shape m_shape;
+
+  EBGEOMETRY_HOST_DEVICE
+  T
+  operator()(const RayT<T>& a_ray) const noexcept
+  {
+    const HitT<T> hit = firstHit(m_shape, a_ray, T(0), T(10));
+
+    return hit.hit() ? T(hit.m_primitive) : -T(1);
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Ray: a ray through an edge or vertex that faces share hits the lowest-numbered of them",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Crossings of the faces at such a point differ only by rounding, which differs between the host and a device:
+  // the lowest face id among them is the hit, whatever order the walk visits them in.
+  const size_t n    = 4;
+  const auto   soup = gridCube<T>(Vec3T<T>::zeros(), T(1), n);
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = soup.convertToDCEL(pool);
+
+  const TriMeshSDF<T, 4, 4> triangles(soup.convertToTriangles(), pool, BVH::Construction::SAH, 4);
+  const MeshSDF<T, 4>       polygons(mesh, pool, BVH::Construction::SAH);
+  const FlatMeshSDF<T>      flat(mesh, pool);
+
+  const auto rays = sharedPointRays<T>(soup, n);
+
+  REQUIRE(rays.size() > 100U);
+
+  const auto check = [&rays](const auto& a_shape, const char* a_kind) {
+    for (const auto& r : rays) {
+      INFO(a_kind << ": ray from " << r.ray.m_origin << " towards " << r.ray.m_direction);
+
+      REQUIRE(r.face != UINT32_MAX);
+
+      const HitT<T> hit = firstHit(a_shape, r.ray, T(0), T(10));
+
+      REQUIRE(hit.hit());
+      REQUIRE_THAT(hit.m_t, withinAbsT(T(2), tightMargin<T>()));
+      REQUIRE(hit.m_primitive == r.face);
+    }
+  };
+
+  check(triangles, "TriMeshSDF");
+  check(polygons, "MeshSDF");
+  check(flat, "FlatMeshSDF");
+}
+
 TEMPLATE_TEST_CASE("Ray: device ray queries of mesh SDFs match the host", "[Ray][gpu]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
@@ -459,4 +594,52 @@ TEMPLATE_TEST_CASE("Ray: device ray queries of mesh SDFs match the host", "[Ray]
   // The same crossings without their normals.
   requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, M>{cube.rebasedView(device)}, rays),
                      evaluateOnHost<T>(CrossingDistance<T, M>{cube}, rays));
+}
+
+TEMPLATE_TEST_CASE("Ray: at an edge or vertex that faces share, a device hits the face the host does",
+                   "[Ray][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const size_t n    = 4;
+  const auto   soup = gridCube<T>(Vec3T<T>::zeros(), T(1), n);
+
+  Pool       pool(hostMemoryResource());
+  const auto mesh = soup.convertToDCEL(pool);
+
+  const TriMeshSDF<T, 4, 4> triangles(soup.convertToTriangles(), pool, BVH::Construction::SAH, 4);
+  const MeshSDF<T, 4>       polygons(mesh, pool, BVH::Construction::SAH);
+  const FlatMeshSDF<T>      flat(mesh, pool);
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  std::vector<RayT<T>> rays;
+
+  for (const auto& r : sharedPointRays<T>(soup, n)) {
+    rays.push_back(r.ray);
+  }
+
+  using M = TriMeshSDF<T, 4, 4>;
+  using P = MeshSDF<T, 4>;
+  using L = FlatMeshSDF<T>;
+
+  // Face ids, exactly.
+  requireSameResults(evaluateOnDevice<T>(HitFace<T, M>{triangles.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(HitFace<T, M>{triangles}, rays),
+                     T(0));
+  requireSameResults(evaluateOnDevice<T>(HitFace<T, P>{polygons.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(HitFace<T, P>{polygons}, rays),
+                     T(0));
+  requireSameResults(evaluateOnDevice<T>(HitFace<T, L>{flat.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(HitFace<T, L>{flat}, rays),
+                     T(0));
 }
