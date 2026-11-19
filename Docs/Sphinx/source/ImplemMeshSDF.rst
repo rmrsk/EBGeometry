@@ -75,7 +75,8 @@ vectorized is described in :ref:`Chap:SIMDClasses`.
 The mesh distance functions are also ray traced exactly: ``firstHit()`` and ``intersects()`` walk the BVH
 along the ray and test the faces near it, reporting the face id and its normal (see
 :ref:`Chap:ImplemRays`). A ray through an edge or a vertex that several faces share reports the lowest-numbered
-of them, so the host and a device name the same face and shade it alike.
+of them, so the host and a device name the same face and shade it alike; its distance along the ray is then that
+face's crossing, which can lie a rounding error past the nearest one.
 
 The closest point and the gradient
 ----------------------------------
