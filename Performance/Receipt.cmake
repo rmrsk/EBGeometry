@@ -5,10 +5,11 @@
 # The performance receipt, shared by Compare.cmake (which writes it with RECORD) and CheckReceipt.cmake
 # (which CI runs on a pull request).
 #
-# The receipt, Performance/receipts/<branch>.md, is the result of the full local comparison against the pull
-# request's base, committed with the pull request. Each pull request writes a file of its own, named after its
-# branch, so two pull requests never change the same file and never conflict over their receipts; the directory
-# keeps every merged pull request's receipt. It has one section per kind of comparison: the
+# The receipt, Performance/receipts/<branch>-<fingerprint>.md, is the result of the full local comparison
+# against the pull request's base, committed with the pull request. Each pull request writes a file of its own
+# (perf_receipt_file()), so two pull requests never change the same file and never conflict over their
+# receipts, and writing one prunes the earlier ones (perf_write_receipt()). It has one section per kind of
+# comparison: the
 # host comparison (required) and, when recorded, a device comparison (cuda or hip; optional). Each
 # section carries its verdict and names the code it measured by two fingerprints, the candidate's and
 # the baseline's. A fingerprint is a hash of git's tree entries for what a comparison measures: the
@@ -52,9 +53,13 @@ function(perf_fingerprint commit var)
   set(${var} "${hash}" PARENT_SCOPE)
 endfunction()
 
-# perf_receipt_file(<var>): the receipt file of the branch checked out in REPO, relative to REPO:
-# Performance/receipts/<branch>.md, with any "/" in the branch's name made "-". Stops the run on a detached
-# HEAD, since a receipt belongs to a pull request's branch.
+# perf_receipt_file(<var>): the receipt file of the code checked out in REPO, relative to REPO:
+# Performance/receipts/<branch>-<fingerprint>.md, the branch's name (any "/" made "-") and the first eight
+# characters of the checked-out commit's fingerprint. The fingerprint leaves the receipts out, so committing a
+# host receipt keeps the name and a device run adds its section to the same file; and no two receipts share a
+# name, even for a branch name used again, so a receipt in the base branch is never written by a later pull
+# request (which, with pruning, could conflict). Stops the run on a detached HEAD, since a receipt belongs to a
+# pull request's branch.
 function(perf_receipt_file var)
   execute_process(COMMAND git symbolic-ref --quiet --short HEAD WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE branch
                   OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE rc)
@@ -65,7 +70,9 @@ function(perf_receipt_file var)
   endif()
 
   string(REPLACE "/" "-" name "${branch}")
-  set(${var} "${PERF_RECEIPT_DIR}/${name}.md" PARENT_SCOPE)
+  perf_fingerprint(HEAD fingerprint)
+  string(SUBSTRING "${fingerprint}" 0 8 fingerprint)
+  set(${var} "${PERF_RECEIPT_DIR}/${name}-${fingerprint}.md" PARENT_SCOPE)
 endfunction()
 
 # perf_measured_changes(<var>): what the working tree changes in the measured paths (tracked or not), as
@@ -171,7 +178,10 @@ endfunction()
 #                    BASE_FINGERPRINT <hash> HEAD_FINGERPRINT <hash> CASES <n> ROUNDS <n> REPS <n>
 #                    REPORT <markdown> [FILE <path>])
 # Write SIDE's section of the receipt in the working tree: FILE (relative to REPO), by default the checked-out
-# branch's (perf_receipt_file()). The other sections are kept only if they
+# code's (perf_receipt_file()). Every other receipt in FILE's directory is deleted (pruned): those are the receipts
+# of pull requests merged before this one, kept in git's history, so the directory holds only the few merged since
+# a receipt was last recorded. A pruned receipt never conflicts: only its own pull request writes it, and that has
+# merged; two pull requests deleting the same one merge cleanly. The other sections are kept only if they
 # measured the same code against the same base (both fingerprints equal), and dropped otherwise, so a
 # receipt never carries a stale section. The arguments are parsed with PARSE_ARGV, which keeps the
 # semicolons of a quoted REPORT (every yellow or red verdict has one, #227); an argument that does not
@@ -229,6 +239,16 @@ ${report}
   set(path "${REPO}/${R_FILE}")
   get_filename_component(directory "${path}" DIRECTORY)
   file(MAKE_DIRECTORY "${directory}")
+  file(GLOB others "${directory}/*.md")
+
+  foreach(other IN LISTS others)
+    if(NOT other STREQUAL path)
+      file(REMOVE "${other}")
+      file(RELATIVE_PATH shown "${REPO}" "${other}")
+      message(STATUS "Pruned ${shown}, the receipt of an earlier pull request (in git's history)")
+    endif()
+  endforeach()
+
   set(old "")
 
   if(EXISTS "${path}")

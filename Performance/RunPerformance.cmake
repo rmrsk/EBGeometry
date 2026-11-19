@@ -27,7 +27,7 @@
 #                           that both commits build, every case runs on both sides, the checksums
 #                           match and host/device agree, with no timing verdicts (about a minute)
 #   --record                compare: write the result into the performance receipt CI checks,
-#                           Performance/receipts/<branch>.md (its host section, or its device section
+#                           Performance/receipts/<branch>-<fingerprint>.md (its host section, or its device section
 #                           with --gpu), to commit with the pull request (a full comparison of the
 #                           committed code checked out on the branch only: no --smoke, no GLOB)
 #   --core <n> | --no-pin   the core to pin to with taskset (default 2), or no pinning; host runs only:
