@@ -14,8 +14,8 @@
      ready for review (CI checks the receipt only then; about 8 minutes):
      Scripts/run-performance.sh compare origin/<base> --record
      (and with --gpu cuda if the change touches device code). Commit the receipt it writes,
-     Performance/receipt.md, which CI checks, and summarize its verdicts here (each side's verdict, the
-     flagged cases, any accepted reason), pointing to Performance/receipt.md rather than pasting the report.
+     Performance/receipts/<branch>.md, which CI checks, and summarize its verdicts here (each side's verdict, the
+     flagged cases, any accepted reason), pointing to that file rather than pasting the report.
      Only a green receipt passes CI on its own: a yellow (minor regression, changed checksum) or red
      (MAJOR) one needs its reason on the receipt's "**Accepted:**" line, a MAJOR one the maintainer's. See Docs/Sphinx/source/PerformanceTesting.rst. -->
 

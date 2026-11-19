@@ -5,25 +5,30 @@
 # The performance receipt, shared by Compare.cmake (which writes it with RECORD) and CheckReceipt.cmake
 # (which CI runs on a pull request).
 #
-# The receipt, Performance/receipt.md, is the result of the full local comparison against the pull
-# request's base branch, committed with the pull request. It has one section per kind of comparison: the
+# The receipt, Performance/receipts/<branch>.md, is the result of the full local comparison against the pull
+# request's base, committed with the pull request. Each pull request writes a file of its own, named after its
+# branch, so two pull requests never change the same file and never conflict over their receipts; the directory
+# keeps every merged pull request's receipt. It has one section per kind of comparison: the
 # host comparison (required) and, when recorded, a device comparison (cuda or hip; optional). Each
 # section carries its verdict and names the code it measured by two fingerprints, the candidate's and
 # the baseline's. A fingerprint is a hash of git's tree entries for what a comparison measures: the
-# library (Source/, EBGeometry.hpp) and the probes (Performance/, but not its README.md or the receipt),
+# library (Source/, EBGeometry.hpp) and the probes (Performance/, but not its README.md or the receipts),
 # so a change to the docs or to CI leaves it as it is, and any change to the code or the probes changes
 # it. A section is valid only while both fingerprints match the code: one that measured other code is
 # stale, never valid.
 #
 # Needs REPO (the repository's root) to be set by the includer.
 
-set(PERF_RECEIPT_FILE "Performance/receipt.md")
+set(PERF_RECEIPT_DIR "Performance/receipts")
 set(PERF_RECEIPT_VERSION 3)
 set(PERF_RECEIPT_SIDES host cuda hip)
 
 # The paths a fingerprint covers, and those it leaves out (as git pathspecs).
 set(PERF_MEASURED_PATHS Source EBGeometry.hpp Performance)
-set(PERF_UNMEASURED_PATHS ":(exclude)Performance/README.md" ":(exclude)${PERF_RECEIPT_FILE}")
+# Older commits carry their receipt in Performance/receipt.md; leaving it out keeps their fingerprints as their
+# receipts recorded them.
+set(PERF_UNMEASURED_PATHS ":(exclude)Performance/README.md" ":(exclude)Performance/receipt.md"
+                          ":(exclude)${PERF_RECEIPT_DIR}")
 
 # perf_fingerprint(<commit> <var>): the fingerprint of what a comparison measures at a commit. (git ls-tree
 # takes no exclude pathspecs, so the unmeasured paths are filtered out of its listing here.)
@@ -37,6 +42,7 @@ function(perf_fingerprint commit var)
 
   string(REGEX REPLACE "[^\n]*\tPerformance/README[.]md\n" "" entries "${entries}")
   string(REGEX REPLACE "[^\n]*\tPerformance/receipt[.]md\n" "" entries "${entries}")
+  string(REGEX REPLACE "[^\n]*\tPerformance/receipts/[^\n]*\n" "" entries "${entries}")
 
   if(entries STREQUAL "")
     message(FATAL_ERROR "Receipt.cmake: ${commit} has none of ${PERF_MEASURED_PATHS}")
@@ -44,6 +50,22 @@ function(perf_fingerprint commit var)
 
   string(SHA1 hash "${entries}")
   set(${var} "${hash}" PARENT_SCOPE)
+endfunction()
+
+# perf_receipt_file(<var>): the receipt file of the branch checked out in REPO, relative to REPO:
+# Performance/receipts/<branch>.md, with any "/" in the branch's name made "-". Stops the run on a detached
+# HEAD, since a receipt belongs to a pull request's branch.
+function(perf_receipt_file var)
+  execute_process(COMMAND git symbolic-ref --quiet --short HEAD WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE branch
+                  OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE rc)
+
+  if(NOT rc EQUAL 0 OR branch STREQUAL "")
+    message(FATAL_ERROR "Receipt.cmake: a receipt is recorded on the pull request's branch; check it out (HEAD is "
+                        "detached)")
+  endif()
+
+  string(REPLACE "/" "-" name "${branch}")
+  set(${var} "${PERF_RECEIPT_DIR}/${name}.md" PARENT_SCOPE)
 endfunction()
 
 # perf_measured_changes(<var>): what the working tree changes in the measured paths (tracked or not), as
@@ -147,15 +169,16 @@ endfunction()
 
 # perf_write_receipt(SIDE <host|cuda|hip> LEVEL <0|1|2> BASE_REF <ref> BASE <commit> HEAD <commit>
 #                    BASE_FINGERPRINT <hash> HEAD_FINGERPRINT <hash> CASES <n> ROUNDS <n> REPS <n>
-#                    REPORT <markdown>)
-# Write SIDE's section of the receipt in the working tree. The other sections are kept only if they
+#                    REPORT <markdown> [FILE <path>])
+# Write SIDE's section of the receipt in the working tree: FILE (relative to REPO), by default the checked-out
+# branch's (perf_receipt_file()). The other sections are kept only if they
 # measured the same code against the same base (both fingerprints equal), and dropped otherwise, so a
 # receipt never carries a stale section. The arguments are parsed with PARSE_ARGV, which keeps the
 # semicolons of a quoted REPORT (every yellow or red verdict has one, #227); an argument that does not
 # parse stops the run rather than being dropped.
 function(perf_write_receipt)
   cmake_parse_arguments(PARSE_ARGV 0 R ""
-                        "SIDE;LEVEL;BASE_REF;BASE;HEAD;BASE_FINGERPRINT;HEAD_FINGERPRINT;CASES;ROUNDS;REPS;REPORT" "")
+                        "SIDE;LEVEL;BASE_REF;BASE;HEAD;BASE_FINGERPRINT;HEAD_FINGERPRINT;CASES;ROUNDS;REPS;REPORT;FILE" "")
 
   if(R_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Receipt.cmake: perf_write_receipt() got unexpected arguments: ${R_UNPARSED_ARGUMENTS}")
@@ -199,7 +222,13 @@ ${report}
 
 <!-- END receipt ${R_SIDE} -->")
 
-  set(path "${REPO}/${PERF_RECEIPT_FILE}")
+  if(NOT R_FILE)
+    perf_receipt_file(R_FILE)
+  endif()
+
+  set(path "${REPO}/${R_FILE}")
+  get_filename_component(directory "${path}" DIRECTORY)
+  file(MAKE_DIRECTORY "${directory}")
   set(old "")
 
   if(EXISTS "${path}")
@@ -240,5 +269,5 @@ SPDX-License-Identifier: BSD-3-Clause
 
 # Performance receipt
 ${sections}")
-  message(STATUS "Wrote the ${R_SIDE} section of ${PERF_RECEIPT_FILE} (${verdict}); commit it")
+  message(STATUS "Wrote the ${R_SIDE} section of ${R_FILE} (${verdict}); commit it")
 endfunction()

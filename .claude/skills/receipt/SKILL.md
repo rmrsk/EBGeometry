@@ -1,6 +1,6 @@
 ---
 name: receipt
-description: Vet an EBGeometry pull request for performance - the quick look on a draft after a change to Source/ or Performance/, and the full comparison that records the performance receipt (Performance/receipt.md) before promotion, with how to read and act on its verdicts and what goes in the PR's Performance section. Use when a PR changes the library or the probes, when asked for a receipt, a performance comparison or a quick look, or when CI's Performance-receipt check fails.
+description: Vet an EBGeometry pull request for performance - the quick look on a draft after a change to Source/ or Performance/, and the full comparison that records the performance receipt (Performance/receipts/<branch>.md) before promotion, with how to read and act on its verdicts and what goes in the PR's Performance section. Use when a PR changes the library or the probes, when asked for a receipt, a performance comparison or a quick look, or when CI's Performance-receipt check fails.
 ---
 
 # Performance vetting of a pull request
@@ -65,8 +65,9 @@ stale. No extra rounds or repeated full runs while the code still moves.
    - The receipt's runs never take `--test-builds`: its build costs come from the probe builds the comparison
      does anyway, while the Debug CUDA builds of the heaviest tests take about 45 minutes a side.
    - Each case runs in a fresh process, alternating between the sides (a host comparison pinned to one core).
-   - `--record` writes `Performance/receipt.md` (the host section; the device run adds a device section). It
-     refuses a smoke run, a glob, uncommitted changes to the library or the probes, or a run with skipped cases (a
+   - `--record` writes `Performance/receipts/<branch>.md`, named after the branch checked out (the host section;
+     the device run adds a device section). Record it on the PR's branch, in its worktree. It refuses a detached
+     HEAD, a HEAD argument other than the checked-out commit, a smoke run, a glob, uncommitted changes to the library or the probes, or a run with skipped cases (a
      fresh worktree needs `git submodule update --init` for the mesh cases).
    - `Scripts/run-performance.sh` with no command runs every case of the current tree, and a glob such as
      `'PointCloudBVH/*'` runs a subset.
@@ -76,7 +77,7 @@ stale. No extra rounds or repeated full runs while the code still moves.
      prints.
    - Commit the receipt to the PR branch. Pushing it, like any push, needs the user's go-ahead.
    - In the PR body's *Performance* section, write a few lines, not the report: each side's verdict, the flagged
-     cases with their change, any accepted reason, and a pointer to `Performance/receipt.md`. The full report is
+     cases with their change, any accepted reason, and a pointer to `Performance/receipts/<branch>.md`. The full report is
      long and is committed in the receipt anyway.
    - A PR that changes neither the library nor the probes keeps the receipt it inherited.
 

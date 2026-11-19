@@ -86,10 +86,10 @@ outside the 95% confidence interval over the runs (fresh processes; at least two
 2 rounds of 3 repetitions, are the least that gives a verdict; a flagged case then runs 8 more rounds
 (`--confirm-rounds`) and is judged on all of them, and `--rounds 1` shows times without a verdict.
 
-CI times nothing. It checks the pull request's performance receipt, `receipt.md`: the result of the
+CI times nothing. It checks the pull request's performance receipt, `receipts/<branch>.md`: the result of the
 comparison above with `--record` (a host section, and a device section with `--gpu`), committed with the
 pull request, once the pull request is ready for review (a draft is not checked). Every section must
-have measured the pull request's code, against its base as it is now,
+have measured the pull request's code, against the base it is built on,
 and be green or accepted (`CheckReceipt.cmake`, `Receipt.cmake`).
 
 CUDA 12.0's nvcc cannot compile the library; name a newer one with `--cuda-compiler`. `ctest --preset

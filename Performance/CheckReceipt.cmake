@@ -9,8 +9,8 @@
 #   cmake -DBASE_REF=origin/main -DHEAD_REF=<the pull request's head commit> -P Performance/CheckReceipt.cmake
 #
 # A pull request that changes none of what a comparison measures (see Receipt.cmake: the library and the
-# probes) needs no receipt: it passes, whatever receipt it inherited. Otherwise Performance/receipt.md at
-# HEAD_REF must have a host section, and every section it has (host, and cuda or hip when a device
+# probes) needs no receipt: it passes, whatever receipts it inherited. Otherwise it must add or change exactly
+# one file under Performance/receipts/ (its branch's receipt, written by --record), which must have a host section, and every section it has (host, and cuda or hip when a device
 # comparison was recorded) must
 #
 #   * have measured this code:     its head fingerprint is HEAD_REF's;
@@ -79,19 +79,39 @@ if(head_now STREQUAL fork_now)
   finish(TRUE)
 endif()
 
-# The receipt, as the pull request committed it.
-execute_process(COMMAND git show ${HEAD_REF}:${PERF_RECEIPT_FILE} WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE receipt
-                RESULT_VARIABLE rc ERROR_QUIET)
+# The receipt: the one file under the receipts directory that the pull request adds or changes, as committed.
+execute_process(COMMAND git diff --name-only --diff-filter=AMR ${fork} ${HEAD_REF} -- ${PERF_RECEIPT_DIR}
+                WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE receipt_files OUTPUT_STRIP_TRAILING_WHITESPACE)
+string(REPLACE "\n" ";" receipt_files "${receipt_files}")
+list(LENGTH receipt_files nreceipts)
+
+if(nreceipts GREATER 1)
+  string(REPLACE ";" ", " listed "${receipt_files}")
+  say("**More than one receipt.** This pull request changes ${listed}; a pull request carries one receipt,")
+  say("its branch's. Keep that one and restore the others.")
+  finish(FALSE)
+endif()
+
+set(receipt "")
+set(rc 1)
+
+if(nreceipts EQUAL 1)
+  execute_process(COMMAND git show ${HEAD_REF}:${receipt_files} WORKING_DIRECTORY "${REPO}" OUTPUT_VARIABLE receipt
+                  RESULT_VARIABLE rc ERROR_QUIET)
+endif()
+
 perf_receipt_section("${receipt}" host host_section)
 
 if(NOT rc EQUAL 0 OR host_section STREQUAL "")
-  say("**No performance receipt.** This pull request changes the library or the probes, and")
-  say("${PERF_RECEIPT_FILE} has no host comparison. Run the comparison locally, on a quiet machine, and")
-  say("commit the receipt it writes:")
+  say("**No performance receipt.** This pull request changes the library or the probes, and adds no receipt")
+  say("with a host comparison under ${PERF_RECEIPT_DIR}/. Run the comparison locally, on a quiet machine, on")
+  say("the pull request's branch, and commit the receipt it writes:")
   say("")
   say("    ${rerun}")
   finish(FALSE)
 endif()
+
+say("Receipt: `${receipt_files}`.")
 
 set(passed TRUE)
 

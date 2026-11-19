@@ -20,7 +20,7 @@ What a pull request does
    ``Scripts/run-performance.sh compare origin/<base> 'PointCloud*' --rounds 1``.
 #. **Once the code is final**, run the full comparison against its base on the committed branch, with
    ``--record`` (and with ``--gpu cuda`` when it touches device code), and commit the receipt it writes,
-   ``Performance/receipt.md`` (see `The performance receipt`_).
+   ``Performance/receipts/<branch>.md`` (see `The performance receipt`_).
 #. **Act on the verdict** (see `Reading the verdicts`_): a minor regression is explained or fixed, a major
    one fixed or explicitly accepted by the maintainer, and a changed answer explained.
 #. **Summarize** the verdicts in the pull request's *Performance* section, pointing to the receipt.
@@ -84,7 +84,7 @@ What is in Performance/
      CheckReceipt.cmake       CI's check of the receipt
      TestReceipt.cmake        checks that the receipt writer keeps a report whole
      TestBuildCost.cmake      checks the build-cost tools
-     receipt.md               the performance receipt
+     receipts/                the performance receipts, one per pull request
      CMakeLists.txt
 
 Each folder with a ``main.cpp`` is a *probe*: one program per component, holding many *cases*. A case is
@@ -409,10 +409,14 @@ pull request as its *receipt*:
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipt.md
-   git add Performance/receipt.md && git commit -m "Performance receipt"
+   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipts/<branch>.md
+   git add Performance/receipts && git commit -m "Performance receipt"
 
-The receipt is one file, ``Performance/receipt.md``, with a section per comparison: the host comparison,
+The receipt is one file per pull request, ``Performance/receipts/<branch>.md``, named after the branch it
+is recorded on (so it is recorded on the pull request's branch, checked out). Pull requests therefore never
+change the same receipt and never conflict over it, and the base branch keeps every merged pull request's
+receipt. CI checks the one receipt a pull request adds or changes; a pull request that changes two fails. A
+receipt has a section per comparison: the host comparison,
 which ``--record`` writes and CI requires, and, when the change touches device code, a device
 comparison, which ``--record --gpu cuda`` (or ``hip``) adds. Each section holds its verdict, the two
 commits compared, the machine and the comparison's table. ``--record`` refuses anything that could not
@@ -446,8 +450,8 @@ recorded it must pass like the host one), and passes only when, for each,
   commit that wrote the reason, and the account that pushed it.
 
 A pull request that changes neither the library nor the probes needs no new receipt. Each merged pull
-request leaves its receipt in the base branch, so the history of ``Performance/receipt.md`` is the
-performance history of the branch, one comparison per change. Device sections appear where a change
+request leaves its receipt in the base branch, so ``Performance/receipts/`` is the performance history of
+the branch, one comparison per change. Device sections appear where a change
 was measured on a GPU; regular device measurement is left to a future nightly run.
 
 What a receipt proves is limited. Its fingerprints tie it to the code it names, so it cannot be
