@@ -9,9 +9,10 @@
 // saves); domainLabels is what a cut-cell code samples at a node, Domain::signedDistances() for a domain of the matrix
 // and the shells (the grains excluded). A host build runs the host cases; a CUDA or HIP build runs them as host/device
 // pairs, which agree when their values do. Rays at an assembly of one region (a union of spheres through a BVH, no
-// Overlay): firstRegionChange(), what a view of its regions traces per camera ray, names the firstHit() case of the same
-// rays (Case::relativeTo()), so that a comparison notes what naming the region and the surface costs. In a probe of its own, so that adding it changes no other probe's
-// translation unit (see Performance/Fused). See ../README.md and PerformanceTesting.rst.
+// Overlay): firstRegionChange(), what a view of its regions traces per camera ray, is named by the firstHit() case of
+// the same rays (Case::relativeTo()), so that a comparison notes what naming the region and the surface costs. In a
+// probe of its own, so that adding it changes no other probe's translation unit (see Performance/Fused). See
+// ../README.md and PerformanceTesting.rst.
 
 #include <cmath>
 #include <cstddef>
@@ -317,7 +318,7 @@ addOperation(Perf::Suite& a_suite)
     c.param("particles", particles);
 
     if constexpr (Op == Operation::RegionByRegion) {
-      c.relativeTo(Perf::caseName({"Regions", "particles", "regionDistances", prec, "host"}), "each/one-pass");
+      c.relativeTo(Perf::caseName({"Regions", "particles", "regionDistances", prec, "host"}), "one-pass/each");
     }
   });
 
@@ -343,7 +344,7 @@ addOperation(Perf::Suite& a_suite)
     c.param("particles", particles);
 
     if constexpr (Op == Operation::RegionByRegion) {
-      c.relativeTo(Perf::caseName({"Regions", "particles", "regionDistances", prec, "hostdevice"}), "each/one-pass");
+      c.relativeTo(Perf::caseName({"Regions", "particles", "regionDistances", prec, "hostdevice"}), "one-pass/each");
     }
   });
 }

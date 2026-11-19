@@ -243,7 +243,7 @@ addOperation(Perf::Suite& a_suite, const bool a_own)
       c.param("regions", std::size_t(tape.getNumRegions()));
 
       if (a_own) {
-        c.relativeTo(Perf::caseName({"DomainObject", "partsWhole", name, prec, side}), "own/whole");
+        c.relativeTo(Perf::caseName({"DomainObject", "partsWhole", name, prec, side}), "whole/own");
       }
     });
   }

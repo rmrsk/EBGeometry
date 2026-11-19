@@ -104,7 +104,7 @@ addUnion(Perf::Suite& a_suite, const std::string& a_input, const EBGeometry::Acc
 
     // The same answers as through the BVH, operand by operand.
     if (!bvh) {
-      c.relativeTo(Perf::caseName({"TapeBVHUnion", "maps64-bvh", "signedDistance", prec}), "as-written/bvh");
+      c.relativeTo(Perf::caseName({"TapeBVHUnion", "maps64-bvh", "signedDistance", prec}), "bvh/as-written");
     }
 
     return tape;
