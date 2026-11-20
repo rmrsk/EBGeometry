@@ -6160,6 +6160,75 @@ superellipsoidScale(const Vec3T<T>& a_radii, const T a_exponent1, const T a_expo
   return Math::min(a_radii[0], Math::min(a_radii[1], a_radii[2])) / (factor(a_exponent1) * factor(a_exponent2));
 }
 
+/**
+ * @brief The closest distance between a helix' center line and its neighboring turns: twice the largest tube radius
+ * that does not touch itself there.
+ * @details Internal helper; not part of the public API. Two points of the line an angle theta apart are
+ * sqrt(2 R^2 (1 - cos theta) + (rate theta)^2) apart, rate the rise per radian. From theta = 0 that grows to a first
+ * maximum and then falls to a minimum near the next turn; the minimum is the distance asked for, found by sampling
+ * the first two turns and refining by golden section. Without such a minimum, the turns never come nearer than
+ * neighboring points of one turn, and only the tube radius against the helix radius matters.
+ * @param[in] a_radius The helix radius.
+ * @param[in] a_pitch  The rise per turn.
+ * @return The distance, or infinity if the turns never come back nearer.
+ */
+inline double
+helixTurnDistance(const double a_radius, const double a_pitch)
+{
+  const double rate = a_pitch / (2.0 * pi<double>);
+
+  const auto squared = [&](const double a_theta) {
+    return 2.0 * a_radius * a_radius * (1.0 - std::cos(a_theta)) + rate * rate * a_theta * a_theta;
+  };
+
+  constexpr int Samples = 4096;
+
+  const double step = 4.0 * pi<double> / double(Samples);
+
+  // Past the first maximum, the smallest sample.
+  int    i    = 1;
+  double prev = squared(step);
+
+  while (i < Samples && squared(double(i + 1) * step) >= prev) {
+    i++;
+    prev = squared(double(i) * step);
+  }
+
+  if (i >= Samples) {
+    return Math::Limits<double>::infinity();
+  }
+
+  int    best    = i;
+  double minimum = prev;
+
+  for (int j = i; j <= Samples; j++) {
+    if (squared(double(j) * step) < minimum) {
+      minimum = squared(double(j) * step);
+      best    = j;
+    }
+  }
+
+  // Golden section on the samples around the smallest.
+  const double golden = 0.5 * (std::sqrt(5.0) - 1.0);
+
+  double lo = double(best - 1) * step;
+  double hi = double(best + 1) * step;
+
+  for (int k = 0; k < 100; k++) {
+    const double a = hi - golden * (hi - lo);
+    const double b = lo + golden * (hi - lo);
+
+    if (squared(a) < squared(b)) {
+      hi = b;
+    }
+    else {
+      lo = a;
+    }
+  }
+
+  return std::sqrt(Math::min(minimum, squared(0.5 * (lo + hi))));
+}
+
 } // namespace AnalyticDetail
 
 /**
@@ -7015,7 +7084,8 @@ protected:
  * ends and the helix' ends are the other candidates. The search starts at the turn nearest the point's height and
  * goes outward while a lower bound on a window's distance (its height difference alone) can still beat the best,
  * which is one to three windows for most points. The tube must not touch itself: its radius is less than the helix
- * radius, and less than half the distance between neighboring turns, pitch R / sqrt(R^2 + (pitch / 2 pi)^2). By default the helix runs from (0,-1,0) to (0,1,0) in 4 turns of radius 0.5
+ * radius, and less than half the closest distance between the center line's neighboring turns, which is a little less
+ * than the pitch. By default the helix runs from (0,-1,0) to (0,1,0) in 4 turns of radius 0.5
  * starting along x, with a tube radius of 0.1.
  * @tparam T Floating-point precision.
  */
@@ -7042,8 +7112,8 @@ public:
    * @param[in] a_center2        The axis point at the second end; it must differ from a_center1.
    * @param[in] a_helixRadius    The distance from the axis to the tube's center line, finite and positive.
    * @param[in] a_turns          The number of turns, finite and positive (not necessarily whole).
-   * @param[in] a_tubeRadius     The tube's radius, positive, less than a_helixRadius and than half the distance
-   * between neighboring turns (just under half the pitch).
+   * @param[in] a_tubeRadius     The tube's radius, positive, less than a_helixRadius and than half the closest
+   * distance between neighboring turns of the center line.
    * @param[in] a_startDirection Direction from the axis to the center line at the first end. Only its part across
    * the axis is used, and that must not be zero.
    */
@@ -7077,10 +7147,7 @@ public:
                        "HelixSDF: the number of turns must be finite and positive (%g)",
                        double(a_turns));
 
-    // Neighboring turns are pitch R / sqrt(R^2 + (pitch / 2 pi)^2) apart across the line, less than the pitch.
-    const T pitch = length / a_turns;
-    const T rise  = pitch / (T(2) * pi<T>);
-    const T apart = pitch * a_helixRadius / std::sqrt(a_helixRadius * a_helixRadius + rise * rise);
+    const T apart = T(AnalyticDetail::helixTurnDistance(double(a_helixRadius), double(length) / double(a_turns)));
 
     EBGEOMETRY_REQUIRE(std::isfinite(a_tubeRadius) && a_tubeRadius > T(0) && a_tubeRadius < a_helixRadius &&
                          T(2) * a_tubeRadius < apart,
