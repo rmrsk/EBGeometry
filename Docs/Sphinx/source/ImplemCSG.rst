@@ -157,7 +157,7 @@ improved noise :cite:`Perlin2002`. The shapes share a few conventions:
   member, and treats a type without one as ``Bound``.
 
 Families of shapes
-~~~~~~~~~~~~~~~~~~
+__________________
 
 Shapes that share their code are one type, so that a tape holds few types (each type it can hold makes every
 tape's evaluator larger):
