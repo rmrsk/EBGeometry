@@ -48,8 +48,9 @@ To look inside:
   front to back, seeing through those in front of the one stepped to.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
   keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut
-  (or through the side N draws, or makes it opaque), and the arrow keys and Ctrl + wheel move it. I draws lines
-  of equal distance on the plane, spaced to the view.
+  (or through the side N draws, or makes it opaque), and Page Up, Page Down and Ctrl + wheel move it. I draws lines
+  of equal distance on the plane, spaced to the view. Ctrl + N shows a clean cutaway: only the opaque cut face,
+  filled by what it cuts.
 * **Slice view.** Z lays the section plane flat on screen, seen square from the removed side; the wheel then
   moves the plane through the object.
 * **Other views.** M cycles the views: shaded, x-ray, and the costs of finding hits and of finding crossings
@@ -67,7 +68,9 @@ The keys
    * - Key
      - Action
    * - Drag, Ctrl + drag, wheel
-     - Orbit the camera, pan it, zoom.
+     - Orbit the camera, pan it, zoom. The wheel zooms towards the point under the cursor: the eye and the target
+       move towards it together, so that it stays under the cursor and the camera then orbits and pans around
+       what is looked at. Over the background, the wheel zooms towards the target.
    * - 1, 2, 3; O; R
      - Look from the front, the side, the top; switch between perspective and orthographic; reset the
        camera, the light and the picked surfaces.
@@ -107,6 +110,11 @@ The keys
        in front of it), then both sides solid (the plane shows outside the shape only), five in turn. While N
        draws the other side, Shift + X makes it opaque where it is ghosted and ghosted where it is solid, until the
        next N.
+   * - Ctrl + N
+     - A clean cutaway, as a CAD section shows it: the section plane on (across x, if there was none), the other
+       side left out, and on the plane only the opaque cut face, filled by what it cuts (for a view of regions,
+       the material of each region), with its contour: no sheet, no lines of equal distance. Ctrl + N again goes
+       back to the settings before it.
    * - Ctrl + wheel; Page Up, Page Down
      - Move the section plane in fine steps; in coarse ones.
    * - U
