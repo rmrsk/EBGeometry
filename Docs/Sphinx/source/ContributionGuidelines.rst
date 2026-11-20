@@ -177,8 +177,8 @@ A class that is callable on a GPU also gets a device test: a test case tagged ``
 file, whose binary is listed in ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``. A GPU build compiles
 every file in that list with the device compiler, so a component with many host tests keeps its device tests
 in a file of their own, ``Test<Component>Device.cpp`` (``TestBVHDevice.cpp`` beside ``TestBVH.cpp``), with the
-helpers both use in a header, and only that file is listed; a host test whose code runs as kernels in a GPU
-build (a build through ``GPU::parallelFor()`` in managed memory) goes there too.
+helpers both use in a header, and only that file is listed; a host test whose code runs or compiles kernels in a
+GPU build (a build through ``GPU::parallelFor()``, which a cloud's constructor instantiates) goes there too.
 ``Tests/TestGPU.hpp`` holds the harness. Write the check as a functor -- a trivially copyable struct
 holding the object under test (a ``rebasedView()`` onto a pool mirrored into
 ``deviceTestResource()``, for anything pool-resident) whose ``EBGEOMETRY_HOST_DEVICE`` call operator

@@ -217,8 +217,9 @@ GPU is visible. See :ref:`Chap:ContributionGuidelines` for how to write one.
 A GPU build compiles the files that hold device tests with the device compiler, which takes much longer than the
 host compiler. So a test file with many host tests keeps its device tests in a file of their own, named after it
 (``TestBVHDevice`` beside ``TestBVH``), with the helpers both use in a header, and the GPU build's device test
-target (``EBGeometry_GPUDeviceTests``) compiles only those. A host test whose code runs as kernels in a GPU build
-(a build through ``GPU::parallelFor()`` in managed memory, say) belongs with the device tests too.
+target (``EBGeometry_GPUDeviceTests``) compiles only those. A host test whose code runs or compiles kernels in a GPU
+build (a build through ``GPU::parallelFor()``, which a cloud's constructor instantiates) belongs with the device tests
+too.
 
 Test coverage
 ---------------

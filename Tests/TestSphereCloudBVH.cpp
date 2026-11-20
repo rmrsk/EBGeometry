@@ -349,40 +349,6 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: equal spheres tie to the lower index, a radi
   }
 }
 
-TEMPLATE_TEST_CASE("SphereCloudBVH: other branching factors and widths, and partly filled groups, match brute force",
-                   "[SphereCloudBVH]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  // Fewer spheres than a group holds, and counts that are not a multiple of it, so that queries read padded lanes
-  // of real leaves.
-  const auto check = [](auto a_tag, const std::size_t a_n) {
-    using Cloud = typename decltype(a_tag)::type;
-
-    const std::vector<SphereCloud::Sphere<T>> spheres = makeSpheres<T>(a_n, 31u + unsigned(a_n));
-
-    Pool pool(hostMemoryResource());
-
-    const Cloud cloud(pool, spheres, 3);
-
-    for (const auto& query : makeQueries<T>(200, 7u)) {
-      const T    truth = bruteForceDistance(spheres, query);
-      const auto hit   = cloud.closestSphere(query);
-
-      REQUIRE(hit.index < a_n);
-      CHECK_THAT(hit.distance, withinAbsT<T>(truth, tightMargin<T>()));
-      CHECK_THAT(sphereDistance(spheres[hit.index], query), withinAbsT<T>(truth, tightMargin<T>()));
-    }
-  };
-
-  for (const std::size_t n : {std::size_t(1), std::size_t(2), std::size_t(5), std::size_t(13), std::size_t(301)}) {
-    check(std::common_type<SphereCloudBVH<T, 4, 4>>{}, n);
-    check(std::common_type<SphereCloudBVH<T, 2, 8>>{}, n);
-    check(std::common_type<SphereCloudBVH<T, 8, 2>>{}, n);
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // forEachContact(): contacts between spheres
 // ─────────────────────────────────────────────────────────────────────────────
