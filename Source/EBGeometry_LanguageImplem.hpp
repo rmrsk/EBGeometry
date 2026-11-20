@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -23,7 +24,9 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <tuple>
 #include <type_traits>
+#include <unordered_map>
 
 // Our includes
 #include "EBGeometry_Language.hpp"
@@ -1311,9 +1314,34 @@ private:
   std::vector<std::pair<Span, std::shared_ptr<const S>>> m_calls;
 
   /**
-   * @brief Each node site's shapes (the objects of its leaves, in order), as Model::m_nodeSites numbers them.
+   * @brief The objects of an expression's leaves, in order, as a key: how many, the first and the last, and a
+   * polynomial hash of the sequence (so that a node's key is its operands' combined, each node visited once).
    */
-  std::map<std::vector<const void*>, uint32_t> m_nodeSiteRuns;
+  struct Run
+  {
+    uint64_t    m_count = 0;
+    uint64_t    m_hash  = 0;
+    uint64_t    m_power = 1;
+    const void* m_first = nullptr;
+    const void* m_last  = nullptr;
+
+    bool
+    operator<(const Run& a_other) const noexcept
+    {
+      return std::tie(m_count, m_hash, m_first, m_last) <
+             std::tie(a_other.m_count, a_other.m_hash, a_other.m_first, a_other.m_last);
+    }
+  };
+
+  /**
+   * @brief Each expression node's run, once computed.
+   */
+  std::unordered_map<const ExprDetail::Node<T>*, Run> m_runs;
+
+  /**
+   * @brief Each node site's shapes (the run of its leaves), as Model::m_nodeSites numbers them.
+   */
+  std::map<Run, uint32_t> m_nodeSiteRuns;
 
   /**
    * @brief The model being made.
@@ -1342,33 +1370,93 @@ private:
   }
 
   /**
-   * @brief The objects of the leaves of a shape value, in order.
-   * @param[in] a_shape The shape.
-   * @return The objects.
+   * @brief The run of an expression's leaves: a leaf's from its object, a composition's from its operands', each node
+   * computed once.
+   * @param[in] a_node The node.
+   * @return The run.
    */
-  static std::vector<const void*>
-  runOf(const S& a_shape)
+  const Run&
+  runOf(const ExprDetail::Node<T>& a_node)
   {
-    std::vector<const void*> run;
+    const auto known = m_runs.find(&a_node);
 
-    if (a_shape.m_expr.has_value()) {
-      leafObjects(*a_shape.m_expr, run);
+    if (known != m_runs.end()) {
+      return known->second;
     }
 
-    return run;
+    constexpr uint64_t base = 0x100000001B3ULL;
+
+    Run run;
+
+    if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+      // The object's address, mixed (splitmix64), as the leaf's digit.
+      uint64_t x = static_cast<uint64_t>(reinterpret_cast<std::uintptr_t>(a_node.m_leaf.m_object.get()));
+
+      x = (x ^ (x >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+      x = (x ^ (x >> 27U)) * 0x94D049BB133111EBULL;
+      x = x ^ (x >> 31U);
+
+      run.m_count = 1;
+      run.m_hash  = x;
+      run.m_power = base;
+      run.m_first = a_node.m_leaf.m_object.get();
+      run.m_last  = run.m_first;
+    }
+    else {
+      for (const Expr<T>& child : a_node.m_children) {
+        const Run& operand = this->runOf(child.node());
+
+        if (operand.m_count == 0U) {
+          continue;
+        }
+
+        run.m_first = (run.m_count == 0U) ? operand.m_first : run.m_first;
+        run.m_last  = operand.m_last;
+        run.m_hash  = run.m_hash * operand.m_power + operand.m_hash;
+        run.m_power = run.m_power * operand.m_power;
+        run.m_count += operand.m_count;
+      }
+    }
+
+    return m_runs.emplace(&a_node, run).first->second;
+  }
+
+  /**
+   * @brief The run of a shape value's leaves.
+   * @param[in] a_shape The shape.
+   * @return The run; an empty one for a shape with no expression.
+   */
+  Run
+  runOf(const S& a_shape)
+  {
+    return a_shape.m_expr.has_value() ? this->runOf(a_shape.m_expr->node()) : Run{};
+  }
+
+  /**
+   * @brief The runs of the object's nodes, in ExprIndex's numbering (depth first, each node before its operands).
+   * @param[in]     a_node The node.
+   * @param[in,out] a_runs The runs.
+   */
+  void
+  nodeRuns(const ExprDetail::Node<T>& a_node, std::vector<Run>& a_runs)
+  {
+    a_runs.push_back(this->runOf(a_node));
+
+    for (const Expr<T>& child : a_node.m_children) {
+      this->nodeRuns(child.node(), a_runs);
+    }
   }
 
   /**
    * @brief Find the value of the text making each node of the object (Model::siteOfNode()): the values and calls whose
    * leaves are the node's.
-   * @param[in] a_objects The object's leaves' objects, in ExprIndex's order.
    */
   void
-  findNodeSites(const std::vector<const void*>& a_objects)
+  findNodeSites()
   {
     std::vector<NodeSite>& sites = m_model.m_nodeSites;
 
-    const auto siteOf = [&](const std::vector<const void*>& a_run) -> NodeSite& {
+    const auto siteOf = [&](const Run& a_run) -> NodeSite& {
       const auto [at, added] = m_nodeSiteRuns.emplace(a_run, static_cast<uint32_t>(sites.size()));
 
       if (added) {
@@ -1380,9 +1468,9 @@ private:
 
     // The calls: the outermost (the widest text) of those making the same shapes.
     for (const auto& [span, shape] : m_calls) {
-      const std::vector<const void*> run = runOf(*shape);
+      const Run run = this->runOf(*shape);
 
-      if (!run.empty()) {
+      if (run.m_count > 0U) {
         NodeSite& site = siteOf(run);
 
         if (site.m_span.m_line == 0 || span.m_end - span.m_begin > site.m_span.m_end - site.m_span.m_begin) {
@@ -1396,9 +1484,9 @@ private:
       const auto value = m_values.find(name);
 
       if (value != m_values.end() && value->second.m_value.m_type == VT::Shape && value->second.m_value.m_shape) {
-        const std::vector<const void*> run = runOf(*value->second.m_value.m_shape);
+        const Run run = this->runOf(*value->second.m_value.m_shape);
 
-        if (!run.empty()) {
+        if (run.m_count > 0U) {
           NodeSite& site = siteOf(run);
 
           if (std::find(site.m_names.begin(), site.m_names.end(), name) == site.m_names.end()) {
@@ -1415,17 +1503,18 @@ private:
 
     m_model.m_nodeSiteOf.assign(index.getNumNodes(), ShapeSite::None);
 
-    for (uint32_t n = 0; n < index.getNumNodes(); n++) {
+    std::vector<Run> runs;
+
+    this->nodeRuns(m_model.m_object->node(), runs);
+
+    for (uint32_t n = 0; n < index.getNumNodes() && n < runs.size(); n++) {
       const typename ExprIndex<T>::Node& node = index.getNode(n);
 
-      if (node.m_numLeaves == 0U || node.m_firstLeaf + node.m_numLeaves > a_objects.size()) {
+      if (node.m_numLeaves == 0U) {
         continue;
       }
 
-      const std::vector<const void*> run(a_objects.begin() + node.m_firstLeaf,
-                                         a_objects.begin() + node.m_firstLeaf + node.m_numLeaves);
-
-      const auto at = m_nodeSiteRuns.find(run);
+      const auto at = m_nodeSiteRuns.find(runs[n]);
 
       if (at != m_nodeSiteRuns.end()) {
         m_model.m_nodeSiteOf[n] = at->second;
@@ -3666,7 +3755,7 @@ private:
           site == m_siteObjects.end() ? ShapeSite::None : static_cast<uint32_t>(site - m_siteObjects.begin()));
       }
 
-      this->findNodeSites(objects);
+      this->findNodeSites();
     } catch (const RequireError& e) {
       this->error(m_objectStatement->m_span, "the object: " + checkMessage(e));
     }
@@ -4186,7 +4275,9 @@ private:
         // Every place the object uses the value: the surfaces of the nodes made of its leaves, once per place.
         std::vector<std::pair<uint32_t, uint32_t>> ranges;
 
-        const auto run = m_nodeSiteRuns.find(runOf(*value->second.m_value.m_shape));
+        const auto run = (value->second.m_value.m_shape != nullptr)
+                           ? m_nodeSiteRuns.find(this->runOf(*value->second.m_value.m_shape))
+                           : m_nodeSiteRuns.end();
 
         if (run != m_nodeSiteRuns.end()) {
           std::set<uint32_t> places;

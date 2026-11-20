@@ -163,7 +163,7 @@ public:
         continue;
       }
 
-      if (s.m_surface != SurfaceSelector::Any && this->labelFor(s).empty()) {
+      if (s.m_surface != SurfaceSelector::Any && !this->isMember(s) && this->labelFor(s).empty()) {
         const uint32_t leaf = m_model->index().getLeafOfSurface(s.m_surface);
         const uint32_t part = s.m_part;
 
@@ -205,9 +205,12 @@ public:
 
       need.m_name = validName(a_name);
 
-      // A level's name becomes a value's: kept apart from every name the text defines and from the names given.
-      while (need.m_node != ExprIndex<T>::None && this->taken(need.m_name, m_pending.m_asked)) {
-        need.m_name += "_2";
+      // A level's name becomes a value's: kept apart from every name the text defines, the built-in shapes and
+      // operations, and the names given.
+      const std::string typed = need.m_name;
+
+      for (int k = 2; need.m_node != ExprIndex<T>::None && this->taken(need.m_name, m_pending.m_asked); k++) {
+        need.m_name = typed + "_" + std::to_string(k);
       }
     }
 
@@ -384,10 +387,16 @@ private:
   }
 
   // Whether a name is one the model's text defines (a value, the object, a material, a domain, a coupling, a region),
-  // or one given to another level of this edit.
+  // a built-in shape's or operation's, or one given to another level of this edit.
   bool
   taken(const std::string& a_name, const size_t a_need) const
   {
+    const std::vector<std::string>& builtins = Language::LanguageDetail::builtinNames();
+
+    if (std::find(builtins.begin(), builtins.end(), a_name) != builtins.end()) {
+      return true;
+    }
+
     for (const Language::Syntax::File& file : m_model->sources()) {
       for (const Language::Syntax::Statement& statement : file.m_statements) {
         if (statement.m_name == a_name) {
@@ -410,6 +419,26 @@ private:
   isLevel(const SurfaceSelector& a_selector) noexcept
   {
     return a_selector.m_surface != SurfaceSelector::Any && a_selector.m_numSurfaces != 1U;
+  }
+
+  // Whether a selector picks one member of a collection (a sphere of a cloud): the language names no single member,
+  // and a label of the collection would name every member.
+  bool
+  isMember(const SurfaceSelector& a_selector) const
+  {
+    if (a_selector.m_surface == SurfaceSelector::Any || a_selector.m_numSurfaces != 1U) {
+      return false;
+    }
+
+    const ExprIndex<T>& index = m_model->index();
+
+    if (a_selector.m_surface >= index.getNumSurfaces()) {
+      return false;
+    }
+
+    const uint32_t leaf = index.getLeafOfSurface(a_selector.m_surface);
+
+    return index.getFirstSurface(leaf + 1U) - index.getFirstSurface(leaf) > 1U;
   }
 
   // The node a level is: of those covering its surfaces, the outermost a value of the text makes, else the outermost.
@@ -570,6 +599,9 @@ private:
       const std::string name = this->levelName(a_s);
 
       return name.empty() ? "" : "surfaces(" + name + between() + ")";
+    }
+    if (this->isMember(a_s)) {
+      return "";
     }
     if (a_s.m_surface != SurfaceSelector::Any) {
       const std::string label = this->labelFor(a_s);
@@ -1007,7 +1039,9 @@ private:
     m_note = "wrote " + std::to_string(record.m_after.size()) + " file(s); Ctrl+Z undoes";
 
     if (!m_leftOut.empty()) {
-      m_note += "; left out what the language cannot write (an empty group, a selector) of " + m_leftOut;
+      m_note +=
+        "; left out what the language cannot write (an empty group, a selector, one member of a collection) of " +
+        m_leftOut;
     }
   }
 

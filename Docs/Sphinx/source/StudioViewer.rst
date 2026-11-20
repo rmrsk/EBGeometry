@@ -46,7 +46,8 @@ Each change is written into the model's files at once, in the language, so that 
   is named first (the window asks): its call moves to a value of that name, on a line before the statement that held
   it, and the name takes its place (``region core = union(frame, bolts)`` becomes ``region core = assembly``, after
   a new line ``assembly = union(frame, bolts)``, say). A value used in several places is not written for one of them, since it would select
-  all of them.
+  all of them. One member of a collection (a sphere of a sphere cloud a program builds) is not written: the
+  language names no single member.
 * Only the edited domain's block is rewritten, in the canonical form (see :ref:`Chap:StudioCommands`), its subdomains
   and unchanged surface groups as written; a domain made in the window is added at the end of the file opened.
 * Ctrl + Z and Ctrl + Y undo and redo what it wrote. Just before writing, it checks that no file changed on disk

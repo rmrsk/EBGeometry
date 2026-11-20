@@ -223,7 +223,7 @@ TEST_CASE("Writer: a group the language cannot write is left out, and the note s
   CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote 1 file(s)"));
   CHECK_THAT(writer.note(),
              Catch::Matchers::EndsWith("left out what the language cannot write (an empty group, a "
-                                       "selector) of spare, empty"));
+                                       "selector, one member of a collection) of spare, empty"));
 }
 
 TEST_CASE("Writer: no write over a file changed on disk since it was read", "[Studio]")
@@ -696,4 +696,65 @@ object overlay {
   REQUIRE(mech.getNumSelectors() == 1U);
   CHECK(mech.getSelector(0).m_surface == 3U);
   CHECK(mech.getSelector(0).m_numSurfaces == 4U);
+}
+
+TEST_CASE("Writer: a level hoisted from a call written over several lines, named apart from the built-ins", "[Studio]")
+{
+  const std::string folder = copyOfWire("chain");
+
+  // Leaves: the gas's box 0, the chain's two boxes 1 and 2, the spheres 3 and 4.
+  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+
+object overlay {
+  region gas  = box((-4, -4, -4), (4, 4, 4))
+  region core = union(union(box((0, 0, 0), (1, 1, 1)),   # the base
+                            box((0, 0, 1), (1, 1, 2)))
+                        .translate((0, 1, 0)),
+                      bvh_union(sphere((3, 0, 0), 0.2), sphere((-3, 0, 0), 0.2)))
+}
+)";
+  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+
+  Pool pool(hostMemoryResource());
+
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
+
+  {
+    Studio::Writer<T> writer(folder + "/setup.ebg");
+
+    writer.attach(model);
+
+    RegionNames names(model.index());
+    DomainSetup setup;
+
+    setup.add(setup.addSurfaceGroup(), SurfaceSelector::surfaces(1, 2));
+    names.setSurfaceGroup(0, "pair");
+
+    CHECK(writer.edited(names, setup) == "Name the new domain");
+    CHECK_THAT(writer.named("mech"), Catch::Matchers::EndsWith("model.ebg:5"));
+
+    // A built-in's name is not taken: a value named box would hide the shape.
+    CHECK(writer.named("box").empty());
+    CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote"));
+  }
+
+  CHECK(text(folder + "/model.ebg") == R"(ebg 0
+
+box_2 = union(box((0, 0, 0), (1, 1, 1)),   # the base
+                            box((0, 0, 1), (1, 1, 2)))
+                        .translate((0, 1, 0))
+object overlay {
+  region gas  = box((-4, -4, -4), (4, 4, 4))
+  region core = union(box_2,
+                      bvh_union(sphere((3, 0, 0), 0.2), sphere((-3, 0, 0), 0.2)))
+}
+)");
+
+  const auto again = Language::read<T>(folder + "/setup.ebg", pool);
+
+  const DomainSetup& mech = again.domain("mech").setup();
+
+  REQUIRE(mech.getNumSelectors() == 1U);
+  CHECK(mech.getSelector(0).m_surface == 1U);
+  CHECK(mech.getSelector(0).m_numSurfaces == 2U);
 }
