@@ -180,7 +180,9 @@ namespace CallableDetail {
  * @brief Call a caller-supplied callable from host-device code.
  * @details Forwards to a_f(a_args...). Every library host-device template that calls a callable its caller passed
  * calls it through here, so that a host callable (a lambda) used from host code does not make nvcc warn (see
- * EBGEOMETRY_EXEC_CHECK_DISABLE). It adds nothing to the generated code: it is inlined on both sides.
+ * EBGEOMETRY_EXEC_CHECK_DISABLE). It adds nothing to the generated code: the compilers inline it. It is not forced
+ * inline on the host: EBGEOMETRY_HOST_ALWAYS_INLINE here changed GCC's inlining of the double tape's primitive
+ * dispatch (Performance/Tape and ClosestPrimitive, nm -C -S), while plain inline left every function as it was.
  * @tparam F Callable.
  * @tparam Args Arguments.
  * @param[in] a_f    The callable.
@@ -190,7 +192,7 @@ namespace CallableDetail {
 EBGEOMETRY_EXEC_CHECK_DISABLE
 template <class F, class... Args>
 EBGEOMETRY_HOST_DEVICE
-EBGEOMETRY_HOST_ALWAYS_INLINE inline decltype(auto)
+inline decltype(auto)
 call(F&& a_f, Args&&... a_args)
 {
   return static_cast<F&&>(a_f)(static_cast<Args&&>(a_args)...);
