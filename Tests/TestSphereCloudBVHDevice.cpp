@@ -11,7 +11,9 @@
 #include "TestGPU.hpp"
 #include "TestSphereCloudBVHHelpers.hpp"
 
+#include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
