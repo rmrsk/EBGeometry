@@ -2794,10 +2794,12 @@ run(const S&                           a_shape,
                : std::string("No probe: right click a point")},
        {picked ? "Picked at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
                : std::string("No picked point"),
-        depthHits.empty() ? ((settings.m_peel > 0U) ? std::to_string(settings.m_peel) + " surfaces peeled"
-                                                    : std::string("Not stepping through surfaces"))
-                          : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
-                              " under the cursor",
+        (depthHits.empty() ? std::string("Not stepping through surfaces")
+                           : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
+                               " under the cursor") +
+          ((settings.m_peel == 0U)   ? std::string()
+           : (settings.m_peel == 1U) ? std::string(", 1 surface peeled")
+                                     : ", " + std::to_string(settings.m_peel) + " surfaces peeled"),
         (measured == 2) ? "Along x, y, z " + point(measureB - measureA, 4) + ", from " + point(measureA, 3)
                         : std::string("No measurement")}},
       {{}, {}}};
@@ -5114,7 +5116,8 @@ run(const S&                           a_shape,
           if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
             RegionSettings& regions = settings.m_regions;
 
-            if (cutaway && sectionMode != 0) {
+            // Back to the settings before it, whatever was changed since (the plane turned off included).
+            if (cutaway) {
               sectionMode                   = beforeCutaway.m_sectionMode;
               sectionOffset                 = beforeCutaway.m_sectionOffset;
               sectionGhost                  = beforeCutaway.m_sectionGhost;
