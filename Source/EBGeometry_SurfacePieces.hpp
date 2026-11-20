@@ -14,6 +14,7 @@
 // Std includes
 #include <algorithm>
 #include <cstdint>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -184,6 +185,44 @@ findSurfacePieces(const TapeType& a_tape, const uint32_t a_resolution = 64)
 }
 
 /**
+ * @brief One level a surface belongs to (SurfaceInventory::levelsOf()): the surface itself, its shape, or a node of the
+ * expression above it, with the contiguous range of surfaces it covers.
+ */
+struct SurfaceLevel
+{
+  /**
+   * @brief No node.
+   */
+  static constexpr uint32_t None = 0xFFFFFFFFU;
+
+  /**
+   * @brief The node of the expression (ExprIndex numbering), the outermost of those covering the same surfaces; None for
+   * one member of a collection (a sphere of a cloud), which is no node of its own.
+   */
+  uint32_t m_node = None;
+
+  /**
+   * @brief The first surface it covers.
+   */
+  uint32_t m_firstSurface = 0;
+
+  /**
+   * @brief How many surfaces it covers, from m_firstSurface.
+   */
+  uint32_t m_numSurfaces = 0;
+
+  /**
+   * @brief Its own surface label (SurfaceLabel() on the node, or on a node covering the same surfaces), or none.
+   */
+  SurfaceLabelId m_label;
+
+  /**
+   * @brief What it is: the node's operation (ExprIndex::Node::m_operation), or "Member" for one member of a collection.
+   */
+  std::string m_operation;
+};
+
+/**
  * @brief What an expression's index says about its surfaces, kept for checking surface groups against them without the
  * index: each surface's shape (leaf), each shape's parts and their labels, the pairs of regions each may separate,
  * and each region's material.
@@ -222,6 +261,70 @@ public:
     for (uint32_t region = 0; region < a_index.getNumRegions(); region++) {
       m_regionMaterials.push_back(a_index.getMaterialOf(region));
     }
+
+    for (uint32_t node = 0; node < a_index.getNumNodes(); node++) {
+      const typename ExprIndex<T>::Node& n = a_index.getNode(node);
+
+      m_nodes.push_back(NodeLevel{n.m_parent, n.m_firstSurface, n.m_numSurfaces, n.m_surfaceLabel, n.m_operation});
+    }
+
+    for (uint32_t leaf = 0; leaf < a_index.getNumLeaves(); leaf++) {
+      m_leafNodes.push_back(a_index.getLeafNode(leaf));
+    }
+  }
+
+  /**
+   * @brief The levels a surface belongs to, innermost first: the surface (when it is one member of a collection, a
+   * sphere of a cloud), its shape, then each node up to the root, the whole object. Nested nodes covering the same
+   * surfaces (a translated box, a labeled union) are one level, the outermost node's. Each level covers a contiguous
+   * range of surfaces, and contains the one before it.
+   * @param[in] a_surface The surface (below getNumSurfaces()).
+   * @return The levels; empty for an inventory built without an index.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  std::vector<SurfaceLevel>
+  levelsOf(const uint32_t a_surface) const
+  {
+    std::vector<SurfaceLevel> levels;
+
+    if (m_nodes.empty()) {
+      return levels;
+    }
+
+    const uint32_t leafNode = m_leafNodes[this->getLeaf(a_surface)];
+
+    // One member of a collection is a level below the collection's node.
+    if (m_nodes[leafNode].m_numSurfaces > 1U) {
+      SurfaceLevel member;
+
+      member.m_firstSurface = a_surface;
+      member.m_numSurfaces  = 1U;
+      member.m_operation    = "Member";
+
+      levels.push_back(member);
+    }
+
+    for (uint32_t node = leafNode; node != SurfaceLevel::None; node = m_nodes[node].m_parent) {
+      const NodeLevel& n = m_nodes[node];
+
+      const bool same = !levels.empty() && levels.back().m_node != SurfaceLevel::None &&
+                        levels.back().m_firstSurface == n.m_firstSurface &&
+                        levels.back().m_numSurfaces == n.m_numSurfaces;
+
+      if (same) {
+        // The outermost node of those covering the same surfaces, with its label, or the inner one's.
+        SurfaceLevel& level = levels.back();
+
+        level.m_node      = node;
+        level.m_operation = n.m_operation;
+        level.m_label     = n.m_label.isNone() ? level.m_label : n.m_label;
+      }
+      else {
+        levels.push_back(SurfaceLevel{node, n.m_firstSurface, n.m_numSurfaces, n.m_label, n.m_operation});
+      }
+    }
+
+    return levels;
   }
 
   /**
@@ -346,6 +449,28 @@ private:
    * @brief Each region's material.
    */
   std::vector<MaterialLabelId> m_regionMaterials;
+
+  /**
+   * @brief What levelsOf() reads of a node.
+   */
+  struct NodeLevel
+  {
+    uint32_t       m_parent;
+    uint32_t       m_firstSurface;
+    uint32_t       m_numSurfaces;
+    SurfaceLabelId m_label;
+    std::string    m_operation;
+  };
+
+  /**
+   * @brief The nodes of the index (empty for an inventory built without one).
+   */
+  std::vector<NodeLevel> m_nodes;
+
+  /**
+   * @brief Each leaf's node.
+   */
+  std::vector<uint32_t> m_leafNodes;
 };
 
 /**

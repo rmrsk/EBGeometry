@@ -1220,12 +1220,15 @@ run(const S&                           a_shape,
 
     if (noLabelOrMaterial && a_selector.m_part == any.m_part && a_selector.m_regionA == any.m_regionA &&
         a_selector.m_surface != any.m_surface) {
-      return "SurfaceSelector::surface(" + value(a_selector.m_surface) + ")";
+      return (a_selector.m_numSurfaces == 1U) ? "SurfaceSelector::surface(" + value(a_selector.m_surface) + ")"
+                                              : "SurfaceSelector::surfaces(" + value(a_selector.m_surface) + ", " +
+                                                  value(a_selector.m_numSurfaces) + ")";
     }
 
     return "SurfaceSelector{" + value(a_selector.m_surface) + ", " + value(a_selector.m_part) + ", " +
            value(a_selector.m_regionA) + ", " + value(a_selector.m_regionB) + ", " + value(a_selector.m_label) + ", " +
-           value(a_selector.m_materialA) + ", " + value(a_selector.m_materialB) + "}";
+           value(a_selector.m_materialA) + ", " + value(a_selector.m_materialB) + ", false, " +
+           value(a_selector.m_numSurfaces) + "}";
   };
 
   // The panel of a view of regions (the picked surface, the regions, the surface groups), drawn over the image's top
@@ -1342,7 +1345,8 @@ run(const S&                           a_shape,
     return a_first.m_surface == a_second.m_surface && a_first.m_part == a_second.m_part &&
            a_first.m_regionA == a_second.m_regionA && a_first.m_regionB == a_second.m_regionB &&
            a_first.m_label == a_second.m_label && a_first.m_materialA == a_second.m_materialA &&
-           a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest;
+           a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest &&
+           (a_first.m_surface == SurfaceSelector::Any || a_first.m_numSurfaces == a_second.m_numSurfaces);
   };
 
   // The highlight the render shows: a highlighted surface group's or subdomain's surfaces; else what is picked. The

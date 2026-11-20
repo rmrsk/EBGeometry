@@ -431,7 +431,8 @@ private:
     return a_first.m_surface == a_second.m_surface && a_first.m_part == a_second.m_part &&
            a_first.m_regionA == a_second.m_regionA && a_first.m_regionB == a_second.m_regionB &&
            a_first.m_label == a_second.m_label && a_first.m_materialA == a_second.m_materialA &&
-           a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest;
+           a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest &&
+           (a_first.m_surface == SurfaceSelector::Any || a_first.m_numSurfaces == a_second.m_numSurfaces);
   }
 
   /**

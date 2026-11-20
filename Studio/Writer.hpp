@@ -683,7 +683,8 @@ private:
     const auto same = [](const SurfaceSelector& x, const SurfaceSelector& y) {
       return x.m_surface == y.m_surface && x.m_part == y.m_part && x.m_regionA == y.m_regionA &&
              x.m_regionB == y.m_regionB && x.m_label == y.m_label && x.m_materialA == y.m_materialA &&
-             x.m_materialB == y.m_materialB && x.m_rest == y.m_rest;
+             x.m_materialB == y.m_materialB && x.m_rest == y.m_rest &&
+             (x.m_surface == SurfaceSelector::Any || x.m_numSurfaces == y.m_numSurfaces);
     };
 
     return position != a_order.end() && read < before.getNumSurfaceGroups() &&
