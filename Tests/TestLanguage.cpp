@@ -1044,6 +1044,12 @@ domain soil {
 
   REQUIRE(half.m_findings.size() == 1U);
   CHECK_THAT(half.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("not checked: the object is unbounded"));
+
+  // An object longer than the search's grid at the resolution is not searched either.
+  const Language::Completeness tiny = Language::completeness(pocket, tape, "flow", T(1e-6));
+
+  REQUIRE(tiny.m_findings.size() == 1U);
+  CHECK_THAT(tiny.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("not checked: the object is more than"));
 }
 
 TEMPLATE_TEST_CASE(
