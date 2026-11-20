@@ -74,6 +74,7 @@ ebgeometry_add_test(TestTriangle)
 ebgeometry_add_test(TestPolygonSoup)
 ebgeometry_add_test(TestParser)
 ebgeometry_add_test(TestBVH)
+ebgeometry_add_test(TestBVHDevice)
 ebgeometry_add_test(TestCSG)
 ebgeometry_add_test(TestCSGDevice)
 ebgeometry_add_test(TestTransform)
@@ -123,7 +124,7 @@ ebgeometry_add_test(TestPoolRebase)
 # device-accessible, and the kernel is a host loop. When a GPU backend is enabled we compile just
 # those files with the backend compiler (per-file LANGUAGE) so the checks run as real kernels.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
-  set(EBGEOMETRY_GPU_TESTS TestGPUTransform TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVH TestPointCloudBVH TestPointCloudHashGrid TestSphereCloudBVHDevice TestAnalyticSDF TestCSGDevice TestFunctionQueries TestTape TestTapeClosestDevice TestTapeSurfacesDevice TestSurfacePartsDevice TestRegionsDevice TestLanguageDevice TestFusedDevice TestRayAnalytic TestRayMeshDevice TestRayCSG TestRayOffsets TestRenderDevice TestRenderDeviceRegions)
+  set(EBGEOMETRY_GPU_TESTS TestGPUTransform TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVHDevice TestPointCloudBVH TestPointCloudHashGrid TestSphereCloudBVHDevice TestAnalyticSDF TestCSGDevice TestFunctionQueries TestTape TestTapeClosestDevice TestTapeSurfacesDevice TestSurfacePartsDevice TestRegionsDevice TestLanguageDevice TestFusedDevice TestRayAnalytic TestRayMeshDevice TestRayCSG TestRayOffsets TestRenderDevice TestRenderDeviceRegions)
 
   foreach(_ebgeometry_gpu_test ${EBGEOMETRY_GPU_TESTS})
     if(EBGEOMETRY_ENABLE_CUDA)
