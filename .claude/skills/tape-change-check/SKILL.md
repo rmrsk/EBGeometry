@@ -66,6 +66,20 @@ appears out of line, disappears, or changes size predicts a moved receipt. Typic
 code of a `CSGOps` function verbatim and put the tagged handling in `if constexpr` branches or a `Tagged<T>`
 overload; never force `always_inline` on the dispatch (it pushes the shapes' distances out instead).
 
+Read the plain tape's hot loop first, `Tape<float>::evaluateBody<0u, float>` and its double twin:
+- **Same size on both sides:** the plain tape's evaluator compiled the same way (to be sure, diff
+  `objdump -d --no-show-raw-insn` of it on both sides). A moved Tape case is then the change's own cost, or noise
+  (about 1% on one pinned core).
+- **Changed size:** the evaluator was laid out afresh, and the Tape cases can move by several percent either way with
+  no cost of the change behind it (-5% to +6% for changes no probe tape executes; the measurements are in the comment
+  at `evaluateBody` in `EBGeometry_Tape.hpp`). Say so in the report, with the sizes ("evaluateBody<0> recompiled,
+  1845 -> 2120 B: a layout draw"), and look further only at a move larger than that, or one the other Tape cases do
+  not share.
+
+This changes no verdict rule: a minor regression still goes to the maintainer, and a MAJOR one is still fixed or
+accepted; it settles what they are told. Do not restructure the dispatch to win a draw back: every restructuring
+tried (a cold path for the rare clauses, a `noipa` depth-0 entry) moved the plain tapes by -17% to +24%.
+
 ## 3. Device compile cost (new built-in types or heavy device code)
 
 The receipt does not measure compile time. Time a Debug CUDA proxy (four kernels: `Tape<float>` and `Tape<double>`,
