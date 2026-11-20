@@ -203,6 +203,11 @@ public:
   getNumCells() const noexcept;
 
 private:
+  /**
+   * @brief No components: only connectedComponents() makes them.
+   */
+  ConnectedComponents() = default;
+
   template <class U>
   friend ConnectedComponents<U>
   ComponentsDetail::label(const std::shared_ptr<const ComponentsDetail::Cells<U>>& a_cells,

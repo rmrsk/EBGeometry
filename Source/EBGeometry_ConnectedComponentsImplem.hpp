@@ -258,6 +258,33 @@ struct Cells
 };
 
 /**
+ * @brief Stores each region's value at a point (the visitor of Tape::regionDistances()).
+ * @details Internal helper; not part of the public API. A functor rather than a lambda: regionDistances() is
+ * host-device, and a CUDA compile warns of a host lambda called from it.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct StoreValues
+{
+  /**
+   * @brief One value per region.
+   */
+  T* m_values;
+
+  /**
+   * @brief Store a region's value.
+   * @param[in] a_region The region.
+   * @param[in] a_value  Its value.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  void
+  operator()(const uint32_t a_region, const T a_value) const noexcept
+  {
+    m_values[a_region] = a_value;
+  }
+};
+
+/**
  * @brief The grown box of a search.
  * @details Internal helper; not part of the public API.
  * @tparam T              Floating-point precision.
@@ -365,8 +392,7 @@ search(const Tape<T, UserPrimitives...>& a_tape, const ComponentOptions<T>& a_op
 
     std::fill(values.begin(), values.end(), Math::Limits<T>::max());
 
-    a_tape.regionDistances(cells->point(mid),
-                           [&](const uint32_t a_region, const T a_value) { values[a_region] = a_value; });
+    a_tape.regionDistances(cells->point(mid), StoreValues<T>{values.data()});
 
     T        first  = Math::Limits<T>::max();
     T        second = Math::Limits<T>::max();
