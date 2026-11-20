@@ -245,6 +245,13 @@ TEMPLATE_TEST_CASE("Ray: the analytic ray forms agree with the march on random r
   compare(CutSphereSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), T(0.8), T(0.3)));
   compare(CutSphereSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), T(0.8), -T(0.4)));
   compare(WedgeSDF<T>(Vec3(T(0.1), T(0.2), T(0)), T(70)));
+  compare(ConvexPolyhedronSDF<T>::icosahedron(Vec3(T(0.1), T(0), -T(0.2)), T(0.8)));
+  compare(ConvexPolyhedronSDF<T>::pyramid(
+    Vec3(-T(0.1), -T(0.5), T(0)), Vec3(T(0.2), T(0.6), T(0.1)), T(0.7), 5U, Vec3::ones()));
+  compare(BoxFrameSDF<T>(Vec3(-T(0.7), -T(0.5), -T(0.9)), Vec3(T(0.6), T(0.8), T(0.4)), T(0.2)));
+  compare(QuadricSDF<T>::hyperboloid(Vec3(T(0.1), T(0), -T(0.2)), T(0.4), T(60)));
+  compare(QuadricSDF<T>::hyperboloidTwoSheets(Vec3(T(0.1), T(0), -T(0.2)), T(0.3), T(90)));
+  compare(QuadricSDF<T>::paraboloid(Vec3(T(0.1), T(0.6), -T(0.2)), T(0.4)));
 }
 
 TEMPLATE_TEST_CASE("Ray: a tube's spans are its wall before and after the hollow, as its values along the ray say",
@@ -413,6 +420,9 @@ TEMPLATE_TEST_CASE("Ray: device ray queries of analytic shapes match the host",
   checkShape(TubeSDF<T>(Vec3(-T(0.6), -T(0.3), T(0)), Vec3(T(0.5), T(0.4), T(0.2)), T(0.3), T(0.6)));
   checkShape(CutSphereSDF<T>(Vec3(T(0.1), T(0), -T(0.2)), T(0.8), T(0.3)));
   checkShape(WedgeSDF<T>(Vec3(T(0.1), T(0.2), T(0)), T(70)));
+  checkShape(ConvexPolyhedronSDF<T>::icosahedron(Vec3(T(0.1), T(0), -T(0.2)), T(0.8)));
+  checkShape(BoxFrameSDF<T>(Vec3(-T(0.7), -T(0.5), -T(0.9)), Vec3(T(0.6), T(0.8), T(0.4)), T(0.2)));
+  checkShape(QuadricSDF<T>::hyperboloid(Vec3(T(0.1), T(0), -T(0.2)), T(0.4), T(60)));
 
   // The same crossings without their normals.
   requireSameResults(evaluateOnDevice<T>(CrossingDistance<T, SphereSDF<T>>{sphere}, rays),

@@ -28,6 +28,21 @@ capped_torus_      = capped_torus((0, 0, 0), 0.8, 0.2, 270)
 cut_sphere_        = cut_sphere((0, 0, 0), 1, 0.4)
 cut_hollow_sphere_ = cut_hollow_sphere((0, 0, 0), 1, 0.4, 0.15)
 
+tetrahedron_       = tetrahedron((0, 0, 0), 1.1)
+octahedron_        = octahedron((0, 0, 0), 1)
+dodecahedron_      = dodecahedron((0, 0, 0), 1)
+icosahedron_       = icosahedron((0, 0, 0), 1)
+pyramid_           = pyramid((0, -0.7, 0), (0, 0.9, 0), 0.9, 4, (1, 0, 0))
+convex_polyhedron_ = convex_polyhedron(plane((0, 0.6, 0), (0, 1, 0)), plane((0, -0.6, 0), (0, -1, 0)),
+                                       plane((0.8, 0, 0), (1, 0.4, 0)), plane((-0.8, 0, 0), (-1, 0.4, 0)),
+                                       plane((0, 0, 0.8), (0, 0.4, 1)), plane((0, 0, -0.8), (0, 0.4, -1)))
+box_frame_         = box_frame((-0.8, -0.8, -0.8), (0.8, 0.8, 0.8), 0.15)
+superellipsoid_    = superellipsoid((0, 0, 0), (1, 0.7, 0.8), 0.3, 0.3)
+
+solid_angle_ = solid_angle((0, -0.6, 0), 1.2, 70)
+vesica_      = vesica((0, -1, 0), (0, 1, 0), 0.45)
+helix_       = helix((0, -0.9, 0), (0, 0.9, 0), 0.7, 4, 0.12, (1, 0, 0))
+
 # A mesh, read relative to this file; its face groups (top, bottom) label its parts.
 mesh_ = mesh("octahedron.obj")
 
@@ -44,6 +59,11 @@ infinite_cylinder_ = intersection(cell, infinite_cylinder((0, 0, 0), 0.5, "y"))
 infinite_cone_     = intersection(cell, infinite_cone((0, 0.9, 0), 60))
 wedge_             = intersection(cell, wedge((0, 0.8, 0), 60))
 perlin_            = intersection(sphere((0, 0, 0), 1), perlin(0.3, (2, 2, 2), 0.5, 3))
+
+hyperboloid_            = intersection(cell, hyperboloid((0, 0, 0), 0.4, 60))
+hyperboloid_two_sheets_ = intersection(cell, hyperboloid_two_sheets((0, 0, 0), 0.3, 80))
+paraboloid_             = intersection(cell, paraboloid((0, 0.8, 0), 0.4))
+lattice_                = intersection(cell, lattice("gyroid", (1, 1, 1), 0.15))
 
 # ── Combining shapes ───────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -96,35 +116,52 @@ object bvh_union(
   translate(cut_sphere_, (6 * spacing, 0, -spacing)),
   translate(cut_hollow_sphere_, (7 * spacing, 0, -spacing)),
 
-  translate(plane_, (0 * spacing, 0, -2 * spacing)),
-  translate(infinite_cylinder_, (1 * spacing, 0, -2 * spacing)),
-  translate(infinite_cone_, (2 * spacing, 0, -2 * spacing)),
-  translate(wedge_, (3 * spacing, 0, -2 * spacing)),
-  translate(perlin_, (4 * spacing, 0, -2 * spacing)),
-  translate(mesh_, (5 * spacing, 0, -2 * spacing)),
-  translate(meshes_, (6 * spacing, 0, -2 * spacing)),
+  translate(tetrahedron_, (0 * spacing, 0, -2 * spacing)),
+  translate(octahedron_, (1 * spacing, 0, -2 * spacing)),
+  translate(dodecahedron_, (2 * spacing, 0, -2 * spacing)),
+  translate(icosahedron_, (3 * spacing, 0, -2 * spacing)),
+  translate(pyramid_, (4 * spacing, 0, -2 * spacing)),
+  translate(convex_polyhedron_, (5 * spacing, 0, -2 * spacing)),
+  translate(box_frame_, (6 * spacing, 0, -2 * spacing)),
+  translate(superellipsoid_, (7 * spacing, 0, -2 * spacing)),
 
-  translate(union_, (0 * spacing, 0, -3 * spacing)),
-  translate(bvh_union_, (1 * spacing, 0, -3 * spacing)),
-  translate(smooth_union_, (2 * spacing, 0, -3 * spacing)),
-  translate(intersection_, (3 * spacing, 0, -3 * spacing)),
-  translate(smooth_intersection_, (4 * spacing, 0, -3 * spacing)),
-  translate(difference_, (5 * spacing, 0, -3 * spacing)),
-  translate(bvh_difference_, (6 * spacing, 0, -3 * spacing)),
-  translate(smooth_difference_, (7 * spacing, 0, -3 * spacing)),
+  translate(solid_angle_, (0 * spacing, 0, -3 * spacing)),
+  translate(vesica_, (1 * spacing, 0, -3 * spacing)),
+  translate(helix_, (2 * spacing, 0, -3 * spacing)),
+  translate(mesh_, (3 * spacing, 0, -3 * spacing)),
+  translate(meshes_, (4 * spacing, 0, -3 * spacing)),
+  translate(perlin_, (5 * spacing, 0, -3 * spacing)),
 
-  translate(complement_, (0 * spacing, 0, -4 * spacing)),
-  translate(translate_, (1 * spacing, 0, -4 * spacing)),
-  translate(rotate_, (2 * spacing, 0, -4 * spacing)),
-  translate(scale_, (3 * spacing, 0, -4 * spacing)),
-  translate(reflect_, (4 * spacing, 0, -4 * spacing)),
-  translate(offset_, (5 * spacing, 0, -4 * spacing)),
-  translate(annular_, (6 * spacing, 0, -4 * spacing)),
-  translate(elongate_, (7 * spacing, 0, -4 * spacing)),
+  translate(plane_, (0 * spacing, 0, -4 * spacing)),
+  translate(infinite_cylinder_, (1 * spacing, 0, -4 * spacing)),
+  translate(infinite_cone_, (2 * spacing, 0, -4 * spacing)),
+  translate(wedge_, (3 * spacing, 0, -4 * spacing)),
+  translate(hyperboloid_, (4 * spacing, 0, -4 * spacing)),
+  translate(hyperboloid_two_sheets_, (5 * spacing, 0, -4 * spacing)),
+  translate(paraboloid_, (6 * spacing, 0, -4 * spacing)),
+  translate(lattice_, (7 * spacing, 0, -4 * spacing)),
 
-  translate(blur_, (0 * spacing, 0, -5 * spacing)),
-  translate(mollify_, (1 * spacing, 0, -5 * spacing)),
-  translate(repeat_, (2 * spacing, 0, -5 * spacing)),
-  translate(label_, (3 * spacing, 0, -5 * spacing)))
+  translate(union_, (0 * spacing, 0, -5 * spacing)),
+  translate(bvh_union_, (1 * spacing, 0, -5 * spacing)),
+  translate(smooth_union_, (2 * spacing, 0, -5 * spacing)),
+  translate(intersection_, (3 * spacing, 0, -5 * spacing)),
+  translate(smooth_intersection_, (4 * spacing, 0, -5 * spacing)),
+  translate(difference_, (5 * spacing, 0, -5 * spacing)),
+  translate(bvh_difference_, (6 * spacing, 0, -5 * spacing)),
+  translate(smooth_difference_, (7 * spacing, 0, -5 * spacing)),
 
-view { camera = (10.5, 20, 13), target = (10.5, 0, -7) }
+  translate(complement_, (0 * spacing, 0, -6 * spacing)),
+  translate(translate_, (1 * spacing, 0, -6 * spacing)),
+  translate(rotate_, (2 * spacing, 0, -6 * spacing)),
+  translate(scale_, (3 * spacing, 0, -6 * spacing)),
+  translate(reflect_, (4 * spacing, 0, -6 * spacing)),
+  translate(offset_, (5 * spacing, 0, -6 * spacing)),
+  translate(annular_, (6 * spacing, 0, -6 * spacing)),
+  translate(elongate_, (7 * spacing, 0, -6 * spacing)),
+
+  translate(blur_, (0 * spacing, 0, -7 * spacing)),
+  translate(mollify_, (1 * spacing, 0, -7 * spacing)),
+  translate(repeat_, (2 * spacing, 0, -7 * spacing)),
+  translate(label_, (3 * spacing, 0, -7 * spacing)))
+
+view { camera = (10.5, 26, 15), target = (10.5, 0, -10) }
