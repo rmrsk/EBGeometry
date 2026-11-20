@@ -685,8 +685,12 @@ with explicit permission), and may ask whether to act on follow-ups.
   loop and check `ptxas -v` still reports the same registers as the base, and compare the sizes of the host
   evaluator's out-of-line functions (`nm -C -S` on `Performance/Tape/main.cpp` built `-O3
   -march=native`) with the base's: a function that newly appears or changes size there moves the
-  receipt. A shape type that is not built in (a BVH union, a mesh SDF with a non-default K,
-  another tape, a user type) must be listed in `UserPrimitives`. The evaluator has no recursion: a
+  receipt. If `Tape<T>::evaluateBody<0u, T>` itself changed size, the evaluator was laid out afresh, and
+  the Tape cases move by several percent either way for that reason alone ("Reading the verdicts" in
+  `PerformanceTesting.rst`): report such a move as a layout draw, not as the change's cost, and do not
+  rearrange the evaluator to win the draw back. The verdict rules still apply. A shape type that is not
+  built in (a BVH union, a mesh SDF with a non-default K, another tape, a user type) must be listed in
+  `UserPrimitives`. The evaluator has no recursion: a
   sub-program call (Blur, Mollify, FiniteRepetition, BVH union operands) goes through the `evaluate<D>` call-depth
   template, bounded by `Tape::MaxCallDepth`, and the value/point stacks are fixed arrays; keep it
   that way (no recursion, function pointers or virtual calls), since the device evaluator builds on
