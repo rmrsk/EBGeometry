@@ -56,7 +56,8 @@ struct Leaf
   uint32_t m_region;
 
   /**
-   * @brief How far its center is inside its region by the region functions (the region's subdomain function, negated).
+   * @brief Half the gap between the second smallest region function at its center and the smallest (its region's):
+   * a lower bound on how far the center is from its region's surface.
    */
   T m_clearance;
 };
@@ -354,9 +355,13 @@ setGrid(const Tape<T, UserPrimitives...>& a_tape, const ComponentOptions<T>& a_o
 
 /**
  * @brief Search a tape's regions: the octree, refined where no region holds a cell whole.
- * @details Internal helper; not part of the public API. A cell's clearance is minus its smallest region's subdomain
- * function (half the difference of its smallest region function and the second smallest), a distance bound: a cell
- * whose clearance is at least its half-diagonal lies wholly in that region.
+ * @details Internal helper; not part of the public API. A cell's clearance is half the gap between the second
+ * smallest region function at its center and the smallest, f_r of its region r: the negated function of r as a
+ * subdomain alone (Tape::signedDistance(p, subdomains, s)). It is at most the distance d from the center to r's
+ * surface, needing only that each region function is a distance bound (|f| at most the distance to that region's
+ * surface, which every quality but NotADistance gives), not that it is Lipschitz: f_r >= -d, and the region across
+ * r's surface at its nearest point is at distance d, so its function, and the second smallest, is at most d. A cell
+ * whose clearance is at least its half-diagonal therefore lies wholly in r.
  * @tparam T              Floating-point precision.
  * @tparam UserPrimitives The tape's user primitives and features.
  * @param[in] a_tape    The tape.

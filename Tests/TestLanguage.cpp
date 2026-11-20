@@ -1023,6 +1023,27 @@ domain flow {
 
   // The gas does not touch the cavity.
   CHECK(Language::completeness(hollow, hollowTape, "flow", T(0.05)).m_findings.empty());
+
+  // An unbounded object is not searched: a warning says so.
+  const auto halfSpace = Language::parse<T>(R"(ebg 0
+object overlay {
+  region ground = plane((0, 0, 0), (0, 1, 0)) material soil
+}
+material soil { density = 1500 }
+domain soil {
+  subdomain soil = ground
+  group surface = remaining()
+}
+)",
+                                            "half.ebg",
+                                            pool);
+
+  const Tape<T> halfTape(pool, halfSpace.object());
+
+  const Language::Completeness half = Language::completeness(halfSpace, halfTape, "soil", T(0.05));
+
+  REQUIRE(half.m_findings.size() == 1U);
+  CHECK_THAT(half.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("not checked: the object is unbounded"));
 }
 
 TEMPLATE_TEST_CASE(

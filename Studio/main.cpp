@@ -398,6 +398,10 @@ check(const Options& a_options, Pool& a_pool)
     }
   }
 
+  if (a_options.m_components > 0.0 && domains.empty()) {
+    fail("--components needs --domain or --all-domains: the components are those of a domain's subdomains");
+  }
+
   if (!domains.empty()) {
     const Tape<T> tape(a_pool, model.object());
 

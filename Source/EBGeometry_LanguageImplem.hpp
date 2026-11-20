@@ -4561,7 +4561,28 @@ completeness(const Model<T>&                   a_model,
     return result;
   }
 
-  // One search, its cells labeled twice: by region, and by subdomain (the excluded regions last).
+  // The search needs a bounded object: an unbounded one (a half-space) is reported, not searched.
+  {
+    const auto box = a_tape.computeBoundingVolume();
+    const T    far = T(0.5) * Math::Limits<T>::max();
+
+    bool bounded = true;
+
+    for (size_t d = 0; d < 3; d++) {
+      bounded = bounded && std::abs(box.getLowCorner()[d]) < far && std::abs(box.getHighCorner()[d]) < far &&
+                box.getLowCorner()[d] <= box.getHighCorner()[d];
+    }
+
+    if (!bounded) {
+      warning(domain.span(),
+              "the connected components of domain '" + domain.name() + "' are not checked: the object is unbounded");
+
+      return result;
+    }
+  }
+
+  // One search, its cells labeled twice: by region, and by subdomain (the excluded regions last). Region 0 is always
+  // the background, the outside of the object (Tape::getNumRegions()).
   const uint32_t numRegions    = a_tape.getNumRegions();
   const uint32_t numSubdomains = setup.getNumSubdomains();
 
@@ -4595,6 +4616,11 @@ completeness(const Model<T>&                   a_model,
   }
 
   for (uint32_t c = 0; c < byRegion.getNumComponents(); c++) {
+    // A seed is the center of one of its component's cells, so it is always in the box; this guards the indexing.
+    if (inside[c] == ConnectedComponents<T>::None) {
+      continue;
+    }
+
     open[inside[c]] = open[inside[c]] || byRegion.component(c).m_reachesBox;
 
     for (const uint32_t n : byRegion.neighbors(c)) {
@@ -4602,7 +4628,7 @@ completeness(const Model<T>&                   a_model,
 
       open[inside[c]] = open[inside[c]] || (other.m_group == 0U && other.m_reachesBox);
 
-      if (inside[n] != inside[c]) {
+      if (inside[n] != inside[c] && inside[n] != ConnectedComponents<T>::None) {
         around[inside[c]].push_back(LanguageDetail::regionName(index, other.m_group));
       }
     }
