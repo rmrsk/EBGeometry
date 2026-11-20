@@ -1334,7 +1334,8 @@ private:
   };
 
   /**
-   * @brief Each expression node's run, once computed.
+   * @brief Each expression node's run, once computed, by the node's address: valid while the nodes live, as they do
+   * while the model is read (the calls and the values hold their shapes, the model its object).
    */
   std::unordered_map<const ExprDetail::Node<T>*, Run> m_runs;
 

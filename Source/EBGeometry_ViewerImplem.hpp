@@ -1751,22 +1751,21 @@ run(const S&                           a_shape,
   // the wheel is picked first. False when there is nothing picked, or no level further that way.
   const auto stepLevel = [&](const bool a_out) {
     if constexpr (hasRegionVisibility<S>) {
-      if (selection.empty()) {
-        selection = pickedNow();
-      }
+      std::vector<Picked> entries = selection.empty() ? pickedNow() : selection;
 
-      if (selection.empty()) {
+      if (entries.empty()) {
         return false;
       }
 
-      Picked&        entry = selection.back();
+      Picked&        entry = entries.back();
       const uint32_t count = static_cast<uint32_t>(levelsOf(entry.m_piece).size());
 
       if (a_out ? (entry.m_level + 1U >= count) : (entry.m_level == 0U)) {
         return false;
       }
 
-      entry = atLevel(entry.m_piece, a_out ? entry.m_level + 1U : entry.m_level - 1U);
+      entry     = atLevel(entry.m_piece, a_out ? entry.m_level + 1U : entry.m_level - 1U);
+      selection = entries;
 
       picked = true;
 
