@@ -55,6 +55,10 @@ What a model holds
 * ``shapes()`` and ``siteOfLeaf(leaf)``: the shapes the text builds and where
   (`ShapeSite <doxygen/html/structEBGeometry_1_1Language_1_1ShapeSite.html>`__: the call, its file and line,
   its parts and their labels), so that a program can name a surface by the line that made it.
+* ``siteOfNode(node)``: the shape value that makes a node of the object
+  (`NodeSite <doxygen/html/structEBGeometry_1_1Language_1_1NodeSite.html>`__: its names, where its call is
+  written, how many places of the object use it), so that a program can write a level of the object as
+  ``surfaces(name)``.
 * ``names()``: the names a viewer shows (``RegionNames``: the regions, materials and labels, each surface by
   the shape call it comes from, the domains and their groups, and the view's colors).
 
@@ -168,8 +172,8 @@ The language writes what the C++ API builds:
      - ``overlay { region r = a material m ... }``
    * - ``DomainSetup::addSubdomain()``, ``addSurfaceGroup()`` and ``add(group, selector)``
      - ``domain d { subdomain ... group ... }``
-   * - ``SurfaceSelector::label()``, ``interface()``, ``region()``, ``materials()``, ``rest()``
-     - ``label()``, ``interface()``, ``region()``, ``materials()``, ``remaining()``
+   * - ``SurfaceSelector::label()``, ``surfaces()``, ``interface()``, ``region()``, ``materials()``, ``rest()``
+     - ``label()``, ``surfaces(name)``, ``interface()``, ``region()``, ``materials()``, ``remaining()``
    * - per-material and per-subdomain data in the program's own arrays
      - ``material`` and subdomain properties, read into a ``Language::Table``
 

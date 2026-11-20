@@ -26,7 +26,9 @@ They can be written in the setup file, or made in the window by pointing at surf
 1. Click a domain in the panel to make it the active one: its surfaces are tinted, its surface groups listed.
 2. Click a surface group to make it current, or ``[+ New surface group]`` to start one (its name typed first).
 3. Click a surface: the part clicked is picked (a cylinder's cap, a box's face; on a mesh, the face group clicked, or
-   the whole mesh when it has none); Ctrl + click picks more.
+   the whole mesh when it has none); Ctrl + click picks more. ``]`` steps the last pick out to the levels above it
+   (the whole surface, the shape, each composition holding it up to the whole object), ``[`` back in; the status line
+   names the level by the value that makes it.
 4. Add what is picked to the current surface group: Enter, or the panel's buttons, which also add the picked pieces'
    whole surfaces, or every surface between their two regions. Backspace removes them.
 
@@ -40,6 +42,11 @@ Each change is written into the model's files at once, in the language, so that 
 
 * A clicked surface is written by its label: ``label("inlet")``. A shape or part with no label is named first (the
   window asks), and the label is written after the shape's call in the file it is in: ``.label(cap1 = "inlet")``.
+* A level above a shape is written by the value that makes it: ``surfaces(frame)``. A level no value makes on its own
+  is named first (the window asks): its call moves to a value of that name, on a line before the statement that held
+  it, and the name takes its place (``region core = union(frame, bolts)`` becomes ``region core = assembly``, after
+  a new line ``assembly = union(frame, bolts)``, say). A value used in several places is not written for one of them, since it would select
+  all of them.
 * Only the edited domain's block is rewritten, in the canonical form (see :ref:`Chap:StudioCommands`), its subdomains
   and unchanged surface groups as written; a domain made in the window is added at the end of the file opened.
 * Ctrl + Z and Ctrl + Y undo and redo what it wrote. Just before writing, it checks that no file changed on disk

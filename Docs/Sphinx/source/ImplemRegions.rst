@@ -107,6 +107,10 @@ The selectors are `SurfaceSelector <doxygen/html/structEBGeometry_1_1SurfaceSele
      - the piece a surface point is on: its shape's surface between its two regions (what a click picks)
    * - ``SurfaceSelector::surface(s)``
      - every point of surface ``s``, whatever its sides
+   * - ``SurfaceSelector::surfaces(first, count)``
+     - every point of the surfaces ``first`` to ``first + count - 1``: a node of the expression and everything
+       below it (``ExprIndex::Node``'s ``m_firstSurface`` and ``m_numSurfaces``), whatever labels the surfaces
+       below it have
    * - ``SurfaceSelector::label(id)``
      - every surface with a surface label
    * - ``SurfaceSelector::interface(a, b)``
@@ -238,6 +242,10 @@ expression's index (`EBGeometry_SurfacePieces.hpp <doxygen/html/EBGeometry__Surf
   occur).
 * ``coverageOf()`` says whether the setup's surface groups hold all of a piece, part of it (some faces of a
   box or a mesh) or none, and which group holds it when one holds all of it.
+* ``inventory.levelsOf(surface)`` lists the levels a surface belongs to, from the surface itself up to the
+  whole object (`SurfaceLevel <doxygen/html/structEBGeometry_1_1SurfaceLevel.html>`__: the node, the range of
+  surfaces it covers, its label, what it is), each a ``SurfaceSelector::surfaces()`` range: what a viewer steps
+  a pick through.
 * ``findSurfacePieces(tape)`` finds the pieces the object actually has, with a point and a normal on each,
   by crossing it with rays on a grid; a piece too small for the grid is missed there, but not by
   ``possiblePieces()``.
