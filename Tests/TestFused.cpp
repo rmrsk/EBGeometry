@@ -5,12 +5,12 @@
 // Unit tests for the fused CSG operations (EBGeometry_Fused.hpp): each against an independent reference,
 // each against a Tape of the same expression (both take their arithmetic from EBGeometry_CSGOps.hpp,
 // so they agree to rounding: the compiler may fuse multiply-adds differently in the two), the boxes and distance qualities, pool-resident operands, use
-// inside a Tape and a BVH union, device evaluation, and every rejected argument.
+// inside a Tape and a BVH union, and every rejected argument. Device evaluation is in TestFusedDevice.cpp.
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
-#include "TestGPU.hpp"
+#include "TestFusedHelpers.hpp"
 #include "TestTapeUtils.hpp"
 
 #include <algorithm>
@@ -25,60 +25,7 @@
 
 using namespace EBGeometry;
 using EBGeometry::TestUtils::Compiled;
-
-namespace {
-
-std::string
-dodecahedron()
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
-}
-
-// Query points spread over a few units around the origin, none on a symmetry plane.
-template <class T>
-std::vector<Vec3T<T>>
-probes()
-{
-  std::vector<Vec3T<T>> points;
-
-  for (int i = -4; i <= 4; i++) {
-    for (int j = -3; j <= 3; j++) {
-      for (int k = -2; k <= 2; k++) {
-        points.emplace_back(T(0.45) * T(i) + T(0.05), T(0.5) * T(j) - T(0.1), T(0.6) * T(k) + T(0.2));
-      }
-    }
-  }
-
-  return points;
-}
-
-// The analytic shapes the tests compose.
-template <class T>
-struct Shapes
-{
-  BoxSDF<T>              box{Vec3T<T>(T(-1), T(-0.8), T(-0.6)), Vec3T<T>(T(0.9), T(1), T(0.7))};
-  SphereSDF<T>           ball{Vec3T<T>(T(0.1), T(-0.1), T(0)), T(1.2)};
-  SphereSDF<T>           small{Vec3T<T>(T(0.8), T(0.3), T(-0.2)), T(0.5)};
-  InfiniteCylinderSDF<T> drill{Vec3T<T>(T(0), T(0.1), T(0)), T(0.4), 0};
-  TorusSDF<T>            torus{Vec3T<T>(T(-0.3), T(0), T(0.2)), T(0.9), T(0.2)};
-  PlaneSDF<T>            plane{Vec3T<T>(T(0.1), T(0.2), T(0.3)), Vec3T<T>(T(1), T(2), T(-1))};
-};
-
-// Device functor: a shape's value at one point.
-template <class T, class Shape>
-struct Query
-{
-  Shape m_shape;
-
-  EBGEOMETRY_HOST_DEVICE
-  T
-  operator()(const Vec3T<T>& a_point) const noexcept
-  {
-    return m_shape.signedDistance(a_point);
-  }
-};
-
-} // namespace
+using namespace EBGeometryTestFused;
 
 TEMPLATE_TEST_CASE("Fused: every operation is a trivially copyable shape, a pool handle only with a pool-resident "
                    "operand",
@@ -489,61 +436,6 @@ TEMPLATE_TEST_CASE("Fused: a fused shape is a Tape primitive and a BVH union's p
     REQUIRE(blocksAndBalls.signedDistance(p) == brute);
     REQUIRE(drilled.signedDistance(p) == std::max(brute, -drill.signedDistance(p)));
   }
-}
-
-TEMPLATE_TEST_CASE("Fused: device evaluation matches the host", "[Fused][gpu]", EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T    = TestType;
-  using Vec3 = Vec3T<T>;
-
-  using namespace EBGeometryTestGPU;
-
-  if (!deviceAvailable()) {
-    SKIP("no GPU device available");
-  }
-
-  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
-  constexpr size_t W = TriangleSoA::DefaultWidth<T>();
-
-  const Shapes<T> s;
-
-  const std::vector<Vec3> points = probes<T>();
-
-  // Every operation, without a pool.
-  const auto analytic = Fused::SmoothUnion(
-    Fused::operands(
-      Fused::Difference(Fused::Intersection(s.box, s.ball), s.drill),
-      Fused::Translate(Fused::Rotate(Fused::Scale(Fused::Reflect(s.torus, size_t(0)), T(1.5)), T(30), size_t(2)),
-                       Vec3(T(1), T(0), T(0))),
-      Fused::Annular(Fused::Offset(Fused::Complement(s.small), T(0.1)), T(0.05)),
-      Fused::Elongate(s.small, Vec3(T(0.2), T(0), T(0))),
-      Fused::FiniteRepetition(s.small, Vec3(T(1.3), T(2), T(1.1)), Vec3::ones(), Vec3::ones()),
-      Fused::Blur(s.box, T(0.1)),
-      Fused::Mollify(s.ball, T(0.1), size_t(3))),
-    T(0.2),
-    BlendKind::Exponential);
-
-  using A = std::decay_t<decltype(analytic)>;
-
-  requireSameResults(evaluateOnDevice<T>(Query<T, A>{analytic}, points),
-                     evaluateOnHost<T>(Query<T, A>{analytic}, points));
-
-  // A mesh SDF inside: the composition is evaluated against a device mirror of its pool.
-  Pool pool(hostMemoryResource());
-
-  const auto                mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
-  const TriMeshSDF<T, K, W> tri(mesh, pool, BVH::Construction::SAH, 4);
-
-  const auto drilled = Fused::Translate(Fused::Difference(tri, s.drill), Vec3(T(0.3), T(0), T(0)));
-
-  using D = std::decay_t<decltype(drilled)>;
-
-  pool.freeze();
-
-  const Pool device = Pool::mirror(pool, deviceTestResource());
-
-  requireSameResults(evaluateOnDevice<T>(Query<T, D>{drilled.rebasedView(device)}, points),
-                     evaluateOnHost<T>(Query<T, D>{drilled}, points));
 }
 
 TEST_CASE("Fused: rejects invalid arguments and operands from different pools", "[Fused]")
