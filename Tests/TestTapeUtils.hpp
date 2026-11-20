@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 // Test helpers for composed objects: a Tape compiled into its own pool, so a test can build an Expr and
-// evaluate it in one line, and a constant-valued shape for checking that weighted averages (Blur,
-// Mollify) are partitions of unity.
+// evaluate it in one line, a constant-valued shape for checking that weighted averages (Blur,
+// Mollify) are partitions of unity, and a row of labeled spheres.
 
 #ifndef EBGEOMETRY_TESTTAPEUTILS_HPP
 #define EBGEOMETRY_TESTTAPEUTILS_HPP
 
 #include "EBGeometry.hpp"
+
+#include <vector>
 
 namespace EBGeometry::TestUtils {
 
@@ -71,6 +73,22 @@ struct ConstantSDF
 
   static constexpr DistanceQuality distanceQuality = DistanceQuality::NotADistance;
 };
+
+// Five unit spheres three apart along x, labeled left, right, right, none and left: two names, one shared by
+// separate objects, one given to a union.
+template <class T>
+Expr<T>
+labeledRow()
+{
+  std::vector<SphereSDF<T>> s;
+
+  for (int i = 0; i < 5; i++) {
+    s.emplace_back(Vec3T<T>(T(3 * i), T(0), T(0)), T(1));
+  }
+
+  return Union(std::vector<Expr<T>>{
+    SurfaceLabel(s[0], "left"), SurfaceLabel(Union(s[1], s[2]), "right"), s[3], SurfaceLabel(s[4], "left")});
+}
 
 } // namespace EBGeometry::TestUtils
 
