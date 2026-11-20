@@ -6168,7 +6168,7 @@ public:
 
     q.m_kind = Kind::HyperboloidOneSheet;
     q.m_a    = a_waist;
-    q.m_c    = a_waist / std::tan(T(0.5) * a_angle * pi<T> / T(180));
+    q.m_c    = T(double(a_waist) / std::tan(0.5 * double(a_angle) * pi<double> / 180.0));
 
     return q;
   }
@@ -6189,7 +6189,7 @@ public:
 
     q.m_kind = Kind::HyperboloidTwoSheets;
     q.m_c    = a_tipDistance;
-    q.m_a    = a_tipDistance * std::tan(T(0.5) * a_angle * pi<T> / T(180));
+    q.m_a    = T(double(a_tipDistance) * std::tan(0.5 * double(a_angle) * pi<double> / 180.0));
 
     return q;
   }
@@ -6607,8 +6607,8 @@ public:
     m_center = a_center;
     m_radius = a_radius;
     m_angle  = a_angle;
-    m_sin    = std::sin(T(0.5) * a_angle * pi<T> / T(180));
-    m_cos    = std::cos(T(0.5) * a_angle * pi<T> / T(180));
+    m_sin    = T(std::sin(0.5 * double(a_angle) * pi<double> / 180.0));
+    m_cos    = T(std::cos(0.5 * double(a_angle) * pi<double> / 180.0));
   }
 
   /**

@@ -113,14 +113,14 @@ TEMPLATE_TEST_CASE("SampledGridSDF: a sampled plane is the plane inside the grid
     // Everywhere, the value is the intersection of the plane and the box, or a bound on it.
     const T exact = Math::max(d, boxShape.signedDistance(p));
 
-    REQUIRE(std::abs(grid.signedDistance(p)) <= std::abs(exact) + looseMargin<T>());
+    REQUIRE(std::abs(grid.signedDistance(p)) <= std::abs(exact) + T(looseMargin<T>()));
     REQUIRE((grid.signedDistance(p) < T(0)) == (exact < T(0)));
   }
 
   // Outside the box, at least the distance to the box, and positive.
   for (const Vec3& p : pointsIn<T>(T(-3) * Vec3::ones(), T(3) * Vec3::ones(), 500)) {
     if (boxShape.signedDistance(p) > T(0)) {
-      REQUIRE(grid.signedDistance(p) >= boxShape.signedDistance(p) - looseMargin<T>());
+      REQUIRE(grid.signedDistance(p) >= boxShape.signedDistance(p) - T(looseMargin<T>()));
     }
   }
 }
@@ -148,7 +148,7 @@ TEMPLATE_TEST_CASE("SampledGridSDF: a sampled sphere changes no faster than the 
 
   for (size_t i = 1; i < points.size(); i++) {
     REQUIRE(std::abs(grid.signedDistance(points[i]) - grid.signedDistance(points[i - 1])) <=
-            (points[i] - points[i - 1]).length() + looseMargin<T>());
+            (points[i] - points[i - 1]).length() + T(looseMargin<T>()));
 
     // Away from the surface, the interpolated sphere has the sphere's sign.
     if (std::abs(sphere.signedDistance(points[i])) > T(0.05)) {
