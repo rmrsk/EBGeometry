@@ -334,7 +334,11 @@ use (a new capability, not a new overload): an example. A new device path for ex
   against the code under test run a second way.
 - A device-callable function gets a `[gpu]`-tagged case that runs it through `GPU::transform`
   (`TestGPU.hpp`) and compares with the host; add the file to `EBGEOMETRY_GPU_TESTS` if it is new
-  there. It runs in emulation on host builds and as a real kernel in GPU builds.
+  there. It runs in emulation on host builds and as a real kernel in GPU builds. A GPU build compiles every
+  file in that list with the device compiler, so a component with many host tests keeps its device cases in
+  `Test<Component>Device.cpp` (`TestBVHDevice.cpp` beside `TestBVH.cpp`), with the helpers both use in a
+  header, and only that file is listed; a host test that runs or compiles kernels in a GPU build (a build
+  through `GPU::parallelFor()`, which a cloud's constructor instantiates) goes there too.
 - An `EBGEOMETRY_REQUIRE` gets a death test with `abortsWith()` (`TestDeath.hpp`), matching the message.
 - Inputs: small files in `Tests/data/` (never the `common-3d-test-models` submodule, which tests must
   not need), or meshes built in code (`TestConstructions.hpp`). Shared helpers go in a `Tests/*.hpp`.

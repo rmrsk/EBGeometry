@@ -562,7 +562,7 @@ Test coverage
        writing a binary PPM;
        ``view()`` returning at once with ``--no-view``, the pool left unfrozen; and the rejected
        settings and cameras.
-   * - ``TestRenderDevice``, ``TestRenderDeviceRegions``
+   * - ``TestRenderDevice``
      - Device renders of a tape against the host's: shaded, with an orthographic camera, a near clip
        and colors set, in the depth and x-ray views and with a hidden primitive; the cost view; and a
        canceled device render skipping its pixels' work. Of a view of regions: cut, filled and translucent.
