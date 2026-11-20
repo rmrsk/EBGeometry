@@ -52,7 +52,7 @@ struct LeafRef
 
   /**
    * @brief The index of the primitive's type in the tape's type list: the first fifteen built-in types
-   * (PlaneSDF to the mesh SDFs), then UserPrimitives, then the other built-in types (EllipsoidSDF to WedgeSDF).
+   * (PlaneSDF to the mesh SDFs), then UserPrimitives, then the other built-in types (EllipsoidSDF to SampledGridSDF).
    */
   uint32_t m_type = None;
 

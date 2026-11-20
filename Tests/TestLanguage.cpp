@@ -117,7 +117,31 @@ TEMPLATE_TEST_CASE("Language: every shape and operation gives the expression the
     {"capped_torus((0, 0, 0), 0.6, 0.2, 120)", CappedTorusSDF<T>(V(0, 0, 0), T(0.6), T(0.2), T(120))},
     {"cut_sphere((0, 0, 0), 0.6, 0.2)", CutSphereSDF<T>(V(0, 0, 0), T(0.6), T(0.2))},
     {"cut_hollow_sphere((0, 0, 0), 0.6, 0.2, 0.05)", CutHollowSphereSDF<T>(V(0, 0, 0), T(0.6), T(0.2), T(0.05))},
-    {"wedge((0, 0, 0), 60)", WedgeSDF<T>(V(0, 0, 0), T(60))}};
+    {"wedge((0, 0, 0), 60)", WedgeSDF<T>(V(0, 0, 0), T(60))},
+    {"tetrahedron((0, 0.1, 0), 0.8)", ConvexPolyhedronSDF<T>::tetrahedron(V(0, T(0.1), 0), T(0.8))},
+    {"octahedron((0, 0.1, 0), 0.8)", ConvexPolyhedronSDF<T>::octahedron(V(0, T(0.1), 0), T(0.8))},
+    {"dodecahedron((0, 0.1, 0), 0.8)", ConvexPolyhedronSDF<T>::dodecahedron(V(0, T(0.1), 0), T(0.8))},
+    {"icosahedron((0, 0.1, 0), 0.8)", ConvexPolyhedronSDF<T>::icosahedron(V(0, T(0.1), 0), T(0.8))},
+    {"pyramid((0, -0.5, 0), (0, 0.6, 0), 0.7, 4, (1, 0, 0))",
+     ConvexPolyhedronSDF<T>::pyramid(V(0, T(-0.5), 0), V(0, T(0.6), 0), T(0.7), 4U, V(1, 0, 0))},
+    {"convex_polyhedron(plane((0, 1, 0), (0, 1, 0)), plane((0, 0, 0), (-1, -1, -1)), plane((0.5, 0, 0), (1, 0, 0)), "
+     "plane((0, 0, 0.5), (0, 0, 1)))",
+     ConvexPolyhedronSDF<T>(std::vector<PlaneSDF<T>>{PlaneSDF<T>(V(0, 1, 0), V(0, 1, 0)),
+                                                     PlaneSDF<T>(V(0, 0, 0), V(-1, -1, -1)),
+                                                     PlaneSDF<T>(V(T(0.5), 0, 0), V(1, 0, 0)),
+                                                     PlaneSDF<T>(V(0, 0, T(0.5)), V(0, 0, 1))})},
+    {"box_frame((-0.5, -0.4, -0.3), (0.5, 0.4, 0.3), 0.1)",
+     BoxFrameSDF<T>(V(T(-0.5), T(-0.4), T(-0.3)), V(T(0.5), T(0.4), T(0.3)), T(0.1))},
+    {"hyperboloid((0, 0, 0), 0.4, 60)", QuadricSDF<T>::hyperboloid(V(0, 0, 0), T(0.4), T(60))},
+    {"hyperboloid_two_sheets((0, 0, 0), 0.3, 90)", QuadricSDF<T>::hyperboloidTwoSheets(V(0, 0, 0), T(0.3), T(90))},
+    {"paraboloid((0, 0.5, 0), 0.4)", QuadricSDF<T>::paraboloid(V(0, T(0.5), 0), T(0.4))},
+    {"superellipsoid((0, 0, 0), (0.8, 0.5, 0.6), 0.3, 1.5)",
+     SuperellipsoidSDF<T>(V(0, 0, 0), V(T(0.8), T(0.5), T(0.6)), T(0.3), T(1.5))},
+    {"solid_angle((0, 0, 0), 0.8, 100)", SolidAngleSDF<T>(V(0, 0, 0), T(0.8), T(100))},
+    {"vesica((0, -0.8, 0), (0, 0.8, 0), 0.3)", VesicaSDF<T>(V(0, T(-0.8), 0), V(0, T(0.8), 0), T(0.3))},
+    {"helix((0, -0.8, 0), (0, 0.8, 0), 0.5, 4, 0.08, (1, 0, 0))",
+     HelixSDF<T>(V(0, T(-0.8), 0), V(0, T(0.8), 0), T(0.5), T(4), T(0.08), V(1, 0, 0))},
+    {"lattice(\"diamond\", (1, 1, 1), 0.1)", LatticeSDF<T>(LatticeSDF<T>::Kind::SchwarzD, V(1, 1, 1), T(0.1))}};
 
   const SphereSDF<T> a(V(T(-0.2), 0, 0), T(0.5));
   const BoxSDF<T>    b(V(0, T(-0.3), T(-0.3)), V(T(0.6), T(0.3), T(0.3)));
@@ -294,6 +318,14 @@ material air { permittivity = 1, density = 1.2, kind = "gas", flowing = true, ve
         TubeSDF<T>(Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.1), T(0.2)).getNumParts());
   CHECK(Language::partNames("polygon_prism", 5).size() ==
         PolygonPrismSDF<T>(Vec3T<T>::zeros(), Vec3T<T>::ones(), T(1), 5U, Vec3T<T>(1, 0, 0)).getNumParts());
+  CHECK(Language::partNames("box_frame").size() ==
+        BoxFrameSDF<T>(Vec3T<T>::zeros(), Vec3T<T>::ones(), T(0.1)).getNumParts());
+  CHECK(Language::partNames("solid_angle").size() == SolidAngleSDF<T>(Vec3T<T>::zeros(), T(1), T(60)).getNumParts());
+  CHECK(
+    Language::partNames("pyramid", 5).size() ==
+    ConvexPolyhedronSDF<T>::pyramid(Vec3T<T>::zeros(), Vec3T<T>::ones(), T(1), 5U, Vec3T<T>(1, 0, 0)).getNumParts());
+  CHECK(Language::partNames("icosahedron", 20).size() ==
+        ConvexPolyhedronSDF<T>::icosahedron(Vec3T<T>::zeros(), T(1)).getNumParts());
   CHECK(Language::partNames("sphere").empty());
 }
 

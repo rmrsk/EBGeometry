@@ -13,6 +13,7 @@
 #define EBGEOMETRY_SAMPLEDGRIDSDF_HPP
 
 // Std includes
+#include <cmath>
 #include <cstdint>
 #include <type_traits>
 #include <vector>
@@ -21,6 +22,8 @@
 #include "EBGeometry_BoundingVolumes.hpp"
 #include "EBGeometry_DistanceQuality.hpp"
 #include "EBGeometry_GPU.hpp"
+#include "EBGeometry_Macros.hpp"
+#include "EBGeometry_Math.hpp"
 #include "EBGeometry_PODVector.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -110,19 +113,83 @@ public:
   SampledGridSDF(Pool&                 a_pool,
                  const Vec3T<T>&       a_origin,
                  const Vec3T<T>&       a_spacing,
-                 uint32_t              a_nx,
-                 uint32_t              a_ny,
-                 uint32_t              a_nz,
+                 const uint32_t        a_nx,
+                 const uint32_t        a_ny,
+                 const uint32_t        a_nz,
                  const std::vector<T>& a_values)
   {
-    (void)a_pool;
-    (void)a_values;
+    EBGEOMETRY_REQUIRE(std::isfinite(a_origin[0]) && std::isfinite(a_origin[1]) && std::isfinite(a_origin[2]),
+                       "SampledGridSDF: the origin must be finite (%g, %g, %g)",
+                       double(a_origin[0]),
+                       double(a_origin[1]),
+                       double(a_origin[2]));
+    EBGEOMETRY_REQUIRE(std::isfinite(a_spacing[0]) && std::isfinite(a_spacing[1]) && std::isfinite(a_spacing[2]) &&
+                         a_spacing[0] > T(0) && a_spacing[1] > T(0) && a_spacing[2] > T(0),
+                       "SampledGridSDF: the spacing must be finite and positive (%g, %g, %g)",
+                       double(a_spacing[0]),
+                       double(a_spacing[1]),
+                       double(a_spacing[2]));
+    EBGEOMETRY_REQUIRE(a_nx >= 2U && a_ny >= 2U && a_nz >= 2U,
+                       "SampledGridSDF: the grid must have at least 2 nodes along each axis (%u, %u, %u)",
+                       a_nx,
+                       a_ny,
+                       a_nz);
+
+    const uint64_t count = uint64_t(a_nx) * uint64_t(a_ny) * uint64_t(a_nz);
+
+    EBGEOMETRY_REQUIRE(count <= uint64_t(UINT32_MAX),
+                       "SampledGridSDF: the grid has more nodes than 2^32 - 1 (%u x %u x %u)",
+                       a_nx,
+                       a_ny,
+                       a_nz);
+    EBGEOMETRY_REQUIRE(uint64_t(a_values.size()) == count,
+                       "SampledGridSDF: the grid of %u x %u x %u nodes needs as many values (%zu)",
+                       a_nx,
+                       a_ny,
+                       a_nz,
+                       a_values.size());
+
+    // The interpolant's largest slope: along each axis, its derivative in a cell is a weighted mean of the
+    // differences along the cell's four edges in that direction, so it is at most the largest such difference over
+    // the spacing, and the gradient's length is at most the length of those three bounds.
+    const uint32_t n[3]      = {a_nx, a_ny, a_nz};
+    const size_t   stride[3] = {1U, size_t(a_nx), size_t(a_nx) * size_t(a_ny)};
+
+    double slope[3] = {0.0, 0.0, 0.0};
+
+    for (size_t i = 0; i < a_values.size(); i++) {
+      EBGEOMETRY_REQUIRE(std::isfinite(a_values[i]), "SampledGridSDF: value %zu is not finite", i);
+
+      const size_t index[3] = {i % a_nx, (i / a_nx) % a_ny, i / (size_t(a_nx) * size_t(a_ny))};
+
+      for (size_t dir = 0; dir < 3; dir++) {
+        if (index[dir] + 1U < n[dir]) {
+          const double difference = std::abs(double(a_values[i + stride[dir]]) - double(a_values[i]));
+
+          slope[dir] = Math::max(slope[dir], difference / double(a_spacing[dir]));
+        }
+      }
+    }
+
+    double lipschitz = std::sqrt(slope[0] * slope[0] + slope[1] * slope[1] + slope[2] * slope[2]);
+
+    if (!(lipschitz > 0.0)) {
+      lipschitz = 1.0;
+    }
+
+    std::vector<T> scaled(a_values.size());
+
+    for (size_t i = 0; i < a_values.size(); i++) {
+      scaled[i] = T(double(a_values[i]) / lipschitz);
+    }
 
     m_layout.m_origin   = a_origin;
     m_layout.m_spacing  = a_spacing;
     m_layout.m_nodes[0] = a_nx;
     m_layout.m_nodes[1] = a_ny;
     m_layout.m_nodes[2] = a_nz;
+
+    this->fill(a_pool, scaled);
   }
 
   /**
@@ -145,21 +212,45 @@ public:
   static SampledGridSDF
   heightField(Pool&                 a_pool,
               const Vec3T<T>&       a_corner,
-              T                     a_dx,
-              T                     a_dz,
-              uint32_t              a_nx,
-              uint32_t              a_nz,
+              const T               a_dx,
+              const T               a_dz,
+              const uint32_t        a_nx,
+              const uint32_t        a_nz,
               const std::vector<T>& a_heights)
   {
-    (void)a_pool;
-    (void)a_corner;
-    (void)a_dx;
-    (void)a_dz;
-    (void)a_nx;
-    (void)a_nz;
-    (void)a_heights;
+    EBGEOMETRY_REQUIRE(uint64_t(a_heights.size()) == uint64_t(a_nx) * uint64_t(a_nz),
+                       "SampledGridSDF::heightField: the grid of %u x %u heights needs as many values (%zu)",
+                       a_nx,
+                       a_nz,
+                       a_heights.size());
 
-    return SampledGridSDF();
+    T top = a_corner[1];
+
+    for (size_t i = 0; i < a_heights.size(); i++) {
+      EBGEOMETRY_REQUIRE(std::isfinite(a_heights[i]) && a_heights[i] > a_corner[1],
+                         "SampledGridSDF::heightField: height %zu (%g) must be finite and above the floor (%g)",
+                         i,
+                         double(a_heights[i]),
+                         double(a_corner[1]));
+
+      top = Math::max(top, a_heights[i]);
+    }
+
+    // The top layer is a spacing above the highest point, so that the surface is inside the grid's box.
+    const T dy    = top - a_corner[1] + Math::max(a_dx, a_dz);
+    const T upper = a_corner[1] + dy;
+
+    std::vector<T> values(2U * a_heights.size());
+
+    for (size_t i = 0; i < a_heights.size(); i++) {
+      const size_t x = i % a_nx;
+      const size_t z = i / a_nx;
+
+      values[x + 2U * a_nx * z]        = a_corner[1] - a_heights[i];
+      values[x + a_nx + 2U * a_nx * z] = upper - a_heights[i];
+    }
+
+    return SampledGridSDF(a_pool, a_corner, Vec3T<T>(a_dx, dy, a_dz), a_nx, 2U, a_nz, values);
   }
 
   /**
@@ -224,9 +315,19 @@ public:
   SampledGridSDF
   deepCopy(Pool& a_dstPool) const
   {
-    (void)a_dstPool;
+    // Read the samples out before reserving anything: a_dstPool may be this grid's own pool, and a reserve there
+    // can move the block.
+    const T*             values = m_layout.m_values.data(this->base());
+    const std::vector<T> samples(values, values + m_layout.m_values.size());
 
-    return *this;
+    SampledGridSDF copy;
+
+    copy.m_layout          = m_layout;
+    copy.m_layout.m_values = PODVector<T>{};
+
+    copy.fill(a_dstPool, samples);
+
+    return copy;
   }
 
   /**
@@ -238,9 +339,92 @@ public:
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
-    (void)a_point;
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[0]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[1]));
+    EBGEOMETRY_EXPECT(std::isfinite(a_point[2]));
 
-    return T(0);
+    const BoundingVolumes::AABBT<T> box = this->computeBoundingVolume();
+
+    // The nearest point of the box, and the distance to the box, outside it or (negative) inside it.
+    Vec3T<T> nearest;
+    T        outside = T(0);
+    T        inside  = Math::Limits<T>::max();
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T lo = box.getLowCorner()[dir];
+      const T hi = box.getHighCorner()[dir];
+
+      nearest[dir] = Math::clamp(a_point[dir], lo, hi);
+
+      const T gap = a_point[dir] - nearest[dir];
+
+      outside += gap * gap;
+      inside = Math::min(inside, Math::min(a_point[dir] - lo, hi - a_point[dir]));
+    }
+
+    const T field = this->interpolate(nearest);
+
+    // Outside the box: the solid is inside it, so the distance is at least the box's, and at least the field's
+    // bound at the box's nearest point, across it.
+    if (outside > T(0)) {
+      const T across = Math::max(field, T(0));
+
+      return std::sqrt(outside + across * across);
+    }
+
+    // Inside: the solid is the field's inside cut by the box, a bound being the larger of the two.
+    return Math::max(field, -inside);
+  }
+
+  /**
+   * @brief The interpolated field at a point inside the grid's box, already divided by its largest slope.
+   * @param[in] a_point Position, inside the box.
+   * @return The field.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  interpolate(const Vec3T<T>& a_point) const noexcept
+  {
+    uint32_t cell[3];
+    T        weight[3];
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T x = (a_point[dir] - m_layout.m_origin[dir]) / m_layout.m_spacing[dir];
+      const T c = Math::clamp(std::floor(x), T(0), T(m_layout.m_nodes[dir] - 2U));
+
+      cell[dir]   = uint32_t(c);
+      weight[dir] = Math::clamp(x - c, T(0), T(1));
+    }
+
+    const uint32_t nx = m_layout.m_nodes[0];
+    const uint32_t ny = m_layout.m_nodes[1];
+
+    const T* v = m_layout.m_values.data(this->base()) + cell[0] + nx * (cell[1] + ny * cell[2]);
+
+    const uint32_t sy = nx;
+    const uint32_t sz = nx * ny;
+
+    const T x00 = v[0] + weight[0] * (v[1] - v[0]);
+    const T x10 = v[sy] + weight[0] * (v[sy + 1U] - v[sy]);
+    const T x01 = v[sz] + weight[0] * (v[sz + 1U] - v[sz]);
+    const T x11 = v[sy + sz] + weight[0] * (v[sy + sz + 1U] - v[sy + sz]);
+
+    const T y0 = x00 + weight[1] * (x10 - x00);
+    const T y1 = x01 + weight[1] * (x11 - x01);
+
+    return y0 + weight[2] * (y1 - y0);
+  }
+
+  /**
+   * @brief The number of nodes along an axis.
+   * @param[in] a_dir The axis, 0, 1 or 2.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumNodes(const size_t a_dir) const noexcept
+  {
+    return m_layout.m_nodes[a_dir];
   }
 
   /**
@@ -259,6 +443,21 @@ public:
   }
 
 private:
+  /**
+   * @brief Reserves the samples from a pool and copies them in.
+   * @param[in,out] a_pool    The pool.
+   * @param[in]     a_samples The samples, already scaled.
+   */
+  EBGEOMETRY_HOST
+  void
+  fill(Pool& a_pool, const std::vector<T>& a_samples)
+  {
+    this->attach(a_pool, "SampledGridSDF");
+
+    m_layout.m_values.reserveFrom(a_pool, uint32_t(a_samples.size()));
+    m_layout.m_values.assign(this->base(), a_samples.data(), uint32_t(a_samples.size()));
+  }
+
   /**
    * @brief The samples and the grid.
    */
