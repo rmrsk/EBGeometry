@@ -121,9 +121,12 @@ Two more cases of the same kind are not ``std`` calls, so the script does not se
   ``EBGEOMETRY_HOST_DEVICE constexpr Name() noexcept {}``, as ``PoolLocation`` and ``PODVector`` do; it
   stays trivially copyable. Defaulting it (``= default``) does not help, since nvcc ignores an
   execution-space annotation on a function defaulted where it is declared.
-* A lambda's call operator is a ``constexpr`` host function too, so a lambda passed to a host-device
-  function (a ``PackedBVH::traverse()`` callback, say) is a functor with an ``EBGEOMETRY_HOST_DEVICE``
-  call operator instead, even where only host code calls it, in a translation unit nvcc compiles.
+* A lambda's call operator is a ``constexpr`` host function too, so a host-device template that calls
+  a callable its caller passed (a ``PackedBVH::traverse()`` callback, a visitor, a function to sample)
+  would warn whenever the caller passes a host lambda, even from host code. The library therefore calls
+  every such callable through one forwarding function in ``EBGeometry_GPU.hpp``, the only one nvcc's
+  execution-space check is switched off for (its comment says why and what it costs); a new template
+  of this kind calls its callables through it too.
 
 The CUDA test build deliberately omits ``--expt-relaxed-constexpr`` and turns nvcc's warnings into
 errors (``-Werror all-warnings``), so that it also checks these rules.

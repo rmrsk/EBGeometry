@@ -257,7 +257,7 @@ SphereCloudBVH<T, K, W>::forEachContact(const Sphere&  a_sphere,
             const std::uint32_t index = group.getSphereId(lane);
 
             if (index != a_exclude) {
-              a_state(Hit{index, separations[lane]});
+              CallableDetail::call(a_state, Hit{index, separations[lane]});
             }
           }
         }

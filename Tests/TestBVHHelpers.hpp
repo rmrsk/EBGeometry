@@ -375,37 +375,6 @@ pointIdBVH(Pool& a_pool, PODVector<Vec3T<T>>& a_points, const uint32_t a_numPoin
   return BVH::PackedBVH<T, uint32_t, K>::buildBottomUp(a_pool, flat, size_t(4));
 }
 
-// The leaf evaluator and the bound of requireTightAndQueryable()'s nearest-point traversal. Functors with
-// host-device call operators rather than lambdas: traverse() is host-device, and nvcc warns when it calls a
-// lambda (whose call operator is a constexpr host function) without --expt-relaxed-constexpr.
-template <class T>
-struct NearestLeaf
-{
-  const Vec3T<T>* m_points;
-  const uint32_t* m_prims;
-  Vec3T<T>        m_query;
-
-  EBGEOMETRY_HOST_DEVICE
-  void
-  operator()(T& a_state, size_t a_offset, size_t a_count) const noexcept
-  {
-    for (size_t i = 0; i < a_count; i++) {
-      a_state = Math::min(a_state, (m_points[m_prims[a_offset + i]] - m_query).length2());
-    }
-  }
-};
-
-template <class T>
-struct StateBound
-{
-  EBGEOMETRY_HOST_DEVICE
-  T
-  operator()(const T& a_state) const noexcept
-  {
-    return a_state;
-  }
-};
-
 // Every node's box must be exactly the union of its subtree's point boxes (unions of min and max are
 // exact, so the comparison is too), and the nearest point found through the BVH that of a brute-force
 // scan.
@@ -449,7 +418,13 @@ requireTightAndQueryable(const BVH::PackedBVH<T, uint32_t, K>& a_bvh, const std:
   for (const auto& q : queryPoints<T>()) {
     T state = std::numeric_limits<T>::max();
 
-    a_bvh.traverse(BVH::PointQuery{q}, state, NearestLeaf<T>{a_points.data(), prims.begin(), q}, StateBound<T>{});
+    const auto evalLeaf = [&](T& a_state, size_t a_offset, size_t a_count) noexcept {
+      for (size_t i = 0; i < a_count; i++) {
+        a_state = std::min(a_state, (a_points[prims[a_offset + i]] - q).length2());
+      }
+    };
+
+    a_bvh.traverse(BVH::PointQuery{q}, state, evalLeaf, [](const T& a_state) noexcept -> T { return a_state; });
 
     T brute = std::numeric_limits<T>::max();
 

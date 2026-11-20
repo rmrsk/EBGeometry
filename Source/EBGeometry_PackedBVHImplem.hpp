@@ -358,14 +358,14 @@ visitsBefore(
     return true;
   }
   else if constexpr (std::is_invocable_r_v<bool, const Order&, const Key&, uint32_t, const Key&, uint32_t>) {
-    return a_order(a_a, a_nodeA, a_b, a_nodeB);
+    return CallableDetail::call(a_order, a_a, a_nodeA, a_b, a_nodeB);
   }
   else {
     static_assert(std::is_invocable_r_v<bool, const Order&, const Key&, const Key&>,
                   "PackedBVH::traverse: an order is NearestFirst, FarthestFirst, AsStored, or a comparator "
                   "(keyA, keyB) -> bool or (keyA, nodeA, keyB, nodeB) -> bool");
 
-    return a_order(a_a, a_b);
+    return CallableDetail::call(a_order, a_a, a_b);
   }
 }
 
@@ -429,7 +429,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
   // key +infinity: unreachable), or a point farther than the bound, ends here.
   Key nodeKey = a_query.key(m_rootBox.at(poolBase, 0));
 
-  if (nodeKey > PackedBVHDetail::effectiveBound(a_bound(a_state))) {
+  if (nodeKey > PackedBVHDetail::effectiveBound(CallableDetail::call(a_bound, a_state))) {
     return;
   }
 
@@ -448,19 +448,19 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
       const Node& node = m_linearNodes.at(poolBase, nodeIdx);
 
       if constexpr (visits) {
-        if (!a_visit(a_state, nodeIdx, node, static_cast<const Key&>(nodeKey))) {
+        if (!CallableDetail::call(a_visit, a_state, nodeIdx, node, static_cast<const Key&>(nodeKey))) {
           break;
         }
       }
 
       if (node.isLeaf()) {
-        a_leaf(a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
+        CallableDetail::call(a_leaf, a_state, node.getPrimitivesOffset(), node.getNumPrimitives());
 
         break;
       }
 
       // The bound once per node expanded: any leaf visited before may have tightened it.
-      const Key bound = PackedBVHDetail::effectiveBound(a_bound(a_state));
+      const Key bound = PackedBVHDetail::effectiveBound(CallableDetail::call(a_bound, a_state));
 
       // All K keys in one pass (the query's SIMD kernel).
       const ChildAABBSoA& row  = m_childAabbSoA.at(poolBase, node.getChildBoxRow());
@@ -524,7 +524,7 @@ PackedBVH<T, P, K>::traverse(const Query&    a_query,
 
       const Key key = a_query.key(m_childAabbSoA.at(poolBase, parent.getChildBoxRow()), size_t(slot));
 
-      if (key > PackedBVHDetail::effectiveBound(a_bound(a_state))) {
+      if (key > PackedBVHDetail::effectiveBound(CallableDetail::call(a_bound, a_state))) {
         // Under NearestFirst the rest of the level is farther still: drop it. Under any other order a
         // later child may still be within the bound, so only this child is skipped.
         if constexpr (std::is_same_v<Order, NearestFirst>) {
@@ -708,7 +708,7 @@ PackedBVH<T, P, K>::refitNode(void* a_base, const uint32_t a_node, const BVConst
     const uint32_t count  = node.getNumPrimitives();
 
     for (uint32_t p = 0; p < count; p++) {
-      bv = bv.merged(a_bvConstructor(m_primitives.at(a_base, offset + p)));
+      bv = bv.merged(CallableDetail::call(a_bvConstructor, m_primitives.at(a_base, offset + p)));
     }
   }
   else {

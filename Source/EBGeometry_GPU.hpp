@@ -155,4 +155,48 @@
 #define EBGEOMETRY_GRID_CONSTANT
 #endif
 
+// ── Caller-supplied callables ─────────────────────────────────────────────────
+// A host-device template that calls a callable its caller passed (a traversal's leaf evaluator, a visitor,
+// a function to sample) is compiled for the device as well as the host. Under nvcc, a call from it to a
+// host function warns, even when only host code instantiates it: a host lambda's call operator is a
+// constexpr host function, and the warning (#20013) points at --expt-relaxed-constexpr, a flag the library
+// does not require. So the library makes every such call through CallableDetail::call(), the one function
+// nvcc's execution-space check is switched off for. The price is that nvcc no longer flags a host-only
+// callable reached from device code: such a call compiles to nothing, silently (checked with CUDA 12.5). A
+// callable used on a device must be host-device, as a lambda written inside device code is. The pragma is
+// nvcc's (clang in CUDA mode and HIP do not know it).
+#if defined(__NVCC__)
+/** @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only). */
+#define EBGEOMETRY_EXEC_CHECK_DISABLE _Pragma("nv_exec_check_disable")
+#else
+/** @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only). */
+#define EBGEOMETRY_EXEC_CHECK_DISABLE
+#endif
+
+namespace EBGeometry {
+namespace CallableDetail {
+
+/**
+ * @brief Call a caller-supplied callable from host-device code.
+ * @details Forwards to a_f(a_args...). Every library host-device template that calls a callable its caller passed
+ * calls it through here, so that a host callable (a lambda) used from host code does not make nvcc warn (see
+ * EBGEOMETRY_EXEC_CHECK_DISABLE). It adds nothing to the generated code: it is inlined on both sides.
+ * @tparam F Callable.
+ * @tparam Args Arguments.
+ * @param[in] a_f    The callable.
+ * @param[in] a_args The arguments.
+ * @return What a_f returns.
+ */
+EBGEOMETRY_EXEC_CHECK_DISABLE
+template <class F, class... Args>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_ALWAYS_INLINE inline decltype(auto)
+call(F&& a_f, Args&&... a_args)
+{
+  return static_cast<F&&>(a_f)(static_cast<Args&&>(a_args)...);
+}
+
+} // namespace CallableDetail
+} // namespace EBGeometry
+
 #endif // EBGEOMETRY_GPU_HPP
