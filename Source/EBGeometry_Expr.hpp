@@ -312,7 +312,7 @@ struct Node
   BlendKind m_blend = BlendKind::Polynomial;
 
   /**
-   * @brief Whether a union asks the tape for a BVH over its operands (Accelerate::BVH).
+   * @brief Whether a union or an Overlay asks the tape for a BVH over its operands (Accelerate::BVH).
    */
   bool m_bvh = false;
 
@@ -363,6 +363,12 @@ struct Node
    * RegionName()): what only a region can have.
    */
   bool m_namesRegion = false;
+
+  /**
+   * @brief Whether the node is an Overlay through a BVH (Accelerate::BVH), or a map of one: a partition that can be
+   * moved, but not clipped, drilled or placed in another Overlay.
+   */
+  bool m_regionBVH = false;
 };
 
 /**
@@ -959,14 +965,25 @@ SurfaceLabel(const A& a_operand, FaceGroups a_groups);
  * (it is kept as a group of regions). Anything else (a union with a solid or another Overlay, an offset, a blend, a
  * repetition of an Overlay) aborts with a message, in every build: it would not be clear which region a result
  * belongs to.
+ *
+ * With Accelerate::BVH the regions, their order and every value are those of Accelerate::None, but a Tape evaluates
+ * the whole object as a BVH union of the operands, and answers the region queries (Tape::region(),
+ * Tape::signedDistance(p, region), Tape::closestSurface(), Tape::firstRegionChange(), Tape::firstSurface(), a
+ * subdomain's function, ...) through a BVH over the operands' boxes, visiting only the regions near the point or the
+ * ray instead of every region: for an assembly of many parts, a region per part. No region of it may then be clipped
+ * or drilled (its operands are solids, or Overlays of solids, moved or not), and the Overlay itself can be moved but
+ * not clipped, drilled or placed in another Overlay; anything else aborts with a message, in every build. With operands whose values are only bounds
+ * (DistanceQuality::Bound), a value can be nearer zero than Accelerate::None's, with the same sign, as with
+ * Union(objects, Accelerate::BVH).
  * @tparam A Shape or Expr type.
- * @param[in] a_operands The regions, in priority order (must not be empty).
+ * @param[in] a_operands   The regions, in priority order (must not be empty).
+ * @param[in] a_accelerate Whether the tape answers through a BVH over the regions.
  * @return The partition.
  */
 template <class A>
 [[nodiscard]] EBGEOMETRY_HOST
 inline Expr<ExprPrecision<A>>
-Overlay(const std::vector<A>& a_operands);
+Overlay(const std::vector<A>& a_operands, Accelerate a_accelerate = Accelerate::None);
 
 /**
  * @brief Regions by priority, of two or more operands, each on top of the ones before it (see Overlay()).
@@ -1104,8 +1121,8 @@ public:
 
     /**
      * @brief What it does: Primitive, Transform, Elongate, Repeat, Complement, Offset, Annulus, Blur, Mollify,
-     * Union, Intersection, SmoothUnion, SmoothIntersection or Overlay, with " (BVH)" after a union built with
-     * Accelerate::BVH.
+     * Union, Intersection, SmoothUnion, SmoothIntersection or Overlay, with " (BVH)" after a union or an Overlay
+     * built with Accelerate::BVH.
      */
     std::string m_operation;
   };

@@ -38,6 +38,28 @@ given to the inner overlay is the default of its regions; ``getRegionsOfRegionGr
 region, region 1. An expression that would make a region unclear (see :ref:`Chap:Regions`) is rejected
 when it is built.
 
+An overlay of many regions, such as an assembly read as one region per part, is searched region by region:
+each region query below evaluates every region. ``Overlay(regions, Accelerate::BVH)``, compiled into a tape
+that lists the feature ``TapeFeature::RegionBVH`` (see :ref:`Chap:ImplemCSG`), answers through a BVH over the
+regions' boxes instead, visiting only the regions near the point or along the ray, in every query (the
+subdomains' functions and a ``RegionView``'s included). The whole object is evaluated as a union through a
+BVH in any tape. A tape without the feature visits every region in the region queries, and for a large
+overlay prints the large-union warning to say so; it compiles no search, so the region queries of a plain
+tape are not slowed by it. The regions and every value are those of the same overlay without the BVH. With operands whose values are only
+bounds, a value can be nearer zero, with the same sign, as for a union through a BVH (see
+:ref:`Chap:ImplemCSG`). Its regions may be groups (overlays in it, moved or not), but none may be clipped or
+drilled, and the overlay itself can be moved but not clipped, drilled or placed in another overlay. A tape
+built from a plain overlay of many regions prints the large-union warning, suggesting it. The BVH pays more
+the more regions there are; the ``Regions`` probe's ``parts`` cases measure it (see
+:ref:`Chap:PerformanceTesting`).
+
+.. code-block:: c++
+
+   std::vector<Expr<T>> parts = /* one solid per part */;
+
+   // Region k + 1 is part k; the tape searches the regions' BVH, and so do the domains and views built on it.
+   const Tape<T, TapeFeature::RegionBVH> tape(pool, Overlay(parts, Accelerate::BVH));
+
 Asking a tape
 -------------
 

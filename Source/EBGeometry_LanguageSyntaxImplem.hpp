@@ -1183,7 +1183,7 @@ private:
 
   /**
    * @brief primary := number | string | true | false | pi | name | name(args) | (expr) | (expr, expr, expr)
-   * | overlay { region name = expr [material name] ... }.
+   * | overlay [(bvh = true)] { region name = expr [material name] ... }.
    * @return The node.
    */
   Node
@@ -1309,7 +1309,8 @@ private:
   }
 
   /**
-   * @brief overlay { region name = expr [material name] ... }, after the keyword.
+   * @brief overlay [(bvh = true)] { region name = expr [material name] ... }, after the keyword. Through a BVH, the
+   * node's number is 1.
    * @param[in] a_first The keyword's span.
    * @return The node.
    */
@@ -1319,6 +1320,22 @@ private:
     Node node;
 
     node.m_kind = NodeKind::Overlay;
+
+    // Its one option, written as a literal: whether its regions are searched through a BVH.
+    if (isSymbol('(')) {
+      const Span open = peek().m_span;
+
+      Node options;
+
+      arguments(options);
+
+      if (options.m_children.size() != 1 || options.m_keys[0] != "bvh" ||
+          options.m_children[0].m_kind != NodeKind::Bool) {
+        fail(open, "an overlay takes one option, written (bvh = true) or (bvh = false)");
+      }
+
+      node.m_number = options.m_children[0].m_number;
+    }
 
     expect('{', "after overlay");
 

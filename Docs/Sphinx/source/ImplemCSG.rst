@@ -281,8 +281,9 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
   minimum, but it keeps the sign and is still a bound on the distance. Through a BVH, a union with an operand
   that is ``NotADistance`` keeps only its sign, as its distance quality says.
   `TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__ chooses the BVH construction
-  method, and the size from which a union evaluated as written prints a warning each time a tape is built,
-  suggesting ``Accelerate::BVH`` (``m_largeUnionWarning``; 0 silences it).
+  method, and the size from which a union, or an overlay of regions, evaluated as written prints a warning
+  each time a tape is built, suggesting ``Accelerate::BVH`` (``m_largeUnionWarning``; 0 silences it; see
+  :ref:`Chap:ImplemRegions` for an overlay through a BVH).
 * **Limits.** Blur, Mollify, FiniteRepetition and the operands of a BVH union are compiled into
   sub-programs, which nest at most ``Tape::MaxCallDepth`` (4) deep, and a sub-program holds at most
   ``Tape::ValueStackSize`` (16) values and ``Tape::PointStackSize`` (8) points at once. The constructor
@@ -292,8 +293,8 @@ are explained in :ref:`Chap:Tape`; this section lists the API. A chain of ``Tran
 * **Metadata.** ``computeBoundingVolume()`` and ``getDistanceQuality()`` return the expression's
   box and quality. The quality is a runtime value, so a tape used as another object's primitive
   counts as ``Bound`` there. ``getNumPrograms()``, ``getNumClauses()``, ``getNumBVHUnions()``,
-  ``getNumPrimitives()``, ``getLargestPlainUnion()`` (the most objects in one union evaluated as written,
-  nested unions counted together) and ``getCallDepth()`` describe what was compiled.
+  ``getNumPrimitives()``, ``getLargestPlainUnion()`` (the most objects in one union or overlay evaluated as
+  written, nested unions counted together) and ``getCallDepth()`` describe what was compiled.
 * **A pool handle.** A tape is trivially copyable and holds offsets into its pool and one location
   (see :ref:`Chap:MemoryModel`): ``rebasedView(mirror)`` evaluates it against a mirror of its pool,
   and ``deepCopy(pool)`` copies it, with every pool-resident primitive and BVH it holds, into another
@@ -339,6 +340,9 @@ code. The features are:
    * - ``ExactOffsets``
      - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
        affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
+   * - ``RegionBVH``
+     - The region queries of an overlay built with ``Accelerate::BVH`` search a BVH over its regions' boxes
+       (see :ref:`Chap:ImplemRegions`). Without it, they visit every region.
 
 .. _Sec:Fused:
 

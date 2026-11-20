@@ -61,7 +61,9 @@ public:
   struct Layout
   {
     /**
-     * @brief The subdomain of each region, or None.
+     * @brief The subdomain of each region, or None; then how many regions other than the background each subdomain
+     * holds, and last how many no subdomain holds (for a search of the regions near a point, which waits only for the
+     * subdomains with regions left to visit).
      */
     PODVector<uint32_t> m_table;
 
@@ -69,6 +71,11 @@ public:
      * @brief How many subdomains there are.
      */
     uint32_t m_numSubdomains = 0;
+
+    /**
+     * @brief How many regions the table has a row for.
+     */
+    uint32_t m_numRegions = 0;
   };
 
   /**
@@ -88,10 +95,17 @@ public:
   {
     this->attach(a_pool, "Subdomains");
 
-    m_layout.m_table.reserveSizedFrom(a_pool, static_cast<uint32_t>(a_subdomainOf.size()));
-    m_layout.m_numSubdomains = a_numSubdomains;
+    const auto numRegions = static_cast<uint32_t>(a_subdomainOf.size());
 
-    for (uint32_t r = 0; r < a_subdomainOf.size(); r++) {
+    m_layout.m_table.reserveSizedFrom(a_pool, numRegions + a_numSubdomains + 1U);
+    m_layout.m_numSubdomains = a_numSubdomains;
+    m_layout.m_numRegions    = numRegions;
+
+    for (uint32_t s = 0; s <= a_numSubdomains; s++) {
+      m_layout.m_table.at(this->base(), numRegions + s) = 0U;
+    }
+
+    for (uint32_t r = 0; r < numRegions; r++) {
       EBGEOMETRY_REQUIRE(a_subdomainOf[r] == None || a_subdomainOf[r] < a_numSubdomains,
                          "Subdomains: region %u is in subdomain %u of %u",
                          unsigned(r),
@@ -99,6 +113,11 @@ public:
                          unsigned(a_numSubdomains));
 
       m_layout.m_table.at(this->base(), r) = a_subdomainOf[r];
+
+      if (r > 0U) {
+        m_layout.m_table.at(this->base(),
+                            numRegions + ((a_subdomainOf[r] == None) ? a_numSubdomains : a_subdomainOf[r]))++;
+      }
     }
   }
 
@@ -142,7 +161,7 @@ public:
   inline uint32_t
   getNumRegions() const noexcept
   {
-    return m_layout.m_table.size();
+    return m_layout.m_numRegions;
   }
 
   /**
@@ -154,7 +173,7 @@ public:
   inline uint32_t
   subdomainOf(const uint32_t a_region) const noexcept
   {
-    return (a_region < m_layout.m_table.size()) ? m_layout.m_table.at(this->base(), a_region) : None;
+    return (a_region < m_layout.m_numRegions) ? m_layout.m_table.at(this->base(), a_region) : None;
   }
 
   /**
@@ -201,6 +220,36 @@ public:
   }
 
 private:
+  /**
+   * @brief A tape's search of the regions near a point waits only for the subdomains with regions left to visit.
+   */
+  template <class T, class... UserPrimitives>
+  friend class Tape;
+
+  /**
+   * @brief A domain's search too (Domain::signedDistances()).
+   */
+  template <class T, class... UserPrimitives>
+  friend class Domain;
+
+  /**
+   * @brief How many regions other than the background a subdomain holds.
+   * @param[in] a_subdomain The subdomain, or None for the regions in none.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  getNumRegionsIn(const uint32_t a_subdomain) const noexcept
+  {
+    if (m_layout.m_numRegions == 0U || (a_subdomain != None && a_subdomain >= m_layout.m_numSubdomains)) {
+      return 0U;
+    }
+
+    const uint32_t slot = (a_subdomain == None) ? m_layout.m_numSubdomains : a_subdomain;
+
+    return m_layout.m_table.at(this->base(), m_layout.m_numRegions + slot);
+  }
+
   /**
    * @brief The arrays.
    */

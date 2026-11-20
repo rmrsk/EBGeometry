@@ -215,12 +215,24 @@ public:
       a_values[l] = Math::Limits<T>::max();
     }
 
-    m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
-      const uint32_t subdomain = subdomains.subdomainOf(a_region);
-      const uint32_t slot      = (subdomain == Subdomains::None) ? excluded : subdomain;
+    bool searched = false;
 
-      a_values[slot] = Math::min(a_values[slot], a_value);
-    });
+    if constexpr (TapeType::SearchesRegions) {
+      if (m_tape.regionBVH() != TapeDetail::NoRegionBVH) {
+        this->smallestSearched(a_point, a_values);
+
+        searched = true;
+      }
+    }
+
+    if (!searched) {
+      m_tape.regionDistances(a_point, [&](const uint32_t a_region, const T a_value) {
+        const uint32_t subdomain = subdomains.subdomainOf(a_region);
+        const uint32_t slot      = (subdomain == Subdomains::None) ? excluded : subdomain;
+
+        a_values[slot] = Math::min(a_values[slot], a_value);
+      });
+    }
 
     // A function's other term is the smallest of the others': the smallest of all, or the second smallest for the one
     // that has it.
@@ -331,6 +343,67 @@ public:
   }
 
 private:
+  /**
+   * @brief Each subdomain's smallest region function, and Excluded's last, through the tape's regions' BVH (see
+   * signedDistances()), out of line on a device: the search's walks and counts stay out of the caller's frame.
+   * @param[in]     a_point  Point.
+   * @param[in,out] a_values The smallest so far, getNumSubdomainFunctions() of them (the largest value to start).
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  smallestSearched(const Vec3T<T>& a_point, T* a_values) const noexcept
+  {
+    const uint32_t   excluded   = m_subdomains.m_numSubdomains;
+    const Subdomains subdomains = this->subdomains();
+
+    const auto slotOf = [&subdomains, excluded](const uint32_t a_region) {
+      const uint32_t subdomain = subdomains.subdomainOf(a_region);
+
+      return (subdomain == Subdomains::None) ? excluded : subdomain;
+    };
+
+    // A search through the tape's regions' BVH waits for the slots with a region other than the background (whose value
+    // comes first, and is final) still to visit: counted per slot up to 255, beyond which a slot is waited for to the
+    // end, and with more slots than counted here, every slot.
+    constexpr uint32_t Counted = 64U;
+
+    uint8_t left[Counted] = {};
+
+    const bool counted = excluded < Counted;
+
+    if (counted) {
+      for (uint32_t l = 0; l <= excluded; l++) {
+        const uint32_t count = subdomains.getNumRegionsIn((l == excluded) ? Subdomains::None : l);
+
+        left[l] = uint8_t(Math::min(count, 255U));
+      }
+    }
+
+    m_tape.regionDistancesWithin(
+      a_point,
+      [&](const uint32_t a_region, const T a_value) {
+        const uint32_t slot = slotOf(a_region);
+
+        a_values[slot] = Math::min(a_values[slot], a_value);
+
+        if (counted && a_region > 0U && left[slot] > 0U && left[slot] < 255U) {
+          left[slot]--;
+        }
+      },
+      [&]() {
+        T radius = Math::Limits<T>::lowest();
+
+        for (uint32_t l = 0; l <= excluded; l++) {
+          if (!counted || left[l] > 0U) {
+            radius = Math::max(radius, a_values[l]);
+          }
+        }
+
+        return radius;
+      });
+  }
+
   /**
    * @brief The tape, a handle with its own location.
    */

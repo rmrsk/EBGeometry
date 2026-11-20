@@ -96,7 +96,8 @@ struct TapeOptions
  * - **The compiler decides.** TapeDetail::Compiler receives the features and emits the feature's clauses,
  *   flags or parameters only when it is listed; clause flags a feature sets are never set otherwise.
  * - **The evaluator compiles the feature's code only under `if constexpr (hasFeature<F>)`**, at every place it
- *   is reached from (for ExactOffsets: rayLeaf(), rayMarchedWithin(), traceRay() and rayLeafHit()). A run-time test
+ *   is reached from (for ExactOffsets: rayLeaf(), rayMarchedWithin(), traceRay() and rayLeafHit(); for RegionBVH,
+ *   each region query's search, under SearchesRegions). A run-time test
  *   of a flag alone is not enough: the code behind it is still in every kernel.
  * - **A plain tape compiles exactly the code it did before.** Check that Tape<T>'s kernels are unchanged: the
  *   ptxas register, stack and spill figures (or the SASS) of the float tape kernels (signedDistance() once
@@ -123,6 +124,16 @@ struct Tag
  * scaled mesh is still traced exactly.
  */
 struct ExactOffsets : Tag
+{
+};
+
+/**
+ * @brief The region queries of an Overlay built with Accelerate::BVH (region(), signedDistance(point, region),
+ * closestSurface(point, region), firstRegionChange(), and a Domain's or a RegionView's queries over the regions)
+ * search a BVH over the regions' boxes, visiting only the regions near the point or along the ray; without it they
+ * visit every region, as for an Overlay without a BVH. The whole object's value takes the Overlay's BVH either way.
+ */
+struct RegionBVH : Tag
 {
 };
 
@@ -337,6 +348,74 @@ struct Program
  * @details Internal helper; not part of the public API.
  */
 inline constexpr uint32_t LeafProgram = uint32_t(1) << 31;
+
+/**
+ * @brief How many regions other than the background each side of a subdomain (in it, and not in it) still has for a
+ * search through the regions' BVH to visit.
+ * @details Internal helper; not part of the public API. The search for the smallest function on each side waits only
+ * for a side with a region still to visit (see Tape::regionDistancesWithin()); the background's value comes first and
+ * is final. Read only by that search: without the regions' BVH every region is visited, and the counts mean nothing.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct SubdomainSides
+{
+  /**
+   * @brief The regions in the subdomain still to visit.
+   */
+  uint32_t m_in = 0;
+
+  /**
+   * @brief The regions not in it still to visit.
+   */
+  uint32_t m_out = 0;
+
+  /**
+   * @brief Count a region visited.
+   * @param[in] a_region The region.
+   * @param[in] a_in     Whether it is in the subdomain.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visited(const uint32_t a_region, const bool a_in) noexcept
+  {
+    uint32_t& left = a_in ? m_in : m_out;
+
+    if (a_region > 0U && left > 0U) {
+      left--;
+    }
+  }
+
+  /**
+   * @brief How far the search still has to look: the larger of the two sides' smallest functions so far, of the sides
+   * with a region still to visit.
+   * @param[in] a_in  The smallest function in the subdomain so far.
+   * @param[in] a_out The smallest outside it so far.
+   * @return The radius.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  radius(const T a_in, const T a_out) const noexcept
+  {
+    T radius = Math::Limits<T>::lowest();
+
+    if (m_in > 0U) {
+      radius = a_in;
+    }
+
+    if (m_out > 0U) {
+      radius = Math::max(radius, a_out);
+    }
+
+    return radius;
+  }
+};
+
+/**
+ * @brief The region table's entry for a tape whose regions have no BVH (an Overlay built with Accelerate::None).
+ * @details Internal helper; not part of the public API.
+ */
+inline constexpr uint32_t NoRegionBVH = 0xFFFFFFFFU;
 
 /**
  * @brief A BVH union's two parts, as layouts in the tape's pool: a BVH over the sub-programs with bounded
@@ -776,6 +855,12 @@ public:
   static constexpr bool hasFeature = TapeDetail::IndexOf<F, Features>::value < Features::size;
 
   /**
+   * @brief Whether the region queries search the regions' BVH of an Overlay built with Accelerate::BVH (see
+   * TapeFeature::RegionBVH).
+   */
+  static constexpr bool SearchesRegions = hasFeature<TapeFeature::RegionBVH>;
+
+  /**
    * @brief Bounding box type.
    */
   using BV = BoundingVolumes::AABBT<T>;
@@ -906,7 +991,8 @@ public:
     /**
      * @brief The regions: the number n of the Overlays' operands (0 without an Overlay), then
      * each operand's record's offset, then each region's material (the background first; two for an object with no
-     * Overlay), then the records: the number m of masks above the region, their numbers (outermost first), and its
+     * Overlay), then the index in m_unions of the BVH over the regions (TapeDetail::NoRegionBVH for none), then the
+     * records: the number m of masks above the region, their numbers (outermost first), and its
      * m + 1 programs, the solid with every mask and then with the outermost 1, 2, ..., m left out. Empty without the
      * feature.
      */
@@ -1156,8 +1242,9 @@ public:
 
   /**
    * @brief The most objects in one union evaluated as written (one not built with Accelerate::BVH), nested
-   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with. An Overlay, which is evaluated
-   * as written and takes no BVH, is not counted.
+   * sharp unions counted as one: what TapeOptions::m_largeUnionWarning is compared with. An Overlay evaluated as
+   * written counts its regions, those of the Overlays in it included, unless one of them is clipped or drilled (it
+   * could then take no BVH).
    * @return The count (0 if the tape has no such union).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -1461,6 +1548,12 @@ private:
    */
   template <class TapeType>
   friend class RegionView;
+
+  /**
+   * @brief A domain asks for the regions' functions near a point (regionDistancesWithin()).
+   */
+  template <class U, class... Us>
+  friend class Domain;
 
   /**
    * @brief The primitive of a crossing found by marching a subtree, which closestLeaf() then names.
@@ -2073,6 +2166,104 @@ private:
   EBGEOMETRY_DEVICE_NOINLINE
   inline T
   regionSolid(uint32_t a_region, uint32_t a_level, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief closestSurface(point, region) for a region other than the background, through the regions' BVH.
+   * @param[in] a_point  Point.
+   * @param[in] a_region Region (1 or more).
+   * @param[in] a_own    The region's solid at the point, tagged.
+   * @return The surface.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline SurfaceRef<T>
+  closestRegionSurface(const Vec3T<T>& a_point, uint32_t a_region, const CSGOps::Tagged<T>& a_own) const noexcept;
+
+  /**
+   * @brief How many regions other than the background each side of a subdomain has, for a search through the regions'
+   * BVH (none counted without one, where the search reads neither).
+   * @param[in] a_subdomains The subdomains.
+   * @param[in] a_subdomain  The subdomain.
+   * @return The sides.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline TapeDetail::SubdomainSides<T>
+  subdomainSides(const Subdomains& a_subdomains, uint32_t a_subdomain) const noexcept;
+
+  /**
+   * @brief The BVH over the regions' boxes (an Overlay built with Accelerate::BVH).
+   * @return Its index in Layout::m_unions, or TapeDetail::NoRegionBVH for none.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  regionBVH() const noexcept;
+
+  /**
+   * @brief Visit the regions whose boxes are within a distance of a point, through the regions' BVH (which the tape
+   * must have): those with unbounded boxes first, then the rest nearest first. A box farther than a_radius() when the
+   * walk reaches it is not visited; the radius may shrink as regions are visited.
+   * @details A region's solid is never smaller than the distance to its box where its value is a distance, so a
+   * region not visited has a solid larger than the radius was when it was passed by.
+   * @tparam Visit  A callable taking (uint32_t region).
+   * @tparam Radius A callable taking nothing and returning T (a negative radius visits the boxes holding the point).
+   * @param[in] a_point  Point.
+   * @param[in] a_visit  What to do with each region.
+   * @param[in] a_radius The radius.
+   */
+  template <class Visit, class Radius>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visitRegionsNear(const Vec3T<T>& a_point, Visit&& a_visit, Radius&& a_radius) const noexcept;
+
+  /**
+   * @brief Visit the regions whose boxes a ray enters before a distance along it, through the regions' BVH (which the
+   * tape must have): those with unbounded boxes first, then the rest in the order the ray enters them. A box the ray
+   * enters beyond a_horizon() when the walk reaches it, or leaves before a_tMin, is not visited.
+   * @tparam Visit   A callable taking (uint32_t region).
+   * @tparam Horizon A callable taking nothing and returning T.
+   * @param[in] a_ray     The ray.
+   * @param[in] a_tMin    Where along the ray to start.
+   * @param[in] a_visit   What to do with each region.
+   * @param[in] a_horizon The horizon.
+   */
+  template <class Visit, class Horizon>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  visitRegionsAlong(const RayT<T>& a_ray, T a_tMin, Visit&& a_visit, Horizon&& a_horizon) const noexcept;
+
+  /**
+   * @brief The regions' functions at a point (signedDistance(point, region), the same values), for a caller that
+   * takes minima over sets of regions: a_visit(region, value) for the background and every region whose function can
+   * be below a_radius() when the search reaches it. Without the regions' BVH, every region, as regionDistances()
+   * visits them; with it, in no particular order, the regions whose boxes are within the radius of the point (the
+   * others' functions are larger than the radius was, where the regions' solids are distances).
+   * @details A caller's radius is the largest of the minima it still needs: a set whose regions other than the
+   * background (whose value comes first, and is final) have all been visited has none to wait for.
+   * @tparam Visit  A callable taking (uint32_t region, T value).
+   * @tparam Radius A callable taking nothing and returning T.
+   * @param[in] a_point  Point.
+   * @param[in] a_visit  What to do with each region's value.
+   * @param[in] a_radius The radius.
+   */
+  template <class Visit, class Radius>
+  EBGEOMETRY_HOST_DEVICE
+  inline void
+  regionDistancesWithin(const Vec3T<T>& a_point, Visit&& a_visit, Radius&& a_radius) const noexcept;
+
+  /**
+   * @brief regionDistancesWithin() through the regions' BVH, out of line on a device: its walks and arrays stay out of
+   * the frames of the kernels that call it, and of every plain tape's.
+   * @tparam Visit  A callable taking (uint32_t region, T value).
+   * @tparam Radius A callable taking nothing and returning T.
+   * @param[in] a_point  Point.
+   * @param[in] a_visit  What to do with each region's value.
+   * @param[in] a_radius The radius.
+   */
+  template <class Visit, class Radius>
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline void
+  regionDistancesSearched(const Vec3T<T>& a_point, Visit& a_visit, Radius& a_radius) const noexcept;
 
   /**
    * @brief How many masks two regions share: those above both, which region k's function
