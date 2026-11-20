@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iomanip>
 #include <map>
 #include <set>
 #include <sstream>
@@ -4496,6 +4497,234 @@ completeness(const Model<T>& a_model, const Tape<T, UserPrimitives...>& a_tape, 
                   (inA ? coupling.m_domainB + "." + coupling.m_partB : coupling.m_domainA + "." + coupling.m_partA) +
                   (real ? "" : " (it may not exist: no ray found it)"));
       }
+    }
+  }
+
+  return result;
+}
+
+namespace LanguageDetail {
+
+/**
+ * @brief A number in a message, to three significant digits.
+ * @param[in] a_value The number.
+ * @return The text.
+ */
+inline std::string
+shortNumber(const double a_value)
+{
+  std::ostringstream out;
+
+  out << std::setprecision(3) << a_value;
+
+  return out.str();
+}
+
+/**
+ * @brief A point in a message.
+ * @tparam T Precision.
+ * @param[in] a_point The point.
+ * @return The text, "(x, y, z)".
+ */
+template <class T>
+inline std::string
+pointWords(const Vec3T<T>& a_point)
+{
+  return "(" + shortNumber(double(a_point[0])) + ", " + shortNumber(double(a_point[1])) + ", " +
+         shortNumber(double(a_point[2])) + ")";
+}
+
+} // namespace LanguageDetail
+
+template <class T, class... UserPrimitives>
+inline Completeness
+completeness(const Model<T>&                   a_model,
+             const Tape<T, UserPrimitives...>& a_tape,
+             std::string_view                  a_domain,
+             const T                           a_resolution,
+             const uint64_t                    a_maxCells)
+{
+  Completeness result = completeness(a_model, a_tape, a_domain);
+
+  const ModelDomain&  domain = a_model.domain(a_domain);
+  const DomainSetup&  setup  = domain.setup();
+  const ExprIndex<T>& index  = a_model.index();
+
+  const auto warning = [&](const Span& a_span, const std::string& a_message) {
+    result.m_findings.push_back(Diagnostic{Diagnostic::Severity::Warning, a_span, a_message});
+  };
+
+  if (a_tape.getDistanceQuality() == DistanceQuality::NotADistance) {
+    warning(domain.span(),
+            "the connected components of domain '" + domain.name() +
+              "' are not checked: the object's value is not a distance");
+
+    return result;
+  }
+
+  // The search needs a bounded object: an unbounded one (a half-space) is reported, not searched.
+  {
+    const auto box = a_tape.computeBoundingVolume();
+    const T    far = T(0.5) * Math::Limits<T>::max();
+
+    bool bounded = true;
+
+    bool fits = true;
+
+    for (size_t d = 0; d < 3; d++) {
+      bounded = bounded && std::abs(box.getLowCorner()[d]) < far && std::abs(box.getHighCorner()[d]) < far &&
+                box.getLowCorner()[d] <= box.getHighCorner()[d];
+      fits = fits && (!bounded || double(box.getHighCorner()[d] - box.getLowCorner()[d]) / double(a_resolution) + 4.0 <=
+                                    double(ComponentsDetail::MaxCellsPerAxis));
+    }
+
+    if (!bounded || !fits) {
+      warning(domain.span(),
+              "the connected components of domain '" + domain.name() + "' are not checked: " +
+                (bounded ? "the object is more than " + std::to_string(ComponentsDetail::MaxCellsPerAxis) +
+                             " cells of size " + LanguageDetail::shortNumber(double(a_resolution)) + " long"
+                         : std::string("the object is unbounded")));
+
+      return result;
+    }
+  }
+
+  // One search, its cells labeled twice: by region, and by subdomain (the excluded regions last). Region 0 is always
+  // the background, the outside of the object (Tape::getNumRegions()).
+  const uint32_t numRegions    = a_tape.getNumRegions();
+  const uint32_t numSubdomains = setup.getNumSubdomains();
+
+  std::vector<uint32_t> regionOf(numRegions);
+  std::vector<uint32_t> subdomainOf(numRegions);
+
+  for (uint32_t r = 0; r < numRegions; r++) {
+    const uint32_t subdomain = setup.subdomainOf(r);
+
+    regionOf[r]    = r;
+    subdomainOf[r] = (subdomain == Subdomains::None) ? numSubdomains : subdomain;
+  }
+
+  const std::string at = " at resolution " + LanguageDetail::shortNumber(double(a_resolution));
+
+  ComponentOptions<T> options;
+
+  options.m_resolution = a_resolution;
+  options.m_maxCells   = a_maxCells;
+
+  const auto cells = ComponentsDetail::search(a_tape, options, false);
+
+  if (cells == nullptr) {
+    warning(domain.span(),
+            "the connected components of domain '" + domain.name() + "' are not checked: the search" + at +
+              " reached its cap of " + std::to_string(options.m_maxCells) +
+              " cells (ComponentOptions::m_maxCells); check at a coarser resolution");
+
+    return result;
+  }
+
+  const ConnectedComponents<T> byRegion    = ComponentsDetail::label(cells, regionOf, 0U);
+  const ConnectedComponents<T> bySubdomain = ComponentsDetail::label(cells, subdomainOf, numSubdomains + 1U);
+
+  // The exterior: the components of the outside reaching the box searched, which is the tape's box grown by two cells.
+  // A component is open when it reaches the box or touches the exterior, enclosed otherwise. Each region's component
+  // lies in one subdomain's, the one holding its seed; the regions around a subdomain's component are those of the
+  // region components that touch its own and lie outside it.
+  std::vector<uint32_t>                 inside(byRegion.getNumComponents());
+  std::vector<bool>                     open(bySubdomain.getNumComponents(), false);
+  std::vector<std::vector<std::string>> around(bySubdomain.getNumComponents());
+
+  for (uint32_t c = 0; c < byRegion.getNumComponents(); c++) {
+    inside[c] = bySubdomain.componentAt(byRegion.component(c).m_seed);
+  }
+
+  for (uint32_t c = 0; c < byRegion.getNumComponents(); c++) {
+    // A seed is the center of one of its component's cells, so it is always in the box; this guards the indexing.
+    EBGEOMETRY_EXPECT(inside[c] != ConnectedComponents<T>::None);
+
+    if (inside[c] == ConnectedComponents<T>::None) {
+      continue;
+    }
+
+    open[inside[c]] = open[inside[c]] || byRegion.component(c).m_reachesBox;
+
+    for (const uint32_t n : byRegion.neighbors(c)) {
+      const ConnectedComponent<T>& other = byRegion.component(n);
+
+      open[inside[c]] = open[inside[c]] || (other.m_group == 0U && other.m_reachesBox);
+
+      if (inside[n] != inside[c] && inside[n] != ConnectedComponents<T>::None) {
+        around[inside[c]].push_back(LanguageDetail::regionName(index, other.m_group));
+      }
+    }
+  }
+
+  for (std::vector<std::string>& names : around) {
+    std::sort(names.begin(), names.end());
+
+    names.erase(std::unique(names.begin(), names.end()), names.end());
+  }
+
+  // A point's coordinates, those within a thousandth of h of zero written as zero.
+  const auto seedWords = [&](const Vec3T<T>& a_seed) {
+    Vec3T<T> seed = a_seed;
+
+    for (size_t d = 0; d < 3; d++) {
+      seed[d] = (std::abs(seed[d]) < T(1e-3) * a_resolution) ? T(0) : seed[d];
+    }
+
+    return LanguageDetail::pointWords(seed);
+  };
+
+  for (uint32_t s = 0; s < numSubdomains; s++) {
+    const std::vector<uint32_t> components = bySubdomain.componentsOf(s);
+
+    if (components.size() < 2U) {
+      continue;
+    }
+
+    std::string list;
+
+    for (const uint32_t c : components) {
+      const ConnectedComponent<T>& component = bySubdomain.component(c);
+
+      std::string names;
+
+      for (const std::string& name : around[c]) {
+        names += (names.empty() ? "" : ", ") + name;
+      }
+
+      list += (list.empty() ? "" : "; ") + seedWords(component.m_seed) + ", volume " +
+              LanguageDetail::shortNumber(double(component.m_volume)) +
+              (open[c] ? std::string(", on the object's outer boundary") : ", enclosed by " + names);
+    }
+
+    warning(domain.subdomainSpan(s),
+            "subdomain '" + domain.subdomainName(s) + "' of domain '" + domain.name() + "' is in " +
+              std::to_string(components.size()) + " connected components" + at + ": " + list);
+  }
+
+  for (const uint32_t c : byRegion.componentsOf(0U)) {
+    const ConnectedComponent<T>& cavity = byRegion.component(c);
+
+    if (cavity.m_reachesBox) {
+      continue;
+    }
+
+    std::string names;
+    bool        touches = false;
+
+    for (const uint32_t n : byRegion.neighbors(c)) {
+      const uint32_t region = byRegion.component(n).m_group;
+
+      touches = touches || setup.subdomainOf(region) != Subdomains::None;
+      names += (names.empty() ? "" : ", ") + LanguageDetail::regionName(index, region);
+    }
+
+    if (touches) {
+      warning(domain.span(),
+              "an enclosed cavity of the outside" + at + " touches domain '" + domain.name() + "': at " +
+                seedWords(cavity.m_seed) + ", volume " + LanguageDetail::shortNumber(double(cavity.m_volume)) +
+                ", enclosed by " + names);
     }
   }
 

@@ -106,6 +106,10 @@ The words this guide uses with a meaning of its own, each with the page that exp
       A shape's surface between two given regions: the unit a domain assigns conditions to, and what a click
       in the viewer picks. See :ref:`Chap:Regions`.
 
+   connected component
+      A connected part of space all in one region, or one subdomain or material: a region can be in several
+      (two balls apart, a cavity sealed in a shell). Found at a resolution. See :ref:`Chap:Regions`.
+
    domain
       What one computation runs on: its subdomains and its surface groups. See :ref:`Chap:Regions`.
 

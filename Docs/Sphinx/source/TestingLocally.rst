@@ -482,14 +482,21 @@ Test coverage
        object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
        under later regions, outside a mask), and leaving unproved what it cannot prove.
+   * - ``TestConnectedComponents``
+     - ``connectedComponents()`` against models whose components are known: a hollow shell's cavity (an enclosed
+       component of the outside, its volume, box, seed and neighbors, ``componentAt()``, the default box), two
+       spheres overlapping and apart (one solid, two regions, the regions grouped), a bar cut into three by a
+       difference, a neck below and above the resolution, a domain's subdomains and excluded regions, an unbounded
+       object in a box given, and the rejected inputs (a value that is not a distance, a resolution of zero, an
+       unbounded box, groups of the wrong count).
    * - ``TestLanguage``, ``TestLanguageDevice``
      - The ``.ebg`` language: every built-in shape and operation against the same expression built in C++ (equal
-       distances on a grid), arithmetic, params and overrides, regions, materials, labels and part names in the
-       index, domains (subdomains with properties merged from materials, selectors against the C++ selectors, a
-       domain built for the tape), couplings, a domain's completeness, a setup including its model and a mesh
-       read once, errors at their line and column (all reported, none aborting, the library's own value checks
-       included), the printer's canonical form (idempotent, the same model) and a table of properties read on a
-       device.
+       distances on a grid), arithmetic, params and overrides, regions, materials, labels and part names in the index,
+       domains (subdomains with properties merged from materials, selectors against the C++ selectors, a domain built
+       for the tape), couplings, a domain's completeness (and at a resolution, its warnings of a subdomain in two pieces
+       and of an enclosed cavity), a setup including its model and a mesh read once, errors at their line and column
+       (all reported, none aborting, the library's own value checks included), the printer's canonical form (idempotent,
+       the same model) and a table of properties read on a device.
    * - ``TestStudioWriter``
      - ebgstudio's writer of the viewer's edits: a clicked surface named and written by its label, a renamed group
        keeping its comment and properties, a new domain appended, undo and redo, and no write over a file changed

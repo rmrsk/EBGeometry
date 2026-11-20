@@ -245,6 +245,50 @@ expression's index (`EBGeometry_SurfacePieces.hpp <doxygen/html/EBGeometry__Surf
 ``ExprIndex::checkLabels(expr, tape)`` warns, among its other checks (see :ref:`Chap:LeavesAndSurfaces`),
 about a region with no volume, buried under later regions, and about a material no region shows.
 
+Connected components
+--------------------
+
+`connectedComponents() <doxygen/html/EBGeometry__ConnectedComponents_8hpp.html>`__ finds the connected
+components (see :ref:`Chap:Regions`) of a tape's regions, of groups of them, or of a domain's subdomains, on
+the host:
+
+.. code-block:: c++
+
+   ComponentOptions<T> options;
+
+   options.m_resolution = T(0.02);   // h: the solver's cell size, say
+   options.m_box        = box;       // the space searched; empty, the default: the tape's box grown by two cells
+   options.m_maxCells   = ComponentOptions<T>::DefaultMaxCells;   // the most cells it keeps, which bounds its memory
+
+   const ConnectedComponents<T> byRegion   = connectedComponents(tape, options);           // group = region
+   const ConnectedComponents<T> byMaterial = connectedComponents(tape, materialOf, options); // a group per region
+   const ConnectedComponents<T> byDomain   = connectedComponents(domain, options);  // subdomains, then the excluded
+
+   for (const uint32_t c : byRegion.componentsOf(0U)) {           // the outside's components
+     const ConnectedComponent<T>& component = byRegion.component(c);
+
+     if (!component.m_reachesBox) {
+       // An enclosed cavity: component.m_seed is a point in it, component.m_volume its volume.
+     }
+   }
+
+* `ConnectedComponents <doxygen/html/classEBGeometry_1_1ConnectedComponents.html>`__ numbers the components by
+  group, those reaching the box first, then by decreasing volume. ``componentsOf(group)`` lists those of a
+  group, ``neighbors(c)`` the components a component touches, and ``componentAt(point)`` the component holding a
+  point (near a surface, within *h*, possibly the one across it).
+* Each `ConnectedComponent <doxygen/html/structEBGeometry_1_1ConnectedComponent.html>`__ has its group, an
+  approximate volume and box, a seed point inside it, and whether it reaches the box searched.
+* The box is the space the components are of: a component that reaches it may continue beyond it. An unbounded
+  object (a half-space) needs one.
+* The cost grows with the area of the surfaces over *h* squared, and with the number of regions: every cell
+  of the search evaluates every region's function once, and keeps the cell. ``m_maxCells`` caps the cells, and so the
+  memory: a search that reaches it aborts with a message naming the resolution and the cap (``completeness()`` warns
+  instead). ``getNumCells()`` says how many cells it took; the
+  ``ConnectedComponents`` performance probe measures it (see :ref:`Chap:PerformanceTesting`).
+
+A model's domains are checked for components with ``Language::completeness(model, tape, domain,
+resolution)`` (see :ref:`Chap:LanguageDomains`).
+
 Names for a viewer
 ------------------
 

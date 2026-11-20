@@ -96,6 +96,28 @@ main(int argc, char* argv[])
     std::cout << "  " << finding.str() << "\n";
   }
 
+  // ── The pieces of the fluid ────────────────────────────────────────────────────────────────────────
+  //
+  // Is the fluid one connected piece of space? The description cannot say; the geometry does. The search runs at a
+  // resolution, best the solver's cell size (a gap thinner than it may be missed), over a box, here the air box (the
+  // object's own box), so that a piece reaching it is on the domain's boundary and one that does not is enclosed. The
+  // groups are the domain's subdomains, then its excluded regions.
+  EBGeometry::ComponentOptions<T> options;
+
+  options.m_resolution = T(0.05);
+  options.m_box        = tape.computeBoundingVolume();
+
+  const auto pieces = EBGeometry::connectedComponents(flow, options);
+
+  std::cout << "Fluid: " << pieces.componentsOf(0U).size() << " connected components at resolution 0.05\n";
+
+  for (const uint32_t c : pieces.componentsOf(0U)) {
+    const auto& piece = pieces.component(c);
+
+    std::cout << "  at " << piece.m_seed << ", volume " << piece.m_volume
+              << (piece.m_reachesBox ? ", on the box" : ", enclosed") << "\n";
+  }
+
   // ── A domain on its own ────────────────────────────────────────────────────────────────────────────
   //
   // Conduction computes in the cable alone. Its own object keeps the cable's regions and the regions that may touch

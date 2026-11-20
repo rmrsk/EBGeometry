@@ -1,7 +1,7 @@
 Examples/LanguageDomains
 ------------------------
 
-A model read from text. A cable, a copper core inside a PTFE jacket, and a steel sensor, in a box of air with a flow
+A model read from text. A cable, a copper core inside a PTFE jacket, and a steel sensor, inside a box of air with a flow
 across it, written in the .ebg language: `cable/model.ebg` holds the geometry (the shapes, the overlay of regions and
 their materials, the box's faces labeled), `cable/setup.ebg` includes it and holds the materials' properties, three
 domains (electrostatics, cfd and conduction, each with its subdomains and surface groups) and the couplings between
@@ -9,7 +9,8 @@ them. `Language::read()` reads the setup at run time;
 the program compiles the object into a tape, builds the cfd domain for it from the model's setup, and fills a table of
 its own rows (`Fluid`, a density and a viscosity per subdomain) from the subdomains' properties, in the tape's pool.
 `completeness()` says whether every subdomain has properties and every piece of surface bounding the domain a surface
-group. `model.domainObject("conduction")` compiles the conduction domain on its own: the cable and the regions whose
+group. `connectedComponents()` finds the pieces the fluid is in, at a resolution: one, since the cable lies wholly inside
+the air box. `model.domainObject("conduction")` compiles the conduction domain on its own: the cable and the regions whose
 bounding boxes meet its regions (the air around it), not the sensor. A query reads the fluid's density by the domain's
 subdomain there, on the host and, through `GPU::transform`, on a GPU. The window shows the regions, colored by
 material, with the model's names; the panel switches between its domains, and with one shown alone, the cost views
