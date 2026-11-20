@@ -1061,20 +1061,110 @@ barSpan(const BoxFrameSDF<T>& a_shape, const uint32_t a_bar, const RayT<T>& a_ra
 }
 
 /**
+ * @brief Where a ray is inside each of a box frame's twelve bars, sorted by where it enters them, with the face it
+ * enters and leaves each by.
+ * @details Internal helper; not part of the public API. A face is 2 axis + 1 on the high side, 2 axis on the low.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct FrameSpans
+{
+  /**
+   * @brief Where the ray enters each bar; above m_out for a bar it misses.
+   */
+  T m_in[12];
+
+  /**
+   * @brief Where it leaves each bar.
+   */
+  T m_out[12];
+
+  /**
+   * @brief The face it enters each bar by.
+   */
+  uint8_t m_inFace[12];
+
+  /**
+   * @brief The face it leaves each bar by.
+   */
+  uint8_t m_outFace[12];
+};
+
+/**
+ * @brief The face of an axis-aligned box an outward normal is the normal of: 2 axis, plus 1 on the high side.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_normal The normal, a unit vector along an axis (zero for an end at infinity).
+ * @return The face.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint8_t
+boxFace(const Vec3T<T>& a_normal) noexcept
+{
+  const uint8_t axis = (a_normal[1] != T(0)) ? 1U : ((a_normal[2] != T(0)) ? 2U : 0U);
+
+  return uint8_t(2U * axis + ((a_normal[axis] > T(0)) ? 1U : 0U));
+}
+
+/**
+ * @brief The outward normal of a box face numbered as boxFace() numbers it.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_face The face.
+ * @return The normal.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+boxFaceNormal(const uint8_t a_face) noexcept
+{
+  Vec3T<T> normal = Vec3T<T>::zeros();
+
+  normal[a_face / 2U] = (a_face % 2U != 0U) ? T(1) : T(-1);
+
+  return normal;
+}
+
+/**
+ * @brief Where a ray is inside each of a box frame's bars, each bar's span computed once.
+ * @details Internal helper; not part of the public API. The crossings of the frame are found from these twelve
+ * spans alone: computing a bar's span where each is needed instead made a tape's ray kernels several times slower to
+ * compile, since the compiler copies it into every place.
+ * @tparam T Floating-point precision.
+ * @param[in]  a_shape The frame.
+ * @param[in]  a_ray   Ray.
+ * @param[out] a_spans The spans.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+frameSpans(const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, FrameSpans<T>& a_spans) noexcept
+{
+  for (uint32_t bar = 0; bar < 12U; bar++) {
+    const ConvexSpan<T> span = RayDetail::barSpan(a_shape, bar, a_ray);
+
+    a_spans.m_in[bar]      = span.m_in;
+    a_spans.m_out[bar]     = span.m_out;
+    a_spans.m_inFace[bar]  = RayDetail::boxFace(span.m_inNormal);
+    a_spans.m_outFace[bar] = RayDetail::boxFace(span.m_outNormal);
+  }
+}
+
+/**
  * @brief The end of the stretch of a box frame a ray is inside from a_t on: the bars' spans that contain it are
  * followed, from one to the next where they overlap, until none goes further.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
- * @param[in]     a_shape  The frame.
- * @param[in]     a_ray    Ray.
- * @param[in]     a_t      Where the stretch starts, inside a bar.
- * @param[in,out] a_normal The outward normal where the stretch ends.
+ * @param[in]     a_spans The bars' spans.
+ * @param[in]     a_t     Where the stretch starts, inside a bar.
+ * @param[in,out] a_face  The face where the stretch ends.
  * @return Where it ends.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline T
-frameStretchEnd(const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, const T a_t, Vec3T<T>& a_normal) noexcept
+frameStretchEnd(const FrameSpans<T>& a_spans, const T a_t, uint8_t& a_face) noexcept
 {
   T end = a_t;
 
@@ -1082,12 +1172,10 @@ frameStretchEnd(const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, const T a_t
     bool further = false;
 
     for (uint32_t bar = 0; bar < 12U; bar++) {
-      const ConvexSpan<T> span = RayDetail::barSpan(a_shape, bar, a_ray);
-
-      if (span.m_in <= end && span.m_out > end) {
-        end      = span.m_out;
-        a_normal = span.m_outNormal;
-        further  = true;
+      if (a_spans.m_in[bar] <= end && a_spans.m_out[bar] > end) {
+        end     = a_spans.m_out[bar];
+        a_face  = a_spans.m_outFace[bar];
+        further = true;
       }
     }
 
@@ -1103,36 +1191,35 @@ frameStretchEnd(const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, const T a_t
  * @brief The first time at or after a_t that a ray enters one of a box frame's bars, or infinity.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
- * @param[in]  a_shape  The frame.
- * @param[in]  a_ray    Ray.
+ * @param[in]  a_spans  The bars' spans.
  * @param[in]  a_t      The earliest time.
- * @param[out] a_normal The outward normal where the ray enters.
- * @param[out] a_inside Whether the ray is inside a bar just after a_t (it entered before or at a_t).
+ * @param[out] a_face   The face where the ray enters.
+ * @param[out] a_inside Whether the ray is inside a bar just after a_t (it entered before a_t).
  * @return Where the ray enters, a_t itself if it is inside a bar there.
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
 inline T
-frameNextEntry(
-  const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, const T a_t, Vec3T<T>& a_normal, bool& a_inside) noexcept
+frameNextEntry(const FrameSpans<T>& a_spans, const T a_t, uint8_t& a_face, bool& a_inside) noexcept
 {
   T next = Math::Limits<T>::infinity();
 
   a_inside = false;
 
   for (uint32_t bar = 0; bar < 12U; bar++) {
-    const ConvexSpan<T> span = RayDetail::barSpan(a_shape, bar, a_ray);
+    const T in  = a_spans.m_in[bar];
+    const T out = a_spans.m_out[bar];
 
-    if (!(span.m_in <= span.m_out) || span.m_out <= a_t) {
+    if (!(in <= out) || out <= a_t) {
       continue;
     }
 
-    if (span.m_in < a_t) {
+    if (in < a_t) {
       a_inside = true;
     }
-    else if (span.m_in < next) {
-      next     = span.m_in;
-      a_normal = span.m_inNormal;
+    else if (in < next) {
+      next   = in;
+      a_face = a_spans.m_inFace[bar];
     }
   }
 
@@ -1765,14 +1852,18 @@ RayForm<BoxFrameSDF<T>>::firstHit(const BoxFrameSDF<T>& a_shape,
                                   const T               a_tMax,
                                   const RayOptions<T>& /*a_options*/) noexcept
 {
-  HitT<T>  hit;
-  Vec3T<T> normal = Vec3T<T>::zeros();
-  bool     inside = false;
+  RayDetail::FrameSpans<T> bars;
 
-  const T entry = RayDetail::frameNextEntry(a_shape, a_ray, a_tMin, normal, inside);
+  RayDetail::frameSpans(a_shape, a_ray, bars);
+
+  HitT<T> hit;
+  uint8_t face   = 0;
+  bool    inside = false;
+
+  const T entry = RayDetail::frameNextEntry(bars, a_tMin, face, inside);
 
   // A ray that starts inside the frame crosses it first where it leaves; one outside, where it enters.
-  const T t = inside ? RayDetail::frameStretchEnd(a_shape, a_ray, a_tMin, normal) : entry;
+  const T t = inside ? RayDetail::frameStretchEnd(bars, a_tMin, face) : entry;
 
   if (t >= a_tMin && t <= a_tMax) {
     hit.m_status   = HitStatus::Hit;
@@ -1780,7 +1871,7 @@ RayForm<BoxFrameSDF<T>>::firstHit(const BoxFrameSDF<T>& a_shape,
     hit.m_point    = a_ray.at(t);
     hit.m_entering = !inside;
     hit.m_exact    = true;
-    hit.m_normal   = normal;
+    hit.m_normal   = RayDetail::boxFaceNormal<T>(face);
   }
 
   return hit;
@@ -1797,6 +1888,10 @@ RayForm<BoxFrameSDF<T>>::spans(const BoxFrameSDF<T>& a_shape,
                                const bool /*a_firstOnly*/,
                                RaySpansT<T>& a_spans) noexcept
 {
+  RayDetail::FrameSpans<T> bars;
+
+  RayDetail::frameSpans(a_shape, a_ray, bars);
+
   a_spans.reset(a_tMax);
 
   // Each stretch inside the frame, in order: from where the ray next enters a bar to where it leaves the last bar
@@ -1804,16 +1899,16 @@ RayForm<BoxFrameSDF<T>>::spans(const BoxFrameSDF<T>& a_shape,
   T t = a_tMin;
 
   for (uint32_t stretch = 0; stretch < 12U && t <= a_tMax; stretch++) {
-    Vec3T<T> normal;
-    bool     inside = false;
+    uint8_t face   = 0;
+    bool    inside = false;
 
-    const T in = RayDetail::frameNextEntry(a_shape, a_ray, t, normal, inside);
+    const T in = RayDetail::frameNextEntry(bars, t, face, inside);
 
     if (!(in <= a_tMax)) {
       break;
     }
 
-    const T end = RayDetail::frameStretchEnd(a_shape, a_ray, in, normal);
+    const T end = RayDetail::frameStretchEnd(bars, in, face);
 
     a_spans.addClipped(in, end, a_tMin, a_tMax);
 

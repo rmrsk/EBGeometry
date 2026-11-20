@@ -5912,7 +5912,8 @@ namespace AnalyticDetail {
  * @details Internal helper; not part of the public API. The closest point is (a_x A^2 / u, a_y B^2 / (A^2 + B^2 - u))
  * for the root u in (0, A^2 + B^2) of F(u) = (a_x A / u)^2 - (a_y B / (A^2 + B^2 - u))^2 - 1, which decreases from
  * +infinity to -infinity there, so the root is unique, as for an ellipse (Eberly). It is found by Newton steps kept
- * inside a bracket that bisection shrinks. A point on an axis has its closest point in closed form.
+ * inside a bracket that bisection shrinks, in one loop, which keeps the code a tape copies into each of its levels
+ * small. A point on an axis has its closest point in closed form.
  * @tparam T Floating-point precision.
  * @param[in] a_A Semi-axis along X.
  * @param[in] a_B Semi-axis along Y.
@@ -5951,30 +5952,21 @@ hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
   const T xA = a_x * a_A;
   const T yB = a_y * a_B;
 
-  const auto F = [&](const T a_u) noexcept {
-    const T first  = xA / a_u;
-    const T second = yB / (S - a_u);
-
-    return first * first - second * second - T(1);
-  };
-
-  // F is negative at u = x A (there X = A, and Y > 0) and below S.
-  T hi = Math::min(xA, S);
-  T lo = T(0.5) * hi;
-
-  for (int i = 0; i < 256 && F(lo) <= T(0); i++) {
-    hi = lo;
-    lo = T(0.5) * lo;
-  }
-
-  constexpr int MaxIterations = 128;
+  // F is negative at u = x A (there X = A, and Y > 0) and below S, and tends to +infinity as u tends to 0, which
+  // is the bracket's lower end until a step finds F positive. One loop does both the bracketing and the root:
+  // where a Newton step leaves the bracket, the step bisects it, which from a lower end of 0 halves u.
+  constexpr int MaxIterations = 160;
 
   const T eps = Math::Limits<T>::epsilon();
 
-  T u = T(0.5) * (lo + hi);
+  T lo = T(0);
+  T hi = Math::min(xA, S);
+  T u  = T(0.5) * hi;
 
   for (int i = 0; i < MaxIterations; i++) {
-    const T f = F(u);
+    const T first  = xA / u;
+    const T second = yB / (S - u);
+    const T f      = first * first - second * second - T(1);
 
     if (f == T(0)) {
       break;
@@ -5987,9 +5979,7 @@ hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
       hi = u;
     }
 
-    const T first  = xA / u;
-    const T second = yB / (S - u);
-    const T df     = -T(2) * first * first / u - T(2) * second * second / (S - u);
+    const T df = -T(2) * first * first / u - T(2) * second * second / (S - u);
 
     T next = u - f / df;
 
@@ -5997,7 +5987,7 @@ hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
       next = T(0.5) * (lo + hi);
     }
 
-    const bool converged = std::abs(next - u) <= T(4) * eps * u || hi - lo <= T(4) * eps * hi;
+    const bool converged = std::abs(next - u) <= T(4) * eps * u;
 
     u = next;
 
@@ -6016,9 +6006,10 @@ hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
  * @brief The distance from a point to the parabola y = -r^2 / (2 rho), for a point with coordinates a_r >= 0 and
  * a_y.
  * @details Internal helper; not part of the public API. The closest point (s, -s^2 / (2 rho)) has s the largest
- * root of the cubic s^3 + P s + Q = 0, P = 2 rho (rho + y), Q = -2 rho^2 r, solved in closed form (Cardano's
- * formula in a form that does not cancel, or the trigonometric one where the cubic has three real roots) and
- * polished by one Newton step.
+ * root of the cubic g(s) = s^3 + P s + Q, P = 2 rho (rho + y), Q = -2 rho^2 r <= 0. With a = sqrt(max(-P, 0)) and
+ * b = cbrt(-Q), g(a + b) >= (a + b) b (2 a + b) - b^3 >= 0, and g is convex for s > 0, so Newton steps from a + b
+ * decrease monotonically to that root. Cardano's formula would need a cube root, an arc cosine and a cosine, whose
+ * code a tape copies into each of its levels; the loop is smaller.
  * @tparam T Floating-point precision.
  * @param[in] a_rho The radius of curvature at the tip.
  * @param[in] a_r   The point's distance from the axis.
@@ -6030,34 +6021,28 @@ template <class T>
 inline T
 parabolaDistance(const T a_rho, const T a_r, const T a_y) noexcept
 {
-  const T P     = T(2) * a_rho * (a_rho + a_y);
-  const T Q     = -T(2) * a_rho * a_rho * a_r;
-  const T third = P / T(3);
-  const T disc  = T(0.25) * Q * Q + third * third * third;
+  constexpr int MaxIterations = 64;
 
-  T s = T(0);
+  const T P = T(2) * a_rho * (a_rho + a_y);
+  const T Q = -T(2) * a_rho * a_rho * a_r;
 
-  if (disc >= T(0)) {
-    const T a = std::cbrt(-T(0.5) * Q + std::sqrt(disc));
+  T s = std::sqrt(Math::max(-P, T(0))) + std::cbrt(-Q);
 
-    if (a > T(0)) {
-      const T b = -third / a;
+  for (int i = 0; i < MaxIterations; i++) {
+    const T g     = s * s * s + P * s + Q;
+    const T slope = T(3) * s * s + P;
 
-      // s = a + b; for P > 0 the two cancel, and -Q / (a^2 - a b + b^2) is the same root without cancellation.
-      s = (P > T(0)) ? -Q / (a * a + third + b * b) : a + b;
+    if (!(g > T(0)) || !(slope > T(0))) {
+      break;
     }
-  }
-  else {
-    const T m      = T(2) * std::sqrt(-third);
-    const T cosine = Math::clamp(T(1.5) * Q / P * std::sqrt(-T(3) / P), T(-1), T(1));
 
-    s = m * std::cos(std::acos(cosine) / T(3));
-  }
+    const T next = Math::max(s - g / slope, T(0));
 
-  const T derivative = T(3) * s * s + P;
+    if (!(next < s)) {
+      break;
+    }
 
-  if (derivative > T(0)) {
-    s -= (s * s * s + P * s + Q) / derivative;
+    s = next;
   }
 
   const T dr = s - a_r;
@@ -7196,33 +7181,41 @@ public:
 
     const T across = (rho - m_helixRadius) * (rho - m_helixRadius);
 
-    T best = this->windowMinimum(kNear, rho, phi, y, rate, last);
+    // The windows outward from the nearest, alternately below and above it, until a window's height difference
+    // alone rules out every further one on its side. One call site of windowMinimum(), since a tape copies this into
+    // each of its levels.
+    T    best      = Math::Limits<T>::max();
+    bool belowDone = false;
+    bool aboveDone = false;
 
-    // Outward from the nearest window, while a window's height difference alone does not rule it out.
-    for (T step = T(1); step <= kHigh - kLow; step += T(1)) {
-      bool further = false;
+    const int count = 2 * int(kHigh - kLow) + 1;
 
-      for (int side = 0; side < 2; side++) {
-        const T k = (side == 0) ? kNear - step : kNear + step;
+    for (int i = 0; i < count && !(belowDone && aboveDone); i++) {
+      const bool below = (i % 2) == 1;
+      const T    step  = T((i + 1) / 2);
+      const T    k     = below ? kNear - step : kNear + step;
 
-        if (k < kLow || k > kHigh) {
-          continue;
-        }
-
-        const T lo   = Math::max(phi + twoPi * k - T(0.5) * twoPi, T(0));
-        const T hi   = Math::min(phi + twoPi * k + T(0.5) * twoPi, last);
-        const T gap  = Math::max(Math::max(rate * lo - y, y - rate * hi), T(0));
-        const T rule = across + gap * gap;
-
-        if (rule < best) {
-          further = true;
-          best    = Math::min(best, this->windowMinimum(k, rho, phi, y, rate, last));
-        }
+      if ((i > 0 && below && belowDone) || (i > 0 && !below && aboveDone)) {
+        continue;
       }
 
-      if (!further) {
-        break;
+      const T lo   = Math::max(phi + twoPi * k - T(0.5) * twoPi, T(0));
+      const T hi   = Math::min(phi + twoPi * k + T(0.5) * twoPi, last);
+      const T gap  = Math::max(Math::max(rate * lo - y, y - rate * hi), T(0));
+      const T rule = across + gap * gap;
+
+      if (k < kLow || k > kHigh || rule >= best) {
+        if (below) {
+          belowDone = true;
+        }
+        else if (i > 0) {
+          aboveDone = true;
+        }
+
+        continue;
       }
+
+      best = Math::min(best, this->windowMinimum(k, rho, phi, y, rate, last));
     }
 
     return std::sqrt(best) - m_tubeRadius;
