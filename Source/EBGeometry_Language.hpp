@@ -1286,7 +1286,7 @@ completeness(const Model<T>& a_model, const Tape<T, UserPrimitives...>& a_tape, 
  * listed, with a point in it, its volume, and whether it is on the object's outer boundary, touching the exterior,
  * or enclosed, with the subdomains around it), and when an enclosed cavity of the outside (a component of region 0
  * other than the exterior) touches a region of the domain's subdomains. A tape whose value is not a distance, or whose
- * object is unbounded, is not searched; a warning says so.
+ * object is unbounded or too long for the resolution (see connectedComponents()), is not searched; a warning says so.
  * @tparam T              Precision.
  * @tparam UserPrimitives The tape's user primitives.
  * @param[in] a_model      The model.

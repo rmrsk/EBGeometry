@@ -4568,14 +4568,21 @@ completeness(const Model<T>&                   a_model,
 
     bool bounded = true;
 
+    bool fits = true;
+
     for (size_t d = 0; d < 3; d++) {
       bounded = bounded && std::abs(box.getLowCorner()[d]) < far && std::abs(box.getHighCorner()[d]) < far &&
                 box.getLowCorner()[d] <= box.getHighCorner()[d];
+      fits = fits && (!bounded || double(box.getHighCorner()[d] - box.getLowCorner()[d]) / double(a_resolution) + 4.0 <=
+                                    double(ComponentsDetail::MaxCellsPerAxis));
     }
 
-    if (!bounded) {
+    if (!bounded || !fits) {
       warning(domain.span(),
-              "the connected components of domain '" + domain.name() + "' are not checked: the object is unbounded");
+              "the connected components of domain '" + domain.name() + "' are not checked: " +
+                (bounded ? "the object is more than " + std::to_string(ComponentsDetail::MaxCellsPerAxis) +
+                             " cells of size " + LanguageDetail::shortNumber(double(a_resolution)) + " long"
+                         : std::string("the object is unbounded")));
 
       return result;
     }
@@ -4617,6 +4624,8 @@ completeness(const Model<T>&                   a_model,
 
   for (uint32_t c = 0; c < byRegion.getNumComponents(); c++) {
     // A seed is the center of one of its component's cells, so it is always in the box; this guards the indexing.
+    EBGEOMETRY_EXPECT(inside[c] != ConnectedComponents<T>::None);
+
     if (inside[c] == ConnectedComponents<T>::None) {
       continue;
     }
