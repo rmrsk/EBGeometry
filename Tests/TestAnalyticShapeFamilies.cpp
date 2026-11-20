@@ -1031,13 +1031,13 @@ TEST_CASE("Shape families: invalid constructor arguments abort with a message", 
 
       (void)h;
     },
-    "HelixSDF: the tube radius must be positive and less than the helix radius 1 and half the distance between turns "
-    "0.0499937 (0.06)"));
+    "HelixSDF: the tube radius must be positive and less than the helix radius 1 and half the distance between turns"));
 
-  // A tube under half the pitch that still touches the next turn, the turns being closer than the pitch.
+  // A tube under half the pitch that still touches the next turn, the turns being closer than the pitch: the closest
+  // approach is not straight across, along the axis, so this tube is short of half the across distance and overlaps.
   REQUIRE(abortsWith(
     [] {
-      const HelixSDF<T> h(Vec3::zeros(), Vec3::unit(1), T(0.5), T(1), T(0.49), Vec3::unit(0));
+      const HelixSDF<T> h(Vec3::zeros(), Vec3::unit(1), T(0.5), T(1), T(0.4765), Vec3::unit(0));
 
       (void)h;
     },
