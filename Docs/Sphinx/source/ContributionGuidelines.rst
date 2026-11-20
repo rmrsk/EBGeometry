@@ -153,8 +153,8 @@ A class that a kernel can use follows the memory model in :ref:`Chap:MemoryModel
    stores in pool memory.
 5. A method returning a container (``std::vector``) that is useful on a device gets a *streaming*
    sibling instead of an annotation, as ``FaceT::getSmallestCoordinate()``/``getHighestCoordinate()`` do.
-6. The class goes into ``Tests/InstantiateAll.cpp``, gets a ``[gpu]``-tagged test (below), and its test
-   binary goes into ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.
+6. The class goes into ``Tests/InstantiateAll.cpp``, gets a ``[gpu]``-tagged test (below), and the test
+   binary that holds it goes into ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.
 7. The Sphinx page that documents the class is updated.
 
 Adding tests
@@ -174,7 +174,11 @@ which explicitly instantiates every public class template so that ``clang-tidy``
 and the project's warning set analyze them regardless of what the tests exercise.
 
 A class that is callable on a GPU also gets a device test: a test case tagged ``[gpu]`` in its test
-file, whose binary is listed in ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``.
+file, whose binary is listed in ``EBGEOMETRY_GPU_TESTS`` in ``Tests/CMakeLists.txt``. A GPU build compiles
+every file in that list with the device compiler, so a component with many host tests keeps its device tests
+in a file of their own, ``Test<Component>Device.cpp`` (``TestBVHDevice.cpp`` beside ``TestBVH.cpp``), with the
+helpers both use in a header, and only that file is listed; a host test whose code runs or compiles kernels in a
+GPU build (a build through ``GPU::parallelFor()``, which a cloud's constructor instantiates) goes there too.
 ``Tests/TestGPU.hpp`` holds the harness. Write the check as a functor -- a trivially copyable struct
 holding the object under test (a ``rebasedView()`` onto a pool mirrored into
 ``deviceTestResource()``, for anything pool-resident) whose ``EBGEOMETRY_HOST_DEVICE`` call operator

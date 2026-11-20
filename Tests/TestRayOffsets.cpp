@@ -246,16 +246,20 @@ TEMPLATE_TEST_CASE("Ray: device ray queries of offsets and annuli match the host
   // scale in a tape, against device mirrors of their pool.
   Pool pool(hostMemoryResource());
 
-  const auto cube     = Parser::readIntoTriMeshSDF<T, 4, 4>(unitCube(), pool);
+  // The triangle mesh with the default branching factor and width, a built-in primitive type, so that the three
+  // tapes are of one type and compile one kernel. (A tape that also lists it among its user types would compile a
+  // second kernel of the same code, whose user slot no primitive takes.)
+  constexpr size_t K = BVH::DefaultBranchingRatio<T>();
+  constexpr size_t W = TriangleSoA::DefaultWidth<T>();
+
+  const auto cube     = Parser::readIntoTriMeshSDF<T, K, W>(unitCube(), pool);
   const auto polygons = Parser::readIntoMeshSDF<T, 4>(unitCube(), pool);
   const auto flat     = Parser::readIntoFlatMeshSDF<T>(unitCube(), pool);
 
-  using M  = std::decay_t<decltype(cube)>;
-  using TM = Tape<T, TapeFeature::ExactOffsets, M>;
   using TX = Tape<T, TapeFeature::ExactOffsets>;
 
-  const TM   annulusTape(pool, Annular(cube, T(0.1)));
-  const TM   offsetTape(pool, Offset(cube, T(-0.1)));
+  const TX   annulusTape(pool, Annular(cube, T(0.1)));
+  const TX   offsetTape(pool, Offset(cube, T(-0.1)));
   const TX   boxTape(pool, Scale(Offset(BoxSDF<T>(-T(0.5) * Vec3::ones(), T(0.4) * Vec3::ones()), T(0.15)), T(1.5)));
   const auto annulusFused = Fused::Annular(polygons, T(0.1));
   const auto annulusFlat  = Fused::Annular(flat, T(0.1));
@@ -267,10 +271,10 @@ TEMPLATE_TEST_CASE("Ray: device ray queries of offsets and annuli match the host
   using A  = std::decay_t<decltype(annulusFused)>;
   using AF = std::decay_t<decltype(annulusFlat)>;
 
-  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TM>{annulusTape.rebasedView(device)}, rays),
-                     evaluateOnHost<T>(FirstCrossing<T, TM>{annulusTape}, rays));
-  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TM>{offsetTape.rebasedView(device)}, rays),
-                     evaluateOnHost<T>(FirstCrossing<T, TM>{offsetTape}, rays));
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TX>{annulusTape.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, TX>{annulusTape}, rays));
+  requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TX>{offsetTape.rebasedView(device)}, rays),
+                     evaluateOnHost<T>(FirstCrossing<T, TX>{offsetTape}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, TX>{boxTape.rebasedView(device)}, rays),
                      evaluateOnHost<T>(FirstCrossing<T, TX>{boxTape}, rays));
   requireSameResults(evaluateOnDevice<T>(FirstCrossing<T, A>{annulusFused.rebasedView(device)}, rays),

@@ -582,10 +582,11 @@ jobs:
     name: GPU CUDA compile
     runs-on: ubuntu-24.04
     # Every tape kernel compiles each built-in shape at every level of the evaluator, so the device tests
-    # and examples take about half an hour. The performance probes are not built here: they took as long
-    # again, and four of them compiled side by side need more memory than the runner has; the device
-    # receipt builds every probe for the device on the pull request's final code.
-    timeout-minutes: 60
+    # and examples take 40 to 55 minutes to build here (a ray or render kernel alone keeps ptxas busy for
+    # minutes); the timeout leaves room for a slow runner. The performance probes are not built here: they
+    # took as long again, and four of them compiled side by side need more memory than the runner has; the
+    # device receipt builds every probe for the device on the pull request's final code.
+    timeout-minutes: 80
     if: ${{ !github.event.pull_request.draft }}
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
@@ -621,7 +622,7 @@ jobs:
     name: GPU HIP compile
     runs-on: ubuntu-24.04
     # Every tape kernel compiles each built-in shape at every level of the evaluator; with the full set of
-    # analytic shapes this takes over 30 minutes.
+    # analytic shapes the optimized build takes 20 to 35 minutes, and the unoptimized one 6 to 10 more.
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
