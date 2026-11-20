@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
@@ -126,33 +127,87 @@ Soup::compress(std::vector<EBGeometry::Vec3T<T>>& a_vertices, std::vector<std::v
 
   const size_t originalVertexCount = a_vertices.size();
 
-  // Create a "map" of the vertices, storing their original indices. Then sort
-  // the map lexicographically.
-  std::vector<std::pair<Vec3, size_t>> vertexMap;
-  vertexMap.reserve(originalVertexCount);
+  // Find the distinct positions first, with a hash table, and sort only those: a file such as a binary STL lists
+  // every vertex once per facet that uses it, and sorting every copy would cost several times as much. The table, with
+  // open addressing (linear probing) and at most half full, holds each distinct position's index in `distinct`.
+  // Positions are equal as Vec3T::operator== says, so -0 and +0 are one position and hash alike.
+  constexpr size_t Empty = Math::Limits<size_t>::max();
 
-  for (size_t i = 0; i < originalVertexCount; i++) {
-    vertexMap.emplace_back(a_vertices[i], i);
+  const auto hashOf = [](const Vec3& a_x) noexcept {
+    uint64_t hash = 0x9E3779B97F4A7C15ULL;
+
+    for (size_t dir = 0; dir < 3; dir++) {
+      const T coordinate = (a_x[dir] == T(0)) ? T(0) : a_x[dir];
+
+      std::conditional_t<sizeof(T) == sizeof(uint32_t), uint32_t, uint64_t> bits;
+
+      static_assert(sizeof(bits) == sizeof(T), "Soup::compress: T must be a 32-bit or 64-bit floating-point type");
+
+      std::memcpy(&bits, &coordinate, sizeof(T));
+
+      hash = (hash ^ uint64_t(bits)) * 0xC2B2AE3D27D4EB4FULL;
+      hash ^= hash >> 31;
+    }
+
+    return hash;
+  };
+
+  size_t capacity = 16;
+
+  while (capacity < 2 * originalVertexCount) {
+    capacity *= 2;
   }
 
-  std::sort(vertexMap.begin(), vertexMap.end(), [](const std::pair<Vec3, size_t>& A, const std::pair<Vec3, size_t>& B) {
-    const Vec3& a = A.first;
-    const Vec3& b = B.first;
+  const size_t mask = capacity - 1;
 
-    return a.lessLX(b);
+  std::vector<size_t> table(capacity, Empty);
+  std::vector<size_t> distinct;                        // For each distinct position, the first input vertex at it.
+  std::vector<size_t> distinctOf(originalVertexCount); // For each input vertex, its distinct position.
+
+  for (size_t i = 0; i < originalVertexCount; i++) {
+    const Vec3& x = a_vertices[i];
+
+    size_t slot = size_t(hashOf(x)) & mask;
+
+    while (table[slot] != Empty && a_vertices[distinct[table[slot]]] != x) {
+      slot = (slot + 1) & mask;
+    }
+
+    if (table[slot] == Empty) {
+      table[slot] = distinct.size();
+      distinct.push_back(i);
+    }
+
+    distinctOf[i] = table[slot];
+  }
+
+  // Sort the distinct positions lexicographically. No two are equal, so their order is unique.
+  std::vector<std::pair<Vec3, size_t>> sorted;
+  sorted.reserve(distinct.size());
+
+  for (size_t d = 0; d < distinct.size(); d++) {
+    sorted.emplace_back(a_vertices[distinct[d]], d);
+  }
+
+  std::sort(sorted.begin(), sorted.end(), [](const std::pair<Vec3, size_t>& A, const std::pair<Vec3, size_t>& B) {
+    return A.first.lessLX(B.first);
   });
 
-  // Compress the vertex vector. While doing so we should build up the old-to-new index map
+  // Compress the vertex vector, and build the old-to-new index map.
+  std::vector<size_t> newIndexOfDistinct(distinct.size());
+
   a_vertices.clear();
+
+  for (size_t i = 0; i < sorted.size(); i++) {
+    a_vertices.emplace_back(sorted[i].first);
+
+    newIndexOfDistinct[sorted[i].second] = i;
+  }
 
   std::vector<size_t> indexMap(originalVertexCount);
 
-  for (size_t i = 0; i < vertexMap.size(); i++) {
-    if (i == 0 || vertexMap[i].first != vertexMap[i - 1].first) {
-      a_vertices.emplace_back(vertexMap[i].first);
-    }
-
-    indexMap[vertexMap[i].second] = a_vertices.size() - 1;
+  for (size_t i = 0; i < originalVertexCount; i++) {
+    indexMap[i] = newIndexOfDistinct[distinctOf[i]];
   }
 
   // With no vertices, no facet can be valid.
@@ -224,31 +279,47 @@ Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertic
 
   std::vector<bool> removed(numFacets, false);
 
-  // Merge repeated consecutive vertices (compress() gives coincident vertices one index).
+  // Merge repeated consecutive vertices (compress() gives coincident vertices one index), in place: vertex i
+  // is kept unless it equals the next one, and the last is compared with the facet's first as it was read.
   for (size_t f = 0; f < numFacets; f++) {
     std::vector<size_t>& facet = a_facets[f];
 
-    std::vector<size_t> merged;
-    merged.reserve(facet.size());
+    const size_t n = facet.size();
 
-    for (size_t i = 0; i < facet.size(); i++) {
-      if (facet[i] != facet[(i + 1) % facet.size()]) {
-        merged.push_back(facet[i]);
+    if (n > 0) {
+      const size_t front = facet[0];
+
+      size_t kept = 0;
+
+      for (size_t i = 0; i < n; i++) {
+        const size_t next = (i + 1 < n) ? facet[i + 1] : front;
+
+        if (facet[i] != next) {
+          facet[kept++] = facet[i];
+        }
       }
-    }
 
-    facet = std::move(merged);
+      facet.resize(kept);
+    }
 
     if (facet.size() < 3) {
       removed[f] = true;
     }
   }
 
+  // Most soups have no zero-area facet left, and then the loop below changes nothing: without one, it needs
+  // no table of edges either.
+  bool hasZeroArea = false;
+
+  for (size_t f = 0; f < numFacets && !hasZeroArea; f++) {
+    hasZeroArea = !removed[f] && Soup::isZeroArea(a_vertices, a_facets[f]);
+  }
+
   // Directed edge (u, v) -> the facet that contains it. Used to find the facet across a
   // T-junction filler's longest edge, which contains that edge reversed.
   std::map<Edge, size_t> facetOfEdge;
 
-  for (size_t f = 0; f < numFacets; f++) {
+  for (size_t f = 0; f < numFacets && hasZeroArea; f++) {
     if (!removed[f]) {
       const std::vector<size_t>& facet = a_facets[f];
 
@@ -258,7 +329,7 @@ Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertic
     }
   }
 
-  for (size_t f = 0; f < numFacets; f++) {
+  for (size_t f = 0; f < numFacets && hasZeroArea; f++) {
     if (removed[f] || !Soup::isZeroArea(a_vertices, a_facets[f])) {
       continue;
     }
@@ -340,8 +411,11 @@ Soup::removeDegeneratePolygons(const std::vector<EBGeometry::Vec3T<T>>& a_vertic
 inline std::string
 Soup::findRepeatedVertex(const std::vector<std::vector<size_t>>& a_facets)
 {
+  // One buffer for every facet, rather than an allocation per facet.
+  std::vector<size_t> sorted;
+
   for (size_t f = 0; f < a_facets.size(); f++) {
-    std::vector<size_t> sorted = a_facets[f];
+    sorted.assign(a_facets[f].begin(), a_facets[f].end());
 
     std::sort(sorted.begin(), sorted.end());
 
@@ -362,22 +436,57 @@ Soup::findTopologyDefect(const std::vector<std::vector<size_t>>& a_facets)
     return repeated;
   }
 
-  // Which polygon first traversed each directed edge.
-  std::map<std::pair<size_t, size_t>, size_t> directedEdges;
+  // Which polygon first traversed each directed edge, in a hash table with open addressing (linear probing),
+  // filled in the order of the polygons and their edges: the first edge found already there is the defect
+  // reported. At most half full: a node-based map would allocate a node for every edge, at several times the cost.
+  struct Slot
+  {
+    size_t from;
+    size_t to;
+    size_t facet; // Empty for a free slot.
+  };
+
+  constexpr size_t Empty = Math::Limits<size_t>::max();
+
+  size_t numEdges = 0;
+
+  for (const auto& facet : a_facets) {
+    numEdges += facet.size();
+  }
+
+  size_t capacity = 16;
+
+  while (capacity < 2 * numEdges) {
+    capacity *= 2;
+  }
+
+  const size_t      mask = capacity - 1;
+  std::vector<Slot> slots(capacity, Slot{0, 0, Empty});
 
   for (size_t f = 0; f < a_facets.size(); f++) {
     const std::vector<size_t>& facet = a_facets[f];
 
     for (size_t i = 0; i < facet.size(); i++) {
-      const std::pair<size_t, size_t> edge(facet[i], facet[(i + 1) % facet.size()]);
+      const size_t from = facet[i];
+      const size_t to   = facet[(i + 1) % facet.size()];
 
-      const auto inserted = directedEdges.emplace(edge, f);
+      uint64_t hash = uint64_t(from) * 0x9E3779B97F4A7C15ULL + uint64_t(to) * 0xC2B2AE3D27D4EB4FULL;
 
-      if (!inserted.second) {
-        return "faces " + std::to_string(inserted.first->second) + " and " + std::to_string(f) +
-               " both run from vertex " + std::to_string(edge.first) + " to vertex " + std::to_string(edge.second) +
+      hash ^= hash >> 29;
+
+      size_t slot = size_t(hash) & mask;
+
+      while (slots[slot].facet != Empty && (slots[slot].from != from || slots[slot].to != to)) {
+        slot = (slot + 1) & mask;
+      }
+
+      if (slots[slot].facet != Empty) {
+        return "faces " + std::to_string(slots[slot].facet) + " and " + std::to_string(f) + " both run from vertex " +
+               std::to_string(from) + " to vertex " + std::to_string(to) +
                ": they are oriented inconsistently, or more than two faces share that edge";
       }
+
+      slots[slot] = Slot{from, to, f};
     }
   }
 
@@ -520,7 +629,11 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh)
   // stays O(V + E) instead of an O(E^2) scan over every edge pair. Each edge's origin vertex and next
   // edge are checked in every build, since both loops index with them; soupToDCEL never breaks
   // either, a mesh assembled by hand can.
-  std::vector<std::vector<uint32_t>> edgesStartingAtVertex(numVertices);
+  // The lists are stored one after another, vertex v's in edgesStartingAtVertex[first[v]] to
+  // edgesStartingAtVertex[first[v + 1] - 1] in increasing edge order, counted in one pass and filled in a
+  // second, rather than a vector per vertex, which would allocate as it grows.
+  std::vector<uint32_t> first(size_t(numVertices) + 1, 0);
+
   for (uint32_t i = 0; i < numEdges; i++) {
     const uint32_t v    = a_mesh.getEdge(i).getVertexIndex();
     const uint32_t next = a_mesh.getEdge(i).getNextEdgeIndex();
@@ -536,7 +649,18 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh)
                        unsigned(next),
                        unsigned(numEdges));
 
-    edgesStartingAtVertex[v].push_back(i);
+    first[size_t(v) + 1]++;
+  }
+
+  for (uint32_t v = 0; v < numVertices; v++) {
+    first[size_t(v) + 1] += first[v];
+  }
+
+  std::vector<uint32_t> edgesStartingAtVertex(numEdges);
+  std::vector<uint32_t> fill(first.begin(), first.end() - 1);
+
+  for (uint32_t i = 0; i < numEdges; i++) {
+    edgesStartingAtVertex[fill[a_mesh.getEdge(i).getVertexIndex()]++] = i;
   }
 
   for (uint32_t curIndex = 0; curIndex < numEdges; curIndex++) {
@@ -548,7 +672,8 @@ Soup::reconcilePairEdgesDCEL(EBGeometry::DCEL::MeshT<T>& a_mesh)
     const uint32_t vertexEnd   = a_mesh.getEdge(nextIndex).getVertexIndex();
 
     // The pair edge starts where this edge ends, and ends where this edge starts.
-    for (const uint32_t candIndex : edgesStartingAtVertex[vertexEnd]) {
+    for (uint32_t cand = first[vertexEnd]; cand < first[size_t(vertexEnd) + 1]; cand++) {
+      const uint32_t candIndex     = edgesStartingAtVertex[cand];
       Edge&          candEdge      = a_mesh.getEdge(candIndex);
       const uint32_t candNextIndex = candEdge.getNextEdgeIndex();
 

@@ -21,6 +21,7 @@ folder measures it. The full description is the *Performance testing* page of th
 | `SphereContacts/` | `SphereCloudBVH::forEachContact()`: every particle's contacts and contact force, on the host and on a device |
 | `SphereCloudRays/` | `SphereCloudBVH`'s ray form: rays through the cloud, and through a box with the cloud cut out of it, fused and in a tape, on the host and on a device |
 | `Mesh/`       | `TriMeshSDF` and `MeshSDF`: builds, refits, signed distances    |
+| `MeshIngest/` | Reading a mesh file: the armadillo read into a cleaned `PolygonSoup`, a DCEL mesh and triangles, and cleaning a soup alone |
 | `MeshReconcile/` | Reconciling a moved DCEL mesh: `MeshT::reconcile()`, and `DCEL::reconcile()` where its pool is, in host loops and in device memory |
 | `BVH/`        | `PackedBVH::traverse()` itself: rays and points through a BVH of the mesh's triangle boxes |
 | `BVHRefit/`   | `BVH::refit()` where its pool is: the host's sweep, and a launch per tree level in device memory |

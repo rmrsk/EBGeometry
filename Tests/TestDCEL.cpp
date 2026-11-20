@@ -1548,6 +1548,76 @@ TEMPLATE_TEST_CASE("Soup::compress removes duplicate vertices and reindexes face
   REQUIRE(identity == std::vector<size_t>{0, 1, 2, 3});
 }
 
+TEMPLATE_TEST_CASE("Soup::compress merges every copy of a position, -0 and +0 alike, in a large soup",
+                   "[Soup]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Positions on a small lattice, each listed a varying number of times in a scrambled order, as a binary STL
+  // file lists a vertex once per facet. Every coordinate 0 is written as -0 on some copies.
+  std::vector<Vec3T<T>> verts;
+
+  for (size_t i = 0; i < 3000; i++) {
+    const size_t k     = (i * 7919) % 401;
+    const size_t row   = (k / 7) % 7;
+    const size_t layer = k / 49;
+    const T      x     = T(k % 7) - T(3);
+    const T      y     = T(row) - T(3);
+    const T      z     = T(layer) - T(4);
+
+    const auto signedZero = [i](T a_coordinate) { return (a_coordinate == T(0) && i % 2 == 1) ? -T(0) : a_coordinate; };
+
+    verts.emplace_back(signedZero(x), signedZero(y), signedZero(z));
+  }
+
+  std::vector<std::vector<size_t>> facets;
+
+  for (size_t f = 0; f + 2 < verts.size(); f += 3) {
+    facets.push_back({f, f + 1, f + 2});
+  }
+
+  const std::vector<Vec3T<T>>            original       = verts;
+  const std::vector<std::vector<size_t>> originalFacets = facets;
+
+  const std::vector<size_t> newIndex = Soup::compress(verts, facets);
+
+  // As many vertices as distinct positions, counted by brute force.
+  size_t numDistinct = 0;
+
+  for (size_t i = 0; i < original.size(); i++) {
+    bool seen = false;
+
+    for (size_t j = 0; j < i && !seen; j++) {
+      seen = (original[j] == original[i]);
+    }
+
+    numDistinct += seen ? 0 : 1;
+  }
+
+  REQUIRE(verts.size() == numDistinct);
+
+  // Sorted lexicographically, so no two equal.
+  for (size_t v = 1; v < verts.size(); v++) {
+    REQUIRE(verts[v - 1].lessLX(verts[v]));
+  }
+
+  // Every input vertex maps to its position, and the facets follow the map.
+  REQUIRE(newIndex.size() == original.size());
+
+  for (size_t v = 0; v < original.size(); v++) {
+    REQUIRE(verts[newIndex[v]] == original[v]);
+  }
+
+  REQUIRE(facets.size() == originalFacets.size());
+
+  for (size_t f = 0; f < facets.size(); f++) {
+    for (size_t i = 0; i < 3; i++) {
+      REQUIRE(facets[f][i] == newIndex[originalFacets[f][i]]);
+    }
+  }
+}
+
 TEMPLATE_TEST_CASE("Soup::compress on empty input clears the facet list", "[Soup]", EBGEOMETRY_TEST_PRECISIONS)
 {
   using T                                 = TestType;

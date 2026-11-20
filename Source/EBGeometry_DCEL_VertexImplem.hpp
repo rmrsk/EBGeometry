@@ -14,7 +14,6 @@
 // Std includes
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <vector>
 
 // Our includes
@@ -166,7 +165,11 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
       continue;
     }
 
-    std::vector<uint32_t> inoutVertices(0);
+    // The other ends of the face's half-edges into and out of this vertex: the first two are kept, and every
+    // one is counted, so that the check below catches a face that visits the vertex more than once. A fixed
+    // array, since this runs for every corner of every face, where a vector would allocate each time.
+    uint32_t inoutVertices[2] = {0, 0};
+    size_t   numInoutVertices = 0;
 
     for (EdgeIterator edgeIt(a_mesh, f); edgeIt.ok(); ++edgeIt) {
       const Edge& e = a_mesh.getEdge(edgeIt());
@@ -175,30 +178,22 @@ VertexT<T>::computeVertexNormalAngleWeighted(const uint32_t               a_this
       const uint32_t v2 = e.getNextEdge(a_mesh).getVertexIndex();
 
       if (v1 == originVertexIndex || v2 == originVertexIndex) {
-        if (v1 == originVertexIndex) {
-          inoutVertices.emplace_back(v2);
+        if (numInoutVertices < 2) {
+          inoutVertices[numInoutVertices] = (v1 == originVertexIndex) ? v2 : v1;
         }
-        else if (v2 == originVertexIndex) {
-          inoutVertices.emplace_back(v1);
-        }
-        else {
-          std::cerr << "VertexT<T>::computeVertexNormalAngleWeighted(): unreachable branch "
-                       "hit -- a half-edge of face f was found to have originVertexIndex as one of "
-                       "its two endpoints, but neither v1 nor v2 compares equal to it. This points "
-                       "to a corrupted or inconsistent half-edge/vertex topology (e.g. a stale "
-                       "vertex index) rather than a normal mesh-quality issue.\n";
-        }
+
+        numInoutVertices++;
       }
     }
 
     // Indexing inoutVertices[0]/[1] below is an out-of-bounds read unless the face is incident on
     // this vertex through exactly two half-edges (one incoming, one outgoing).
-    EBGEOMETRY_REQUIRE(inoutVertices.size() == 2,
+    EBGEOMETRY_REQUIRE(numInoutVertices == 2,
                        "DCEL::VertexT::computeVertexNormalAngleWeighted: face %u must visit vertex %u exactly once "
                        "(found %zu incident half-edges instead of 2)",
                        unsigned(faceIndex),
                        unsigned(originVertexIndex),
-                       inoutVertices.size());
+                       numInoutVertices);
 
     const Vec3& x0 = a_mesh.getVertex(originVertexIndex).getPosition();
     const Vec3& x1 = a_mesh.getVertex(inoutVertices[0]).getPosition();
