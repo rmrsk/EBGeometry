@@ -190,6 +190,7 @@ struct PoolLocation
 
 static_assert(std::is_trivially_copyable_v<PoolLocation>,
               "PoolLocation must be trivially copyable, for a kernel to take a handle");
+
 /**
  * @brief Growable bump arena over a @ref MemoryResource.
  * @details Move-only, single-owner RAII. See the file-level documentation for how growth, freezing
