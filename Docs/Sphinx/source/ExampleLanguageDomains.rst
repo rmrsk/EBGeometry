@@ -31,6 +31,16 @@ The program reads ``cable/setup.ebg`` with ``Language::read()``, which also read
 errors throws them all, with their files, lines and columns. It then compiles the object into a tape, builds
 the cfd domain for that tape from the model's setup, and checks it with ``completeness()``.
 
+The pieces of the fluid
+-----------------------
+
+The check works from the description, which cannot say how many pieces of space the fluid is in. The program asks
+the geometry, with ``connectedComponents()`` on the cfd domain at a resolution of 0.05 over the air box: each
+connected component of the fluid, with a point in it, its volume and whether it reaches the box (see
+:ref:`Chap:ImplemRegions`). The fluid is in three pieces: the air around the cable, and the air in each end of the
+jacket, between the core's end and the box's face, which meets the rest of the air only through that face. A
+solver computing the flow sees three volumes, two of them small pockets open only on the domain's boundary.
+
 What a solver keeps
 -------------------
 

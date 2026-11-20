@@ -104,6 +104,31 @@ Several domains can share one object, each a different computation: the same air
 computation and a dielectric of an electrostatic one, and the same surface can be a boundary of one and an
 interface of the other.
 
+Connected components
+--------------------
+
+A region is a part of space, not necessarily one piece of it. Two balls in one region may or may not touch, a
+difference can cut a bar into three, and a hollow shell seals off a cavity that is part of the outside: the
+expression says what each region is, never how many pieces it has. A :term:`connected component` is one such
+piece: a connected part of space all in one region (or in one subdomain, or in one material). A solver needs to
+know about them: an enclosed pocket of gas, cut off from the rest, needs its own initial state, a conductor
+touching nothing needs its own potential, and many solvers ask for a point in each piece to name it.
+
+Only the geometry decides, so EBGeometry finds the components by searching space at a resolution *h*, the
+size of the smallest cells of the search, which are placed only near surfaces. For each component it gives a
+point inside it, its volume and box (approximate, within about *h*), the components it touches, and whether
+it reaches the box searched; one that does not is enclosed, a cavity or a floating body.
+
+**What h means.** Two pieces joined by a neck thinner than *h*, or separated by a wall thinner than *h*, may
+count as one, and a piece thinner than *h* may be missed. With *h* the cell size of the solver the components
+are for, the components found are the ones that solver sees, which is usually what is wanted: a gap the solver
+cannot resolve does not separate two volumes for it.
+
+The search needs the functions to be distances or bounds on them (a :term:`distance quality` other than
+``NotADistance``): it shows
+that a cell lies wholly in one region from the distance to its surface, and an object whose value is only a
+sign is rejected.
+
 Along a ray
 -----------
 

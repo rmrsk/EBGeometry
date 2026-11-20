@@ -9,7 +9,8 @@ them. `Language::read()` reads the setup at run time;
 the program compiles the object into a tape, builds the cfd domain for it from the model's setup, and fills a table of
 its own rows (`Fluid`, a density and a viscosity per subdomain) from the subdomains' properties, in the tape's pool.
 `completeness()` says whether every subdomain has properties and every piece of surface bounding the domain a surface
-group. `model.domainObject("conduction")` compiles the conduction domain on its own: the cable and the regions whose
+group. `connectedComponents()` finds the pieces the fluid is in, at a resolution: the air around the cable, and the
+air in each end of the jacket. `model.domainObject("conduction")` compiles the conduction domain on its own: the cable and the regions whose
 bounding boxes meet its regions (the air around it), not the sensor. A query reads the fluid's density by the domain's
 subdomain there, on the host and, through `GPU::transform`, on a GPU. The window shows the regions, colored by
 material, with the model's names; the panel switches between its domains, and with one shown alone, the cost views

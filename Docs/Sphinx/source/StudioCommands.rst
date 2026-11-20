@@ -6,7 +6,7 @@ Commands
 .. code-block:: text
 
    ebgstudio        MODEL                                       the window (the same as view)
-   ebgstudio check  MODEL [--domain NAME]... [--all-domains] [--inventory]
+   ebgstudio check  MODEL [--domain NAME]... [--all-domains] [--inventory] [--components H]
    ebgstudio print  MODEL [-o FILE] [--flatten]
    ebgstudio params MODEL [--json]
    ebgstudio render MODEL -o FILE [--size W H]
@@ -48,6 +48,31 @@ compiles (see :ref:`Chap:ImplemRegions`). ``--all-domains`` checks every domain 
    domain 'electrostatics': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
    domain 'cfd': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
    domain 'conduction': complete; its own object keeps 3 of 4 regions (air, jacket, core)
+
+``--components H`` also finds, for each domain checked, the connected components of its subdomains and of its
+excluded regions at resolution ``H`` (see :ref:`Chap:Regions`; ``H`` is best the solver's cell size). It warns of a
+subdomain in more than one component and of an enclosed cavity of the outside touching the domain (see
+:ref:`Chap:LanguageDomains`), and lists every component with a point in it, its volume, and whether it is on the
+object's outer boundary or enclosed, with the regions around it; an excluded component that is enclosed is a
+floating body (a conductor touching nothing, say), listed but not warned of:
+
+.. code-block:: text
+
+   $ ebgstudio check ../Examples/LanguageDomains/cable/setup.ebg --domain cfd --components 0.05
+   ../Examples/LanguageDomains/cable/setup.ebg:25:3: warning: subdomain 'fluid' of domain 'cfd' is in 3 connected components at resolution 0.05: (2.1, 0.7, 1.3), volume 179, on the object's outer boundary; (0.2, 0.2, 2.8), volume 0.395, on the object's outer boundary; (0.2, 0.2, -2.8), volume 0.395, on the object's outer boundary
+   domain 'cfd': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
+   domain 'cfd': connected components at resolution 0.05
+     subdomain 'fluid': 3
+       at (2.1, 0.7, 1.3), volume 179, on the object's outer boundary
+       at (0.2, 0.2, 2.8), volume 0.395, on the object's outer boundary
+       at (0.2, 0.2, -2.8), volume 0.395, on the object's outer boundary
+     excluded regions: 2
+       at (-3.07, -2.07, -3.07), volume 32.9, on the object's outer boundary
+       at (3, 0, 0), volume 0.114, enclosed by 'air'
+
+The cable's air is in three pieces: the air around the cable, and the air in each end of the jacket, between the
+core's end and the box's face, which meets the rest of the air only through that face. The sensor is a body
+floating in the air. A model whose value is not a distance is not searched.
 
 ``--inventory`` lists every name the model offers: its regions and materials with their properties' keys, its
 labels, each shape's parts and their labels, and its domains:

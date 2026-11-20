@@ -1279,6 +1279,31 @@ Completeness
 completeness(const Model<T>& a_model, const Tape<T, UserPrimitives...>& a_tape, std::string_view a_domain);
 
 /**
+ * @brief Check that a domain is complete (see completeness(model, tape, domain)), and look for the connected
+ * components it may not expect, at a resolution (see connectedComponents()): warnings, never errors.
+ * @details The box searched is the tape's bounding box grown by two cells, so that the exterior, the outside around
+ * the object, is one component reaching it. Warns when a subdomain is in more than one connected component (each one
+ * listed, with a point in it, its volume, and whether it is on the object's outer boundary, touching the exterior,
+ * or enclosed, with the subdomains around it), and when an enclosed cavity of the outside (a component of region 0
+ * other than the exterior) touches a region of the domain's subdomains. A tape whose value is not a distance is not
+ * searched; a warning says so.
+ * @tparam T              Precision.
+ * @tparam UserPrimitives The tape's user primitives.
+ * @param[in] a_model      The model.
+ * @param[in] a_tape       The tape compiled from its object, bounded.
+ * @param[in] a_domain     The domain's name.
+ * @param[in] a_resolution The resolution h of the search: the solver's cell size, positive.
+ * @return The result.
+ */
+template <class T, class... UserPrimitives>
+[[nodiscard]] EBGEOMETRY_HOST
+Completeness
+completeness(const Model<T>&                   a_model,
+             const Tape<T, UserPrimitives...>& a_tape,
+             std::string_view                  a_domain,
+             T                                 a_resolution);
+
+/**
  * @brief The part names of a built-in shape, in the order of its parts ("box": xmin, xmax, ymin, ymax, zmin, zmax).
  * @param[in] a_shape The shape's name in the language.
  * @param[in] a_sides A polygon prism's sides (its parts are side0, side1, ..., cap1, cap2).

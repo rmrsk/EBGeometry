@@ -126,6 +126,9 @@ Checks and text
 * ``Language::completeness(model, tape, "cfd")`` checks a domain (see :ref:`Chap:LanguageDomains`): a
   `Completeness <doxygen/html/structEBGeometry_1_1Language_1_1Completeness.html>`__, whether it is complete
   (``m_complete``) and what is missing, as diagnostics at the lines to change (``m_findings``).
+  ``Language::completeness(model, tape, "cfd", resolution)`` also searches the domain's subdomains for
+  their connected components at that resolution, and warns of a subdomain in several and of an enclosed
+  cavity (see :ref:`Chap:ImplemRegions`).
 * ``inventory(model)`` lists every name the model offers, as text: its regions and materials, its labels,
   each shape's parts and their labels, and its domains.
 * ``partNames("box")`` gives a built-in shape's part names.
