@@ -164,35 +164,42 @@ Triangle<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
   EBGEOMETRY_EXPECT(dot(m_vertexPositions[0] - m_vertexPositions[2], m_vertexPositions[0] - m_vertexPositions[2]) >
                     T(0));
 
-  // The kernel reads the triangle through vertex(), normal(), vertexNormal() and edgeNormal().
+  // The kernel reads the triangle through vertex(), normal(), vertexNormal() and edgeNormal(). They are host-device,
+  // although only this host function calls the kernel with them: under nvcc, a host-device template that calls a host
+  // function warns.
   struct Source
   {
     const Triangle& m_triangle;
 
+    EBGEOMETRY_HOST_DEVICE
     static TriangleDistance::Vec3V<T>
     v3(const Vec3& a_v) noexcept
     {
       return {a_v[0], a_v[1], a_v[2]};
     }
 
+    EBGEOMETRY_HOST_DEVICE
     TriangleDistance::Vec3V<T>
     vertex(const size_t a_k) const noexcept
     {
       return v3(m_triangle.m_vertexPositions[a_k]);
     }
 
+    EBGEOMETRY_HOST_DEVICE
     TriangleDistance::Vec3V<T>
     normal() const noexcept
     {
       return v3(m_triangle.m_triangleNormal);
     }
 
+    EBGEOMETRY_HOST_DEVICE
     TriangleDistance::Vec3V<T>
     vertexNormal(const size_t a_k) const noexcept
     {
       return v3(m_triangle.m_vertexNormals[a_k]);
     }
 
+    EBGEOMETRY_HOST_DEVICE
     TriangleDistance::Vec3V<T>
     edgeNormal(const size_t a_k) const noexcept
     {
