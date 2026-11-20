@@ -112,8 +112,21 @@ the HIP CI build cannot catch them. The library therefore keeps to two rules, wh
   ``std::`` function other than the math functions CUDA and HIP provide for device code, such as
   ``std::sqrt``, ``std::abs`` and ``std::isfinite``.
 
-The CUDA test build deliberately omits ``--expt-relaxed-constexpr``, so that it also checks these
-rules.
+Two more cases of the same kind are not ``std`` calls, so the script does not see them:
+
+* A class with default member initializers and no declared constructor gets an implicit default
+  constructor that nvcc treats as a ``constexpr`` host function. Device code that default-constructs
+  it through another class's defaulted constructor (a handle's ``PoolHandle`` base, a member of a
+  layout) then needs the flag. Such a class declares its default constructor,
+  ``EBGEOMETRY_HOST_DEVICE constexpr Name() noexcept {}``, as ``PoolLocation`` and ``PODVector`` do; it
+  stays trivially copyable. Defaulting it (``= default``) does not help, since nvcc ignores an
+  execution-space annotation on a function defaulted where it is declared.
+* A lambda's call operator is a ``constexpr`` host function too, so a lambda passed to a host-device
+  function (a ``PackedBVH::traverse()`` callback, say) is a functor with an ``EBGEOMETRY_HOST_DEVICE``
+  call operator instead, even where only host code calls it, in a translation unit nvcc compiles.
+
+The CUDA test build deliberately omits ``--expt-relaxed-constexpr`` and turns nvcc's warnings into
+errors (``-Werror all-warnings``), so that it also checks these rules.
 
 HIP inlines every device function by default, so a device function is copied into every place it is
 called from. That is harmless until a function calls the next one in a chain from several places: the
