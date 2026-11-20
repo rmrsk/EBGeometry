@@ -7204,8 +7204,8 @@ public:
           continue;
         }
 
-        const T lo   = Math::max(phi + twoPi * k - pi<T>, T(0));
-        const T hi   = Math::min(phi + twoPi * k + pi<T>, last);
+        const T lo   = Math::max(phi + twoPi * k - T(0.5) * twoPi, T(0));
+        const T hi   = Math::min(phi + twoPi * k + T(0.5) * twoPi, last);
         const T gap  = Math::max(Math::max(rate * lo - y, y - rate * hi), T(0));
         const T rule = across + gap * gap;
 
@@ -7257,14 +7257,15 @@ protected:
   T
   windowMinimum(const T a_k, const T a_rho, const T a_phi, const T a_y, const T a_rate, const T a_last) const noexcept
   {
-    const T base  = a_phi + T(2) * pi<T> * a_k;
-    const T Y     = a_y - a_rate * base;
+    const T halfTurn = pi<T>;
+    const T base     = a_phi + T(2) * halfTurn * a_k;
+    const T Y        = a_y - a_rate * base;
     const T rR    = a_rho * m_helixRadius;
     const T rate2 = a_rate * a_rate;
     const T A     = a_rho * a_rho + m_helixRadius * m_helixRadius;
 
-    const T sLo = Math::max(-pi<T>, -base);
-    const T sHi = Math::min(pi<T>, a_last - base);
+    const T sLo = Math::max(-halfTurn, -base);
+    const T sHi = Math::min(halfTurn, a_last - base);
 
     const auto f = [&](const T a_s) noexcept {
       const T v = Y - a_rate * a_s;
@@ -7276,7 +7277,7 @@ protected:
 
     T best = Math::min(f(sLo), f(sHi));
 
-    const T sc = (rR > rate2) ? std::acos(-rate2 / rR) : pi<T>;
+    const T sc = (rR > rate2) ? std::acos(-rate2 / rR) : halfTurn;
     T       lo = Math::max(-sc, sLo);
     T       hi = Math::min(sc, sHi);
 
