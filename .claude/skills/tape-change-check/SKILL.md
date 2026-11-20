@@ -72,9 +72,9 @@ Read the plain tape's hot loop first, `Tape<float>::evaluateBody<0u, float>` and
   (about 1% on one pinned core).
 - **Changed size:** the evaluator was laid out afresh, and the Tape cases can move by several percent either way with
   no cost of the change behind it (-5% to +6% for changes no probe tape executes; the measurements are in the comment
-  at `evaluateBody` in `EBGeometry_Tape.hpp`). Say so in the report, with the sizes ("evaluateBody<0> recompiled,
-  1845 -> 2120 B: a layout draw"), and look further only at a move larger than that, or one the other Tape cases do
-  not share.
+  at `evaluateBody` in `EBGeometry_Tape.hpp`). Say so in the report, with the sizes (e.g. "evaluateBody<0>
+  recompiled, 1845 -> 2120 B: a layout draw"), and look further only at a move beyond -5%/+6%, or one the other Tape
+  cases do not share.
 
 This changes no verdict rule: a minor regression still goes to the maintainer, and a MAJOR one is still fixed or
 accepted; it settles what they are told. Do not restructure the dispatch to win a draw back: every restructuring
