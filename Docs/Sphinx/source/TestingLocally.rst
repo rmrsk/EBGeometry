@@ -299,6 +299,18 @@ Test coverage
        the capsule's sphere limit and Perlin's defaults; every analytic shape is a trivially
        copyable, non-polymorphic value type; the device ``signedDistance()`` and
        ``computeBoundingVolume()`` of every shape match the host.
+   * - ``TestAnalyticShapeFamilies``
+     - ``ConvexPolyhedronSDF``: the regular solids' counts, inradii and vertices, and the regular solids, a pyramid
+       and a solid from planes against the convex hulls of hand-written vertices; ``BoxFrameSDF`` against the union
+       of its twelve bars; ``QuadricSDF``, ``SolidAngleSDF`` and ``VesicaSDF`` against finely sampled outlines,
+       ``HelixSDF`` against its sampled center line; ``SuperellipsoidSDF`` as a sphere, and a bound against its
+       sampled surface; ``LatticeSDF`` on each surface and 1-Lipschitz; every exact one a true signed distance
+       function; the ray forms' spans against the values along random rays; the constructors' checks; and the
+       device distances and crossings against the host.
+   * - ``TestSampledGridSDF``
+     - ``SampledGridSDF``: a sampled plane and a sloping height field against their exact distances, a sampled
+       sphere 1-Lipschitz with the sphere's sign, its layout, views, deep copy and a tape holding it, the
+       constructors' checks, and the device against the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
