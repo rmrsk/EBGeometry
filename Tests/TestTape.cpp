@@ -130,6 +130,14 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates exactly like the sha
   const CutSphereSDF<T>    cutSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3));
   const CutHollowSphereSDF<T> cutHollowSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3), T(0.1));
   const WedgeSDF<T>           wedge(Vec3(T(0), T(1), T(0)), T(60));
+  const auto                  icosahedron = ConvexPolyhedronSDF<T>::icosahedron(Vec3(T(0.1), T(0), T(-0.1)), T(0.9));
+  const BoxFrameSDF<T>        boxFrame(Vec3(T(-0.8), T(-0.6), T(-0.7)), Vec3(T(0.7), T(0.8), T(0.6)), T(0.15));
+  const auto                  hyperboloid = QuadricSDF<T>::hyperboloid(Vec3(T(0), T(0.1), T(0)), T(0.4), T(60));
+  const SuperellipsoidSDF<T>  superellipsoid(Vec3(T(0.1), T(0), T(0)), Vec3(T(1), T(0.6), T(0.8)), T(0.3), T(1.5));
+  const SolidAngleSDF<T>      solidAngle(Vec3(T(0), T(-0.2), T(0)), T(1), T(100));
+  const VesicaSDF<T>          vesica(Vec3(T(0), T(-1), T(0)), Vec3(T(0.2), T(1), T(0)), T(0.4));
+  const HelixSDF<T>   helix(Vec3(T(0), T(-1), T(0)), Vec3(T(0), T(1), T(0)), T(0.7), T(4.5), T(0.1), Vec3::unit(0));
+  const LatticeSDF<T> lattice(LatticeSDF<T>::Kind::Gyroid, Vec3::ones(), T(0.1));
 
   const auto check = [](const auto& a_shape) {
     const TestUtils::Compiled<T> tape(a_shape);
@@ -162,6 +170,14 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates exactly like the sha
   check(cutSphere);
   check(cutHollowSphere);
   check(wedge);
+  check(icosahedron);
+  check(boxFrame);
+  check(hyperboloid);
+  check(superellipsoid);
+  check(solidAngle);
+  check(vesica);
+  check(helix);
+  check(lattice);
 }
 
 TEMPLATE_TEST_CASE("Tape: a union of a mesh SDF and a sphere is the smaller of the two distances everywhere",
@@ -799,6 +815,14 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
   const CutSphereSDF<T>    cutSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3));
   const CutHollowSphereSDF<T> cutHollowSphere(Vec3(T(0.2), T(-0.1), T(0.3)), T(0.8), T(0.3), T(0.1));
   const WedgeSDF<T>           wedge(Vec3(T(0), T(1), T(0)), T(60));
+  const auto                  icosahedron = ConvexPolyhedronSDF<T>::icosahedron(Vec3(T(0.1), T(0), T(-0.1)), T(0.9));
+  const BoxFrameSDF<T>        boxFrame(Vec3(T(-0.8), T(-0.6), T(-0.7)), Vec3(T(0.7), T(0.8), T(0.6)), T(0.15));
+  const auto                  hyperboloid = QuadricSDF<T>::hyperboloid(Vec3(T(0), T(0.1), T(0)), T(0.4), T(60));
+  const SuperellipsoidSDF<T>  superellipsoid(Vec3(T(0.1), T(0), T(0)), Vec3(T(1), T(0.6), T(0.8)), T(0.3), T(1.5));
+  const SolidAngleSDF<T>      solidAngle(Vec3(T(0), T(-0.2), T(0)), T(1), T(100));
+  const VesicaSDF<T>          vesica(Vec3(T(0), T(-1), T(0)), Vec3(T(0.2), T(1), T(0)), T(0.4));
+  const HelixSDF<T>   helix(Vec3(T(0), T(-1), T(0)), Vec3(T(0), T(1), T(0)), T(0.7), T(4.5), T(0.1), Vec3::unit(0));
+  const LatticeSDF<T> lattice(LatticeSDF<T>::Kind::Gyroid, Vec3::ones(), T(0.1));
 
   std::vector<Expr<T>> primitives{plane,
                                   sphere,
@@ -820,6 +844,14 @@ TEMPLATE_TEST_CASE("Tape: device evaluation matches the host for every operation
                                   cutSphere,
                                   cutHollowSphere,
                                   Intersection(wedge, box),
+                                  icosahedron,
+                                  boxFrame,
+                                  Intersection(hyperboloid, box),
+                                  superellipsoid,
+                                  solidAngle,
+                                  vesica,
+                                  helix,
+                                  Intersection(lattice, box),
                                   Translate(flat, Vec3(T(3), T(0), T(0))),
                                   Translate(bvhMesh, Vec3(T(-3), T(0), T(0))),
                                   Translate(triMesh, Vec3(T(0), T(3), T(0)))};

@@ -24,6 +24,8 @@
 #include <set>
 #include <sstream>
 #include <type_traits>
+#include <typeindex>
+#include <typeinfo>
 
 // Our includes
 #include "EBGeometry_Language.hpp"
@@ -63,6 +65,21 @@ builtinNames()
                                               "cut_sphere",
                                               "cut_hollow_sphere",
                                               "wedge",
+                                              "tetrahedron",
+                                              "octahedron",
+                                              "dodecahedron",
+                                              "icosahedron",
+                                              "pyramid",
+                                              "convex_polyhedron",
+                                              "box_frame",
+                                              "hyperboloid",
+                                              "hyperboloid_two_sheets",
+                                              "paraboloid",
+                                              "superellipsoid",
+                                              "solid_angle",
+                                              "vesica",
+                                              "helix",
+                                              "lattice",
                                               "mesh",
                                               "meshes",
                                               "union",
@@ -1039,6 +1056,33 @@ partNames(std::string_view a_shape, const uint32_t a_sides)
   }
   if (a_shape == "wedge") {
     return {"xmin", "xmax"};
+  }
+  if (a_shape == "tetrahedron" || a_shape == "octahedron" || a_shape == "dodecahedron" || a_shape == "icosahedron" ||
+      a_shape == "convex_polyhedron") {
+    std::vector<std::string> names;
+
+    for (uint32_t k = 0; k < a_sides; k++) {
+      names.push_back("face" + std::to_string(k));
+    }
+
+    return names;
+  }
+  if (a_shape == "pyramid") {
+    std::vector<std::string> names;
+
+    for (uint32_t k = 0; k < a_sides; k++) {
+      names.push_back("side" + std::to_string(k));
+    }
+
+    names.emplace_back("base");
+
+    return names;
+  }
+  if (a_shape == "box_frame") {
+    return {"x00", "x01", "x10", "x11", "y00", "y01", "y10", "y11", "z00", "z01", "z10", "z11"};
+  }
+  if (a_shape == "solid_angle") {
+    return {"cap", "side"};
   }
 
   return {};
@@ -2829,6 +2873,166 @@ private:
       const Bound b = this->bind(a_call, name, {{"tip", Kind::Vector}, {"angle", Kind::Number}}, a_args);
 
       return this->plain(name, WedgeSDF<T>(vector(b.m_values[0]), number(b.m_values[1])), partNames(name), span);
+    }
+    if (name == "tetrahedron" || name == "octahedron" || name == "dodecahedron" || name == "icosahedron") {
+      const Bound b = this->bind(a_call, name, {{"center", Kind::Vector}, {"radius", Kind::Number}}, a_args);
+
+      const Vec3T<T> center = vector(b.m_values[0]);
+      const T        radius = number(b.m_values[1]);
+
+      const ConvexPolyhedronSDF<T> solid = (name == "tetrahedron") ? ConvexPolyhedronSDF<T>::tetrahedron(center, radius)
+                                           : (name == "octahedron") ? ConvexPolyhedronSDF<T>::octahedron(center, radius)
+                                           : (name == "dodecahedron")
+                                             ? ConvexPolyhedronSDF<T>::dodecahedron(center, radius)
+                                             : ConvexPolyhedronSDF<T>::icosahedron(center, radius);
+
+      return this->plain(name, solid, partNames(name, solid.getNumFaces()), span);
+    }
+    if (name == "pyramid") {
+      const Bound b = this->bind(a_call,
+                                 name,
+                                 {{"base_center", Kind::Vector},
+                                  {"apex", Kind::Vector},
+                                  {"radius", Kind::Number},
+                                  {"sides", Kind::Count},
+                                  {"vertex_direction", Kind::Vector}},
+                                 a_args);
+
+      const auto sides = static_cast<unsigned>(b.m_values[3]->m_number);
+
+      return this->plain(
+        name,
+        ConvexPolyhedronSDF<T>::pyramid(
+          vector(b.m_values[0]), vector(b.m_values[1]), number(b.m_values[2]), sides, vector(b.m_values[4])),
+        partNames(name, sides),
+        span);
+    }
+    if (name == "convex_polyhedron") {
+      const Bound b = this->bind(a_call, name, {{"planes", Kind::Shapes}}, a_args);
+
+      std::vector<PlaneSDF<T>> planes;
+
+      for (const V* shape : b.m_shapes) {
+        const Expr<T> expr = realize(*shape->m_shape);
+        const auto&   node = expr.node();
+
+        if (node.m_kind != ExprDetail::Kind::Primitive || node.m_leaf.m_type != std::type_index(typeid(PlaneSDF<T>))) {
+          throw Error(shape->m_span, "convex_polyhedron: each argument is a plane(point, normal)");
+        }
+
+        planes.push_back(*static_cast<const PlaneSDF<T>*>(node.m_leaf.m_object.get()));
+      }
+
+      return this->plain(
+        name, ConvexPolyhedronSDF<T>(planes), partNames(name, static_cast<uint32_t>(planes.size())), span);
+    }
+    if (name == "box_frame") {
+      const Bound b = this->bind(
+        a_call, name, {{"lo_corner", Kind::Vector}, {"hi_corner", Kind::Vector}, {"thickness", Kind::Number}}, a_args);
+
+      return this->plain(name,
+                         BoxFrameSDF<T>(vector(b.m_values[0]), vector(b.m_values[1]), number(b.m_values[2])),
+                         partNames(name),
+                         span);
+    }
+    if (name == "hyperboloid" || name == "hyperboloid_two_sheets") {
+      const bool  one = name == "hyperboloid";
+      const Bound b =
+        this->bind(a_call,
+                   name,
+                   {{"center", Kind::Vector}, {one ? "waist" : "tip_distance", Kind::Number}, {"angle", Kind::Number}},
+                   a_args);
+
+      const Vec3T<T> center = vector(b.m_values[0]);
+      const T        size   = number(b.m_values[1]);
+      const T        angle  = number(b.m_values[2]);
+
+      return this->plain(name,
+                         one ? QuadricSDF<T>::hyperboloid(center, size, angle)
+                             : QuadricSDF<T>::hyperboloidTwoSheets(center, size, angle),
+                         {},
+                         span);
+    }
+    if (name == "paraboloid") {
+      const Bound b = this->bind(a_call, name, {{"tip", Kind::Vector}, {"tip_radius", Kind::Number}}, a_args);
+
+      return this->plain(name, QuadricSDF<T>::paraboloid(vector(b.m_values[0]), number(b.m_values[1])), {}, span);
+    }
+    if (name == "superellipsoid") {
+      const Bound b = this->bind(
+        a_call,
+        name,
+        {{"center", Kind::Vector}, {"radii", Kind::Vector}, {"exponent1", Kind::Number}, {"exponent2", Kind::Number}},
+        a_args);
+
+      return this->plain(name,
+                         SuperellipsoidSDF<T>(
+                           vector(b.m_values[0]), vector(b.m_values[1]), number(b.m_values[2]), number(b.m_values[3])),
+                         {},
+                         span);
+    }
+    if (name == "solid_angle") {
+      const Bound b =
+        this->bind(a_call, name, {{"center", Kind::Vector}, {"radius", Kind::Number}, {"angle", Kind::Number}}, a_args);
+
+      return this->plain(name,
+                         SolidAngleSDF<T>(vector(b.m_values[0]), number(b.m_values[1]), number(b.m_values[2])),
+                         partNames(name),
+                         span);
+    }
+    if (name == "vesica") {
+      const Bound b =
+        this->bind(a_call, name, {{"tip1", Kind::Vector}, {"tip2", Kind::Vector}, {"radius", Kind::Number}}, a_args);
+
+      return this->plain(
+        name, VesicaSDF<T>(vector(b.m_values[0]), vector(b.m_values[1]), number(b.m_values[2])), {}, span);
+    }
+    if (name == "helix") {
+      const Bound b = this->bind(a_call,
+                                 name,
+                                 {{"center1", Kind::Vector},
+                                  {"center2", Kind::Vector},
+                                  {"helix_radius", Kind::Number},
+                                  {"turns", Kind::Number},
+                                  {"tube_radius", Kind::Number},
+                                  {"start_direction", Kind::Vector}},
+                                 a_args);
+
+      return this->plain(name,
+                         HelixSDF<T>(vector(b.m_values[0]),
+                                     vector(b.m_values[1]),
+                                     number(b.m_values[2]),
+                                     number(b.m_values[3]),
+                                     number(b.m_values[4]),
+                                     vector(b.m_values[5])),
+                         {},
+                         span);
+    }
+    if (name == "lattice") {
+      const Bound b = this->bind(
+        a_call, name, {{"kind", Kind::String}, {"cell_size", Kind::Vector}, {"thickness", Kind::Number}}, a_args);
+
+      using LK = typename LatticeSDF<T>::Kind;
+
+      const std::string& kind = b.m_values[0]->m_string;
+
+      LK lk = LK::Gyroid;
+
+      if (kind == "schwarz_p") {
+        lk = LK::SchwarzP;
+      }
+      else if (kind == "schwarz_d" || kind == "diamond") {
+        lk = LK::SchwarzD;
+      }
+      else if (kind == "neovius") {
+        lk = LK::Neovius;
+      }
+      else if (kind != "gyroid") {
+        throw Error(b.m_values[0]->m_span,
+                    "lattice: kind is \"gyroid\", \"schwarz_p\", \"schwarz_d\" (or \"diamond\") or \"neovius\"");
+      }
+
+      return this->plain(name, LatticeSDF<T>(lk, vector(b.m_values[1]), number(b.m_values[2])), {}, span);
     }
     if (name == "mesh") {
       return this->mesh(a_call, a_args);

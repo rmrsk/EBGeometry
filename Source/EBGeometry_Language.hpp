@@ -1281,7 +1281,8 @@ completeness(const Model<T>& a_model, const Tape<T, UserPrimitives...>& a_tape, 
 /**
  * @brief The part names of a built-in shape, in the order of its parts ("box": xmin, xmax, ymin, ymax, zmin, zmax).
  * @param[in] a_shape The shape's name in the language.
- * @param[in] a_sides A polygon prism's sides (its parts are side0, side1, ..., cap1, cap2).
+ * @param[in] a_sides A polygon prism's or a pyramid's sides (side0, side1, ..., then cap1, cap2 or base), or a polyhedron's
+ * faces (face0, face1, ...).
  * @return The names; empty for a shape without parts or an unknown name.
  */
 [[nodiscard]] EBGEOMETRY_HOST

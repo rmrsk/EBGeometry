@@ -864,6 +864,369 @@ convexSpan(const PolygonPrismSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
 }
 
 /**
+ * @brief Where a ray is inside a convex polyhedron: behind each of its faces' planes.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The polyhedron.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+convexSpan(const ConvexPolyhedronSDF<T>& a_shape, const RayT<T>& a_ray) noexcept
+{
+  const T inf = Math::Limits<T>::infinity();
+
+  ConvexSpan<T> span{-inf, Vec3T<T>::zeros(), inf, Vec3T<T>::zeros()};
+
+  for (uint32_t f = 0; f < a_shape.getNumFaces() && span.m_in <= span.m_out; f++) {
+    const Vec3T<T>& normal = a_shape.getNormal(f);
+
+    RayDetail::halfSpace(
+      a_ray, a_shape.getOffset(f) * normal, normal, span.m_in, span.m_inNormal, span.m_out, span.m_outNormal);
+  }
+
+  return span;
+}
+
+/**
+ * @brief Where a ray is inside a quadric, G(x) <= 0, with G the quadric's implicit function: G along the ray is a
+ * quadratic in t, which is negative between its roots, outside them, or on one side of a single root.
+ * @details Internal helper; not part of the public API. The roots are found without cancellation (the nearer as c /
+ * q), and the normal at each end is the gradient of G there. An empty span has its m_out below its m_in.
+ * @tparam T Floating-point precision.
+ * @param[in]  a_shape  The quadric.
+ * @param[in]  a_ray    Ray.
+ * @param[out] a_first  The earlier span.
+ * @param[out] a_second The later span.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+quadricSpans(const QuadricSDF<T>& a_shape,
+             const RayT<T>&       a_ray,
+             ConvexSpan<T>&       a_first,
+             ConvexSpan<T>&       a_second) noexcept
+{
+  using Kind = typename QuadricSDF<T>::Kind;
+
+  const T inf = Math::Limits<T>::infinity();
+
+  const ConvexSpan<T> empty{inf, Vec3T<T>::zeros(), -inf, Vec3T<T>::zeros()};
+
+  a_first  = empty;
+  a_second = empty;
+
+  const Vec3T<T> o = a_ray.m_origin - a_shape.getCenter();
+  const Vec3T<T> d = a_ray.m_direction;
+
+  // The distance from the axis squared, rr(t) = r2 t^2 + r1 t + r0, and the height y(t) = o_y + d_y t.
+  const T r2 = d[0] * d[0] + d[2] * d[2];
+  const T r1 = T(2) * (o[0] * d[0] + o[2] * d[2]);
+  const T r0 = o[0] * o[0] + o[2] * o[2];
+
+  // G = alpha rr + beta y^2 + gamma y + delta.
+  const Kind kind = a_shape.getKind();
+  const T    a    = a_shape.getA();
+  const T    c    = a_shape.getC();
+
+  T alpha;
+  T beta;
+  T gamma;
+  T delta;
+
+  if (kind == Kind::Paraboloid) {
+    alpha = T(0.5) / a;
+    beta  = T(0);
+    gamma = T(1);
+    delta = T(0);
+  }
+  else {
+    alpha = T(1) / (a * a);
+    beta  = -T(1) / (c * c);
+    gamma = T(0);
+    delta = (kind == Kind::HyperboloidOneSheet) ? T(-1) : T(1);
+  }
+
+  const T qa = alpha * r2 + beta * d[1] * d[1];
+  const T qb = alpha * r1 + T(2) * beta * o[1] * d[1] + gamma * d[1];
+  const T qc = alpha * r0 + beta * o[1] * o[1] + gamma * o[1] + delta;
+
+  const auto normal = [&](const T a_t) noexcept {
+    const Vec3T<T> p = o + a_t * d;
+    const Vec3T<T> g(T(2) * alpha * p[0], T(2) * beta * p[1] + gamma, T(2) * alpha * p[2]);
+    const T        length = g.length();
+
+    return (length > T(0)) ? g / length : Vec3T<T>::zeros();
+  };
+
+  const auto span = [&](const T a_in, const T a_out) noexcept {
+    return ConvexSpan<T>{
+      a_in, (a_in > -inf) ? normal(a_in) : Vec3T<T>::zeros(), a_out, (a_out < inf) ? normal(a_out) : Vec3T<T>::zeros()};
+  };
+
+  if (qa == T(0)) {
+    if (qb > T(0)) {
+      a_first = span(-inf, -qc / qb);
+    }
+    else if (qb < T(0)) {
+      a_first = span(-qc / qb, inf);
+    }
+    else if (qc <= T(0)) {
+      a_first = span(-inf, inf);
+    }
+
+    return;
+  }
+
+  const T disc = qb * qb - T(4) * qa * qc;
+
+  if (disc < T(0)) {
+    if (qa < T(0)) {
+      a_first = span(-inf, inf);
+    }
+
+    return;
+  }
+
+  const T q  = -T(0.5) * (qb + ((qb < T(0)) ? -std::sqrt(disc) : std::sqrt(disc)));
+  T       t1 = q / qa;
+  T       t2 = (q != T(0)) ? qc / q : t1;
+
+  if (t2 < t1) {
+    const T t = t1;
+
+    t1 = t2;
+    t2 = t;
+  }
+
+  if (qa > T(0)) {
+    a_first = span(t1, t2);
+  }
+  else {
+    a_first  = span(-inf, t1);
+    a_second = span(t2, inf);
+  }
+}
+
+/**
+ * @brief Where a ray is inside one of a box frame's twelve bars, with the normals at the ends.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_shape The frame.
+ * @param[in] a_bar   The bar, numbered as the frame's parts.
+ * @param[in] a_ray   Ray.
+ * @return The span.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline ConvexSpan<T>
+barSpan(const BoxFrameSDF<T>& a_shape, const uint32_t a_bar, const RayT<T>& a_ray) noexcept
+{
+  const Vec3T<T>& lo = a_shape.getLowCorner();
+  const Vec3T<T>& hi = a_shape.getHighCorner();
+  const T         t  = a_shape.getThickness();
+
+  const uint32_t axis   = a_bar / 4U;
+  const uint32_t first  = (axis == 0U) ? 1U : 0U;
+  const uint32_t second = (axis == 2U) ? 1U : 2U;
+
+  Vec3T<T> barLo = lo;
+  Vec3T<T> barHi = hi;
+
+  if ((a_bar & 2U) != 0U) {
+    barLo[first] = hi[first] - t;
+  }
+  else {
+    barHi[first] = lo[first] + t;
+  }
+
+  if ((a_bar & 1U) != 0U) {
+    barLo[second] = hi[second] - t;
+  }
+  else {
+    barHi[second] = lo[second] + t;
+  }
+
+  const T inf = Math::Limits<T>::infinity();
+
+  ConvexSpan<T> span{-inf, Vec3T<T>::zeros(), inf, Vec3T<T>::zeros()};
+
+  for (size_t dir = 0; dir < 3; dir++) {
+    RayDetail::slab(a_ray, dir, barLo[dir], barHi[dir], span.m_in, span.m_inNormal, span.m_out, span.m_outNormal);
+  }
+
+  return span;
+}
+
+/**
+ * @brief Where a ray is inside each of a box frame's twelve bars, sorted by where it enters them, with the face it
+ * enters and leaves each by.
+ * @details Internal helper; not part of the public API. A face is 2 axis + 1 on the high side, 2 axis on the low.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct FrameSpans
+{
+  /**
+   * @brief Where the ray enters each bar; above m_out for a bar it misses.
+   */
+  T m_in[12];
+
+  /**
+   * @brief Where it leaves each bar.
+   */
+  T m_out[12];
+
+  /**
+   * @brief The face it enters each bar by.
+   */
+  uint8_t m_inFace[12];
+
+  /**
+   * @brief The face it leaves each bar by.
+   */
+  uint8_t m_outFace[12];
+};
+
+/**
+ * @brief The face of an axis-aligned box an outward normal is the normal of: 2 axis, plus 1 on the high side.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_normal The normal, a unit vector along an axis (zero for an end at infinity).
+ * @return The face.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline uint8_t
+boxFace(const Vec3T<T>& a_normal) noexcept
+{
+  const uint8_t axis = (a_normal[1] != T(0)) ? 1U : ((a_normal[2] != T(0)) ? 2U : 0U);
+
+  return uint8_t(2U * axis + ((a_normal[axis] > T(0)) ? 1U : 0U));
+}
+
+/**
+ * @brief The outward normal of a box face numbered as boxFace() numbers it.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in] a_face The face.
+ * @return The normal.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline Vec3T<T>
+boxFaceNormal(const uint8_t a_face) noexcept
+{
+  Vec3T<T> normal = Vec3T<T>::zeros();
+
+  normal[a_face / 2U] = (a_face % 2U != 0U) ? T(1) : T(-1);
+
+  return normal;
+}
+
+/**
+ * @brief Where a ray is inside each of a box frame's bars, each bar's span computed once.
+ * @details Internal helper; not part of the public API. The crossings of the frame are found from these twelve
+ * spans alone: computing a bar's span where each is needed instead made a tape's ray kernels several times slower to
+ * compile, since the compiler copies it into every place.
+ * @tparam T Floating-point precision.
+ * @param[in]  a_shape The frame.
+ * @param[in]  a_ray   Ray.
+ * @param[out] a_spans The spans.
+ */
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+frameSpans(const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, FrameSpans<T>& a_spans) noexcept
+{
+  for (uint32_t bar = 0; bar < 12U; bar++) {
+    const ConvexSpan<T> span = RayDetail::barSpan(a_shape, bar, a_ray);
+
+    a_spans.m_in[bar]      = span.m_in;
+    a_spans.m_out[bar]     = span.m_out;
+    a_spans.m_inFace[bar]  = RayDetail::boxFace(span.m_inNormal);
+    a_spans.m_outFace[bar] = RayDetail::boxFace(span.m_outNormal);
+  }
+}
+
+/**
+ * @brief The end of the stretch of a box frame a ray is inside from a_t on: the bars' spans that contain it are
+ * followed, from one to the next where they overlap, until none goes further.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in]     a_spans The bars' spans.
+ * @param[in]     a_t     Where the stretch starts, inside a bar.
+ * @param[in,out] a_face  The face where the stretch ends.
+ * @return Where it ends.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+frameStretchEnd(const FrameSpans<T>& a_spans, const T a_t, uint8_t& a_face) noexcept
+{
+  T end = a_t;
+
+  for (uint32_t pass = 0; pass < 12U; pass++) {
+    bool further = false;
+
+    for (uint32_t bar = 0; bar < 12U; bar++) {
+      if (a_spans.m_in[bar] <= end && a_spans.m_out[bar] > end) {
+        end     = a_spans.m_out[bar];
+        a_face  = a_spans.m_outFace[bar];
+        further = true;
+      }
+    }
+
+    if (!further) {
+      break;
+    }
+  }
+
+  return end;
+}
+
+/**
+ * @brief The first time at or after a_t that a ray enters one of a box frame's bars, or infinity.
+ * @details Internal helper; not part of the public API.
+ * @tparam T Floating-point precision.
+ * @param[in]  a_spans  The bars' spans.
+ * @param[in]  a_t      The earliest time.
+ * @param[out] a_face   The face where the ray enters.
+ * @param[out] a_inside Whether the ray is inside a bar just after a_t (it entered before a_t).
+ * @return Where the ray enters, a_t itself if it is inside a bar there.
+ */
+template <class T>
+[[nodiscard]] EBGEOMETRY_HOST_DEVICE
+inline T
+frameNextEntry(const FrameSpans<T>& a_spans, const T a_t, uint8_t& a_face, bool& a_inside) noexcept
+{
+  T next = Math::Limits<T>::infinity();
+
+  a_inside = false;
+
+  for (uint32_t bar = 0; bar < 12U; bar++) {
+    const T in  = a_spans.m_in[bar];
+    const T out = a_spans.m_out[bar];
+
+    if (!(in <= out) || out <= a_t) {
+      continue;
+    }
+
+    if (in < a_t) {
+      a_inside = true;
+    }
+    else if (in < next) {
+      next   = in;
+      a_face = a_spans.m_inFace[bar];
+    }
+  }
+
+  return a_inside ? a_t : next;
+}
+
+/**
  * @brief Where a ray is inside a cut sphere: inside the sphere, and above the cut.
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
@@ -1408,6 +1771,154 @@ RayForm<TubeSDF<T>>::spans(const TubeSDF<T>& a_shape,
   a_spans.reset(a_tMax);
   a_spans.addClipped(first.m_in, first.m_out, a_tMin, a_tMax);
   a_spans.addClipped(second.m_in, second.m_out, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<ConvexPolyhedronSDF<T>>::firstHit(const ConvexPolyhedronSDF<T>& a_shape,
+                                          const RayT<T>&                a_ray,
+                                          const T                       a_tMin,
+                                          const T                       a_tMax,
+                                          const RayOptions<T>& /*a_options*/) noexcept
+{
+  return RayDetail::convexFirstHit(a_shape, a_ray, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<ConvexPolyhedronSDF<T>>::spans(const ConvexPolyhedronSDF<T>& a_shape,
+                                       const RayT<T>&                a_ray,
+                                       const T                       a_tMin,
+                                       const T                       a_tMax,
+                                       const RayOptions<T>& /*a_options*/,
+                                       const bool /*a_firstOnly*/,
+                                       RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::convexSpans(a_shape, a_ray, a_tMin, a_tMax, a_spans);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<QuadricSDF<T>>::firstHit(const QuadricSDF<T>& a_shape,
+                                 const RayT<T>&       a_ray,
+                                 const T              a_tMin,
+                                 const T              a_tMax,
+                                 const RayOptions<T>& /*a_options*/) noexcept
+{
+  RayDetail::ConvexSpan<T> first;
+  RayDetail::ConvexSpan<T> second;
+
+  RayDetail::quadricSpans(a_shape, a_ray, first, second);
+
+  // The spans are in order, so the first that gives a crossing in the interval gives the first crossing.
+  const HitT<T> hit =
+    RayDetail::convexHit(a_ray, first.m_in, first.m_inNormal, first.m_out, first.m_outNormal, a_tMin, a_tMax);
+
+  return hit.hit() ? hit
+                   : RayDetail::convexHit(
+                       a_ray, second.m_in, second.m_inNormal, second.m_out, second.m_outNormal, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<QuadricSDF<T>>::spans(const QuadricSDF<T>& a_shape,
+                              const RayT<T>&       a_ray,
+                              const T              a_tMin,
+                              const T              a_tMax,
+                              const RayOptions<T>& /*a_options*/,
+                              const bool /*a_firstOnly*/,
+                              RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::ConvexSpan<T> first;
+  RayDetail::ConvexSpan<T> second;
+
+  RayDetail::quadricSpans(a_shape, a_ray, first, second);
+
+  a_spans.reset(a_tMax);
+  a_spans.addClipped(first.m_in, first.m_out, a_tMin, a_tMax);
+  a_spans.addClipped(second.m_in, second.m_out, a_tMin, a_tMax);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline HitT<T>
+RayForm<BoxFrameSDF<T>>::firstHit(const BoxFrameSDF<T>& a_shape,
+                                  const RayT<T>&        a_ray,
+                                  const T               a_tMin,
+                                  const T               a_tMax,
+                                  const RayOptions<T>& /*a_options*/) noexcept
+{
+  RayDetail::FrameSpans<T> bars;
+
+  RayDetail::frameSpans(a_shape, a_ray, bars);
+
+  HitT<T> hit;
+  uint8_t face   = 0;
+  bool    inside = false;
+
+  const T entry = RayDetail::frameNextEntry(bars, a_tMin, face, inside);
+
+  // A ray that starts inside the frame crosses it first where it leaves; one outside, where it enters.
+  const T t = inside ? RayDetail::frameStretchEnd(bars, a_tMin, face) : entry;
+
+  if (t >= a_tMin && t <= a_tMax) {
+    hit.m_status   = HitStatus::Hit;
+    hit.m_t        = t;
+    hit.m_point    = a_ray.at(t);
+    hit.m_entering = !inside;
+    hit.m_exact    = true;
+    hit.m_normal   = RayDetail::boxFaceNormal<T>(face);
+  }
+
+  return hit;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+inline void
+RayForm<BoxFrameSDF<T>>::spans(const BoxFrameSDF<T>& a_shape,
+                               const RayT<T>&        a_ray,
+                               const T               a_tMin,
+                               const T               a_tMax,
+                               const RayOptions<T>& /*a_options*/,
+                               const bool /*a_firstOnly*/,
+                               RaySpansT<T>& a_spans) noexcept
+{
+  RayDetail::FrameSpans<T> bars;
+
+  RayDetail::frameSpans(a_shape, a_ray, bars);
+
+  a_spans.reset(a_tMax);
+
+  // Each stretch inside the frame, in order: from where the ray next enters a bar to where it leaves the last bar
+  // that overlaps it. There are at most twelve.
+  T t = a_tMin;
+
+  for (uint32_t stretch = 0; stretch < 12U && t <= a_tMax; stretch++) {
+    uint8_t face   = 0;
+    bool    inside = false;
+
+    const T in = RayDetail::frameNextEntry(bars, t, face, inside);
+
+    if (!(in <= a_tMax)) {
+      break;
+    }
+
+    const T end = RayDetail::frameStretchEnd(bars, in, face);
+
+    // A ray that starts inside a bar entered it before the interval: its span's start is no crossing.
+    a_spans.addClipped(inside ? -Math::Limits<T>::infinity() : in, end, a_tMin, a_tMax);
+
+    if (!(end > t)) {
+      break;
+    }
+
+    t = end;
+  }
 }
 
 } // namespace EBGeometry

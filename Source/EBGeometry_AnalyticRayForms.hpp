@@ -6,9 +6,10 @@
  * @file   EBGeometry_AnalyticRayForms.hpp
  * @brief  Ray forms (see RayForm) for the analytic shapes that have a closed-form crossing: PlaneSDF,
  * SphereSDF, BoxSDF, CylinderSDF, InfiniteCylinderSDF, CapsuleSDF, EllipsoidSDF, CappedConeSDF, PolygonPrismSDF,
- * TubeSDF, CutSphereSDF and WedgeSDF. With this header included, firstHit() and intersects() on these shapes are
+ * TubeSDF, CutSphereSDF, WedgeSDF, ConvexPolyhedronSDF, BoxFrameSDF and QuadricSDF. With this header included, firstHit() and intersects() on these shapes are
  * exact instead of marched, and so are compositions of them (see EBGeometry_CSGRayForms.hpp). Each is convex, so
- * the ray is inside it over one span, which spans() gives, except the tube, whose hollow can split it in two.
+ * the ray is inside it over one span, which spans() gives, except the tube, whose hollow can split it in two, the
+ * hyperboloids, which can leave two spans, and the box frame, whose bars can leave several.
  * @author Robert Marskar
  */
 
@@ -522,6 +523,135 @@ struct RayForm<WedgeSDF<T>>
   EBGEOMETRY_HOST_DEVICE
   static inline void
   spans(const WedgeSDF<T>&   a_shape,
+        const RayT<T>&       a_ray,
+        T                    a_tMin,
+        T                    a_tMax,
+        const RayOptions<T>& a_options,
+        bool                 a_firstOnly,
+        RaySpansT<T>&        a_spans) noexcept;
+};
+
+/**
+ * @brief ConvexPolyhedronSDF's ray form: the half-spaces of its faces. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<ConvexPolyhedronSDF<T>>
+{
+  /**
+   * @brief The first crossing of the polyhedron along a ray.
+   * @param[in] a_shape   The polyhedron.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(const ConvexPolyhedronSDF<T>& a_shape,
+           const RayT<T>&                a_ray,
+           T                             a_tMin,
+           T                             a_tMax,
+           const RayOptions<T>&          a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the polyhedron over an interval: one span, the polyhedron being convex.
+   * @param[in]  a_shape     The polyhedron.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   Unused: the spans are found in closed form.
+   * @param[in]  a_firstOnly Unused: the spans cost little more than the first crossing.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const ConvexPolyhedronSDF<T>& a_shape,
+        const RayT<T>&                a_ray,
+        T                             a_tMin,
+        T                             a_tMax,
+        const RayOptions<T>&          a_options,
+        bool                          a_firstOnly,
+        RaySpansT<T>&                 a_spans) noexcept;
+};
+
+/**
+ * @brief BoxFrameSDF's ray form: the union of its twelve bars, each a box. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<BoxFrameSDF<T>>
+{
+  /**
+   * @brief The first crossing of the frame along a ray.
+   * @param[in] a_shape   The frame.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(
+    const BoxFrameSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the frame over an interval: the bars' spans, merged where they overlap.
+   * @param[in]  a_shape     The frame.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   Unused: the spans are found in closed form.
+   * @param[in]  a_firstOnly Unused: the spans cost little more than the first crossing.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const BoxFrameSDF<T>& a_shape,
+        const RayT<T>&        a_ray,
+        T                     a_tMin,
+        T                     a_tMax,
+        const RayOptions<T>&  a_options,
+        bool                  a_firstOnly,
+        RaySpansT<T>&         a_spans) noexcept;
+};
+
+/**
+ * @brief QuadricSDF's ray form: the roots of a quadratic along the ray. Exact, and callable on a device.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct RayForm<QuadricSDF<T>>
+{
+  /**
+   * @brief The first crossing of the quadric along a ray.
+   * @param[in] a_shape   The quadric.
+   * @param[in] a_ray     Ray, with a unit direction.
+   * @param[in] a_tMin    Start of the interval.
+   * @param[in] a_tMax    End of the interval.
+   * @param[in] a_options Unused: the crossing is found in closed form.
+   * @return The crossing, with its outward normal, or a miss.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline HitT<T>
+  firstHit(
+    const QuadricSDF<T>& a_shape, const RayT<T>& a_ray, T a_tMin, T a_tMax, const RayOptions<T>& a_options) noexcept;
+
+  /**
+   * @brief Where a ray is inside the quadric over an interval: up to two spans: a paraboloid is convex, a hyperboloid of one sheet can leave a span on either side of its waist, and one of two sheets a span in each cup.
+   * @param[in]  a_shape     The quadric.
+   * @param[in]  a_ray       Ray, with a unit direction.
+   * @param[in]  a_tMin      Start of the interval.
+   * @param[in]  a_tMax      End of the interval.
+   * @param[in]  a_options   Unused: the spans are found in closed form.
+   * @param[in]  a_firstOnly Unused: the spans cost little more than the first crossing.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  static inline void
+  spans(const QuadricSDF<T>& a_shape,
         const RayT<T>&       a_ray,
         T                    a_tMin,
         T                    a_tMax,
