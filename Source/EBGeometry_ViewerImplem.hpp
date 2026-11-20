@@ -152,6 +152,12 @@ struct Hooks
   std::function<bool()> m_redo;
 
   /**
+   * @brief The name a picked level is known by in the program (a model's value making the node, see
+   * SurfaceLevel::m_node); "" for none.
+   */
+  std::function<std::string(uint32_t)> m_levelName;
+
+  /**
    * @brief C: the current view in the program's own words (a model's view block), printed after the C++; "" for
    * none.
    */
@@ -347,6 +353,9 @@ keys(const bool a_device, const bool a_regions = false)
                             {"Ctrl + V", "Show every region"},
                             {nullptr, "Surface groups (as the panel's buttons)"},
                             {"Ctrl + click", "Pick several: add one, or take it out again"},
+                            {"], [",
+                             "Step the last pick out to the level above (the whole surface, its shape, each "
+                             "composition up to the whole object), or back in (also the two keys right of P)"},
                             {"Enter", "Add what is picked to the current surface group"},
                             {"Shift + Enter", "Add the whole picked surfaces"},
                             {"Ctrl + Enter", "Add the interfaces between the picked pieces' regions"},
@@ -1304,12 +1313,17 @@ run(const S&                           a_shape,
 
   PickMode pickMode = PickMode::Surface;
 
-  // What is picked: each the piece clicked and what the pick mode picks of it. A click picks one, Ctrl and a click
-  // adds one or takes it out again; they are highlighted together, and the panel's buttons add or remove them.
+  // What is picked: each the piece clicked and what the pick mode picks of it, at a level of the expression (] and [
+  // step out and back in: the part clicked, the whole surface, a collection's member, its shape, each node up to the
+  // whole object). A click picks one, Ctrl and a click adds one or takes it out again (a level holding the surface
+  // clicked goes); they are highlighted together, and the panel's buttons add or remove them. m_node is the level's
+  // node of the expression (SurfaceLevel::None at the part clicked, the whole surface and a collection's member).
   struct Picked
   {
     SurfaceRef<T>   m_piece;
     SurfaceSelector m_selector;
+    uint32_t        m_level = 0;
+    uint32_t        m_node  = SurfaceLevel::None;
   };
 
   std::vector<Picked> selection;
@@ -1347,6 +1361,38 @@ run(const S&                           a_shape,
            a_first.m_label == a_second.m_label && a_first.m_materialA == a_second.m_materialA &&
            a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest &&
            (a_first.m_surface == SurfaceSelector::Any || a_first.m_numSurfaces == a_second.m_numSurfaces);
+  };
+
+  // The levels of a piece, innermost first, as selectors: what the pick mode picks of it (the part clicked), then each
+  // level of its surface (SurfaceInventory::levelsOf()), the same surfaces once. Picking regions has one level.
+  struct Level
+  {
+    SurfaceSelector m_selector;
+    SurfaceLevel    m_level;
+  };
+
+  const auto levelsOf = [&](const SurfaceRef<T>& a_piece) {
+    std::vector<Level> levels{Level{selectorOf(a_piece), SurfaceLevel{}}};
+
+    if (pickMode == PickMode::Surface && a_piece.m_surface != SurfaceRef<T>::None) {
+      for (const SurfaceLevel& level : names.getInventory().levelsOf(a_piece.m_surface)) {
+        const SurfaceSelector selector = SurfaceSelector::surfaces(level.m_firstSurface, level.m_numSurfaces);
+
+        if (!sameSelector(selector, levels.back().m_selector)) {
+          levels.push_back(Level{selector, level});
+        }
+      }
+    }
+
+    return levels;
+  };
+
+  // A picked entry at a level of its piece (kept within the levels there are).
+  const auto atLevel = [&](const SurfaceRef<T>& a_piece, const uint32_t a_level) {
+    const std::vector<Level> levels = levelsOf(a_piece);
+    const uint32_t           level  = Math::min(a_level, static_cast<uint32_t>(levels.size()) - 1U);
+
+    return Picked{a_piece, levels[level].m_selector, level, levels[level].m_level.m_node};
   };
 
   // The highlight the render shows: a highlighted surface group's or subdomain's surfaces; else what is picked. The
@@ -1575,7 +1621,7 @@ run(const S&                           a_shape,
         const SurfaceRef<T> piece = shape.pieceAt(pick.m_point, pick.m_normal);
 
         if (piece.m_surface != SurfaceRef<T>::None) {
-          entries.push_back(Picked{piece, selectorOf(piece)});
+          entries.push_back(atLevel(piece, 0U));
         }
       }
     }
@@ -1645,10 +1691,12 @@ run(const S&                           a_shape,
       // The piece stepped to before joins first.
       selection = a_together ? pickedNow() : std::vector<Picked>();
 
-      const Picked entry{piece, selectorOf(piece)};
+      const Picked entry = atLevel(piece, 0U);
 
+      // The same pick, or a level above the part clicked that holds it, goes again.
       const auto same = std::find_if(selection.begin(), selection.end(), [&](const Picked& a_entry) {
-        return sameSelector(a_entry.m_selector, entry.m_selector);
+        return sameSelector(a_entry.m_selector, entry.m_selector) ||
+               (a_together && a_entry.m_level > 0U && a_entry.m_selector.matches(piece));
       });
 
       if (same != selection.end()) {
@@ -1685,7 +1733,7 @@ run(const S&                           a_shape,
     std::vector<Picked> repicked;
 
     for (const Picked& entry : selection) {
-      const Picked again{entry.m_piece, selectorOf(entry.m_piece)};
+      const Picked again = atLevel(entry.m_piece, 0U);
 
       if (std::none_of(repicked.begin(), repicked.end(), [&](const Picked& a_entry) {
             return sameSelector(a_entry.m_selector, again.m_selector);
@@ -1697,6 +1745,61 @@ run(const S&                           a_shape,
     selection = repicked;
 
     showHighlight();
+  };
+
+  // Step the last pick out to the level above (a_out) or back in to the one below; what is stepped to with Shift and
+  // the wheel is picked first. False when there is nothing picked, or no level further that way.
+  const auto stepLevel = [&](const bool a_out) {
+    if constexpr (hasRegionVisibility<S>) {
+      if (selection.empty()) {
+        selection = pickedNow();
+      }
+
+      if (selection.empty()) {
+        return false;
+      }
+
+      Picked&        entry = selection.back();
+      const uint32_t count = static_cast<uint32_t>(levelsOf(entry.m_piece).size());
+
+      if (a_out ? (entry.m_level + 1U >= count) : (entry.m_level == 0U)) {
+        return false;
+      }
+
+      entry = atLevel(entry.m_piece, a_out ? entry.m_level + 1U : entry.m_level - 1U);
+
+      picked = true;
+
+      showHighlight();
+
+      return true;
+    }
+    else {
+      (void)a_out;
+
+      return false;
+    }
+  };
+
+  // A picked entry's level in words: where it is among the levels, what it is, its label, its name in the program
+  // (hooks), and how many surfaces it holds.
+  const auto levelWords = [&](const Picked& a_entry) {
+    const std::vector<Level> levels = levelsOf(a_entry.m_piece);
+
+    if (a_entry.m_level == 0U || a_entry.m_level >= levels.size()) {
+      return std::string();
+    }
+
+    const SurfaceLevel& level = levels[a_entry.m_level].m_level;
+
+    const std::string name = (a_hooks != nullptr && a_hooks->m_levelName && level.m_node != SurfaceLevel::None)
+                               ? a_hooks->m_levelName(level.m_node)
+                               : std::string();
+
+    return "level " + std::to_string(a_entry.m_level) + " of " + std::to_string(levels.size() - 1U) + ": " +
+           level.m_operation + (name.empty() ? std::string() : " " + name) +
+           (level.m_label.isNone() ? std::string() : " \"" + names.surfaceLabel(level.m_label.value(), false) + "\"") +
+           ", " + std::to_string(level.m_numSurfaces) + (level.m_numSurfaces == 1U ? " surface" : " surfaces");
   };
 
   // Delete a surface group, keeping the current one where it was.
@@ -2806,6 +2909,11 @@ run(const S&                           a_shape,
                                 : picked ? "Picked: " + pieceWords(shape.pieceAt(pick.m_point, pick.m_normal))
                                          : std::string("Nothing picked");
 
+      // The last pick's level, when it is above the part clicked.
+      if (!selection.empty() && selection.back().m_level > 0U) {
+        states[3].m_now.front() += "; " + levelWords(selection.back());
+      }
+
       // The panel: lines, buttons (clicked) and swatches (a key's color).
       const auto line = [&](const std::string& a_text) {
         panelLines.push_back(a_text);
@@ -2978,7 +3086,7 @@ run(const S&                           a_shape,
       line("  ");
       button(std::string(byPart ? "* " : "") + "Surface (the part clicked)", PanelAction::PickMode, 0U);
       button(std::string(byPart ? "" : "* ") + "Region", PanelAction::PickMode, 1U);
-      line("  Ctrl + click picks several");
+      line("  Ctrl + click picks several; ] and [ step the last out to the levels above it and back in");
 
       if (chosen.empty()) {
         line("  Nothing picked: click a surface");
@@ -2995,6 +3103,10 @@ run(const S&                           a_shape,
             line("    " + surface(piece.m_surface) + ", part " + std::to_string(piece.m_part) + ", between " +
                  region(piece.m_ownerRegion) + " and " + region(piece.m_neighborRegion) +
                  ((in == SurfaceGroups::None) ? std::string(", in no surface group") : ", in " + group(in)));
+
+            if (chosen[i].m_level > 0U) {
+              line("      " + levelWords(chosen[i]) + ((i + 1U == chosen.size()) ? " (] and [ step it)" : ""));
+            }
           }
           else {
             line("    " + region(chosen[i].m_selector.m_regionA) + ", all its surfaces");
@@ -4599,7 +4711,13 @@ run(const S&                           a_shape,
 
         changed = true;
 
-        switch (event.key.keysym.sym) {
+        // [ and ] are also the two keys right of P, wherever a layout puts the brackets (behind AltGr, say).
+        const SDL_Scancode scancode = event.key.keysym.scancode;
+        const SDL_Keycode  sym      = (scancode == SDL_SCANCODE_LEFTBRACKET)    ? SDLK_LEFTBRACKET
+                                      : (scancode == SDL_SCANCODE_RIGHTBRACKET) ? SDLK_RIGHTBRACKET
+                                                                                : event.key.keysym.sym;
+
+        switch (sym) {
         case SDLK_ESCAPE:
         case SDLK_q: {
           running = false;
@@ -5016,6 +5134,15 @@ run(const S&                           a_shape,
           const int step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? count - 1 : 1;
 
           settings.m_viewMode = cycle[(at + step) % count];
+
+          break;
+        }
+        case SDLK_LEFTBRACKET:
+        case SDLK_RIGHTBRACKET: {
+          // ] steps the last pick out to the level above, [ back in.
+          if (!stepLevel(sym == SDLK_RIGHTBRACKET)) {
+            changed = pending;
+          }
 
           break;
         }
