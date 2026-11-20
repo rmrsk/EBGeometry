@@ -1317,7 +1317,7 @@ run(const S&                           a_shape,
   // step out and back in: the part clicked, the whole surface, a collection's member, its shape, each node up to the
   // whole object). A click picks one, Ctrl and a click adds one or takes it out again (a level holding the surface
   // clicked goes); they are highlighted together, and the panel's buttons add or remove them. m_node is the level's
-  // node of the expression (SurfaceLevel::None at the part clicked, the whole surface and a collection's member).
+  // node of the expression (SurfaceLevel::None at the part clicked and at a collection's member).
   struct Picked
   {
     SurfaceRef<T>   m_piece;
