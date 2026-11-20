@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// Test helpers shared by the ray tests (TestRayAnalytic, TestRayMesh, TestRayCSG, TestRayOffsets): a slab
-// test of the unit cube, a fine mesh of a cube, user shapes with and without ray forms, a marched wrapper,
-// compositions with hand-computed crossings, the device query functors and the rays they are checked on.
+// Test helpers shared by the ray tests (TestRayAnalytic, TestRayMesh, TestRayMeshDevice, TestRayCSG, TestRayOffsets):
+// a slab test of the unit cube, a fine mesh of a cube and the rays at its shared edges and vertices, user shapes with
+// and without ray forms, a marched wrapper, compositions with hand-computed crossings, the device query functors and
+// the rays they are checked on.
 
 #ifndef EBGEOMETRY_TESTRAYHELPERS_HPP
 #define EBGEOMETRY_TESTRAYHELPERS_HPP

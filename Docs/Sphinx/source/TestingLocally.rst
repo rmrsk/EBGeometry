@@ -202,7 +202,7 @@ Catch2 test cases are registered with CTest so you can filter by name or tag:
    ./Tests/TestAnalyticSDF "[SphereSDF]"
 
    # Run only the device tests
-   ./Tests/TestBVH "[gpu]"
+   ./Tests/TestBVHDevice "[gpu]"
 
 Device tests
 ---------------
@@ -213,6 +213,12 @@ are equally right (a closest face where faces tie), the device may give any of t
 build these tests run in emulation, on host memory that reports itself device-accessible, so they
 run in every preset. Under a GPU backend the same tests launch real kernels, and they skip when no
 GPU is visible. See :ref:`Chap:ContributionGuidelines` for how to write one.
+
+A GPU build compiles the files that hold device tests with the device compiler, which takes much longer than the
+host compiler. So a test file with many host tests keeps its device tests in a file of their own, named after it
+(``TestBVHDevice`` beside ``TestBVH``), with the helpers both use in a header, and the GPU build's device test
+target (``EBGeometry_GPUDeviceTests``) compiles only those. A host test whose code runs as kernels in a GPU build
+(a build through ``GPU::parallelFor()`` in managed memory, say) belongs with the device tests too.
 
 Test coverage
 ---------------
@@ -339,7 +345,7 @@ Test coverage
        being dropped with a warning; the readers taking ``BVH::ConstructionOptions``
        building what the constructors build; and mesh distance functions and BVH unions refusing to
        build from no faces.
-   * - ``TestBVH``
+   * - ``TestBVH``, ``TestBVHDevice``
      - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
        supported formats, used to verify: identical topology/geometry across formats;
        ``BVH::TreeBVH``/``BVH::PackedBVH`` ``signedDistance`` agreement with a
@@ -389,7 +395,7 @@ Test coverage
        extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
        fewest power-of-``K`` leaves; a ``BVH::TreeBVH`` root that no ``shared_ptr`` owns,
        built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
-   * - ``TestCSG``
+   * - ``TestCSG``, ``TestCSGDevice``
      - ``SmoothMin``/``SmoothMax``/``ExpMin``/``ExpMax`` blending
        primitives, including far from the blend region;
        sharp and smooth ``Union``/``Intersection``/``Difference`` expressions compiled into a tape,
@@ -426,7 +432,7 @@ Test coverage
        user primitive types and a tape inside a tape, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
        managed memory evaluated on the device through its own pool.
-   * - ``TestTapeClosest``
+   * - ``TestTapeClosest``, ``TestTapeClosestDevice``
      - ``closestLeaf()``'s deciding leaf for a difference, a union (through the BVH and operand by
        operand) and an intersection against the brute-force choice, followed through smooth blends,
        blurs, maps and repetitions to the leaf and its local point, each occurrence of a shared shape
@@ -435,14 +441,14 @@ Test coverage
        inherited and replaced labels, labeled maps kept as nodes, values unchanged by labels, the label of
        the leaf ``closestLeaf()`` and a ray hit report (also after ``deepCopy()``, and on the device),
        and the rejected empty name and numbers out of range.
-   * - ``TestTapeSurfaces``
+   * - ``TestTapeSurfaces``, ``TestTapeSurfacesDevice``
      - ``closestSurface()`` against brute force: a sphere cloud's sphere by cloud index, a BVH union's and a
        smooth union's member in the order given (and a reordered storage mapped back), a union of several
        types type by type with an unbounded member, a union of clouds through its first surfaces, a tape
        drilling into a cloud leaf with the surfaces numbered across the scene (and ``ExprIndex`` agreeing,
        and after ``deepCopy()``), a tape without a container where a surface is its leaf, a tape inside a
        tape drilled down to the sphere; numbers out of range rejected; and the device against the host.
-   * - ``TestSurfaceParts``
+   * - ``TestSurfaceParts``, ``TestSurfacePartsDevice``
      - Each built-in shape's parts at points beside each face (a box's six, a cylinder's side and caps, a
        polygon prism's sides in turn around the axis, ...), a mesh's part as the face a point is beside for all
        three mesh distance fields, OBJ groups and every STL solid kept as face groups, ``SurfaceLabel(mesh, groups)``
@@ -450,7 +456,7 @@ Test coverage
        in no group keeping the leaf's label; also after ``deepCopy()``), the free ``closestSurface()`` and
        ``firstSurface()`` on a box and a union of boxes, the rejected groups and numbers, and the device
        against the host.
-   * - ``TestRegions``
+   * - ``TestRegions``, ``TestRegionsDevice``
      - ``Overlay()`` and ``MaterialLabel()``: the regions (the background first, then the operands in priority
        order), their materials and groups in ``ExprIndex`` against a hand-numbered expression, nested
        Overlays flattened with default materials, maps and masks keeping the regions (a mask's leaves in
@@ -475,7 +481,7 @@ Test coverage
        object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
        under later regions, outside a mask), and leaving unproved what it cannot prove.
-   * - ``TestLanguage``
+   * - ``TestLanguage``, ``TestLanguageDevice``
      - The ``.ebg`` language: every built-in shape and operation against the same expression built in C++ (equal
        distances on a grid), arithmetic, params and overrides, regions, materials, labels and part names in the
        index, domains (subdomains with properties merged from materials, selectors against the C++ selectors, a
@@ -487,7 +493,7 @@ Test coverage
      - ebgstudio's writer of the viewer's edits: a clicked surface named and written by its label, a renamed group
        keeping its comment and properties, a new domain appended, undo and redo, and no write over a file changed
        on disk.
-   * - ``TestFused``
+   * - ``TestFused``, ``TestFusedDevice``
      - The fused operations (``Fused::``): every one a trivially copyable shape, and a pool handle
        exactly when an operand lives in a pool; each against its formula applied by hand, a blur and
        a mollification leaving a plane as it is; a finite repetition equal to the minimum over all
@@ -503,7 +509,7 @@ Test coverage
        a tube's two spans against its values along the ray; segments (zero length, a crossing at the
        start, the sign shortcut); a march out of steps reported as unresolved; and on a device, the ray
        forms, the march and the crossings without normals against the host.
-   * - ``TestRayMesh``
+   * - ``TestRayMesh``, ``TestRayMeshDevice``
      - The ray queries of mesh SDFs: the unit cube as a ``TriMeshSDF``, a ``MeshSDF`` and a
        ``FlatMeshSDF`` against a slab test (axis-aligned and diagonal rays, rays through a face
        diagonal, an edge and a corner, from inside, in a face's plane, misses, an interval stopping
@@ -555,10 +561,10 @@ Test coverage
        writing a binary PPM;
        ``view()`` returning at once with ``--no-view``, the pool left unfrozen; and the rejected
        settings and cameras.
-   * - ``TestRenderDevice``
+   * - ``TestRenderDevice``, ``TestRenderDeviceRegions``
      - Device renders of a tape against the host's: shaded, with an orthographic camera, a near clip
        and colors set, in the depth and x-ray views and with a hidden primitive; the cost view; and a
-       canceled device render skipping its pixels' work.
+       canceled device render skipping its pixels' work. Of a view of regions: cut, filled and translucent.
    * - ``TestFunctionQueries``
      - ``approximateBoundingVolumeOctree`` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an
@@ -608,7 +614,7 @@ Test coverage
        build on a frozen pool (more, moved, fewer and no points) and coarsening its cells when its box needs
        more than it has, and rejection of a cloud it cannot index, a non-positive target occupancy, a rebuild
        past its room, or a rebase onto an unrelated pool.
-   * - ``TestSphereCloudBVH``
+   * - ``TestSphereCloudBVH``, ``TestSphereCloudBVHDevice``
      - ``SphereCloudBVH`` and its leaf group ``SphereAoSoA``: the signed distance and the closest sphere
        against brute force (inside and outside the spheres), ties to the lower index, radius-0 spheres against
        ``PointCloudBVH``, an empty cloud, the box, the same tree from centers and radii kept apart, ``rebuild()``

@@ -122,7 +122,9 @@ ebgeometry_add_test(TestPoolRebase)
 # Several per-class test files carry a [gpu]-tagged device check (see TestGPU.hpp). On an ordinary
 # host build those checks run in emulation: the "device" is host memory that reports itself
 # device-accessible, and the kernel is a host loop. When a GPU backend is enabled we compile just
-# those files with the backend compiler (per-file LANGUAGE) so the checks run as real kernels.
+# those files with the backend compiler (per-file LANGUAGE) so the checks run as real kernels. The
+# device compiler is much slower than the host's, so a component with many host tests keeps its
+# device checks in Test<Component>Device.cpp, and only that file is listed here.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
   set(EBGEOMETRY_GPU_TESTS TestGPUTransform TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVHDevice TestPointCloudBVH TestPointCloudHashGrid TestSphereCloudBVHDevice TestAnalyticSDF TestCSGDevice TestFunctionQueries TestTape TestTapeClosestDevice TestTapeSurfacesDevice TestSurfacePartsDevice TestRegionsDevice TestLanguageDevice TestFusedDevice TestRayAnalytic TestRayMeshDevice TestRayCSG TestRayOffsets TestRenderDevice TestRenderDeviceRegions)
 
