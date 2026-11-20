@@ -480,6 +480,14 @@ TEMPLATE_TEST_CASE("ConvexPolyhedronSDF: a pyramid and a solid from planes match
 
   // The cut face is part 6, the plane's place in the list.
   REQUIRE(cut.closestPart(Vec3(T(2), T(2), T(2))) == 6U);
+
+  // A small solid far from the origin keeps its vertices apart: where planes meet is judged against its own size.
+  const Vec3 far(T(100), T(-100), T(100));
+  const auto tiny = ConvexPolyhedronSDF<T>::icosahedron(far, T(0.01));
+
+  REQUIRE(tiny.getNumVertices() == 12U);
+  REQUIRE(tiny.signedDistance(far + T(0.02) * Vec3::unit(0)) > T(0));
+  REQUIRE(tiny.signedDistance(far) < T(0));
 }
 
 TEMPLATE_TEST_CASE("BoxFrameSDF: the union of its twelve bars, exact, with the bars numbered by axis and side",

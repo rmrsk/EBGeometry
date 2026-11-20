@@ -149,11 +149,6 @@ public:
                        a_nz,
                        a_values.size());
 
-    // The interpolant's largest slope. In a cell, its derivative along an axis is a weighted mean of the
-    // differences along the cell's four edges in that direction, so it is at most the largest of them over the
-    // spacing, and the gradient's length in the cell is at most the length of those three bounds. Taken cell by
-    // cell, a field of distances gives about 1; the axes' largest differences over the whole grid would give up to
-    // sqrt(3).
     for (size_t i = 0; i < a_values.size(); i++) {
       EBGEOMETRY_REQUIRE(std::isfinite(a_values[i]), "SampledGridSDF: value %zu is not finite", i);
     }
@@ -164,6 +159,11 @@ public:
 
     const auto at = [&a_values](const size_t a_i) { return double(a_values[a_i]); };
 
+    // The interpolant's largest slope. In a cell, its derivative along an axis is a weighted mean of the
+    // differences along the cell's four edges in that direction, so it is at most the largest of them over the
+    // spacing, and the gradient's length in the cell is at most the length of those three bounds. Taken cell by
+    // cell, a field of distances gives about 1; the axes' largest differences over the whole grid would give up to
+    // sqrt(3).
     double lipschitz = 0.0;
 
     for (uint32_t k = 0; k + 1U < a_nz; k++) {
@@ -214,8 +214,8 @@ public:
    * @brief A height field (a terrain): the solid between a floor and the surface y = h(x, z), with the heights
    * given on a grid in the xz-plane and interpolated bilinearly.
    * @details Stored as a grid of two layers of nodes, at the floor and above the highest point, whose trilinear
-   * interpolation is exactly y - h(x, z); the value is that divided by sqrt(1 + s^2), with s the steepest slope of
-   * the surface, a bound.
+   * interpolation is exactly y - h(x, z); the value is that divided by the grid's slope bound, at most sqrt(1 + sx^2
+   * + sz^2) with sx and sz the largest slopes of the heights along x and z in one cell, a bound.
    * @param[in,out] a_pool    Pool the samples are reserved from; must outlive the grid.
    * @param[in]     a_corner  The corner of the heights' grid with the smallest x and z, and the floor's height as its
    * y: the heights' node (0, 0) is at x and z of a_corner.

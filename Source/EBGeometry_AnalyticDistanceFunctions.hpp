@@ -4778,8 +4778,10 @@ public:
 
   /**
    * @brief Constructs the convex polyhedron bounded by a set of planes: the points behind every plane.
-   * @details Runs on the host. The vertices and edges are found from the planes. Face k is the face on plane k,
-   * which is also the shape's part k.
+   * @details Runs on the host. The vertices and edges are found from the planes, in double precision, to within a
+   * few units in the last place of T times the size of the coordinates. In float, a solid much smaller than its
+   * distance from the origin can therefore not be told apart from rounding: build it near the origin and move it with
+   * Translate. Face k is the face on plane k, which is also the shape's part k.
    * @param[in] a_planes The planes, each with its normal pointing out of the solid (PlaneSDF's sign: the solid is
    * where every plane's value is negative). There must be from 4 to MaxFaces of them, each must bound a face of the
    * solid (no plane may miss it or only touch it at an edge or a vertex), the solid they bound must be finite and
@@ -5016,6 +5018,17 @@ public:
   computeBoundingVolume() const noexcept;
 
 protected:
+  /**
+   * @brief Sets the polyhedron to the one bounded by planes given in double precision: finds its vertices and edges,
+   * and checks it (see the constructor from planes).
+   * @param[in] a_points  A point on each plane.
+   * @param[in] a_normals Each plane's outward normal, not necessarily of unit length.
+   * @param[in] a_epsilon The machine epsilon of the precision the planes are exact in, which sets the tolerance for
+   * where they meet.
+   */
+  void
+  build(const std::vector<Vec3T<double>>& a_points, const std::vector<Vec3T<double>>& a_normals, double a_epsilon);
+
   /**
    * @brief The six planes of the cube [-0.5, 0.5]^3, the default polyhedron.
    * @return The planes.
@@ -5275,7 +5288,9 @@ struct PolyhedronTopology
  * and has a volume when Euler's formula holds and every plane holds at least three vertices.
  * @param[in] a_normals The planes' unit outward normals.
  * @param[in] a_offsets The planes' offsets: plane k is dot(a_normals[k], x) = a_offsets[k].
- * @param[in] a_epsilon The machine epsilon of the precision the planes were given in, which sets the tolerance.
+ * @param[in] a_epsilon   The machine epsilon of the precision the planes were given in, which sets the tolerance.
+ * @param[in] a_magnitude The size of the coordinates the planes were given in (the offsets being relative to a point
+ * near the solid), whose rounding the tolerance must also cover.
  * @param[in] a_who     The class name, for the messages.
  * @return The vertices and edges.
  */
@@ -5283,6 +5298,7 @@ inline PolyhedronTopology
 polyhedronTopology(const std::vector<Vec3T<double>>& a_normals,
                    const std::vector<double>&        a_offsets,
                    const double                      a_epsilon,
+                   const double                      a_magnitude,
                    const char*                       a_who)
 {
   const size_t numPlanes = a_normals.size();
@@ -5295,7 +5311,7 @@ polyhedronTopology(const std::vector<Vec3T<double>>& a_normals,
 
   // The planes are rounded to the shape's precision, so where more than three meet, their crossings scatter by a
   // few of its units in the last place, amplified by how obliquely they meet.
-  const double tol = 256.0 * a_epsilon * Math::max(scale, 1.E-300);
+  const double tol = 256.0 * a_epsilon * Math::max(scale + a_magnitude, 1.E-300);
 
   PolyhedronTopology topology;
 
@@ -5413,29 +5429,62 @@ inline ConvexPolyhedronSDF<T>::ConvexPolyhedronSDF() : ConvexPolyhedronSDF(cubeP
 template <class T>
 inline ConvexPolyhedronSDF<T>::ConvexPolyhedronSDF(const std::vector<PlaneSDF<T>>& a_planes)
 {
-  EBGEOMETRY_REQUIRE(a_planes.size() >= 4U && a_planes.size() <= MaxFaces,
+  std::vector<Vec3T<double>> points;
+  std::vector<Vec3T<double>> normals;
+
+  for (const PlaneSDF<T>& plane : a_planes) {
+    points.emplace_back(double(plane.getPoint()[0]), double(plane.getPoint()[1]), double(plane.getPoint()[2]));
+    normals.emplace_back(double(plane.getNormal()[0]), double(plane.getNormal()[1]), double(plane.getNormal()[2]));
+  }
+
+  this->build(points, normals, double(Math::Limits<T>::epsilon()));
+}
+
+template <class T>
+inline void
+ConvexPolyhedronSDF<T>::build(const std::vector<Vec3T<double>>& a_points,
+                              const std::vector<Vec3T<double>>& a_normals,
+                              const double                      a_epsilon)
+{
+  EBGEOMETRY_REQUIRE(a_points.size() >= 4U && a_points.size() <= MaxFaces,
                      "ConvexPolyhedronSDF: a polyhedron has from 4 to %u planes (%zu)",
                      unsigned(MaxFaces),
-                     a_planes.size());
+                     a_points.size());
+
+  // The planes are taken relative to the mean of their points, so that the tolerance for where planes meet scales
+  // with the solid's size, plus the rounding of the coordinates it was given in. A small solid far from the origin is
+  // then judged by its own size where its planes are exact (the regular solids and pyramids, built in double); one
+  // whose planes were rounded to float far from the origin may be rejected, and is better built near the origin and
+  // moved with Translate.
+  Vec3T<double> reference = Vec3T<double>::zeros();
+
+  for (const Vec3T<double>& point : a_points) {
+    reference += point;
+  }
+
+  reference = reference / double(a_points.size());
 
   std::vector<Vec3T<double>> normals;
   std::vector<double>        offsets;
 
-  for (const PlaneSDF<T>& plane : a_planes) {
-    const Vec3T<double> point(double(plane.getPoint()[0]), double(plane.getPoint()[1]), double(plane.getPoint()[2]));
-    const Vec3T<double> normal(
-      double(plane.getNormal()[0]), double(plane.getNormal()[1]), double(plane.getNormal()[2]));
+  for (size_t k = 0; k < a_points.size(); k++) {
+    const Vec3T<double>& point  = a_points[k];
+    const Vec3T<double>& normal = a_normals[k];
 
     EBGEOMETRY_REQUIRE(AnalyticDetail::isFinite(point) && AnalyticDetail::isFinite(normal) && normal.length() > 0.0,
                        "ConvexPolyhedronSDF: plane %zu must have a finite point and a finite, nonzero normal",
-                       normals.size());
+                       k);
 
     normals.push_back(normal / normal.length());
-    offsets.push_back(dot(normals.back(), point));
+    offsets.push_back(dot(normals.back(), point - reference));
   }
 
-  const AnalyticDetail::PolyhedronTopology topology =
-    AnalyticDetail::polyhedronTopology(normals, offsets, double(Math::Limits<T>::epsilon()), "ConvexPolyhedronSDF");
+  const AnalyticDetail::PolyhedronTopology topology = AnalyticDetail::polyhedronTopology(
+    normals,
+    offsets,
+    a_epsilon,
+    Math::max(std::abs(reference[0]), Math::max(std::abs(reference[1]), std::abs(reference[2]))),
+    "ConvexPolyhedronSDF");
 
   EBGEOMETRY_REQUIRE(topology.m_vertices.size() <= MaxVertices,
                      "ConvexPolyhedronSDF: a polyhedron has at most %u vertices (%zu)",
@@ -5448,11 +5497,11 @@ inline ConvexPolyhedronSDF<T>::ConvexPolyhedronSDF(const std::vector<PlaneSDF<T>
 
   for (uint32_t f = 0; f < m_numFaces; f++) {
     m_normals[f] = Vec3T<T>(T(normals[f][0]), T(normals[f][1]), T(normals[f][2]));
-    m_offsets[f] = T(offsets[f]);
+    m_offsets[f] = T(offsets[f] + dot(normals[f], reference));
   }
 
   for (uint32_t v = 0; v < m_numVertices; v++) {
-    const Vec3T<double>& x = topology.m_vertices[v];
+    const Vec3T<double> x = topology.m_vertices[v] + reference;
 
     m_vertices[v] = Vec3T<T>(T(x[0]), T(x[1]), T(x[2]));
   }
@@ -5483,28 +5532,36 @@ ConvexPolyhedronSDF<T>::fromNormals(const Vec3T<T>&              a_center,
                      double(a_radius));
 
   // Each face's plane is at the largest height of a vertex along its normal (the vertices lie on a sphere of the
-  // circumradius), computed in double so that a float solid's faces are as close to its vertices as can be.
-  std::vector<PlaneSDF<T>> planes;
+  // circumradius), all in double: a float solid then has its planes rounded once, at the end, as its vertices are.
+  const Vec3T<double> center = Vec3T<double>(double(a_center[0]), double(a_center[1]), double(a_center[2]));
+
+  const auto unit = [](const Vec3T<T>& a_v) {
+    const Vec3T<double> v = Vec3T<double>(double(a_v[0]), double(a_v[1]), double(a_v[2]));
+
+    return v / v.length();
+  };
+
+  std::vector<Vec3T<double>> points;
+  std::vector<Vec3T<double>> normals;
 
   for (const Vec3T<T>& n : a_normals) {
-    const Vec3T<double> normal = Vec3T<double>(double(n[0]), double(n[1]), double(n[2])) /
-                                 Vec3T<double>(double(n[0]), double(n[1]), double(n[2])).length();
+    const Vec3T<double> normal = unit(n);
 
     double height = -1.0;
 
     for (const Vec3T<T>& d : a_vertexDirections) {
-      const Vec3T<double> direction = Vec3T<double>(double(d[0]), double(d[1]), double(d[2])) /
-                                      Vec3T<double>(double(d[0]), double(d[1]), double(d[2])).length();
-
-      height = Math::max(height, dot(normal, direction));
+      height = Math::max(height, dot(normal, unit(d)));
     }
 
-    const Vec3T<T> unit = Vec3T<T>(T(normal[0]), T(normal[1]), T(normal[2]));
-
-    planes.emplace_back(a_center + T(height * double(a_radius)) * unit, unit);
+    points.push_back(center + height * double(a_radius) * normal);
+    normals.push_back(normal);
   }
 
-  return ConvexPolyhedronSDF<T>(planes);
+  ConvexPolyhedronSDF<T> solid;
+
+  solid.build(points, normals, Math::Limits<double>::epsilon());
+
+  return solid;
 }
 
 template <class T>
@@ -5669,9 +5726,8 @@ ConvexPolyhedronSDF<T>::pyramid(const Vec3T<T>& a_baseCenter,
     corners.push_back(base + double(a_radius) * (std::cos(angle) * u + std::sin(angle) * v));
   }
 
-  std::vector<PlaneSDF<T>> planes;
-
-  const auto toT = [](const Vec3T<double>& a_v) { return Vec3T<T>(T(a_v[0]), T(a_v[1]), T(a_v[2])); };
+  std::vector<Vec3T<double>> points;
+  std::vector<Vec3T<double>> normals;
 
   for (unsigned k = 0; k < a_sides; k++) {
     const Vec3T<double>& a = corners[k];
@@ -5684,12 +5740,18 @@ ConvexPolyhedronSDF<T>::pyramid(const Vec3T<T>& a_baseCenter,
       normal = -normal;
     }
 
-    planes.emplace_back(toT(a), toT(normal / normal.length()));
+    points.push_back(a);
+    normals.push_back(normal / normal.length());
   }
 
-  planes.emplace_back(a_baseCenter, toT(-axis));
+  points.push_back(base);
+  normals.push_back(-axis);
 
-  return ConvexPolyhedronSDF<T>(planes);
+  ConvexPolyhedronSDF<T> solid;
+
+  solid.build(points, normals, Math::Limits<double>::epsilon());
+
+  return solid;
 }
 
 template <class T>
