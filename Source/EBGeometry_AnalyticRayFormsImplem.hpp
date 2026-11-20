@@ -1910,7 +1910,8 @@ RayForm<BoxFrameSDF<T>>::spans(const BoxFrameSDF<T>& a_shape,
 
     const T end = RayDetail::frameStretchEnd(bars, in, face);
 
-    a_spans.addClipped(in, end, a_tMin, a_tMax);
+    // A ray that starts inside a bar entered it before the interval: its span's start is no crossing.
+    a_spans.addClipped(inside ? -Math::Limits<T>::infinity() : in, end, a_tMin, a_tMax);
 
     if (!(end > t)) {
       break;
