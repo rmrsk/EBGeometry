@@ -173,6 +173,11 @@ Shape                                                  Parts
 ``CappedTorusSDF``                                     3: the tube, the two ends
 ``CutSphereSDF``, ``CutHollowSphereSDF``               2: the sphere and the cut face; the shell and its rim
 ``WedgeSDF``                                           2: the face on either side of the edge
+``ConvexPolyhedronSDF``                                one per face, in the order of its planes, or as each regular
+                                                       solid or pyramid documents them (a pyramid's sides, then
+                                                       its base)
+``BoxFrameSDF``                                        12: the bars, four along x, then along y, then along z
+``SolidAngleSDF``                                      2: the spherical cap, the cone's side
 the mesh distance fields                               one per face: the face's id, its position in the file
 any other shape (a sphere, a torus, a fused part)      1: part 0
 =====================================================  ===========================================================

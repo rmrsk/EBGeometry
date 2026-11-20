@@ -840,6 +840,37 @@ TEMPLATE_TEST_CASE("LatticeSDF: walls on each surface, and a bound that never ch
   }
 }
 
+TEMPLATE_TEST_CASE("Shape families: a chain link is an elongated torus, with Quilez's exact link distance",
+                   "[AnalyticSDF]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // A ring of radius 0.5 in the xy-plane, its straight sides 2 h = 0.8 long along y, a tube radius of 0.15.
+  const T h  = T(0.4);
+  const T r1 = T(0.5);
+  const T r2 = T(0.15);
+
+  const Tape<T> link(pool, Elongate(Rotate(TorusSDF<T>(Vec3::zeros(), r1, r2), T(90), size_t(0)), Vec3(T(0), h, T(0))));
+
+  for (const Vec3& p : randomPoints<T>(T(1.5), 500)) {
+    const T qx = p[0];
+    const T qy = std::max(std::abs(p[1]) - h, T(0));
+    const T qz = p[2];
+
+    const T reference =
+      std::sqrt((std::sqrt(qx * qx + qy * qy) - r1) * (std::sqrt(qx * qx + qy * qy) - r1) + qz * qz) - r2;
+
+    INFO("p = " << p);
+    REQUIRE_THAT(link.signedDistance(p), withinAbsT<T>(reference, double(looseMargin<T>())));
+  }
+
+  requireExactSDF<T>(link, T(1.5));
+}
+
 TEMPLATE_TEST_CASE("Shape families: the ray forms' spans are where the values along the ray are negative",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)

@@ -15,14 +15,19 @@
  * - Placement first: each constructor takes the shape's position (a center, corner, tip or point)
  *   before its sizes. PerlinSDF, which fills all of space, has none.
  * - One axis: a shape with a fixed axis has it along y (Torus, InfiniteCone, Cone,
- *   RoundedCylinder, CappedTorus, CutSphere, CutHollowSphere and Wedge, and the defaults of the
- *   others); Rotate turns it. Cylinder, Capsule, CappedCone, RoundCone, PolygonPrism and Tube take
- *   two end points, and InfiniteCylinder an axis index, so they can point anywhere.
+ *   RoundedCylinder, CappedTorus, CutSphere, CutHollowSphere, Wedge, Quadric and SolidAngle, and the
+ *   defaults of the others); Rotate turns it. Cylinder, Capsule, CappedCone, RoundCone, PolygonPrism,
+ *   Tube, Vesica, Helix and ConvexPolyhedron's pyramid take two end points, and InfiniteCylinder an
+ *   axis index, so they can point anywhere. The regular solids are in their standard orientations.
  * - Outer sizes: a size is that of the finished shape, rounding included.
  * - computeBoundingVolume() returns the shape's axis-aligned bounding box. Along a direction in
  *   which the shape is unbounded, the box extends to plus or minus Math::Limits<T>::max().
  * - distanceQuality says how far signedDistance() can be trusted as a distance (DistanceQuality).
- *   Every shape is Exact except PerlinSDF, which is NotADistance.
+ *   Every shape is Exact except SuperellipsoidSDF and LatticeSDF, which are Bound, and PerlinSDF,
+ *   which is NotADistance.
+ * - Families: shapes that share their code are one type (ConvexPolyhedronSDF with the regular solids
+ *   and pyramids, QuadricSDF, LatticeSDF), since each type a tape can hold enlarges every tape's
+ *   evaluator.
  * @author Robert Marskar
  */
 
@@ -7260,9 +7265,9 @@ protected:
     const T halfTurn = pi<T>;
     const T base     = a_phi + T(2) * halfTurn * a_k;
     const T Y        = a_y - a_rate * base;
-    const T rR    = a_rho * m_helixRadius;
-    const T rate2 = a_rate * a_rate;
-    const T A     = a_rho * a_rho + m_helixRadius * m_helixRadius;
+    const T rR       = a_rho * m_helixRadius;
+    const T rate2    = a_rate * a_rate;
+    const T A        = a_rho * a_rho + m_helixRadius * m_helixRadius;
 
     const T sLo = Math::max(-halfTurn, -base);
     const T sHi = Math::min(halfTurn, a_last - base);

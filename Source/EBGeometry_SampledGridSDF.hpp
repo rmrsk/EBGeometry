@@ -149,29 +149,47 @@ public:
                        a_nz,
                        a_values.size());
 
-    // The interpolant's largest slope: along each axis, its derivative in a cell is a weighted mean of the
-    // differences along the cell's four edges in that direction, so it is at most the largest such difference over
-    // the spacing, and the gradient's length is at most the length of those three bounds.
-    const uint32_t n[3]      = {a_nx, a_ny, a_nz};
-    const size_t   stride[3] = {1U, size_t(a_nx), size_t(a_nx) * size_t(a_ny)};
-
-    double slope[3] = {0.0, 0.0, 0.0};
-
+    // The interpolant's largest slope. In a cell, its derivative along an axis is a weighted mean of the
+    // differences along the cell's four edges in that direction, so it is at most the largest of them over the
+    // spacing, and the gradient's length in the cell is at most the length of those three bounds. Taken cell by
+    // cell, a field of distances gives about 1; the axes' largest differences over the whole grid would give up to
+    // sqrt(3).
     for (size_t i = 0; i < a_values.size(); i++) {
       EBGEOMETRY_REQUIRE(std::isfinite(a_values[i]), "SampledGridSDF: value %zu is not finite", i);
+    }
 
-      const size_t index[3] = {i % a_nx, (i / a_nx) % a_ny, i / (size_t(a_nx) * size_t(a_ny))};
+    const size_t sx = 1U;
+    const size_t sy = size_t(a_nx);
+    const size_t sz = size_t(a_nx) * size_t(a_ny);
 
-      for (size_t dir = 0; dir < 3; dir++) {
-        if (index[dir] + 1U < n[dir]) {
-          const double difference = std::abs(double(a_values[i + stride[dir]]) - double(a_values[i]));
+    const auto at = [&a_values](const size_t a_i) { return double(a_values[a_i]); };
 
-          slope[dir] = Math::max(slope[dir], difference / double(a_spacing[dir]));
+    double lipschitz = 0.0;
+
+    for (uint32_t k = 0; k + 1U < a_nz; k++) {
+      for (uint32_t j = 0; j + 1U < a_ny; j++) {
+        for (uint32_t i = 0; i + 1U < a_nx; i++) {
+          const size_t c = i * sx + j * sy + k * sz;
+
+          double slope[3] = {0.0, 0.0, 0.0};
+
+          const size_t step[3]      = {sx, sy, sz};
+          const size_t across[3][2] = {{sy, sz}, {sx, sz}, {sx, sy}};
+
+          for (size_t dir = 0; dir < 3; dir++) {
+            for (size_t e = 0; e < 4; e++) {
+              const size_t base = c + ((e & 1U) ? across[dir][0] : 0U) + ((e & 2U) ? across[dir][1] : 0U);
+
+              slope[dir] = Math::max(slope[dir], std::abs(at(base + step[dir]) - at(base)));
+            }
+
+            slope[dir] /= double(a_spacing[dir]);
+          }
+
+          lipschitz = Math::max(lipschitz, std::sqrt(slope[0] * slope[0] + slope[1] * slope[1] + slope[2] * slope[2]));
         }
       }
     }
-
-    double lipschitz = std::sqrt(slope[0] * slope[0] + slope[1] * slope[1] + slope[2] * slope[2]);
 
     if (!(lipschitz > 0.0)) {
       lipschitz = 1.0;

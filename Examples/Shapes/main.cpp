@@ -166,6 +166,44 @@ main(int argc, char* argv[])
   // A wedge (a knife edge), infinite along z and pointing along +y: a point on its edge, opening angle.
   const EBGeometry::WedgeSDF<T> wedge(Vec3::zeros(), T(60));
 
+  // The regular solids and right pyramids are one type, ConvexPolyhedronSDF, made by its static functions: a
+  // center and the circumradius (to a vertex), each solid in its standard orientation; a pyramid like the prism, from
+  // its base center to its apex. Any other convex polyhedron is made from its planes, normals pointing out.
+  const auto tetrahedron  = EBGeometry::ConvexPolyhedronSDF<T>::tetrahedron(Vec3::zeros(), T(1.1));
+  const auto octahedron   = EBGeometry::ConvexPolyhedronSDF<T>::octahedron(Vec3::zeros(), T(1));
+  const auto dodecahedron = EBGeometry::ConvexPolyhedronSDF<T>::dodecahedron(Vec3::zeros(), T(1));
+  const auto icosahedron  = EBGeometry::ConvexPolyhedronSDF<T>::icosahedron(Vec3::zeros(), T(1));
+  const auto pyramid      = EBGeometry::ConvexPolyhedronSDF<T>::pyramid(
+    Vec3(T(0), T(-0.7), T(0)), Vec3(T(0), T(0.9), T(0)), T(0.9), 4U, Vec3(T(1), T(0), T(0)));
+
+  // A box frame: the box's corners and the thickness of its bars.
+  const EBGeometry::BoxFrameSDF<T> frame(T(-0.8) * Vec3::ones(), T(0.8) * Vec3::ones(), T(0.15));
+
+  // The quadrics of revolution around y, one type made by its static functions; each is unbounded. A paraboloid
+  // (a rounded needle tip, opening toward -y): tip and the radius of curvature there. A hyperboloid of one sheet:
+  // center, waist radius and the opening angle of the cone it widens toward.
+  const auto paraboloid  = EBGeometry::QuadricSDF<T>::paraboloid(Vec3(T(0), T(0.8), T(0)), T(0.3));
+  const auto hyperboloid = EBGeometry::QuadricSDF<T>::hyperboloid(Vec3::zeros(), T(0.4), T(60));
+
+  // A superellipsoid: center, semi-axes and two exponents (1 is an ellipsoid, toward 0.1 a box). Its value is a
+  // bound, not the distance.
+  const EBGeometry::SuperellipsoidSDF<T> superellipsoid(Vec3::zeros(), Vec3(T(1), T(0.7), T(0.8)), T(0.3), T(0.3));
+
+  // A solid angle (a cone of a ball, opening toward +y), a vesica (a lens between two tips) and a helix (a spring:
+  // the axis' two ends, helix radius, turns, tube radius, and the direction it starts in).
+  const EBGeometry::SolidAngleSDF<T> solidAngle(Vec3(T(0), T(-0.6), T(0)), T(1.2), T(70));
+  const EBGeometry::VesicaSDF<T>     vesica(Vec3(T(0), T(-1), T(0)), Vec3(T(0), T(1), T(0)), T(0.45));
+  const EBGeometry::HelixSDF<T>      helix(
+    Vec3(T(0), T(-0.9), T(0)), Vec3(T(0), T(0.9), T(0)), T(0.7), T(4), T(0.12), Vec3(T(1), T(0), T(0)));
+
+  // A lattice of walls along a triply periodic minimal surface, filling space: the surface, the cell size and the
+  // walls' thickness. Its value is a bound.
+  const EBGeometry::LatticeSDF<T> gyroid(EBGeometry::LatticeSDF<T>::Kind::Gyroid, Vec3::ones(), T(0.15));
+
+  // A chain link is a composition, not a shape: a torus turned into the xy-plane and elongated along y.
+  const auto link = EBGeometry::Elongate(
+    EBGeometry::Rotate(EBGeometry::TorusSDF<T>(Vec3::zeros(), T(0.5), T(0.15)), T(90), 0), Vec3(T(0), T(0.4), T(0)));
+
   // Rounded edges come from Offset: a slightly smaller prism, inflated by the rounding radius, rounds every
   // edge and keeps the outer size.
   const T    rounding = T(0.1);
@@ -208,6 +246,19 @@ main(int argc, char* argv[])
   report("cut sphere", dome);
   report("cut hollow sphere", shell);
   report("wedge", wedge);
+  report("tetrahedron", tetrahedron);
+  report("octahedron", octahedron);
+  report("dodecahedron", dodecahedron);
+  report("icosahedron", icosahedron);
+  report("pyramid", pyramid);
+  report("box frame", frame);
+  report("paraboloid", paraboloid);
+  report("hyperboloid", hyperboloid);
+  report("superellipsoid", superellipsoid);
+  report("solid angle", solidAngle);
+  report("vesica", vesica);
+  report("helix", helix);
+  report("gyroid lattice", gyroid);
   report("rounded prism", roundedPrism);
 
   // ── The same query on a GPU ────────────────────────────────────────────────────────────────────────
@@ -241,32 +292,48 @@ main(int argc, char* argv[])
 
   // ── Look at them ───────────────────────────────────────────────────────────────────────────────────
   //
-  // The bounded shapes side by side, four rows of four, the shell turned over to show its hollow. Shapes of different types are put together with the
+  // The bounded shapes side by side, in rows of six, the shell turned over to show its hollow, and the unbounded
+  // paraboloid, hyperboloid and lattice cut by a box or a ball. Shapes of different types are put together with the
   // expression builder and a Tape (see the BasicCSG example); Translate moves each to its place. A window
   // opens when built with VIEWER=SDL2; otherwise, with --no-view or without a display, view() prints why
   // and returns.
   // Given the pool, view() renders on the GPU in a GPU build (G switches to the CPU and back).
-  const std::vector<EBGeometry::Expr<T>> bounded{sphere,
-                                                 box,
-                                                 torus,
-                                                 cylinder,
-                                                 capsule,
-                                                 cone,
-                                                 roundedBox,
-                                                 roundedCylinder,
-                                                 ellipsoid,
-                                                 cappedCone,
-                                                 roundCone,
-                                                 prism,
-                                                 tube,
-                                                 elbow,
-                                                 dome,
-                                                 EBGeometry::Rotate(shell, T(160), 0)};
+  const std::vector<EBGeometry::Expr<T>> bounded{
+    sphere,
+    box,
+    torus,
+    cylinder,
+    capsule,
+    cone,
+    roundedBox,
+    roundedCylinder,
+    ellipsoid,
+    cappedCone,
+    roundCone,
+    prism,
+    tube,
+    elbow,
+    dome,
+    EBGeometry::Rotate(shell, T(160), 0),
+    tetrahedron,
+    octahedron,
+    dodecahedron,
+    icosahedron,
+    pyramid,
+    frame,
+    superellipsoid,
+    solidAngle,
+    vesica,
+    helix,
+    link,
+    EBGeometry::Intersection(paraboloid, EBGeometry::BoxSDF<T>(-Vec3::ones(), Vec3::ones())),
+    EBGeometry::Intersection(hyperboloid, EBGeometry::BoxSDF<T>(-Vec3::ones(), Vec3::ones())),
+    EBGeometry::Intersection(gyroid, EBGeometry::SphereSDF<T>(Vec3::zeros(), T(1)))};
 
   std::vector<EBGeometry::Expr<T>> gallery;
 
   for (std::size_t i = 0; i < bounded.size(); i++) {
-    gallery.push_back(EBGeometry::Translate(bounded[i], Vec3(T(3) * T(i % 4), T(0), T(3) * T(i / 4))));
+    gallery.push_back(EBGeometry::Translate(bounded[i], Vec3(T(3) * T(i % 6), T(0), T(3) * T(i / 6))));
   }
 
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());

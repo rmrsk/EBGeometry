@@ -34,8 +34,10 @@ The table lists what is traced exactly; everything else is marched (see :ref:`Ch
      - Traced exactly
    * - Analytic shapes
      - plane, sphere, box, cylinder, infinite cylinder, capsule, ellipsoid, capped cone, polygon prism, tube,
-       cut sphere, wedge. Marched: torus and capped torus, cone and infinite cone, round cone, rounded box,
-       rounded cylinder, cut hollow sphere, Perlin noise.
+       cut sphere, wedge, convex polyhedra (the regular solids and pyramids too), box frame, hyperboloids and
+       paraboloid. Marched: torus and capped torus, cone and infinite cone, round cone, rounded box, rounded
+       cylinder, cut hollow sphere, superellipsoid, solid angle, vesica, helix, lattices, sampled grids, Perlin
+       noise.
    * - Meshes
      - all three mesh distance functions, face by face (below).
    * - Many objects
