@@ -97,6 +97,19 @@ class Pool;
  */
 struct PoolLocation
 {
+  /**
+   * @brief An unset location.
+   * @details Declared, rather than left implicit, so that device code may default-construct one. With
+   * default member initializers and no declared constructor, nvcc makes the implicit default constructor
+   * a constexpr host function, and a host-device caller (a handle's default construction inside a
+   * host-device constructor) then warns that it needs --expt-relaxed-constexpr, a flag the library does
+   * not require. Defaulting it with a host-device annotation does not help: nvcc ignores the annotation
+   * on a function defaulted on its first declaration. The type stays trivially copyable.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  constexpr PoolLocation() noexcept
+  {}
+
   /// @brief Control block of the pool the descriptor follows; null for a snapshot or when unset.
   const PoolControl* m_control = nullptr;
 
@@ -174,6 +187,9 @@ struct PoolLocation
   inline PoolLocation
   rebasedOnto(const Pool& a_pool, uint64_t a_endByte, const char* a_who) const noexcept;
 };
+
+static_assert(std::is_trivially_copyable_v<PoolLocation>,
+              "PoolLocation must be trivially copyable, for a kernel to take a handle");
 /**
  * @brief Growable bump arena over a @ref MemoryResource.
  * @details Move-only, single-owner RAII. See the file-level documentation for how growth, freezing
