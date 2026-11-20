@@ -73,6 +73,7 @@ ebgeometry_add_test(TestMath)
 ebgeometry_add_test(TestBoundingVolumes)
 ebgeometry_add_test(TestAnalyticSDF)
 ebgeometry_add_test(TestAnalyticShapeFamilies)
+ebgeometry_add_test(TestAnalyticShapeFamiliesDevice)
 ebgeometry_add_test(TestSampledGridSDF)
 ebgeometry_add_test(TestDCEL)
 ebgeometry_add_test(TestSFC)
@@ -134,7 +135,7 @@ ebgeometry_add_test(TestPoolRebase)
 # device compiler is much slower than the host's, so a component with many host tests keeps its
 # device checks in Test<Component>Device.cpp, and only that file is listed here.
 if(EBGEOMETRY_ENABLE_CUDA OR EBGEOMETRY_ENABLE_HIP)
-  set(EBGEOMETRY_GPU_TESTS TestGPUTransform TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVHDevice TestPointCloudBVH TestPointCloudHashGrid TestSphereCloudBVHDevice TestAnalyticSDF TestAnalyticShapeFamilies TestSampledGridSDF TestCSGDevice TestFunctionQueries TestTape TestTapeClosestDevice TestTapeSurfacesDevice TestSurfacePartsDevice TestRegionsDevice TestLanguageDevice TestFusedDevice TestRayAnalytic TestRayMeshDevice TestRayCSG TestRayOffsets TestRenderDevice TestExplodedView)
+  set(EBGEOMETRY_GPU_TESTS TestGPUTransform TestVec TestBoundingVolumes TestPool TestPointAoSoA TestTriangleSoA TestDCEL TestBVHDevice TestPointCloudBVH TestPointCloudHashGrid TestSphereCloudBVHDevice TestAnalyticSDF TestAnalyticShapeFamiliesDevice TestSampledGridSDF TestCSGDevice TestFunctionQueries TestTape TestTapeClosestDevice TestTapeSurfacesDevice TestSurfacePartsDevice TestRegionsDevice TestLanguageDevice TestFusedDevice TestRayAnalytic TestRayMeshDevice TestRayCSG TestRayOffsets TestRenderDevice TestExplodedView)
 
   foreach(_ebgeometry_gpu_test ${EBGEOMETRY_GPU_TESTS})
     if(EBGEOMETRY_ENABLE_CUDA)

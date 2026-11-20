@@ -299,7 +299,7 @@ Test coverage
        the capsule's sphere limit and Perlin's defaults; every analytic shape is a trivially
        copyable, non-polymorphic value type; the device ``signedDistance()`` and
        ``computeBoundingVolume()`` of every shape match the host.
-   * - ``TestAnalyticShapeFamilies``
+   * - ``TestAnalyticShapeFamilies``, ``TestAnalyticShapeFamiliesDevice``
      - ``ConvexPolyhedronSDF``: the regular solids' counts, inradii and vertices, and the regular solids, a pyramid
        and a solid from planes against the convex hulls of hand-written vertices; ``BoxFrameSDF`` against the union
        of its twelve bars; ``QuadricSDF``, ``SolidAngleSDF`` and ``VesicaSDF`` against finely sampled outlines,
