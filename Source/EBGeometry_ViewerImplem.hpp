@@ -268,8 +268,8 @@ keys(const bool a_device, const bool a_regions = false)
      "Camera",
      {{nullptr, "Camera"},
       {"Drag", "Orbit the camera"},
-      {"Ctrl + drag", "Pan the camera"},
-      {"Wheel", "Zoom"},
+      {"Middle drag, Ctrl + drag", "Pan the camera"},
+      {"Wheel", "Zoom towards the point under the cursor (over the background, towards the center)"},
       {"Double-click", "Center the camera on the point under the cursor"},
       {"1, 2, 3", "Look from the front, the side, the top"},
       {"O", "Switch between perspective and orthographic"},
@@ -302,6 +302,8 @@ keys(const bool a_device, const bool a_regions = false)
        "See through the cut face and the plane, or make them opaque; with the other side drawn (N), "
        "make it opaque or ghosted"},
       {"N", "Keep the other side; each side with the other ghosted; both sides solid (five in turn)"},
+      {"Ctrl + N",
+       "Clean cutaway: an opaque cut face filled by what it cuts, no sheet or lines; Ctrl + N again goes back"},
       {"Page Up, Page Down", "Move the plane in coarse steps"},
       {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
@@ -310,6 +312,7 @@ keys(const bool a_device, const bool a_regions = false)
      "Picking",
      {{"Click", "Pick what is under the cursor (the background clears it)"},
       {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
+      {"Y, Shift + Y", "Peel the whole frame: show the next surface along every ray, or the one before"},
       {"T", "See through the picked surface, or make it opaque again"},
       {"Shift + T", "Make every surface opaque again"},
       {"Shift + click", "Measure between two points (the background clears it)"},
@@ -1825,6 +1828,27 @@ run(const S&                           a_shape,
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
+  // The clean cutaway (Ctrl + N): the plane on, with no sheet, no lines of equal distance and no other side drawn, an
+  // opaque cut face filled by what it cuts. What it changed, as it was, to go back to with Ctrl + N again.
+  struct Cutaway
+  {
+    int      m_sectionMode;
+    T        m_sectionOffset;
+    bool     m_sectionGhost;
+    bool     m_sectionSolid;
+    bool     m_sectionSwap;
+    int      m_isoMode;
+    T        m_sheetOpacity;
+    T        m_cutOpacity;
+    T        m_sectionFill;
+    bool     m_sectionFillOutside;
+    bool     m_sectionDomain;
+    uint64_t m_sectionRegions;
+  };
+
+  bool    cutaway = false;
+  Cutaway beforeCutaway{};
+
   // The section plane as the last frame placed it.
   bool     planeOn     = false;
   Vec3T<T> planePoint  = Vec3T<T>::zeros();
@@ -2644,7 +2668,8 @@ run(const S&                           a_shape,
                                   std::string(!sectionGhost                   ? ""
                                               : (sectionSolid != sectionSwap) ? ", both sides solid"
                                                                               : ", the other side ghosted") +
-                                  ", moved " + fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
+                                  ", moved " + fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "") +
+                                  (cutaway ? ", clean cutaway" : "")
                               : std::string()),
         (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
                                        : std::string("No lines of equal distance")},
@@ -2663,9 +2688,12 @@ run(const S&                           a_shape,
                : std::string("No probe: right click a point")},
        {picked ? "Picked at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
                : std::string("No picked point"),
-        depthHits.empty() ? std::string("Not stepping through surfaces")
-                          : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
-                              " under the cursor",
+        (depthHits.empty() ? std::string("Not stepping through surfaces")
+                           : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
+                               " under the cursor") +
+          ((settings.m_peel == 0U)   ? std::string()
+           : (settings.m_peel == 1U) ? std::string(", 1 surface peeled")
+                                     : ", " + std::to_string(settings.m_peel) + " surfaces peeled"),
         (measured == 2) ? "Along x, y, z " + point(measureB - measureA, 4) + ", from " + point(measureA, 3)
                         : std::string("No measurement")}},
       {{}, {}}};
@@ -3780,8 +3808,16 @@ run(const S&                           a_shape,
         break;
       }
       case SDL_MOUSEBUTTONDOWN: {
-        // A drag orbits the camera, or pans it with Ctrl held; a drag with the right button moves the light.
-        if (event.button.button == SDL_BUTTON_LEFT) {
+        // A drag orbits the camera, or pans it with Ctrl held or with the middle button (the wheel pressed); a drag
+        // with the right button moves the light.
+        if (event.button.button == SDL_BUTTON_MIDDLE) {
+          panning  = true;
+          dragging = false;
+          pressX   = event.button.x;
+          pressY   = event.button.y;
+          moved    = false;
+        }
+        else if (event.button.button == SDL_BUTTON_LEFT) {
           // In the slice view a drag pans: an orbit would turn the plane away.
           panning  = slicing || (SDL_GetModState() & KMOD_CTRL) != 0;
           dragging = !panning;
@@ -4306,6 +4342,11 @@ run(const S&                           a_shape,
           dragging = false;
           panning  = false;
         }
+        else if (event.button.button == SDL_BUTTON_MIDDLE) {
+          // A middle drag only pans: its release picks nothing.
+          dragging = false;
+          panning  = false;
+        }
         else if (event.button.button == SDL_BUTTON_RIGHT) {
           lighting = false;
 
@@ -4484,7 +4525,31 @@ run(const S&                           a_shape,
             sectionOffset += T(0.02) * scale * T(event.wheel.y);
           }
           else {
-            camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+            // The wheel zooms towards what is under the cursor: the camera is scaled about the point there, so that
+            // the eye moves along the ray through the cursor by a tenth of its distance to the point, the target
+            // with it, and the point stays under the cursor. The target comes closer to what is looked at, so that
+            // orbiting and panning work around it. Over the background, the eye zooms towards the target.
+            const T factor = (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+
+            int windowWidth  = 0;
+            int windowHeight = 0;
+            int mouseX       = 0;
+            int mouseY       = 0;
+
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            const Settings<T> frame  = stageSettings(2);
+            const T           column = T(mouseX) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+            const T           row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+            const HitT<T>     hit    = Renderer<T>(frame).pick(shape, camera, column, row);
+
+            if (hit.hit() && std::isfinite(hit.m_point[0]) && std::isfinite(hit.m_point[1]) &&
+                std::isfinite(hit.m_point[2])) {
+              camera.m_target = hit.m_point + factor * (camera.m_target - hit.m_point);
+            }
+
+            camera.m_distance *= factor;
 
             endStepping(false);
           }
@@ -4923,6 +4988,65 @@ run(const S&                           a_shape,
           break;
         }
         case SDLK_n: {
+          // Ctrl and N: the clean cutaway, as a CAD section shows it, or back to the settings before it. The plane
+          // is turned on (across x, if it was off), the removed side is left out, and the plane draws neither the
+          // sheet nor lines of equal distance nor a domain's functions: only the opaque cut face, filled by what it
+          // cuts (a view of regions: the material of each region), with its contour.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            RegionSettings& regions = settings.m_regions;
+
+            // Back to the settings before it, whatever was changed since (the plane turned off included).
+            if (cutaway) {
+              sectionMode                   = beforeCutaway.m_sectionMode;
+              sectionOffset                 = beforeCutaway.m_sectionOffset;
+              sectionGhost                  = beforeCutaway.m_sectionGhost;
+              sectionSolid                  = beforeCutaway.m_sectionSolid;
+              sectionSwap                   = beforeCutaway.m_sectionSwap;
+              isoMode                       = beforeCutaway.m_isoMode;
+              settings.m_sheetOpacity       = beforeCutaway.m_sheetOpacity;
+              settings.m_cutOpacity         = beforeCutaway.m_cutOpacity;
+              settings.m_sectionFill        = beforeCutaway.m_sectionFill;
+              settings.m_sectionFillOutside = beforeCutaway.m_sectionFillOutside;
+              regions.m_sectionDomain       = beforeCutaway.m_sectionDomain;
+              regions.m_sectionRegions      = beforeCutaway.m_sectionRegions;
+              cutaway                       = false;
+
+              break;
+            }
+
+            beforeCutaway = Cutaway{sectionMode,
+                                    sectionOffset,
+                                    sectionGhost,
+                                    sectionSolid,
+                                    sectionSwap,
+                                    isoMode,
+                                    settings.m_sheetOpacity,
+                                    settings.m_cutOpacity,
+                                    settings.m_sectionFill,
+                                    settings.m_sectionFillOutside,
+                                    regions.m_sectionDomain,
+                                    regions.m_sectionRegions};
+
+            if (sectionMode == 0) {
+              sectionMode   = 2;
+              sectionOffset = T(0);
+            }
+
+            sectionGhost                  = false;
+            sectionSolid                  = false;
+            sectionSwap                   = false;
+            isoMode                       = 0;
+            settings.m_sheetOpacity       = T(0);
+            settings.m_cutOpacity         = T(1);
+            settings.m_sectionFill        = T(1);
+            settings.m_sectionFillOutside = false;
+            regions.m_sectionDomain       = false;
+            regions.m_sectionRegions      = 0U;
+            cutaway                       = true;
+
+            break;
+          }
+
           // Five in turn: this side kept, the other kept, each with the other side ghosted (drawn translucent), then
           // both sides solid (the removed side drawn opaque: the plane shows only outside the shape). The plane stays
           // where it is: its offset is along the normal, which turns around. Shift and X's swap of the removed
@@ -5171,6 +5295,17 @@ run(const S&                           a_shape,
 
           break;
         }
+        case SDLK_y: {
+          // Peel the frame: Y shows the next surface along every camera ray, Shift and Y the one before.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_peel = (settings.m_peel > 0U) ? settings.m_peel - 1U : 0U;
+          }
+          else if (settings.m_peel + 1U < Renderer<T>::MaxCrossings) {
+            settings.m_peel++;
+          }
+
+          break;
+        }
         case SDLK_t: {
           // A shape with regions sees through in itself, so that a surface between a region seen through and another
           // shows as the other's (see RegionView::withSeenThrough()).
@@ -5257,6 +5392,7 @@ run(const S&                           a_shape,
           settings.m_fillIntensity      = a_settings.m_fillIntensity;
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
+          settings.m_peel               = a_settings.m_peel;
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
           settings.m_highlightCount     = a_settings.m_highlightCount;
           picked                        = false;

@@ -112,15 +112,20 @@ default.
        where the plane lies outside the shape, within its box.
    * - ``m_isoSpacing``, ``m_isoColor``
      - Lines of equal distance on the section plane, inside and outside, this far apart (0: none).
-   * - ``m_sectionFill``, ``m_materialColors``, ``m_fillSecondaryColor``, ``m_isoSecondary``,
-       ``m_isoSecondaryColor``
+   * - ``m_sectionFill``, ``m_sectionFillOutside``, ``m_materialColors``, ``m_fillSecondaryColor``,
+       ``m_isoSecondary``, ``m_isoSecondaryColor``
      - For a view of regions: the plane filled by each point's material, in the material's color (gray where
        a region has none, or where a domain shown on the plane does not compute), and whether lines are drawn
-       there, in another color.
+       there, in another color. With ``m_sectionFillOutside`` false, only the cut is filled, as in a CAD
+       section: the plane outside the visible regions is left clear.
    * - ``m_highlightPrimitive``, ``m_highlightCount``, ``m_highlightColor``
      - Primitives tinted, and outlined, in a highlight color (what a viewer has picked).
    * - ``m_hidden``
      - Up to ``Settings::HiddenPrimitives`` (8) primitives seen through: a ray that meets one goes on.
+   * - ``m_peel``
+     - Peel the frame: every camera ray passes this many surfaces (entering or leaving, a cut face too) and shows
+       the next, as seen from outside, with what lies in front of it left out; where a ray meets fewer, the floor or
+       the backdrop shows. It must be below ``Renderer::MaxCrossings`` (64).
    * - ``m_volumePrimitive``, ``m_volumeColor``, ``m_volumeOpacity``
      - A part whose inside is filled with a translucent color (``AllPrimitives``: the whole solid).
    * - ``m_insideColor``
