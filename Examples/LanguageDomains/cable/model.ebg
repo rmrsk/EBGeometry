@@ -1,15 +1,16 @@
 ebg 0
 
-# A cable along z, in a box of air with a cross-flow along x: a copper core inside a PTFE jacket, and a steel sensor in
-# the flow downstream. The core stops short of the cable's ends, where it meets the air.
+# A cable along z, wholly inside a box of air with a cross-flow along x: a copper core inside a PTFE jacket, and a steel
+# sensor in the flow downstream. The core stops short of the cable's ends, where it meets the air.
 param length = 6
 param r_core = 0.5
 param r_out  = 0.8
 param strip  = 0.5  # how far the core stops short of each end
+param margin = 1    # the air beyond each end of the cable
 
 conductor  = cylinder((0, 0, strip - length / 2), (0, 0, length / 2 - strip), radius = r_core)
 insulation = tube((0, 0, -length / 2), (0, 0, length / 2), inner_radius = r_core, outer_radius = r_out)
-air_box    = box((-3, -2, -length / 2), (5, 2, length / 2))
+air_box    = box((-3, -2, -length / 2 - margin), (5, 2, length / 2 + margin))
   .label(xmin = "inlet", xmax = "outlet", ymin = "far", ymax = "far", zmin = "ends", zmax = "ends")
 probe      = sphere((3, 0, 0), radius = 0.3)
 

@@ -124,6 +124,11 @@ count as one, and a piece thinner than *h* may be missed. With *h* the cell size
 are for, the components found are the ones that solver sees, which is usually what is wanted: a gap the solver
 cannot resolve does not separate two volumes for it.
 
+**Memory.** The search keeps its cells, so its memory grows like its time, with the area of the surfaces over *h*
+squared: halving *h* takes about four times as much. It stops at a cap on the cells (with a message saying so), set
+by default to keep it under ten gigabytes; a finer search needs a smaller box or a raised cap, both options of the
+C++ call (see :ref:`Chap:ImplemRegions`).
+
 The search needs the functions to be distances or bounds on them (a :term:`distance quality` other than
 ``NotADistance``): it shows
 that a cell lies wholly in one region from the distance to its surface, and an object whose value is only a

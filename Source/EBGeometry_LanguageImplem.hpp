@@ -4541,7 +4541,8 @@ inline Completeness
 completeness(const Model<T>&                   a_model,
              const Tape<T, UserPrimitives...>& a_tape,
              std::string_view                  a_domain,
-             const T                           a_resolution)
+             const T                           a_resolution,
+             const uint64_t                    a_maxCells)
 {
   Completeness result = completeness(a_model, a_tape, a_domain);
 
@@ -4603,12 +4604,26 @@ completeness(const Model<T>&                   a_model,
     subdomainOf[r] = (subdomain == Subdomains::None) ? numSubdomains : subdomain;
   }
 
-  const auto cells = ComponentsDetail::search(a_tape, ComponentOptions<T>{a_resolution});
+  const std::string at = " at resolution " + LanguageDetail::shortNumber(double(a_resolution));
+
+  ComponentOptions<T> options;
+
+  options.m_resolution = a_resolution;
+  options.m_maxCells   = a_maxCells;
+
+  const auto cells = ComponentsDetail::search(a_tape, options, false);
+
+  if (cells == nullptr) {
+    warning(domain.span(),
+            "the connected components of domain '" + domain.name() + "' are not checked: the search" + at +
+              " reached its cap of " + std::to_string(options.m_maxCells) +
+              " cells (ComponentOptions::m_maxCells); check at a coarser resolution");
+
+    return result;
+  }
 
   const ConnectedComponents<T> byRegion    = ComponentsDetail::label(cells, regionOf, 0U);
   const ConnectedComponents<T> bySubdomain = ComponentsDetail::label(cells, subdomainOf, numSubdomains + 1U);
-
-  const std::string at = " at resolution " + LanguageDetail::shortNumber(double(a_resolution));
 
   // The exterior: the components of the outside reaching the box searched, which is the tape's box grown by two cells.
   // A component is open when it reaches the box or touches the exterior, enclosed otherwise. Each region's component

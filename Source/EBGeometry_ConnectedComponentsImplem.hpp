@@ -366,11 +366,13 @@ setGrid(const Tape<T, UserPrimitives...>& a_tape, const ComponentOptions<T>& a_o
  * @tparam UserPrimitives The tape's user primitives and features.
  * @param[in] a_tape    The tape.
  * @param[in] a_options The options.
- * @return The cells.
+ * @param[in] a_abort   What happens when the search reaches ComponentOptions::m_maxCells cells: abort with a message
+ *                      (in every build), or return nullptr.
+ * @return The cells, or nullptr.
  */
 template <class T, class... UserPrimitives>
 std::shared_ptr<const Cells<T>>
-search(const Tape<T, UserPrimitives...>& a_tape, const ComponentOptions<T>& a_options)
+search(const Tape<T, UserPrimitives...>& a_tape, const ComponentOptions<T>& a_options, const bool a_abort = true)
 {
   auto cells = std::make_shared<Cells<T>>();
 
@@ -390,6 +392,18 @@ search(const Tape<T, UserPrimitives...>& a_tape, const ComponentOptions<T>& a_op
     const uint32_t level = stack[stack.size() - 4];
 
     stack.resize(stack.size() - 4);
+
+    // The cap on the cells kept, which bounds the memory the search takes.
+    if (uint64_t(cells->m_cells.size()) >= a_options.m_maxCells) {
+      EBGEOMETRY_REQUIRE(!a_abort,
+                         "connectedComponents: the search at resolution %g reached its cap of %llu cells "
+                         "(ComponentOptions::m_maxCells) before it finished: give a coarser resolution, a smaller box, "
+                         "or a larger cap",
+                         double(cells->m_h),
+                         static_cast<unsigned long long>(a_options.m_maxCells));
+
+      return nullptr;
+    }
 
     const uint32_t lo[3]  = {a << level, b << level, c << level};
     const T        side   = T(1U << level);

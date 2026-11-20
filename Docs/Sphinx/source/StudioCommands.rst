@@ -59,20 +59,20 @@ floating body (a conductor touching nothing, say), listed but not warned of:
 .. code-block:: text
 
    $ ebgstudio check ../Examples/LanguageDomains/cable/setup.ebg --domain cfd --components 0.05
-   ../Examples/LanguageDomains/cable/setup.ebg:25:3: warning: subdomain 'fluid' of domain 'cfd' is in 3 connected components at resolution 0.05: (2.1, 0.7, 1.3), volume 179, on the object's outer boundary; (0.2, 0.2, 2.8), volume 0.395, on the object's outer boundary; (0.2, 0.2, -2.8), volume 0.395, on the object's outer boundary
    domain 'cfd': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
    domain 'cfd': connected components at resolution 0.05
-     subdomain 'fluid': 3
-       at (2.1, 0.7, 1.3), volume 179, on the object's outer boundary
-       at (0.2, 0.2, 2.8), volume 0.395, on the object's outer boundary
-       at (0.2, 0.2, -2.8), volume 0.395, on the object's outer boundary
-     excluded regions: 2
-       at (-3.07, -2.07, -3.07), volume 32.9, on the object's outer boundary
+     subdomain 'fluid': 1
+       at (2.9, -0.1, 1.9), volume 244, on the object's outer boundary
+     excluded regions: 3
+       at (-3.07, 2.08, -4.07), volume 26.5, on the object's outer boundary
+       at (-0.65, -0.05, 2.85), volume 11.4, enclosed by 'air'
        at (3, 0, 0), volume 0.114, enclosed by 'air'
 
-The cable's air is in three pieces: the air around the cable, and the air in each end of the jacket, between the
-core's end and the box's face, which meets the rest of the air only through that face. The sensor is a body
-floating in the air. A model whose value is not a distance is not searched.
+The cable's air is one piece, so nothing is warned of. Of the excluded regions, the first component is the outside
+around the air box, the second the cable (its jacket and core, which the flow does not compute in), and the third the
+sensor: both are bodies floating in the air. A warning names the pieces it is about (see
+:ref:`Chap:LanguageDomains`). A model whose value is not a distance, an unbounded one, or one whose search would
+take more cells than the cap is not searched; a warning says why.
 
 ``--inventory`` lists every name the model offers: its regions and materials with their properties' keys, its
 labels, each shape's parts and their labels, and its domains:

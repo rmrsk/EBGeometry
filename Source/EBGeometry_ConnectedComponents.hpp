@@ -69,6 +69,25 @@ struct ComponentOptions
    * a whole number of cells of size h.
    */
   BoundingVolumes::AABBT<T> m_box = BoundingVolumes::AABBT<T>();
+
+  /**
+   * @brief The default of m_maxCells.
+   * @details A search's peak memory grows by about 83 bytes per cell kept (float; a little more in double, whose
+   * leaves are 8 bytes larger): the octree's hash map of cells, its leaves, and the labeling's arrays. Measured as the
+   * peak resident set of a search of 27 hollow shells in a box (the ConnectedComponents probe's model) against
+   * getNumCells(): 75.6 MB at 0.92 million cells, 295 MB at 3.69 million and 1178 MB at 14.8 million, the steps between
+   * them 83 bytes per cell. 100 million cells is therefore about 8.3 GB, under 10 GB in either precision: room for a
+   * fine search of a large model on a workstation, while a resolution chosen too fine stops with a message rather
+   * than exhausting memory.
+   */
+  static constexpr uint64_t DefaultMaxCells = 100000000U;
+
+  /**
+   * @brief The most cells the search may keep, which bounds the memory it takes. A search that reaches it aborts with
+   * a message, in every build (connectedComponents()); Language::completeness() warns instead.
+   * @details About 83 bytes of memory per cell (see DefaultMaxCells).
+   */
+  uint64_t m_maxCells = DefaultMaxCells;
 };
 
 /**
@@ -250,7 +269,8 @@ private:
  * ComponentOptions::m_resolution for what h may merge or miss. The cost grows with the area of the surfaces over h
  * squared. Aborts with a message, in every build, for a tape whose value is not a distance (DistanceQuality::
  * NotADistance), for a resolution that is not positive, for an empty or unbounded box (the tape's own, when no box is
- * given), and for a box more than 2^19 cells long. Host only; the tape's pool must be readable on the host.
+ * given), for a box more than 2^19 cells long, and when the search reaches ComponentOptions::m_maxCells cells. Host
+ * only; the tape's pool must be readable on the host.
  * @tparam T              Floating-point precision.
  * @tparam UserPrimitives The tape's user primitives and features.
  * @param[in] a_tape    The tape.

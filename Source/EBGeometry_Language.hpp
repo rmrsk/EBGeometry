@@ -1286,13 +1286,16 @@ completeness(const Model<T>& a_model, const Tape<T, UserPrimitives...>& a_tape, 
  * listed, with a point in it, its volume, and whether it is on the object's outer boundary, touching the exterior,
  * or enclosed, with the subdomains around it), and when an enclosed cavity of the outside (a component of region 0
  * other than the exterior) touches a region of the domain's subdomains. A tape whose value is not a distance, or whose
- * object is unbounded or too long for the resolution (see connectedComponents()), is not searched; a warning says so.
+ * object is unbounded or too long for the resolution (see connectedComponents()), or whose search reaches a_maxCells
+ * cells, is not searched; a warning says so.
  * @tparam T              Precision.
  * @tparam UserPrimitives The tape's user primitives.
  * @param[in] a_model      The model.
  * @param[in] a_tape       The tape compiled from its object, bounded.
  * @param[in] a_domain     The domain's name.
  * @param[in] a_resolution The resolution h of the search: the solver's cell size, positive.
+ * @param[in] a_maxCells   The most cells the search may keep (ComponentOptions::m_maxCells): a search that reaches
+ *                         it is a warning, not an abort.
  * @return The result.
  */
 template <class T, class... UserPrimitives>
@@ -1301,7 +1304,8 @@ Completeness
 completeness(const Model<T>&                   a_model,
              const Tape<T, UserPrimitives...>& a_tape,
              std::string_view                  a_domain,
-             T                                 a_resolution);
+             T                                 a_resolution,
+             uint64_t                          a_maxCells = ComponentOptions<T>::DefaultMaxCells);
 
 /**
  * @brief The part names of a built-in shape, in the order of its parts ("box": xmin, xmax, ymin, ymax, zmin, zmax).

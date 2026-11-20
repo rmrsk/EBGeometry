@@ -258,6 +258,7 @@ the host:
 
    options.m_resolution = T(0.02);   // h: the solver's cell size, say
    options.m_box        = box;       // the space searched; empty, the default: the tape's box grown by two cells
+   options.m_maxCells   = ComponentOptions<T>::DefaultMaxCells;   // the most cells it keeps, which bounds its memory
 
    const ConnectedComponents<T> byRegion   = connectedComponents(tape, options);           // group = region
    const ConnectedComponents<T> byMaterial = connectedComponents(tape, materialOf, options); // a group per region
@@ -280,7 +281,9 @@ the host:
 * The box is the space the components are of: a component that reaches it may continue beyond it. An unbounded
   object (a half-space) needs one.
 * The cost grows with the area of the surfaces over *h* squared, and with the number of regions: every cell
-  of the search evaluates every region's function once. ``getNumCells()`` says how many cells it took; the
+  of the search evaluates every region's function once, and keeps the cell. ``m_maxCells`` caps the cells, and so the
+  memory: a search that reaches it aborts with a message naming the resolution and the cap (``completeness()`` warns
+  instead). ``getNumCells()`` says how many cells it took; the
   ``ConnectedComponents`` performance probe measures it (see :ref:`Chap:PerformanceTesting`).
 
 A model's domains are checked for components with ``Language::completeness(model, tape, domain,

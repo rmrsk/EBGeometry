@@ -269,9 +269,10 @@ TEMPLATE_TEST_CASE("ConnectedComponents: a domain's subdomains and its excluded 
   CHECK(inAll.componentsOf(1U).empty());
 }
 
-TEMPLATE_TEST_CASE("ConnectedComponents: rejects a value that is not a distance, a bad resolution and unbounded boxes",
-                   "[ConnectedComponents]",
-                   EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE(
+  "ConnectedComponents: rejects a value that is not a distance, a bad resolution, unbounded boxes and too many cells",
+  "[ConnectedComponents]",
+  EBGEOMETRY_TEST_PRECISIONS)
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
@@ -311,6 +312,20 @@ TEMPLATE_TEST_CASE("ConnectedComponents: rejects a value that is not a distance,
       (void)connectedComponents(tape, std::vector<uint32_t>{0U}, ComponentOptions<T>{T(0.1)});
     },
     "connectedComponents: 1 groups given for 2 regions"));
+
+  CHECK(abortsWith(
+    [] {
+      Pool          pool(hostMemoryResource());
+      const Tape<T> tape(pool, Expr<T>(SphereSDF<T>(Vec3::zeros(), T(1))));
+
+      ComponentOptions<T> capped;
+
+      capped.m_resolution = T(0.125);
+      capped.m_maxCells   = 10U;
+
+      (void)connectedComponents(tape, capped);
+    },
+    "connectedComponents: the search at resolution 0.125 reached its cap of 10 cells (ComponentOptions::m_maxCells)"));
 
   // An unbounded object with a box given is searched in it.
   Pool          pool(hostMemoryResource());

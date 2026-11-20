@@ -1050,6 +1050,14 @@ domain soil {
 
   REQUIRE(tiny.m_findings.size() == 1U);
   CHECK_THAT(tiny.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("not checked: the object is more than"));
+
+  // A search that would keep more cells than the cap is not finished: a warning, not an abort.
+  const Language::Completeness capped = Language::completeness(pocket, tape, "flow", T(0.05), 10U);
+
+  REQUIRE(capped.m_findings.size() == 1U);
+  CHECK_THAT(
+    capped.m_findings[0].m_message,
+    Catch::Matchers::ContainsSubstring("not checked: the search at resolution 0.05 reached its cap of 10 cells"));
 }
 
 TEMPLATE_TEST_CASE(

@@ -411,8 +411,16 @@ check(const Options& a_options, Pool& a_pool)
 
     std::optional<ConnectedComponents<T>> regions;
 
+    // A search the library refuses (an unbounded object, one too long for the resolution, one reaching the cap on the
+    // cells) lists nothing; the completeness check below warns of it.
     if (components) {
-      regions = connectedComponents(tape, ComponentOptions<T>{resolution});
+      try {
+        const ThrowOnRequire checks;
+
+        regions = connectedComponents(tape, ComponentOptions<T>{resolution});
+      } catch (const RequireError&) {
+        regions.reset();
+      }
     }
 
     for (const std::string& domain : domains) {
