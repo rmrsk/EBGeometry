@@ -741,8 +741,9 @@ public:
   cast(const Vec3T<T>& a_origin, const Vec3T<T>& a_direction, const T a_near) const noexcept
   {
     bool through = false;
+    T    start   = a_near;
 
-    return this->visible(RayT<T>{a_origin, a_direction}, a_near, through);
+    return this->visible(RayT<T>{a_origin, a_direction}, a_near, through, start);
   }
 
   /**
@@ -883,6 +884,9 @@ public:
       T        through = T(1);
       T        t       = a_near;
 
+      // The surfaces peeled (Settings::m_peel) do not glow.
+      uint32_t peeled = 0;
+
       for (uint32_t k = 0; k < Renderer<T>::MaxCrossings && through > T(1e-3); k++) {
         const HitT<T> hit = this->trace(ray, t, m_far);
 
@@ -894,7 +898,11 @@ public:
           break;
         }
 
-        if (!m_settings.hides(hit.m_primitive)) {
+        const bool shown = !m_settings.hides(hit.m_primitive) && peeled >= m_settings.m_peel;
+
+        peeled += m_settings.hides(hit.m_primitive) ? 0U : 1U;
+
+        if (shown) {
           const Vec3T<T> n      = (hit.m_normal.length2() > T(0)) ? hit.m_normal : this->normal(hit.m_point);
           const T        facing = std::abs(dot(n, a_direction));
           const T        glow   = m_settings.m_xrayOpacity * (T(0.3) + T(0.7) * (T(1) - facing));
@@ -922,9 +930,10 @@ public:
       Vec3T<T> point;
       bool     seen = false;
 
-      if (m_settings.hidesAny()) {
+      if (m_settings.hidesAny() || m_settings.m_peel > 0U) {
         bool          through = false;
-        const HitT<T> hit     = this->visible(ray, a_near, through);
+        T             start   = a_near;
+        const HitT<T> hit     = this->visible(ray, a_near, through, start);
 
         this->count(hit.m_status, hit.m_entering, a_result);
 
@@ -943,23 +952,25 @@ public:
       return seen ? this->depthColor(point) : this->background(a_direction);
     }
 
-    // The shaded view, looking through hidden primitives.
+    // The shaded view, looking through hidden primitives and past the surfaces peeled, which are left out with what
+    // lies in front of them.
     bool          through = false;
-    const HitT<T> hit     = this->visible(ray, a_near, through);
+    T             start   = a_near;
+    const HitT<T> hit     = this->visible(ray, a_near, through, start);
 
     Vec3T<T> color;
 
     if (through && hit.hit()) {
-      // Seen through a hidden surface, a surface is shaded as one seen from outside: from inside the solid, it is
-      // the inside of what was hidden.
+      // Seen through a hidden or peeled surface, a surface is shaded as one seen from outside: from inside the solid,
+      // it is the inside of what was hidden.
       HitT<T> seen = hit;
 
       seen.m_entering = true;
 
-      color = this->shadeHit(ray, a_near, seen, a_result);
+      color = this->shadeHit(ray, start, seen, a_result);
     }
     else {
-      color = this->shadeHit(ray, a_near, hit, a_result);
+      color = this->shadeHit(ray, start, hit, a_result);
     }
 
     if (m_settings.m_volumePrimitive != Settings<T>::NoPrimitive) {
@@ -1147,23 +1158,37 @@ private:
   }
 
   /**
-   * @brief The first crossing along a camera ray that is not on a hidden primitive (Settings::m_hidden).
+   * @brief The first crossing along a camera ray that is not on a hidden primitive (Settings::m_hidden), past the
+   * surfaces peeled (Settings::m_peel).
    * @param[in]  a_ray     The camera ray.
    * @param[in]  a_near    Where along it to start looking.
-   * @param[out] a_through Whether the ray passed through a hidden primitive first.
+   * @param[out] a_through Whether the ray passed through a hidden or peeled surface first.
+   * @param[out] a_start   Where what the ray sees starts: past the last surface peeled, else a_near.
    * @return The crossing, or a miss.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline HitT<T>
-  visible(const RayT<T>& a_ray, const T a_near, bool& a_through) const noexcept
+  visible(const RayT<T>& a_ray, const T a_near, bool& a_through, T& a_start) const noexcept
   {
     T t = a_near;
 
     HitT<T> hit = this->trace(a_ray, t, m_far);
 
-    for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit() && m_settings.hides(hit.m_primitive); k++) {
+    uint32_t peeled = 0;
+
+    a_start = a_near;
+
+    for (uint32_t k = 1; k < Renderer<T>::MaxCrossings && hit.hit(); k++) {
+      const bool hidden = m_settings.hides(hit.m_primitive);
+
+      if (!hidden && peeled >= m_settings.m_peel) {
+        break;
+      }
+
+      peeled += hidden ? 0U : 1U;
       a_through = true;
       t         = this->past(hit);
+      a_start   = hidden ? a_start : t;
       hit       = this->trace(a_ray, t, m_far);
     }
 
@@ -1927,9 +1952,10 @@ private:
     }
 
     // The fill by what the point is in, in place of the sheet. With the removed side ghosted, only the cut is filled:
-    // filled outside the shape too, the plane was a wall across the box behind the translucent side.
-    const bool filled =
-      RenderDetail::HasSectionKey<S, T>::value && (m_settings.m_ghostOpacity == T(0) || value <= T(0));
+    // filled outside the shape too, the plane was a wall across the box behind the translucent side. Without the fill
+    // outside (m_sectionFillOutside), too, as a CAD section.
+    const bool filled = RenderDetail::HasSectionKey<S, T>::value &&
+                        ((m_settings.m_ghostOpacity == T(0) && m_settings.m_sectionFillOutside) || value <= T(0));
     const T  fill  = filled ? m_settings.m_sectionFill : T(0);
     Vec3T<T> color = a_color;
 
@@ -2960,6 +2986,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
   field("settings", "m_isoSecondary", a_settings.m_isoSecondary, settings.m_isoSecondary);
   field("settings", "m_sheetOpacity", a_settings.m_sheetOpacity, settings.m_sheetOpacity);
   field("settings", "m_sectionFill", a_settings.m_sectionFill, settings.m_sectionFill);
+  field("settings", "m_sectionFillOutside", a_settings.m_sectionFillOutside, settings.m_sectionFillOutside);
   field("settings", "m_fillSecondaryColor", a_settings.m_fillSecondaryColor, settings.m_fillSecondaryColor);
   field("settings", "m_sheetColor", a_settings.m_sheetColor, settings.m_sheetColor);
   field("settings", "m_sheetEdgeColor", a_settings.m_sheetEdgeColor, settings.m_sheetEdgeColor);
@@ -2977,6 +3004,7 @@ toCode(const Camera<T>& a_camera, const Settings<T>& a_settings)
     field("settings", name.c_str(), a_settings.m_hidden[i], settings.m_hidden[i]);
   }
 
+  field("settings", "m_peel", a_settings.m_peel, settings.m_peel);
   field("settings", "m_volumePrimitive", a_settings.m_volumePrimitive, settings.m_volumePrimitive);
   field("settings", "m_volumeColor", a_settings.m_volumeColor, settings.m_volumeColor);
   field("settings", "m_volumeOpacity", a_settings.m_volumeOpacity, settings.m_volumeOpacity);
@@ -3513,7 +3541,7 @@ inline bool
 Renderer<T>::inspecting() const noexcept
 {
   return m_settings.m_viewMode != ViewMode::Shaded || m_settings.hidesAny() ||
-         m_settings.m_volumePrimitive != Settings<T>::NoPrimitive;
+         m_settings.m_volumePrimitive != Settings<T>::NoPrimitive || m_settings.m_peel > 0U;
 }
 
 template <class T>
@@ -3539,6 +3567,10 @@ Renderer<T>::check(const Camera<T>& a_camera) const
   EBGEOMETRY_REQUIRE(std::isfinite(a_camera.m_nearClip) && a_camera.m_nearClip >= T(0),
                      "Render::Renderer: the near clip must be finite and not negative (%g)",
                      double(a_camera.m_nearClip));
+  EBGEOMETRY_REQUIRE(m_settings.m_peel < MaxCrossings,
+                     "Render::Renderer: the surfaces peeled must be fewer than %u (%u)",
+                     unsigned(MaxCrossings),
+                     unsigned(m_settings.m_peel));
   EBGEOMETRY_REQUIRE(m_settings.m_isoSpacing >= T(0),
                      "Render::Renderer: the iso-line spacing must not be negative (%g)",
                      double(m_settings.m_isoSpacing));

@@ -451,6 +451,126 @@ TEMPLATE_TEST_CASE("Render: with the removed side ghosted, the section's fill co
   CHECK(ghostWall.at(size / 2, size / 2) != ghostOnly.at(size / 2, size / 2));
 }
 
+TEMPLATE_TEST_CASE("Render: peeling shows the n-th surface along every camera ray",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // A hollow ball, radii 1 and 0.5, looked at from 3 away: the ray through the center crosses its surface at 2 (in),
+  // 2.5 (into the cavity), 3.5 (out of it) and 4 (out).
+  const TestUtils::Compiled<T> hollow(
+    Difference(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3::zeros(), T(0.5))));
+
+  const Render::Camera<T> camera = Render::Camera<T>::lookAt(Vec3(T(0), T(0), T(3)), Vec3::zeros());
+
+  constexpr uint32_t size = 16;
+
+  Render::Renderer<T> renderer(plain<T>(size));
+
+  const T middle  = T(0.5) * T(size);
+  const T along[] = {T(2), T(2.5), T(3.5), T(4)};
+
+  for (uint32_t peel = 0; peel < 4U; peel++) {
+    renderer.settings().m_peel = peel;
+
+    const HitT<T> hit = renderer.pick(hollow.tape(), camera, middle, middle);
+
+    REQUIRE(hit.hit());
+    CHECK_THAT(hit.m_t, withinAbsT<T>(along[peel], 1e-2));
+  }
+
+  // Past the last surface, nothing.
+  renderer.settings().m_peel = 4U;
+
+  CHECK_FALSE(renderer.pick(hollow.tape(), camera, middle, middle).hit());
+
+  // In each view the frame changes where a surface is peeled, and not off the ball.
+  for (const Render::ViewMode mode : {Render::ViewMode::Shaded, Render::ViewMode::Depth, Render::ViewMode::XRay}) {
+    renderer.settings().m_viewMode = mode;
+
+    Render::Image first;
+    Render::Image second;
+
+    renderer.settings().m_peel = 0U;
+    (void)renderer.render(hollow.tape(), camera, first);
+
+    renderer.settings().m_peel = 1U;
+    (void)renderer.render(hollow.tape(), camera, second);
+
+    CHECK(first.at(size / 2, size / 2) != second.at(size / 2, size / 2));
+    CHECK(first.at(0, 0) == second.at(0, 0));
+  }
+}
+
+TEMPLATE_TEST_CASE("Render: without the fill outside, the section's fill covers only the cut",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // The balls of steel and copper above, cut through their center, the half towards the camera removed.
+  Pool pool(hostMemoryResource());
+
+  const T          radius = T(1);
+  const Tape       tape(pool,
+                  Overlay(MaterialLabel(SphereSDF<T>(Vec3::zeros(), radius), "steel"),
+                          MaterialLabel(SphereSDF<T>(Vec3::zeros(), T(0.5) * radius), "copper")));
+  RegionView<Tape> view(tape);
+
+  Render::Camera<T> camera = Render::Camera<T>::fit(SphereSDF<T>(Vec3::zeros(), radius).computeBoundingVolume());
+
+  camera.m_yaw   = T(0);
+  camera.m_pitch = T(0);
+
+  constexpr uint32_t size = 32;
+
+  Render::Renderer<T> renderer(plain<T>(size));
+
+  renderer.settings().m_section       = true;
+  renderer.settings().m_sectionPoint  = Vec3::zeros();
+  renderer.settings().m_sectionNormal = Vec3(T(0), T(0), T(1));
+
+  const auto render = [&](const T a_fill, const bool a_outside) {
+    renderer.settings().m_sectionFill        = a_fill;
+    renderer.settings().m_sectionFillOutside = a_outside;
+
+    Render::Image image;
+
+    (void)renderer.render(view, camera, image);
+
+    return image;
+  };
+
+  const Render::Image wall    = render(T(1), true);
+  const Render::Image sheet   = render(T(0), true);
+  const Render::Image cutOnly = render(T(1), false);
+
+  // Off the ball the plane is the sheet, as unfilled; on the cut, the fill is drawn as with the fill outside.
+  size_t outside = 0;
+
+  for (uint32_t row = 0; row < size; row++) {
+    for (uint32_t column = 0; column < size; column++) {
+      const Vec3 d  = pixelRay(camera, size, column, row);
+      const Vec3 oc = camera.eye();
+      const T    b  = dot(oc, d);
+
+      if (std::sqrt(Math::max(T(0), dot(oc, oc) - b * b)) > T(1.05) * radius) {
+        CHECK(cutOnly.at(column, row) == sheet.at(column, row));
+
+        outside++;
+      }
+    }
+  }
+
+  CHECK(outside > 0U);
+  CHECK(cutOnly.at(size / 2, size / 2) == wall.at(size / 2, size / 2));
+  CHECK(cutOnly.at(size / 2, size / 2) != sheet.at(size / 2, size / 2));
+}
+
 TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degenerate camera, bad lighting and an "
           "unbounded fit",
           "[Render]")
@@ -483,6 +603,18 @@ TEST_CASE("Render: rejects an image without pixels, bad supersampling, a degener
       (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
     },
     "Render::Renderer: supersampling must be from 1 to 15 (0)"));
+
+  REQUIRE(abortsWith(
+    [&sphere] {
+      Render::Settings<T> settings;
+
+      settings.m_peel = Render::Renderer<T>::MaxCrossings;
+
+      Render::Image image;
+
+      (void)Render::Renderer<T>(settings).render(sphere, Render::Camera<T>(), image);
+    },
+    "Render::Renderer: the surfaces peeled must be fewer than 64 (64)"));
 
   REQUIRE(abortsWith(
     [&sphere] {

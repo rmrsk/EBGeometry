@@ -274,7 +274,7 @@ keys(const bool a_device, const bool a_regions = false)
      "Camera",
      {{nullptr, "Camera"},
       {"Drag", "Orbit the camera"},
-      {"Ctrl + drag", "Pan the camera"},
+      {"Middle drag, Ctrl + drag", "Pan the camera"},
       {"Wheel", "Zoom towards the point under the cursor (over the background, towards the center)"},
       {"Double-click", "Center the camera on the point under the cursor"},
       {"1, 2, 3", "Look from the front, the side, the top"},
@@ -318,6 +318,7 @@ keys(const bool a_device, const bool a_regions = false)
      "Picking",
      {{"Click", "Pick what is under the cursor (the background clears it)"},
       {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
+      {"Y, Shift + Y", "Peel the whole frame: show the next surface along every ray, or the one before"},
       {"T", "See through the picked surface, or make it opaque again"},
       {"Shift + T", "Make every surface opaque again"},
       {"Shift + click", "Measure between two points (the background clears it)"},
@@ -1946,6 +1947,7 @@ run(const S&                           a_shape,
     T        m_sheetOpacity;
     T        m_cutOpacity;
     T        m_sectionFill;
+    bool     m_sectionFillOutside;
     bool     m_sectionDomain;
     uint64_t m_sectionRegions;
   };
@@ -2792,7 +2794,8 @@ run(const S&                           a_shape,
                : std::string("No probe: right click a point")},
        {picked ? "Picked at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
                : std::string("No picked point"),
-        depthHits.empty() ? std::string("Not stepping through surfaces")
+        depthHits.empty() ? ((settings.m_peel > 0U) ? std::to_string(settings.m_peel) + " surfaces peeled"
+                                                    : std::string("Not stepping through surfaces"))
                           : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
                               " under the cursor",
         (measured == 2) ? "Along x, y, z " + point(measureB - measureA, 4) + ", from " + point(measureA, 3)
@@ -3918,8 +3921,16 @@ run(const S&                           a_shape,
         break;
       }
       case SDL_MOUSEBUTTONDOWN: {
-        // A drag orbits the camera, or pans it with Ctrl held; a drag with the right button moves the light.
-        if (event.button.button == SDL_BUTTON_LEFT) {
+        // A drag orbits the camera, or pans it with Ctrl held or with the middle button (the wheel pressed); a drag
+        // with the right button moves the light.
+        if (event.button.button == SDL_BUTTON_MIDDLE) {
+          panning  = true;
+          dragging = false;
+          pressX   = event.button.x;
+          pressY   = event.button.y;
+          moved    = false;
+        }
+        else if (event.button.button == SDL_BUTTON_LEFT) {
           // In the slice view a drag pans: an orbit would turn the plane away.
           panning  = slicing || (SDL_GetModState() & KMOD_CTRL) != 0;
           dragging = !panning;
@@ -4441,6 +4452,11 @@ run(const S&                           a_shape,
             changed = true;
           }
 
+          dragging = false;
+          panning  = false;
+        }
+        else if (event.button.button == SDL_BUTTON_MIDDLE) {
+          // A middle drag only pans: its release picks nothing.
           dragging = false;
           panning  = false;
         }
@@ -5099,18 +5115,19 @@ run(const S&                           a_shape,
             RegionSettings& regions = settings.m_regions;
 
             if (cutaway && sectionMode != 0) {
-              sectionMode              = beforeCutaway.m_sectionMode;
-              sectionOffset            = beforeCutaway.m_sectionOffset;
-              sectionGhost             = beforeCutaway.m_sectionGhost;
-              sectionSolid             = beforeCutaway.m_sectionSolid;
-              sectionSwap              = beforeCutaway.m_sectionSwap;
-              isoMode                  = beforeCutaway.m_isoMode;
-              settings.m_sheetOpacity  = beforeCutaway.m_sheetOpacity;
-              settings.m_cutOpacity    = beforeCutaway.m_cutOpacity;
-              settings.m_sectionFill   = beforeCutaway.m_sectionFill;
-              regions.m_sectionDomain  = beforeCutaway.m_sectionDomain;
-              regions.m_sectionRegions = beforeCutaway.m_sectionRegions;
-              cutaway                  = false;
+              sectionMode                   = beforeCutaway.m_sectionMode;
+              sectionOffset                 = beforeCutaway.m_sectionOffset;
+              sectionGhost                  = beforeCutaway.m_sectionGhost;
+              sectionSolid                  = beforeCutaway.m_sectionSolid;
+              sectionSwap                   = beforeCutaway.m_sectionSwap;
+              isoMode                       = beforeCutaway.m_isoMode;
+              settings.m_sheetOpacity       = beforeCutaway.m_sheetOpacity;
+              settings.m_cutOpacity         = beforeCutaway.m_cutOpacity;
+              settings.m_sectionFill        = beforeCutaway.m_sectionFill;
+              settings.m_sectionFillOutside = beforeCutaway.m_sectionFillOutside;
+              regions.m_sectionDomain       = beforeCutaway.m_sectionDomain;
+              regions.m_sectionRegions      = beforeCutaway.m_sectionRegions;
+              cutaway                       = false;
 
               break;
             }
@@ -5124,6 +5141,7 @@ run(const S&                           a_shape,
                                     settings.m_sheetOpacity,
                                     settings.m_cutOpacity,
                                     settings.m_sectionFill,
+                                    settings.m_sectionFillOutside,
                                     regions.m_sectionDomain,
                                     regions.m_sectionRegions};
 
@@ -5132,16 +5150,17 @@ run(const S&                           a_shape,
               sectionOffset = T(0);
             }
 
-            sectionGhost             = false;
-            sectionSolid             = false;
-            sectionSwap              = false;
-            isoMode                  = 0;
-            settings.m_sheetOpacity  = T(0);
-            settings.m_cutOpacity    = T(1);
-            settings.m_sectionFill   = T(1);
-            regions.m_sectionDomain  = false;
-            regions.m_sectionRegions = 0U;
-            cutaway                  = true;
+            sectionGhost                  = false;
+            sectionSolid                  = false;
+            sectionSwap                   = false;
+            isoMode                       = 0;
+            settings.m_sheetOpacity       = T(0);
+            settings.m_cutOpacity         = T(1);
+            settings.m_sectionFill        = T(1);
+            settings.m_sectionFillOutside = false;
+            regions.m_sectionDomain       = false;
+            regions.m_sectionRegions      = 0U;
+            cutaway                       = true;
 
             break;
           }
@@ -5403,6 +5422,17 @@ run(const S&                           a_shape,
 
           break;
         }
+        case SDLK_y: {
+          // Peel the frame: Y shows the next surface along every camera ray, Shift and Y the one before.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_peel = (settings.m_peel > 0U) ? settings.m_peel - 1U : 0U;
+          }
+          else if (settings.m_peel + 1U < Renderer<T>::MaxCrossings) {
+            settings.m_peel++;
+          }
+
+          break;
+        }
         case SDLK_t: {
           // A shape with regions sees through in itself, so that a surface between a region seen through and another
           // shows as the other's (see RegionView::withSeenThrough()).
@@ -5489,6 +5519,7 @@ run(const S&                           a_shape,
           settings.m_fillIntensity      = a_settings.m_fillIntensity;
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
+          settings.m_peel               = a_settings.m_peel;
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
           settings.m_highlightCount     = a_settings.m_highlightCount;
           picked                        = false;

@@ -186,6 +186,17 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
   }
 
   CHECK(differing(Render::Renderer<T>(settings), Render::Renderer<T>(deviceSettings)) <= pixels / 50);
+
+  // The fill on the cut only (a clean cutaway), without the ghost.
+  for (Render::Settings<T>* s : {&settings, &deviceSettings}) {
+    s->m_ghostOpacity       = T(0);
+    s->m_sectionFill        = T(1);
+    s->m_cutOpacity         = T(1);
+    s->m_sheetOpacity       = T(0);
+    s->m_sectionFillOutside = false;
+  }
+
+  CHECK(differing(Render::Renderer<T>(settings), Render::Renderer<T>(deviceSettings)) <= pixels / 50);
 }
 
 TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, say so, and count "
@@ -401,7 +412,7 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's in every look o
 }
 
 TEMPLATE_TEST_CASE("Render: the device render matches the host's in the depth and x-ray views, and with a hidden "
-                   "primitive and a filled part",
+                   "primitive, a filled part and peeled surfaces",
                    "[Render][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -432,12 +443,15 @@ TEMPLATE_TEST_CASE("Render: the device render matches the host's in the depth an
   base.m_height        = 32;
   base.m_supersampling = 1;
 
-  std::vector<Render::Settings<T>> cases(4, base);
+  std::vector<Render::Settings<T>> cases(6, base);
 
   cases[0].m_viewMode        = Render::ViewMode::Depth;
   cases[1].m_viewMode        = Render::ViewMode::XRay;
   cases[2].m_hidden[0]       = 0U;
   cases[3].m_volumePrimitive = 1U;
+  cases[4].m_peel            = 1U;
+  cases[5].m_peel            = 2U;
+  cases[5].m_viewMode        = Render::ViewMode::Depth;
 
   for (const Render::Settings<T>& settings : cases) {
     const Render::Renderer<T> renderer(settings);
