@@ -816,6 +816,43 @@ TEMPLATE_TEST_CASE("HelixSDF: the distance to its sampled center line less the t
   }
 }
 
+TEST_CASE("HelixSDF: the closest distance between neighboring turns, against a dense scan", "[HelixSDF]")
+{
+  using Vec3 = Vec3T<double>;
+
+  for (const auto& rp : {std::make_pair(0.5, 1.0), std::make_pair(1.0, 0.1), std::make_pair(0.7, 0.45)}) {
+    const double R    = rp.first;
+    const double rate = rp.second / (2.0 * pi<double>);
+
+    // The chord between points an angle apart, past its first maximum, over two turns.
+    double scan    = 1e300;
+    double prev    = 0.0;
+    bool   falling = false;
+
+    for (int i = 1; i <= 400000; i++) {
+      const double t = 4.0 * pi<double> * double(i) / 400000.0;
+      const double d = std::sqrt(2.0 * R * R * (1.0 - std::cos(t)) + rate * rate * t * t);
+
+      falling = falling || d < prev;
+      scan    = falling ? std::min(scan, d) : scan;
+      prev    = d;
+    }
+
+    const double apart = AnalyticDetail::helixTurnDistance(R, rp.second);
+
+    INFO("R " << R << ", pitch " << rp.second);
+    REQUIRE_THAT(apart, WithinAbs(scan, 1e-9));
+
+    // A tube just under half of it constructs.
+    const HelixSDF<double> h(Vec3::zeros(), Vec3::unit(1) * (4.0 * rp.second), R, 4.0, 0.499 * apart, Vec3::unit(0));
+
+    REQUIRE(h.getTubeRadius() < 0.5 * apart);
+  }
+
+  // A pitch large against the radius: the turns never come back nearer.
+  REQUIRE(std::isinf(AnalyticDetail::helixTurnDistance(0.1, 5.0)));
+}
+
 TEMPLATE_TEST_CASE("LatticeSDF: walls on each surface, and a bound that never changes faster than the distance",
                    "[LatticeSDF]",
                    EBGEOMETRY_TEST_PRECISIONS)

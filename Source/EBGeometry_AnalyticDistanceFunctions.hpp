@@ -6166,7 +6166,8 @@ superellipsoidScale(const Vec3T<T>& a_radii, const T a_exponent1, const T a_expo
  * @details Internal helper; not part of the public API. Two points of the line an angle theta apart are
  * sqrt(2 R^2 (1 - cos theta) + (rate theta)^2) apart, rate the rise per radian. From theta = 0 that grows to a first
  * maximum and then falls to a minimum near the next turn; the minimum is the distance asked for, found by sampling
- * the first two turns and refining by golden section. Without such a minimum, the turns never come nearer than
+ * the first two turns past that maximum and refining the smallest sample by golden section (the result is never above
+ * that sample). Without such a minimum, the turns never come nearer than
  * neighboring points of one turn, and only the tube radius against the helix radius matters.
  * @param[in] a_radius The helix radius.
  * @param[in] a_pitch  The rise per turn.
