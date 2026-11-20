@@ -33,8 +33,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <random>
 #include <type_traits>
+#include <vector>
 
 // Our includes
 #include "EBGeometry_Array.hpp"
@@ -4721,6 +4723,1235 @@ protected:
 };
 
 /**
+ * @brief Signed distance field for a convex polyhedron: the intersection of the half-spaces behind a set of planes,
+ * such as a regular (Platonic) solid or a pyramid.
+ * @details The distance is exact. Inside, it is that to the nearest face plane. Outside, it is that to the face
+ * whose plane is farthest from the point when the point's projection onto that plane lies on the face, and
+ * otherwise that to the nearest edge or vertex: the largest plane distance alone, which is all most formulas take,
+ * is a bound at the edges and corners. The faces, edges and vertices are held in the shape itself, in arrays of
+ * fixed size, so the polyhedron is trivially copyable and needs no pool; it has at most MaxFaces faces and
+ * MaxVertices vertices. A polyhedron larger than that is a mesh (MeshSDF, TriMeshSDF), which has no limit.
+ *
+ * The regular solids and the pyramid are made by the static functions tetrahedron(), octahedron(), dodecahedron(),
+ * icosahedron() and pyramid(), which return a ConvexPolyhedronSDF; any other convex polyhedron is made from its
+ * planes, with the constructor. A box is BoxSDF and a regular prism PolygonPrismSDF, both cheaper to evaluate than
+ * the same solid as a polyhedron. Round its edges with Offset of a slightly smaller polyhedron. By default the
+ * polyhedron is the cube [-0.5, 0.5]^3.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class ConvexPolyhedronSDF
+{
+  static_assert(std::is_floating_point_v<T>, "ConvexPolyhedronSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief The most faces a polyhedron can have: those of the icosahedron.
+   */
+  static constexpr uint32_t MaxFaces = 20U;
+
+  /**
+   * @brief The most vertices a polyhedron can have: those of the dodecahedron.
+   */
+  static constexpr uint32_t MaxVertices = 20U;
+
+  /**
+   * @brief The most edges a polyhedron can have, from Euler's formula: MaxFaces + MaxVertices - 2.
+   */
+  static constexpr uint32_t MaxEdges = MaxFaces + MaxVertices - 2U;
+
+  /**
+   * @brief Default constructor. Constructs the cube [-0.5, 0.5]^3.
+   */
+  ConvexPolyhedronSDF() noexcept;
+
+  /**
+   * @brief Constructs the convex polyhedron bounded by a set of planes: the points behind every plane.
+   * @details Runs on the host. The vertices and edges are found from the planes. Face k is the face on plane k,
+   * which is also the shape's part k.
+   * @param[in] a_planes The planes, each with its normal pointing out of the solid (PlaneSDF's sign: the solid is
+   * where every plane's value is negative). There must be from 4 to MaxFaces of them, each must bound a face of the
+   * solid (no plane may miss it or only touch it at an edge or a vertex), the solid they bound must be finite and
+   * have a volume, and it must have at most MaxVertices vertices.
+   */
+  explicit ConvexPolyhedronSDF(const std::vector<PlaneSDF<T>>& a_planes);
+
+  /**
+   * @brief A regular tetrahedron.
+   * @details Its vertices are at four alternate corners of a cube around the center, in the directions (1, 1, 1),
+   * (1, -1, -1), (-1, 1, -1) and (-1, -1, 1), in that order; turn it with Rotate. Face k is the one opposite vertex
+   * k. The inradius is a third of the circumradius.
+   * @param[in] a_center Center.
+   * @param[in] a_radius Circumradius: the distance from the center to a vertex, finite and positive.
+   * @return The tetrahedron.
+   */
+  [[nodiscard]] static ConvexPolyhedronSDF
+  tetrahedron(const Vec3T<T>& a_center, T a_radius);
+
+  /**
+   * @brief A regular octahedron.
+   * @details Its six vertices are on the coordinate axes through the center, so that the solid is |x| + |y| + |z|
+   * <= radius around it; turn it with Rotate. Face 4 i + 2 j + k is the one whose outward normal is ((-1)^i, (-1)^j,
+   * (-1)^k) / sqrt(3). The inradius is the circumradius over sqrt(3).
+   * @param[in] a_center Center.
+   * @param[in] a_radius Circumradius: the distance from the center to a vertex, finite and positive.
+   * @return The octahedron.
+   */
+  [[nodiscard]] static ConvexPolyhedronSDF
+  octahedron(const Vec3T<T>& a_center, T a_radius);
+
+  /**
+   * @brief A regular dodecahedron.
+   * @details In its standard orientation, in which the three coordinate planes through the center are mirror
+   * planes: its vertices are in the directions (+-1, +-1, +-1), (0, +-1/phi, +-phi), (+-1/phi, +-phi, 0) and (+-phi,
+   * 0, +-1/phi), with phi the golden ratio; turn it with Rotate. Its twelve faces have their outward normals along
+   * (0, +-1, +-phi), (+-1, +-phi, 0) and (+-phi, 0, +-1), numbered in that order, the signs within each group in the
+   * order (+, +), (+, -), (-, +), (-, -).
+   * @param[in] a_center Center.
+   * @param[in] a_radius Circumradius: the distance from the center to a vertex, finite and positive.
+   * @return The dodecahedron.
+   */
+  [[nodiscard]] static ConvexPolyhedronSDF
+  dodecahedron(const Vec3T<T>& a_center, T a_radius);
+
+  /**
+   * @brief A regular icosahedron.
+   * @details In its standard orientation, in which the three coordinate planes through the center are mirror
+   * planes: its vertices are in the directions (0, +-1, +-phi), (+-1, +-phi, 0) and (+-phi, 0, +-1), with phi the
+   * golden ratio; turn it with Rotate. Its twenty faces have their outward normals along (+-1, +-1, +-1), (0, +-1/phi,
+   * +-phi), (+-1/phi, +-phi, 0) and (+-phi, 0, +-1/phi), numbered in that order: the first eight with the signs of
+   * x, y and z counted as the bits of 4 i + 2 j + k (a minus sign for a set bit), the others with their two signs in
+   * the order (+, +), (+, -), (-, +), (-, -).
+   * @param[in] a_center Center.
+   * @param[in] a_radius Circumradius: the distance from the center to a vertex, finite and positive.
+   * @return The icosahedron.
+   */
+  [[nodiscard]] static ConvexPolyhedronSDF
+  icosahedron(const Vec3T<T>& a_center, T a_radius);
+
+  /**
+   * @brief A right pyramid on a regular polygon: a square pyramid with four sides, a tetrahedron-like one with
+   * three.
+   * @details As for PolygonPrismSDF, the base is a regular polygon of n sides around the axis from the base center
+   * to the apex, with one vertex along the given direction. Faces 0 to n - 1 are the sides, counted around the axis
+   * from the one that starts at that vertex, as PolygonPrismSDF counts its sides; face n is the base.
+   * @param[in] a_baseCenter      Center of the base.
+   * @param[in] a_apex            The apex; it must differ from a_baseCenter.
+   * @param[in] a_radius          Circumradius of the base: the distance from the axis to a base vertex, finite and
+   * positive.
+   * @param[in] a_sides           Number of sides, from 3 to MaxVertices - 1.
+   * @param[in] a_vertexDirection Direction from the axis toward one base vertex. Only its part across the axis is
+   * used, and that must not be zero.
+   * @return The pyramid.
+   */
+  [[nodiscard]] static ConvexPolyhedronSDF
+  pyramid(const Vec3T<T>& a_baseCenter,
+          const Vec3T<T>& a_apex,
+          T               a_radius,
+          unsigned        a_sides,
+          const Vec3T<T>& a_vertexDirection);
+
+  /**
+   * @brief Copy constructor.
+   */
+  ConvexPolyhedronSDF(const ConvexPolyhedronSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  ConvexPolyhedronSDF(ConvexPolyhedronSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  ConvexPolyhedronSDF&
+  operator=(const ConvexPolyhedronSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  ConvexPolyhedronSDF&
+  operator=(ConvexPolyhedronSDF&&) = default;
+
+  /**
+   * @brief Get the number of faces.
+   * @return m_numFaces.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumFaces() const noexcept
+  {
+    return m_numFaces;
+  }
+
+  /**
+   * @brief Get the unit outward normal of a face.
+   * @param[in] a_face The face, below getNumFaces().
+   * @return The normal.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getNormal(const uint32_t a_face) const noexcept
+  {
+    EBGEOMETRY_EXPECT(a_face < m_numFaces);
+
+    return m_normals[a_face];
+  }
+
+  /**
+   * @brief Get the offset of a face's plane: the plane is the points x with dot(getNormal(a_face), x) equal to it.
+   * @param[in] a_face The face, below getNumFaces().
+   * @return The offset.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getOffset(const uint32_t a_face) const noexcept
+  {
+    EBGEOMETRY_EXPECT(a_face < m_numFaces);
+
+    return m_offsets[a_face];
+  }
+
+  /**
+   * @brief Get the number of vertices.
+   * @return m_numVertices.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumVertices() const noexcept
+  {
+    return m_numVertices;
+  }
+
+  /**
+   * @brief Get a vertex.
+   * @param[in] a_vertex The vertex, below getNumVertices().
+   * @return Its position.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getVertex(const uint32_t a_vertex) const noexcept
+  {
+    EBGEOMETRY_EXPECT(a_vertex < m_numVertices);
+
+    return m_vertices[a_vertex];
+  }
+
+  /**
+   * @brief Get the number of edges.
+   * @return m_numEdges.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumEdges() const noexcept
+  {
+    return m_numEdges;
+  }
+
+  /**
+   * @brief Get one end of an edge.
+   * @param[in] a_edge The edge, below getNumEdges().
+   * @param[in] a_end  0 or 1.
+   * @return The index of the vertex at that end.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getEdgeVertex(const uint32_t a_edge, const uint32_t a_end) const noexcept
+  {
+    EBGEOMETRY_EXPECT(a_edge < m_numEdges && a_end < 2U);
+
+    return m_edges[2U * a_edge + a_end];
+  }
+
+  /**
+   * @brief Signed distance function for the polyhedron.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many parts the shape has (see hasParts): its faces, getNumFaces().
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return m_numFaces;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): the face whose plane is farthest above
+   * the point (the lowest such face on a tie). Inside, that is the nearest face; outside, the face the nearest
+   * point is on whenever that point is inside a face.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The shape's axis-aligned bounding box: that of its vertices.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept;
+
+protected:
+  /**
+   * @brief Number of faces.
+   */
+  uint32_t m_numFaces = 0U;
+
+  /**
+   * @brief Number of vertices.
+   */
+  uint32_t m_numVertices = 0U;
+
+  /**
+   * @brief Number of edges.
+   */
+  uint32_t m_numEdges = 0U;
+
+  /**
+   * @brief Unit outward normal of each face.
+   */
+  Array<Vec3T<T>, MaxFaces> m_normals;
+
+  /**
+   * @brief Offset of each face's plane along its normal.
+   */
+  Array<T, MaxFaces> m_offsets;
+
+  /**
+   * @brief The vertices.
+   */
+  Array<Vec3T<T>, MaxVertices> m_vertices;
+
+  /**
+   * @brief The edges, as the indices of their two vertices: edge e from m_edges[2 e] to m_edges[2 e + 1].
+   */
+  Array<uint8_t, 2U * MaxEdges> m_edges;
+};
+
+/**
+ * @brief Signed distance field for the frame of a box: its twelve edges, as bars of square cross-section.
+ * @details The frame fits the box between the two corners, and each bar is as thick as given, measured across it.
+ * The distance is exact (Quilez's box frame): the point is folded into one octant of the box, and the frame there
+ * is three bars meeting at a corner. Round its edges with Offset of a slightly smaller frame. By default the frame
+ * is that of the cube [-0.5, 0.5]^3, with bars 0.1 thick.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class BoxFrameSDF
+{
+  static_assert(std::is_floating_point_v<T>, "BoxFrameSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs the frame of the cube [-0.5, 0.5]^3, with bars 0.1 thick.
+   */
+  BoxFrameSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_loCorner  Lower corner of the box the frame fits (minimum x, y, z).
+   * @param[in] a_hiCorner  Upper corner. Each component must be strictly greater than that of a_loCorner.
+   * @param[in] a_thickness Thickness of a bar, across it: positive, and less than half of the box's shortest side.
+   */
+  BoxFrameSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner, T a_thickness);
+
+  /**
+   * @brief Copy constructor.
+   */
+  BoxFrameSDF(const BoxFrameSDF&) = default;
+
+  /**
+   * @brief Move constructor.
+   */
+  BoxFrameSDF(BoxFrameSDF&&) = default;
+
+  /**
+   * @brief Copy assignment.
+   * @return Reference to (*this).
+   */
+  BoxFrameSDF&
+  operator=(const BoxFrameSDF&) = default;
+
+  /**
+   * @brief Move assignment.
+   * @return Reference to (*this).
+   */
+  BoxFrameSDF&
+  operator=(BoxFrameSDF&&) = default;
+
+  /**
+   * @brief Get the lower corner of the box the frame fits.
+   * @return m_loCorner.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getLowCorner() const noexcept
+  {
+    return m_loCorner;
+  }
+
+  /**
+   * @brief Get the upper corner of the box the frame fits.
+   * @return m_hiCorner.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getHighCorner() const noexcept
+  {
+    return m_hiCorner;
+  }
+
+  /**
+   * @brief Get the thickness of a bar.
+   * @return m_thickness.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const T&
+  getThickness() const noexcept
+  {
+    return m_thickness;
+  }
+
+  /**
+   * @brief Signed distance function for the frame.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside a bar.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief How many parts the shape has (see hasParts): its twelve bars.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 12U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): the nearest bar, 4 a + 2 i + j for the
+   * bar along axis a (x, y, z) on the low (0) or high (1) side of the first (i) and the second (j) of the other two
+   * axes, in the order x, y, z. Where two bars meet, the one along the lower axis.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The shape's axis-aligned bounding box: the box the frame fits.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_loCorner, m_hiCorner);
+  }
+
+protected:
+  /**
+   * @brief Lower corner of the box.
+   */
+  Vec3T<T> m_loCorner = Vec3T<T>(T(-0.5), T(-0.5), T(-0.5));
+
+  /**
+   * @brief Upper corner of the box.
+   */
+  Vec3T<T> m_hiCorner = Vec3T<T>(T(0.5), T(0.5), T(0.5));
+
+  /**
+   * @brief Thickness of a bar.
+   */
+  T m_thickness = T(0.1);
+};
+
+template <class T>
+ConvexPolyhedronSDF<T>::ConvexPolyhedronSDF() noexcept
+{
+  // API stub: the implementation follows once the API is approved.
+}
+
+template <class T>
+ConvexPolyhedronSDF<T>::ConvexPolyhedronSDF(const std::vector<PlaneSDF<T>>& a_planes)
+{
+  EBGEOMETRY_REQUIRE(a_planes.size() >= 4U && a_planes.size() <= MaxFaces,
+                     "ConvexPolyhedronSDF: a polyhedron has from 4 to %u planes (%zu)",
+                     unsigned(MaxFaces),
+                     a_planes.size());
+}
+
+template <class T>
+ConvexPolyhedronSDF<T>
+ConvexPolyhedronSDF<T>::tetrahedron(const Vec3T<T>& a_center, const T a_radius)
+{
+  (void)a_center;
+  (void)a_radius;
+
+  return ConvexPolyhedronSDF<T>();
+}
+
+template <class T>
+ConvexPolyhedronSDF<T>
+ConvexPolyhedronSDF<T>::octahedron(const Vec3T<T>& a_center, const T a_radius)
+{
+  (void)a_center;
+  (void)a_radius;
+
+  return ConvexPolyhedronSDF<T>();
+}
+
+template <class T>
+ConvexPolyhedronSDF<T>
+ConvexPolyhedronSDF<T>::dodecahedron(const Vec3T<T>& a_center, const T a_radius)
+{
+  (void)a_center;
+  (void)a_radius;
+
+  return ConvexPolyhedronSDF<T>();
+}
+
+template <class T>
+ConvexPolyhedronSDF<T>
+ConvexPolyhedronSDF<T>::icosahedron(const Vec3T<T>& a_center, const T a_radius)
+{
+  (void)a_center;
+  (void)a_radius;
+
+  return ConvexPolyhedronSDF<T>();
+}
+
+template <class T>
+ConvexPolyhedronSDF<T>
+ConvexPolyhedronSDF<T>::pyramid(const Vec3T<T>& a_baseCenter,
+                                const Vec3T<T>& a_apex,
+                                const T         a_radius,
+                                const unsigned  a_sides,
+                                const Vec3T<T>& a_vertexDirection)
+{
+  (void)a_baseCenter;
+  (void)a_apex;
+  (void)a_radius;
+  (void)a_sides;
+  (void)a_vertexDirection;
+
+  return ConvexPolyhedronSDF<T>();
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+T
+ConvexPolyhedronSDF<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
+{
+  (void)a_point;
+
+  return T(0);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+uint32_t
+ConvexPolyhedronSDF<T>::closestPart(const Vec3T<T>& a_point) const noexcept
+{
+  (void)a_point;
+
+  return 0U;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+BoundingVolumes::AABBT<T>
+ConvexPolyhedronSDF<T>::computeBoundingVolume() const noexcept
+{
+  return BoundingVolumes::AABBT<T>(Vec3T<T>(T(-0.5), T(-0.5), T(-0.5)), Vec3T<T>(T(0.5), T(0.5), T(0.5)));
+}
+
+template <class T>
+BoxFrameSDF<T>::BoxFrameSDF(const Vec3T<T>& a_loCorner, const Vec3T<T>& a_hiCorner, const T a_thickness)
+{
+  m_loCorner  = a_loCorner;
+  m_hiCorner  = a_hiCorner;
+  m_thickness = a_thickness;
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+T
+BoxFrameSDF<T>::signedDistance(const Vec3T<T>& a_point) const noexcept
+{
+  (void)a_point;
+
+  return T(0);
+}
+
+template <class T>
+EBGEOMETRY_HOST_DEVICE
+uint32_t
+BoxFrameSDF<T>::closestPart(const Vec3T<T>& a_point) const noexcept
+{
+  (void)a_point;
+
+  return 0U;
+}
+
+/**
+ * @brief Signed distance field for a quadric of revolution around y: a hyperboloid of one sheet, a hyperboloid of
+ * two sheets, or a paraboloid.
+ * @details The three share their code: in the cross-section through the axis, the surface is a conic (a hyperbola
+ * or a parabola), and the distance to it is exact, from the closest point on the conic: the root of a scalar
+ * equation found by safeguarded Newton steps for a hyperbola, as for EllipsoidSDF, and a cubic solved in closed form
+ * for a parabola. Each is unbounded along its axis: cut it with an Intersection, or use it to cut. They are made by
+ * the static functions hyperboloid(), hyperboloidTwoSheets() and paraboloid(), which return a QuadricSDF; turn them
+ * with Rotate. By default the quadric is the paraboloid with its tip at the origin and a tip radius of 1.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class QuadricSDF
+{
+  static_assert(std::is_floating_point_v<T>, "QuadricSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Which quadric.
+   */
+  enum class Kind : uint32_t
+  {
+    HyperboloidOneSheet,  ///< r^2 / a^2 - y^2 / c^2 <= 1: a waisted tower, one piece.
+    HyperboloidTwoSheets, ///< y^2 / c^2 - r^2 / a^2 >= 1: two cups facing away from each other.
+    Paraboloid            ///< y <= -r^2 / (2 rho): a cup opening toward -y from its tip.
+  };
+
+  /**
+   * @brief Default constructor. Constructs the paraboloid with its tip at the origin, opening toward -y, with a tip
+   * radius of 1.
+   */
+  QuadricSDF() = default;
+
+  /**
+   * @brief A hyperboloid of one sheet around the y axis through the center: a waisted tower, unbounded along y.
+   * @param[in] a_center The center, on the axis at the narrowest point.
+   * @param[in] a_waist  The radius at the narrowest point, finite and positive.
+   * @param[in] a_angle  The full opening angle of the asymptotic cone, in degrees, in (0, 180): the hyperboloid
+   * widens toward that cone far from the center.
+   * @return The hyperboloid.
+   */
+  [[nodiscard]] static QuadricSDF
+  hyperboloid(const Vec3T<T>& a_center, T a_waist, T a_angle);
+
+  /**
+   * @brief A hyperboloid of two sheets around the y axis through the center: two cups, with their tips on the axis
+   * at the given distance above and below the center, each opening away from it, unbounded along y.
+   * @details The solid is inside the two cups. The radius of curvature at a tip is a_tipDistance tan^2(angle / 2).
+   * @param[in] a_center      The center, midway between the tips.
+   * @param[in] a_tipDistance The distance from the center to each tip, finite and positive.
+   * @param[in] a_angle       The full opening angle of the asymptotic cone, in degrees, in (0, 180).
+   * @return The hyperboloid.
+   */
+  [[nodiscard]] static QuadricSDF
+  hyperboloidTwoSheets(const Vec3T<T>& a_center, T a_tipDistance, T a_angle);
+
+  /**
+   * @brief A paraboloid around the y axis through its tip, opening toward -y, as the cones do, unbounded below.
+   * @param[in] a_tip       The tip.
+   * @param[in] a_tipRadius The radius of curvature at the tip, finite and positive: the paraboloid is y = -r^2 / (2
+   * a_tipRadius) below the tip.
+   * @return The paraboloid.
+   */
+  [[nodiscard]] static QuadricSDF
+  paraboloid(const Vec3T<T>& a_tip, T a_tipRadius);
+
+  /**
+   * @brief Get which quadric this is.
+   * @return m_kind.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  Kind
+  getKind() const noexcept
+  {
+    return m_kind;
+  }
+
+  /**
+   * @brief Get the center (a hyperboloid) or the tip (a paraboloid).
+   * @return m_center.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  const Vec3T<T>&
+  getCenter() const noexcept
+  {
+    return m_center;
+  }
+
+  /**
+   * @brief Signed distance function for the quadric.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return T(0);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: unbounded along y, and across it too but for the paraboloid and
+   * the one-sheet hyperboloid, which are unbounded everywhere their cross-section grows.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T big = Math::Limits<T>::max();
+
+    return BoundingVolumes::AABBT<T>(Vec3T<T>(-big, -big, -big), Vec3T<T>(big, big, big));
+  }
+
+protected:
+  /**
+   * @brief Which quadric.
+   */
+  Kind m_kind = Kind::Paraboloid;
+
+  /**
+   * @brief The center (a hyperboloid) or the tip (a paraboloid).
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief The semi-axis across y, a (a hyperboloid), or the tip radius rho (a paraboloid).
+   */
+  T m_a = T(1);
+
+  /**
+   * @brief The semi-axis along y, c (a hyperboloid); unused for a paraboloid.
+   */
+  T m_c = T(1);
+};
+
+/**
+ * @brief Signed distance field for a superellipsoid (Barr's superquadric): from an ellipsoid to a rounded box, and
+ * toward a box or an octahedron, with its semi-axes along x, y and z.
+ * @details The surface is (|x/a|^(2/e2) + |z/c|^(2/e2))^(e2/e1) + |y/b|^(2/e1) = 1 around the center: e1 shapes the
+ * cross-sections through the y axis, e2 those across it. Both exponents are in [0.1, 2], where the solid is convex:
+ * 1 gives an ellipsoid, toward 0.1 a box, 2 an octahedron (a double cone where only one is 2). The value is a bound:
+ * the superquadric's gauge less 1, divided by the gauge's largest slope, which never exceeds the distance. Turn it
+ * with Rotate. By default the superellipsoid is centered at the origin, with semi-axes 1 and both exponents 0.5.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class SuperellipsoidSDF
+{
+  static_assert(std::is_floating_point_v<T>, "SuperellipsoidSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: never more than the Euclidean distance.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Bound;
+
+  /**
+   * @brief Default constructor. Constructs a superellipsoid at the origin, with semi-axes 1 and both exponents 0.5.
+   */
+  SuperellipsoidSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center    Center.
+   * @param[in] a_radii     Semi-axes along x, y and z, finite and positive.
+   * @param[in] a_exponent1 The exponent e1 of the cross-sections through the y axis, in [0.1, 2].
+   * @param[in] a_exponent2 The exponent e2 of the cross-sections across it, in [0.1, 2].
+   */
+  SuperellipsoidSDF(const Vec3T<T>& a_center, const Vec3T<T>& a_radii, T a_exponent1, T a_exponent2)
+  {
+    m_center    = a_center;
+    m_radii     = a_radii;
+    m_exponent1 = a_exponent1;
+    m_exponent2 = a_exponent2;
+  }
+
+  /**
+   * @brief Signed distance function for the superellipsoid: a bound.
+   * @param[in] a_point Position.
+   * @return A signed value whose magnitude never exceeds the distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return T(0);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: the center plus and minus the semi-axes.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_center - m_radii, m_center + m_radii);
+  }
+
+protected:
+  /**
+   * @brief Center.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Semi-axes.
+   */
+  Vec3T<T> m_radii = Vec3T<T>::ones();
+
+  /**
+   * @brief The exponent through the y axis.
+   */
+  T m_exponent1 = T(0.5);
+
+  /**
+   * @brief The exponent across it.
+   */
+  T m_exponent2 = T(0.5);
+};
+
+/**
+ * @brief Signed distance field for a solid angle: the part of a ball inside a cone from its center, around +y.
+ * @details The cone has its tip at the ball's center and opens toward +y with the given full angle; above 180
+ * degrees the solid is the ball less a cone opening toward -y. The distance is exact (Quilez's solid angle): in the
+ * cross-section through the axis, that to the arc or to the cone's side line. Turn it with Rotate. By default the
+ * solid angle is centered at the origin, with radius 1 and an opening of 60 degrees.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class SolidAngleSDF
+{
+  static_assert(std::is_floating_point_v<T>, "SolidAngleSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a solid angle at the origin, with radius 1 and an opening of 60 degrees.
+   */
+  SolidAngleSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center The center of the ball, the cone's tip.
+   * @param[in] a_radius The radius, finite and positive.
+   * @param[in] a_angle  The cone's full opening angle, in degrees, in (0, 360).
+   */
+  SolidAngleSDF(const Vec3T<T>& a_center, T a_radius, T a_angle)
+  {
+    m_center = a_center;
+    m_radius = a_radius;
+    m_angle  = a_angle;
+  }
+
+  /**
+   * @brief Signed distance function for the solid angle.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return T(0);
+  }
+
+  /**
+   * @brief How many parts the shape has (see hasParts): 2, the spherical cap (0) and the cone's side (1).
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  getNumParts() const noexcept
+  {
+    return 2U;
+  }
+
+  /**
+   * @brief The part whose term decides the value at a point (see hasParts): 0 the cap, 1 the cone's side.
+   * @param[in] a_point Position.
+   * @return The part.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  uint32_t
+  closestPart(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return 0U;
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: that of the ball.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(m_center - m_radius * Vec3T<T>::ones(), m_center + m_radius * Vec3T<T>::ones());
+  }
+
+protected:
+  /**
+   * @brief Center.
+   */
+  Vec3T<T> m_center = Vec3T<T>::zeros();
+
+  /**
+   * @brief Radius.
+   */
+  T m_radius = T(1);
+
+  /**
+   * @brief Full opening angle, in degrees.
+   */
+  T m_angle = T(60);
+};
+
+/**
+ * @brief Signed distance field for a revolved vesica: a lens between two tips, the solid swept by the vesica
+ * (the overlap of two discs) turned around the line through its tips.
+ * @details The solid is the intersection of two equal balls whose centers lie across the axis, so that their
+ * spheres meet at the tips; the given width is the lens' radius at its middle. The distance is exact (Quilez's
+ * vesica): to the arc, or to the nearer tip. By default the vesica runs from (0,-1,0) to (0,1,0), with radius 0.5.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class VesicaSDF
+{
+  static_assert(std::is_floating_point_v<T>, "VesicaSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a vesica from (0,-1,0) to (0,1,0), with radius 0.5.
+   */
+  VesicaSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_tip1   One tip.
+   * @param[in] a_tip2   The other tip; it must differ from a_tip1.
+   * @param[in] a_radius The lens' radius at its middle, finite, positive and less than half the distance between
+   * the tips (a radius of half that distance would make a ball).
+   */
+  VesicaSDF(const Vec3T<T>& a_tip1, const Vec3T<T>& a_tip2, T a_radius)
+  {
+    m_tip1   = a_tip1;
+    m_tip2   = a_tip2;
+    m_radius = a_radius;
+  }
+
+  /**
+   * @brief Signed distance function for the vesica.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return T(0);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    return BoundingVolumes::AABBT<T>(min(m_tip1, m_tip2) - m_radius * Vec3T<T>::ones(),
+                                     max(m_tip1, m_tip2) + m_radius * Vec3T<T>::ones());
+  }
+
+protected:
+  /**
+   * @brief One tip.
+   */
+  Vec3T<T> m_tip1 = Vec3T<T>(T(0), T(-1), T(0));
+
+  /**
+   * @brief The other tip.
+   */
+  Vec3T<T> m_tip2 = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Radius at the middle.
+   */
+  T m_radius = T(0.5);
+};
+
+/**
+ * @brief Signed distance field for a helical tube: a spring, a coil or a thread, with rounded ends.
+ * @details The tube's center line is a right-handed helix around the axis from the first end center to the second,
+ * starting from the first in the given direction across the axis; Reflect makes a left-handed one. The value is the
+ * distance to the center line less the tube's radius, exact: the closest point on the line is found by Newton steps
+ * on the turns next to the point, and at the ends. The tube must not touch itself: its radius is less than the
+ * helix radius, and less than half the pitch. By default the helix runs from (0,-1,0) to (0,1,0) in 4 turns of
+ * radius 0.5 starting along x, with a tube radius of 0.1.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class HelixSDF
+{
+  static_assert(std::is_floating_point_v<T>, "HelixSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: the Euclidean distance to the surface.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Exact;
+
+  /**
+   * @brief Default constructor. Constructs a helix from (0,-1,0) to (0,1,0) in 4 turns of radius 0.5, starting
+   * along x, with a tube radius of 0.1.
+   */
+  HelixSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_center1        The axis point at the first end.
+   * @param[in] a_center2        The axis point at the second end; it must differ from a_center1.
+   * @param[in] a_helixRadius    The distance from the axis to the tube's center line, finite and positive.
+   * @param[in] a_turns          The number of turns, finite and positive (not necessarily whole).
+   * @param[in] a_tubeRadius     The tube's radius, positive, less than a_helixRadius and than half the pitch.
+   * @param[in] a_startDirection Direction from the axis to the center line at the first end. Only its part across
+   * the axis is used, and that must not be zero.
+   */
+  HelixSDF(const Vec3T<T>& a_center1,
+           const Vec3T<T>& a_center2,
+           T               a_helixRadius,
+           T               a_turns,
+           T               a_tubeRadius,
+           const Vec3T<T>& a_startDirection)
+  {
+    (void)a_startDirection;
+
+    m_center1     = a_center1;
+    m_center2     = a_center2;
+    m_helixRadius = a_helixRadius;
+    m_turns       = a_turns;
+    m_tubeRadius  = a_tubeRadius;
+  }
+
+  /**
+   * @brief Signed distance function for the helix.
+   * @param[in] a_point Position.
+   * @return Signed distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return T(0);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: that of the cylinder the tube fits in.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T reach = m_helixRadius + m_tubeRadius;
+
+    return BoundingVolumes::AABBT<T>(min(m_center1, m_center2) - reach * Vec3T<T>::ones(),
+                                     max(m_center1, m_center2) + reach * Vec3T<T>::ones());
+  }
+
+protected:
+  /**
+   * @brief The axis point at the first end.
+   */
+  Vec3T<T> m_center1 = Vec3T<T>(T(0), T(-1), T(0));
+
+  /**
+   * @brief The axis point at the second end.
+   */
+  Vec3T<T> m_center2 = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Unit axis from m_center1 to m_center2.
+   */
+  Vec3T<T> m_axis = Vec3T<T>(T(0), T(1), T(0));
+
+  /**
+   * @brief Unit direction to the center line at the first end.
+   */
+  Vec3T<T> m_start = Vec3T<T>(T(1), T(0), T(0));
+
+  /**
+   * @brief The helix radius.
+   */
+  T m_helixRadius = T(0.5);
+
+  /**
+   * @brief The number of turns.
+   */
+  T m_turns = T(4);
+
+  /**
+   * @brief The tube's radius.
+   */
+  T m_tubeRadius = T(0.1);
+};
+
+/**
+ * @brief Signed distance field for a lattice of walls along a triply periodic minimal surface: a gyroid, Schwarz's
+ * P or D (diamond) surface, or Neovius' surface. Porous media, heat exchangers, scaffolds.
+ * @details The four share their code: each is the zero set of a sum of sines and cosines f of the point scaled by
+ * the cell size, and the solid is the wall around it, |f| <= g t / 2 with g the largest slope of f. The value is
+ * |f| / g - t / 2, a bound: f / g never changes faster than the distance. The wall is t thick where f is steepest,
+ * and thicker elsewhere. The lattice fills all of space; cut it to a part with an Intersection. By default it is a
+ * gyroid of unit cells with walls 0.1 thick.
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+class LatticeSDF
+{
+  static_assert(std::is_floating_point_v<T>, "LatticeSDF<T>: T must be a floating-point type");
+
+public:
+  /**
+   * @brief How far signedDistance() can be trusted as a distance: never more than the Euclidean distance.
+   */
+  static constexpr DistanceQuality distanceQuality = DistanceQuality::Bound;
+
+  /**
+   * @brief Which surface, with the cell scaled to 2 pi.
+   */
+  enum class Kind : uint32_t
+  {
+    Gyroid,   ///< sin x cos y + sin y cos z + sin z cos x.
+    SchwarzP, ///< cos x + cos y + cos z.
+    SchwarzD, ///< Schwarz's D surface, the diamond: the sum of the products of sines and cosines of its kind.
+    Neovius   ///< 3 (cos x + cos y + cos z) + 4 cos x cos y cos z.
+  };
+
+  /**
+   * @brief Default constructor. Constructs a gyroid of unit cells, with walls 0.1 thick.
+   */
+  LatticeSDF() = default;
+
+  /**
+   * @brief Full constructor.
+   * @param[in] a_kind      Which surface.
+   * @param[in] a_cellSize  The size of a cell along x, y and z, finite and positive.
+   * @param[in] a_thickness The walls' thickness where they are thinnest, positive and less than the smallest cell
+   * size.
+   */
+  LatticeSDF(const Kind a_kind, const Vec3T<T>& a_cellSize, const T a_thickness)
+  {
+    m_kind      = a_kind;
+    m_cellSize  = a_cellSize;
+    m_thickness = a_thickness;
+  }
+
+  /**
+   * @brief Signed distance function for the lattice: a bound.
+   * @param[in] a_point Position.
+   * @return A signed value whose magnitude never exceeds the distance from a_point to the surface; negative inside.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  T
+  signedDistance(const Vec3T<T>& a_point) const noexcept
+  {
+    (void)a_point;
+
+    return T(0);
+  }
+
+  /**
+   * @brief The shape's axis-aligned bounding box: unbounded.
+   * @return The bounding box.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  BoundingVolumes::AABBT<T>
+  computeBoundingVolume() const noexcept
+  {
+    const T big = Math::Limits<T>::max();
+
+    return BoundingVolumes::AABBT<T>(Vec3T<T>(-big, -big, -big), Vec3T<T>(big, big, big));
+  }
+
+protected:
+  /**
+   * @brief Which surface.
+   */
+  Kind m_kind = Kind::Gyroid;
+
+  /**
+   * @brief The cell size.
+   */
+  Vec3T<T> m_cellSize = Vec3T<T>::ones();
+
+  /**
+   * @brief The walls' thickness.
+   */
+  T m_thickness = T(0.1);
+};
+
+/**
  * @brief Every analytic shape must be trivially copyable: that is what lets it be byte-copied into a
  * device address space, or into a pool-backed array, with no pointer patching.
  */
@@ -4778,6 +6009,27 @@ static_assert(std::is_trivially_copyable_v<CutHollowSphereSDF<double>>,
               "CutHollowSphereSDF<double> must be trivially copyable");
 static_assert(std::is_trivially_copyable_v<WedgeSDF<float>>, "WedgeSDF<float> must be trivially copyable");
 static_assert(std::is_trivially_copyable_v<WedgeSDF<double>>, "WedgeSDF<double> must be trivially copyable");
+
+static_assert(std::is_trivially_copyable_v<ConvexPolyhedronSDF<float>>,
+              "ConvexPolyhedronSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<ConvexPolyhedronSDF<double>>,
+              "ConvexPolyhedronSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<BoxFrameSDF<float>>, "BoxFrameSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<BoxFrameSDF<double>>, "BoxFrameSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<QuadricSDF<float>>, "QuadricSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<QuadricSDF<double>>, "QuadricSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SuperellipsoidSDF<float>>,
+              "SuperellipsoidSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SuperellipsoidSDF<double>>,
+              "SuperellipsoidSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SolidAngleSDF<float>>, "SolidAngleSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<SolidAngleSDF<double>>, "SolidAngleSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<VesicaSDF<float>>, "VesicaSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<VesicaSDF<double>>, "VesicaSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<HelixSDF<float>>, "HelixSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<HelixSDF<double>>, "HelixSDF<double> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<LatticeSDF<float>>, "LatticeSDF<float> must be trivially copyable");
+static_assert(std::is_trivially_copyable_v<LatticeSDF<double>>, "LatticeSDF<double> must be trivially copyable");
 
 } // namespace EBGeometry
 
