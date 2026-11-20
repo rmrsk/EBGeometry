@@ -7015,7 +7015,7 @@ protected:
  * ends and the helix' ends are the other candidates. The search starts at the turn nearest the point's height and
  * goes outward while a lower bound on a window's distance (its height difference alone) can still beat the best,
  * which is one to three windows for most points. The tube must not touch itself: its radius is less than the helix
- * radius, and less than half the pitch. By default the helix runs from (0,-1,0) to (0,1,0) in 4 turns of radius 0.5
+ * radius, and less than half the distance between neighboring turns, pitch R / sqrt(R^2 + (pitch / 2 pi)^2). By default the helix runs from (0,-1,0) to (0,1,0) in 4 turns of radius 0.5
  * starting along x, with a tube radius of 0.1.
  * @tparam T Floating-point precision.
  */
@@ -7042,7 +7042,8 @@ public:
    * @param[in] a_center2        The axis point at the second end; it must differ from a_center1.
    * @param[in] a_helixRadius    The distance from the axis to the tube's center line, finite and positive.
    * @param[in] a_turns          The number of turns, finite and positive (not necessarily whole).
-   * @param[in] a_tubeRadius     The tube's radius, positive, less than a_helixRadius and than half the pitch.
+   * @param[in] a_tubeRadius     The tube's radius, positive, less than a_helixRadius and than half the distance
+   * between neighboring turns (just under half the pitch).
    * @param[in] a_startDirection Direction from the axis to the center line at the first end. Only its part across
    * the axis is used, and that must not be zero.
    */
@@ -7076,14 +7077,17 @@ public:
                        "HelixSDF: the number of turns must be finite and positive (%g)",
                        double(a_turns));
 
+    // Neighboring turns are pitch R / sqrt(R^2 + (pitch / 2 pi)^2) apart across the line, less than the pitch.
     const T pitch = length / a_turns;
+    const T rise  = pitch / (T(2) * pi<T>);
+    const T apart = pitch * a_helixRadius / std::sqrt(a_helixRadius * a_helixRadius + rise * rise);
 
     EBGEOMETRY_REQUIRE(std::isfinite(a_tubeRadius) && a_tubeRadius > T(0) && a_tubeRadius < a_helixRadius &&
-                         T(2) * a_tubeRadius < pitch,
+                         T(2) * a_tubeRadius < apart,
                        "HelixSDF: the tube radius must be positive and less than the helix radius %g and half the "
-                       "pitch %g (%g)",
+                       "distance between turns %g (%g)",
                        double(a_helixRadius),
-                       double(T(0.5) * pitch),
+                       double(T(0.5) * apart),
                        double(a_tubeRadius));
 
     const Vec3T<T> axis   = (a_center2 - a_center1) / length;

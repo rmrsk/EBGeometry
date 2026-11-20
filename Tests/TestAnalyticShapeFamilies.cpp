@@ -855,6 +855,33 @@ TEMPLATE_TEST_CASE("LatticeSDF: walls on each surface, and a bound that never ch
   }
 }
 
+TEMPLATE_TEST_CASE("BoxFrameSDF: a ray from inside a bar has a span that starts open, and leaves where the bar ends",
+                   "[BoxFrameSDF][Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const BoxFrameSDF<T> frame(-Vec3::ones(), Vec3::ones(), T(0.2));
+
+  // From inside the bar along x at the low y and z, along +x: inside until the bar's end at x = 1.
+  const RayT<T> ray{Vec3(T(0), T(-0.9), T(-0.9)), Vec3::unit(0)};
+
+  RaySpansT<T> spans;
+
+  RayForm<BoxFrameSDF<T>>::spans(frame, ray, T(0), T(5), RayOptions<T>(), false, spans);
+
+  REQUIRE(spans.m_count == 1U);
+  REQUIRE_FALSE(spans.m_spans[0].m_in.crossing());
+  REQUIRE_THAT(spans.m_spans[0].m_out.m_t, withinAbsT<T>(T(1), double(tightMargin<T>())));
+
+  const HitT<T> hit = firstHit(frame, ray, T(0), T(5));
+
+  REQUIRE(hit.hit());
+  REQUIRE_FALSE(hit.m_entering);
+  REQUIRE_THAT(hit.m_t, withinAbsT<T>(T(1), double(tightMargin<T>())));
+}
+
 TEMPLATE_TEST_CASE("Shape families: a chain link is an elongated torus, with Quilez's exact link distance",
                    "[AnalyticSDF]",
                    EBGEOMETRY_TEST_PRECISIONS)
@@ -1004,7 +1031,17 @@ TEST_CASE("Shape families: invalid constructor arguments abort with a message", 
 
       (void)h;
     },
-    "HelixSDF: the tube radius must be positive and less than the helix radius 1 and half the pitch 0.05 (0.06)"));
+    "HelixSDF: the tube radius must be positive and less than the helix radius 1 and half the distance between turns "
+    "0.0499937 (0.06)"));
+
+  // A tube under half the pitch that still touches the next turn, the turns being closer than the pitch.
+  REQUIRE(abortsWith(
+    [] {
+      const HelixSDF<T> h(Vec3::zeros(), Vec3::unit(1), T(0.5), T(1), T(0.49), Vec3::unit(0));
+
+      (void)h;
+    },
+    "HelixSDF: the tube radius must be positive and less than the helix radius 0.5 and half the distance between turns"));
 
   REQUIRE(abortsWith(
     [] {
