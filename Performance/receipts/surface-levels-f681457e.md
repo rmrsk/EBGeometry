@@ -155,3 +155,159 @@ The base's build was reused from the cache (the same code, compilers and setting
 These probes compiled to the same code on both sides and were not run (268 cases): BVH (6), BVHRefit (2), BVHUnion (12), BVHUnionMixed (4), ClosestPrimitive (6), ClosestSurface (8), EBGrid (12), Fused (10), Mesh (12), MeshClosestPoint (8), MeshIngest (8), MeshReconcile (4), PointCloud (40), PointCloudBVHBuild (2), PointCloudHashGridBuild (2), QueryOrder (6), Ray (14), RayCSG (10), RayCrossing (16), RayParticles (10), RayShell (6), Shapes (20), SphereCloudBVH (6), SphereCloudRays (6), SphereContacts (2), SurfaceParts (12), Tape (20), TapeBVHUnion (4)
 
 <!-- END receipt host -->
+
+<!-- BEGIN receipt cuda -->
+<!--receipt
+version: 3
+side: cuda
+verdict: green
+base: b4fb4c6
+base-fingerprint: 6c3c437020716e933adeba2f122c30695cb6e811
+head: ac23d11
+head-fingerprint: f681457ef8967ca27f3282b4d88851ccd482abea
+cases: 66
+rounds: 2
+reps: 3
+date: 2026-11-21
+-->
+
+## Device comparison (CUDA): green
+
+**Accepted:** -
+
+`ac23d11` against `b4fb4c6` (origin/main), 2026-11-21.
+
+**VERDICT: no regression (0 major, 0 minor across 66 cases)**
+
+Performance comparison: 0 major, 0 minor, 3 faster, 0 differ, 0 lost, 66 cases
+
+- base: b4fb4c6 (gcc 13.3.0, simd none, gpu CUDA, allocator glibc, heap only, freed memory returned before each repetition)
+- head: ac23d11 (gcc 13.3.0, simd none, gpu CUDA, allocator glibc, heap only, freed memory returned before each repetition)
+- CPU: 12th Gen Intel(R) Core(TM) i9-12900K
+- Thresholds: minor >= 3%, major >= 10% slower, and outside the 95% bootstrap interval over the runs
+
+| case | base | head | change | 95% interval | pool | verdict | note |
+|---|---:|---:|---:|---:|---:|---|---|
+| `Domain/particles/labels/float/hostdevice` | 4.00 ms | 4.03 ms | +0.6% | [+0.4%, +0.9%] | - | ~ | device 3.4x faster than the host |
+| `Domain/particles/labelAt/float/hostdevice` | 2.72 ms | 2.71 ms | -0.4% | [-0.6%, -0.3%] | - | ~ | device 2.7x faster than the host |
+| `Domain/particles/surfaceGroups/float/hostdevice` | 122 µs | 114 µs | -6.9% | [-9.8%, -3.9%] | - | faster | device 13.0x faster than the host (was 12.3x) |
+| `Domain/particles/labels/double/hostdevice` | 7.06 ms | 7.13 ms | +1.0% | [+0.6%, +1.4%] | - | ~ | device 2.0x faster than the host |
+| `Domain/particles/labelAt/double/hostdevice` | 3.60 ms | 3.61 ms | +0.1% | [-0.2%, +0.5%] | - | ~ | device 2.0x faster than the host |
+| `Domain/particles/surfaceGroups/double/hostdevice` | 127 µs | 114 µs | -10.6% | [-11.0%, -10.1%] | - | faster | device 13.0x faster than the host (was 11.0x) |
+| `DomainObject/partsWhole/labels/float/hostdevice` | 12.4 ms | 12.4 ms | +0.0% | [-0.2%, +0.2%] | - | ~ | device 3.6x faster than the host |
+| `DomainObject/partsWhole/labelAt/float/hostdevice` | 8.70 ms | 8.71 ms | +0.1% | [-0.3%, +0.5%] | - | ~ | device 2.7x faster than the host |
+| `DomainObject/partsOwn/labels/float/hostdevice` | 267 µs | 270 µs | +0.8% | [+0.1%, +1.5%] | - | ~ | device 2.3x faster than the host (was 2.4x); whole/own 46.06x |
+| `DomainObject/partsOwn/labelAt/float/hostdevice` | 151 µs | 151 µs | +0.1% | [-1.3%, +1.5%] | - | ~ | device 2.3x faster than the host; whole/own 57.79x |
+| `DomainObject/partsWhole/labels/double/hostdevice` | 20.0 ms | 20.0 ms | -0.0% | [-0.3%, +0.3%] | - | ~ | device 2.3x faster than the host |
+| `DomainObject/partsWhole/labelAt/double/hostdevice` | 11.7 ms | 11.7 ms | +0.0% | [-0.2%, +0.2%] | - | ~ | device 2.1x faster than the host |
+| `DomainObject/partsOwn/labels/double/hostdevice` | 384 µs | 382 µs | -0.4% | [-2.5%, +1.8%] | - | ~ | device 1.8x faster than the host; whole/own 52.35x |
+| `DomainObject/partsOwn/labelAt/double/hostdevice` | 234 µs | 235 µs | +0.4% | [-0.3%, +1.0%] | - | ~ | device 1.5x faster than the host (was 1.6x); whole/own 50.01x |
+| `MeshCSG/union-tape/firstHit-morton/float/hostdevice` | 2.00 ms | 2.00 ms | +0.2% | [-0.4%, +0.9%] | - | ~ | device 5.1x faster than the host |
+| `MeshCSG/union-tape/firstHit-random/float/hostdevice` | 3.39 ms | 3.39 ms | -0.0% | [-0.3%, +0.3%] | - | ~ | device 4.1x faster than the host |
+| `MeshCSG/union-tape/frame/float/hostdevice` | 6.12 ms | 6.13 ms | +0.2% | [+0.0%, +0.5%] | - | ~ | device 4.7x faster than the host |
+| `MeshCSG/smooth-tape/firstHit-morton/float/hostdevice` | 63.6 ms | 63.5 ms | -0.2% | [-0.8%, +0.4%] | - | ~ | device 3.4x faster than the host (was 3.1x) |
+| `MeshCSG/smooth-tape/firstHit-random/float/hostdevice` | 91.8 ms | 93.6 ms | +1.9% | [+1.1%, +2.8%] | - | ~ | device 2.3x faster than the host |
+| `MeshCSG/smooth-tape/frame/float/hostdevice` | 240 ms | 239 ms | -0.2% | [-2.2%, +1.9%] | - | ~ | device 3.3x faster than the host |
+| `MeshCSG/smooth-fused/firstHit-morton/float/hostdevice` | 24.7 ms | 24.9 ms | +0.8% | [-0.2%, +1.9%] | - | ~ | device 2.0x faster than the host; tape/fused 2.55x |
+| `MeshCSG/smooth-fused/firstHit-random/float/hostdevice` | 26.7 ms | 26.8 ms | +0.6% | [-0.4%, +1.6%] | - | ~ | device 2.2x faster than the host; tape/fused 3.49x |
+| `MeshCSG/smooth-fused/frame/float/hostdevice` | 65.8 ms | 65.6 ms | -0.2% | [-0.5%, +0.1%] | - | ~ | device 4.3x faster than the host (was 3.9x); tape/fused 3.64x |
+| `MeshCSG/union-tape/firstHit-morton/double/hostdevice` | 21.0 ms | 20.4 ms | -2.8% | [-6.2%, +0.8%] | - | ~ | device 0.5x faster than the host (was 0.5x) |
+| `MeshCSG/union-tape/firstHit-random/double/hostdevice` | 38.5 ms | 38.0 ms | -1.2% | [-1.6%, -0.9%] | - | ~ | device 0.4x faster than the host |
+| `MeshCSG/union-tape/frame/double/hostdevice` | 40.8 ms | 40.9 ms | +0.2% | [-1.3%, +1.7%] | - | ~ | device 0.7x faster than the host (was 0.9x) |
+| `MeshCSG/smooth-tape/firstHit-morton/double/hostdevice` | 538 ms | 527 ms | -2.1% | [-5.8%, +1.9%] | - | ~ | device 0.4x faster than the host |
+| `MeshCSG/smooth-tape/firstHit-random/double/hostdevice` | 841 ms | 834 ms | -0.9% | [-1.5%, -0.4%] | - | ~ | device 0.3x faster than the host |
+| `MeshCSG/smooth-tape/frame/double/hostdevice` | 1.94 s | 1.93 s | -0.7% | [-2.7%, +1.3%] | - | ~ | device 0.5x faster than the host (was 0.5x) |
+| `MeshCSG/smooth-fused/firstHit-morton/double/hostdevice` | 190 ms | 192 ms | +1.2% | [-1.8%, +4.4%] | - | ~ | device 0.3x faster than the host; tape/fused 2.74x (was 2.83x) |
+| `MeshCSG/smooth-fused/firstHit-random/double/hostdevice` | 295 ms | 291 ms | -1.3% | [-3.3%, +0.6%] | - | ~ | device 0.2x faster than the host; tape/fused 2.86x |
+| `MeshCSG/smooth-fused/frame/double/hostdevice` | 560 ms | 535 ms | -4.4% | [-5.1%, -3.7%] | - | faster | device 0.5x faster than the host (was 0.5x); tape/fused 3.60x (was 3.46x) |
+| `MeshTape/mesh/firstHit/float/hostdevice` | 1.29 ms | 1.30 ms | +0.5% | [+0.1%, +1.0%] | - | ~ | device 15.8x faster than the host |
+| `MeshTape/mesh/firstCrossing/float/hostdevice` | 1.30 ms | 1.29 ms | -0.7% | [-1.5%, +0.0%] | - | ~ | device 15.8x faster than the host |
+| `MeshTape/mesh/frame/float/hostdevice` | 2.15 ms | 2.15 ms | -0.2% | [-1.1%, +0.7%] | - | ~ | device 7.8x faster than the host |
+| `MeshTape/tape/firstHit/float/hostdevice` | 3.49 ms | 3.50 ms | +0.4% | [+0.3%, +0.5%] | - | ~ | device 10.1x faster than the host; mesh/tape 0.37x |
+| `MeshTape/tape/firstCrossing/float/hostdevice` | 2.75 ms | 2.75 ms | +0.1% | [-0.0%, +0.3%] | - | ~ | device 7.8x faster than the host; mesh/tape 0.47x |
+| `MeshTape/tape/frame/float/hostdevice` | 4.42 ms | 4.41 ms | -0.2% | [-0.7%, +0.2%] | - | ~ | device 4.9x faster than the host; mesh/tape 0.49x |
+| `MeshTape/view/firstHit/float/hostdevice` | 3.73 ms | 3.73 ms | +0.0% | [-0.0%, +0.1%] | - | ~ | device 9.7x faster than the host (was 11.0x); mesh/view 0.35x |
+| `MeshTape/view/frame/float/hostdevice` | 5.58 ms | 5.63 ms | +0.9% | [+0.7%, +1.1%] | - | ~ | device 4.2x faster than the host; mesh/view 0.38x |
+| `MeshTape/mesh/firstHit/double/hostdevice` | 28.5 ms | 28.4 ms | -0.5% | [-0.7%, -0.3%] | - | ~ | device 0.8x faster than the host |
+| `MeshTape/mesh/firstCrossing/double/hostdevice` | 28.5 ms | 28.5 ms | +0.1% | [-0.2%, +0.4%] | - | ~ | device 0.7x faster than the host |
+| `MeshTape/mesh/frame/double/hostdevice` | 24.5 ms | 24.3 ms | -0.6% | [-1.1%, -0.0%] | - | ~ | device 0.7x faster than the host |
+| `MeshTape/tape/firstHit/double/hostdevice` | 41.0 ms | 40.9 ms | -0.4% | [-0.5%, -0.3%] | - | ~ | device 0.9x faster than the host; mesh/tape 0.69x |
+| `MeshTape/tape/firstCrossing/double/hostdevice` | 28.8 ms | 28.8 ms | -0.3% | [-0.8%, +0.2%] | - | ~ | device 0.8x faster than the host; mesh/tape 0.99x |
+| `MeshTape/tape/frame/double/hostdevice` | 31.3 ms | 31.4 ms | +0.3% | [+0.2%, +0.5%] | - | ~ | device 0.7x faster than the host; mesh/tape 0.77x |
+| `MeshTape/view/firstHit/double/hostdevice` | 41.0 ms | 41.1 ms | +0.2% | [-0.2%, +0.7%] | - | ~ | device 0.9x faster than the host; mesh/view 0.69x |
+| `MeshTape/view/frame/double/hostdevice` | 34.3 ms | 34.4 ms | +0.4% | [-1.0%, +1.8%] | - | ~ | device 0.7x faster than the host; mesh/view 0.71x |
+| `Regions/particles/region/float/hostdevice` | 2.77 ms | 2.76 ms | -0.4% | [-0.7%, -0.0%] | - | ~ | device 2.7x faster than the host |
+| `Regions/particles/regionDistances/float/hostdevice` | 3.78 ms | 3.76 ms | -0.4% | [-0.8%, +0.0%] | - | ~ | device 3.4x faster than the host |
+| `Regions/particles/regionByRegion/float/hostdevice` | 89.6 ms | 89.4 ms | -0.2% | [-1.3%, +0.8%] | - | ~ | device 3.3x faster than the host (was 4.0x); one-pass/each 0.04x |
+| `Regions/particles/domainLabels/float/hostdevice` | 3.70 ms | 3.71 ms | +0.4% | [+0.2%, +0.5%] | - | ~ | device 3.6x faster than the host |
+| `Regions/assembly/firstRegionChange/float/hostdevice` | 6.70 ms | 6.70 ms | +0.0% | [-0.3%, +0.3%] | - | ~ | device 3.7x faster than the host |
+| `Regions/assembly/firstHit/float/hostdevice` | 5.55 ms | 5.54 ms | -0.2% | [-0.3%, -0.1%] | - | ~ | device 3.2x faster than the host; regions/hit 1.21x |
+| `Regions/particles/region/double/hostdevice` | 3.35 ms | 3.34 ms | -0.3% | [-0.8%, +0.3%] | - | ~ | device 2.3x faster than the host |
+| `Regions/particles/regionDistances/double/hostdevice` | 5.91 ms | 5.87 ms | -0.7% | [-1.7%, +0.2%] | - | ~ | device 2.2x faster than the host |
+| `Regions/particles/regionByRegion/double/hostdevice` | 135 ms | 134 ms | -0.5% | [-1.2%, +0.2%] | - | ~ | device 2.2x faster than the host (was 2.5x); one-pass/each 0.04x |
+| `Regions/particles/domainLabels/double/hostdevice` | 5.90 ms | 5.92 ms | +0.5% | [+0.2%, +0.7%] | - | ~ | device 2.3x faster than the host |
+| `Regions/assembly/firstRegionChange/double/hostdevice` | 15.8 ms | 15.7 ms | -0.1% | [-0.4%, +0.2%] | - | ~ | device 1.6x faster than the host |
+| `Regions/assembly/firstHit/double/hostdevice` | 12.9 ms | 12.9 ms | +0.1% | [-0.1%, +0.4%] | - | ~ | device 1.4x faster than the host; regions/hit 1.22x |
+| `Render/csg/frame/float/hostdevice` | 2.37 ms | 2.37 ms | -0.0% | [-0.3%, +0.2%] | - | ~ | device 3.0x faster than the host |
+| `Render/csg/frame-orthographic/float/hostdevice` | 2.36 ms | 2.36 ms | -0.2% | [-0.3%, -0.0%] | - | ~ | device 3.0x faster than the host |
+| `Render/mesh/frame/float/hostdevice` | 2.14 ms | 2.14 ms | +0.3% | [-1.0%, +1.7%] | - | ~ | device 7.8x faster than the host |
+| `Render/csg/frame/double/hostdevice` | 5.61 ms | 5.61 ms | +0.0% | [-0.1%, +0.1%] | - | ~ | device 1.5x faster than the host |
+| `Render/csg/frame-orthographic/double/hostdevice` | 5.61 ms | 5.62 ms | +0.1% | [-0.1%, +0.2%] | - | ~ | device 1.4x faster than the host |
+| `Render/mesh/frame/double/hostdevice` | 24.5 ms | 24.4 ms | -0.4% | [-1.0%, +0.2%] | - | ~ | device 0.7x faster than the host |
+
+### Build costs: Probe builds (Release)
+
+Machine: 16 cores, 24 hardware threads, 63 GB. Compiled on hardware threads 0,2,4,6,8,10,12,14 (one per fast core), 2 at a time.
+
+Reported, not judged: these flags do not enter the verdict. CPU time of each compile (user and system, every process the compiler ran) and its peak memory; minor at 10% more, MAJOR at 25% (and at least 2 s or 100 MB). Total CPU 4554.8 s → 4634.3 s (+1.7%), the largest peak 6566 MB → 6569 MB; 0 unit(s) flagged.
+
+| unit | CPU base | CPU head | change | peak base | peak head | change | flag |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `BVH` | 11.8 s | 11.8 s | -0.1% | 605 MB | 609 MB | +0.7% | ~ |
+| `BVHRefit` | 6.1 s | 6.1 s | -0.0% | 509 MB | 511 MB | +0.4% | ~ |
+| `BVHUnion` | 22.2 s | 22.1 s | -0.1% | 1027 MB | 1032 MB | +0.4% | ~ |
+| `BVHUnionMixed` | 9.8 s | 9.8 s | +0.1% | 623 MB | 627 MB | +0.6% | ~ |
+| `ClosestPrimitive` | 101.2 s | 101.1 s | -0.1% | 1353 MB | 1357 MB | +0.3% | ~ |
+| `ClosestSurface` | 142.7 s | 142.6 s | -0.1% | 1843 MB | 1844 MB | +0.1% | ~ |
+| `Domain` | 47.2 s | 47.1 s | -0.0% | 991 MB | 995 MB | +0.4% | ~ |
+| `DomainObject` | 43.8 s | 43.7 s | -0.2% | 944 MB | 949 MB | +0.5% | ~ |
+| `EBGrid` | 17.2 s | 17.1 s | -0.1% | 753 MB | 757 MB | +0.5% | ~ |
+| `Fused` | 43.8 s | 43.7 s | -0.3% | 1163 MB | 1168 MB | +0.4% | ~ |
+| `LaunchTuning` | 410.2 s | 409.4 s | -0.2% | 3876 MB | 3876 MB | +0.0% | ~ |
+| `Mesh` | 18.0 s | 18.0 s | +0.2% | 810 MB | 814 MB | +0.5% | ~ |
+| `MeshCSG` | 321.6 s | 321.5 s | -0.0% | 6303 MB | 6303 MB | -0.0% | ~ |
+| `MeshClosestPoint` | 16.5 s | 16.4 s | -0.4% | 762 MB | 767 MB | +0.6% | ~ |
+| `MeshIngest` | 8.4 s | 8.5 s | +0.5% | 535 MB | 539 MB | +0.8% | ~ |
+| `MeshReconcile` | 8.3 s | 8.3 s | -0.2% | 512 MB | 517 MB | +0.8% | ~ |
+| `MeshTape` | 612.9 s | 612.8 s | -0.0% | 6566 MB | 6569 MB | +0.0% | ~ |
+| `PointCloud` | 10.2 s | 10.2 s | -0.2% | 564 MB | 569 MB | +0.8% | ~ |
+| `PointCloudBVHBuild` | 5.7 s | 5.7 s | -0.4% | 509 MB | 512 MB | +0.4% | ~ |
+| `PointCloudHashGridBuild` | 5.2 s | 5.2 s | -0.6% | 509 MB | 512 MB | +0.4% | ~ |
+| `QueryOrder` | 13.2 s | 13.2 s | -0.0% | 694 MB | 698 MB | +0.6% | ~ |
+| `Ray` | 147.5 s | 147.6 s | +0.1% | 3769 MB | 3770 MB | +0.0% | ~ |
+| `RayCSG` | 169.5 s | 169.7 s | +0.1% | 4155 MB | 4155 MB | +0.0% | ~ |
+| `RayCrossing` | 329.6 s | 330.9 s | +0.4% | 4116 MB | 4116 MB | +0.0% | ~ |
+| `RayParticles` | 601.7 s | 652.6 s | +8.5% | 5808 MB | 5808 MB | -0.0% | ~ |
+| `RayShell` | 322.9 s | 350.8 s | +8.7% | 5501 MB | 5501 MB | -0.0% | ~ |
+| `Regions` | 277.9 s | 278.6 s | +0.2% | 4139 MB | 4138 MB | -0.0% | ~ |
+| `Render` | 201.9 s | 202.5 s | +0.3% | 6082 MB | 6083 MB | +0.0% | ~ |
+| `Shapes` | 19.0 s | 20.1 s | +5.7% | 585 MB | 589 MB | +0.7% | ~ |
+| `SphereCloudBVH` | 6.9 s | 6.7 s | -2.8% | 510 MB | 512 MB | +0.4% | ~ |
+| `SphereCloudRays` | 143.2 s | 144.3 s | +0.7% | 4170 MB | 4169 MB | -0.0% | ~ |
+| `SphereContacts` | 6.7 s | 6.5 s | -3.1% | 509 MB | 511 MB | +0.4% | ~ |
+| `SurfaceParts` | 367.4 s | 365.6 s | -0.5% | 4416 MB | 4416 MB | -0.0% | ~ |
+| `Tape` | 49.5 s | 49.6 s | +0.2% | 978 MB | 982 MB | +0.4% | ~ |
+| `TapeBVHUnion` | 35.1 s | 34.4 s | -1.9% | 918 MB | 923 MB | +0.5% | ~ |
+| **all, in both** | 4554.8 s | 4634.3 s | +1.7% | 6566 MB | 6569 MB | +0.0% | ~ |
+
+Device kernels: 226 in both, 2 changed (0 flagged: registers changed, spills grew, or the stack grew by more than 10% and 256 bytes), 0 new, 0 gone. Spills are bytes stored/loaded per thread.
+
+| unit | kernel | registers | stack | spills | flag |
+|---|---|---:|---:|---:|---|
+| `MeshTape` | `void parallelForKernel<128u, 384u, Apply<Pixel<double, RegionView<Tape<double, TriMeshSDF<…` | 168 → 168 | 20400 → 20464 | 2788/2364 → 2788/2364 | ~ |
+| `MeshTape` | `void parallelForKernel<128u, 384u, Apply<Pixel<float, RegionView<Tape<float, TriMeshSDF<fl…` | 168 → 168 | 14704 → 14768 | 2896/2116 → 2896/2116 | ~ |
+
+
+These probes compiled to the same code on both sides and were not run (348 cases): BVH (12), BVHRefit (2), BVHUnion (12), BVHUnionMixed (4), ClosestPrimitive (6), ClosestSurface (8), EBGrid (12), Fused (10), LaunchTuning (24), Mesh (8), MeshClosestPoint (4), MeshReconcile (2), PointCloud (40), PointCloudBVHBuild (4), PointCloudHashGridBuild (4), QueryOrder (6), Ray (28), RayCSG (20), RayCrossing (32), RayParticles (20), RayShell (12), Shapes (20), SphereCloudBVH (8), SphereCloudRays (12), SphereContacts (2), SurfaceParts (12), Tape (20), TapeBVHUnion (4)
+
+<!-- END receipt cuda -->
