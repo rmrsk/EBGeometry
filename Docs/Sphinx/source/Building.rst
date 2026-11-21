@@ -330,8 +330,8 @@ one included, sees host code only. The only requirement is C++17. No other flag 
 ``--expt-relaxed-constexpr``, which the library's device code is written to avoid (see
 :ref:`Sec:WritingDeviceCode`). A callable passed to a query (a traversal's callbacks, a visitor, a function to sample) may
 be a host lambda when the query runs on the host; one used on a device must be callable there (a
-``__host__ __device__`` functor, or a lambda written inside device code), since nvcc does not flag a
-host-only callable that the library calls from device code.
+``__host__ __device__`` functor, or a lambda written inside device code): nvcc compiles a call to a
+host-only callable from device code to nothing, without an error.
 
 .. code-block:: bash
 

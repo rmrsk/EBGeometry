@@ -156,17 +156,24 @@
 #endif
 
 // ── Caller-supplied callables ─────────────────────────────────────────────────
-// A host-device template that calls a callable its caller passed (a traversal's leaf evaluator, a visitor,
-// a function to sample) is compiled for the device as well as the host. Under nvcc, a call from it to a
-// host function warns, even when only host code instantiates it: a host lambda's call operator is a
-// constexpr host function, and the warning (#20013) points at --expt-relaxed-constexpr, a flag the library
-// does not require. So the library makes every such call through CallableDetail::call(), the one function
-// nvcc's execution-space check is switched off for. The price is that nvcc no longer flags a host-only
-// callable reached from device code: such a call compiles to nothing, silently (checked with CUDA 12.5). A
-// callable used on a device must be host-device, as a lambda written inside device code is. The pragma is
-// nvcc's (clang in CUDA mode and HIP do not know it).
 #if defined(__NVCC__)
-/** @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only). */
+/**
+ * @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only).
+ * @details A host-device template that calls a callable its caller passed (a traversal's leaf evaluator, a
+ * visitor, a function to sample) is compiled for the device as well as the host. nvcc's device pass compiles it
+ * for every instantiation, including one only host code reaches, and cannot tell the two apart: a host lambda
+ * (whose call operator is a constexpr host function) passed from host code, and a host-only callable reached from
+ * a kernel, give the same warnings (#20011, #20013 pointing at --expt-relaxed-constexpr, #20014, #20015). Its host
+ * pass gives none. So the check cannot be limited to host-side entry points: switched off in the host pass only,
+ * every warning stays; in the device pass only, it is the same as in both.
+ *
+ * The library therefore makes every such call through CallableDetail::call(), the one function this pragma is on.
+ * It removes a warning and nothing else: a host-only callable called from device code compiles to nothing with or
+ * without it (the kernel's SASS is the same `MOV; EXIT` either way, CUDA 12.5, sm_86), so the warning was the only
+ * sign of that mistake, and it fired identically on legitimate host use. A callable used on a device must be
+ * host-device, as a lambda written inside device code is. Clang in CUDA mode and HIP do not know the pragma, so the
+ * macro is empty there.
+ */
 #define EBGEOMETRY_EXEC_CHECK_DISABLE _Pragma("nv_exec_check_disable")
 #else
 /** @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only). */
