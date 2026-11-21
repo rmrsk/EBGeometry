@@ -810,6 +810,30 @@ struct ShapeSite
 };
 
 /**
+ * @brief A node of the object that a shape value of the text makes: what a selector surfaces(name) names, and what a
+ * viewer writes a picked level by.
+ */
+struct NodeSite
+{
+  /**
+   * @brief The names of the shape values holding it, in the order defined; empty when no name does (a call written
+   * inside another).
+   */
+  std::vector<std::string> m_names;
+
+  /**
+   * @brief Where the call making it is written (the outermost, for a chain of calls making the same shapes); line 0 for
+   * none.
+   */
+  Span m_span;
+
+  /**
+   * @brief How many places of the object use it (a value used twice: 2).
+   */
+  uint32_t m_uses = 0;
+};
+
+/**
  * @brief A domain's own object: the regions of its subdomains and their neighbors, with the domain's setup and the
  * model's names translated to it (see Model::domainObject()).
  * @details What a solver of one domain, or a view of it alone, compiles instead of the whole object: Tape<T,
@@ -1063,6 +1087,22 @@ public:
   }
 
   /**
+   * @brief The shape value that makes a node of the object: its names, where its call is written, how many places of
+   * the object use it. A value covering the same shapes as the node is taken to make it (a translated box makes both the
+   * box's node and the translation's).
+   * @param[in] a_node The node (ExprIndex's numbering).
+   * @return The site, or nullptr for a node that no value of the text makes on its own.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const NodeSite*
+  siteOfNode(const uint32_t a_node) const noexcept
+  {
+    return (a_node < m_nodeSiteOf.size() && m_nodeSiteOf[a_node] != ShapeSite::None)
+             ? &m_nodeSites[m_nodeSiteOf[a_node]]
+             : nullptr;
+  }
+
+  /**
    * @brief The index among shapes() of the shape call a leaf comes from.
    * @param[in] a_leaf The leaf.
    * @return The index, or ShapeSite::None.
@@ -1209,6 +1249,16 @@ private:
    * @brief Each leaf's shape site, or ShapeSite::None.
    */
   std::vector<uint32_t> m_leafSites;
+
+  /**
+   * @brief The node sites.
+   */
+  std::vector<NodeSite> m_nodeSites;
+
+  /**
+   * @brief Each node's site, or ShapeSite::None.
+   */
+  std::vector<uint32_t> m_nodeSiteOf;
 
   /**
    * @brief The parsed files.

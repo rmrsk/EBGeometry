@@ -127,6 +127,9 @@ The keys
        picks what the panel's pick mode picks, and Ctrl + click adds to what is picked, or takes out again.
    * - Shift + wheel
      - Step through the surfaces under the cursor, front to back, seeing through those in front.
+   * - ]; [
+     - For a view of regions: step the last pick out to the level above it, or back in (also the two keys right
+       of P, for a keyboard that puts the brackets behind another key).
    * - T; Shift + T
      - See through the picked surface, or make it opaque again; make every surface opaque.
    * - C; W
@@ -180,7 +183,16 @@ cap, a box's face), or the region there, with all its surfaces.
 
 **What is picked.** Each picked part is listed with its surface, the regions on its two sides and its
 surface group, with an ``[x]`` to take it out, and is highlighted and outlined along its own edges.
-``[Pick nothing]`` clears the list. Buttons add what is picked to the current surface group, each saying how
+``[Pick nothing]`` clears the list.
+
+**Levels.** ``]`` steps the last pick out, one level at a time: from the part clicked to the whole surface,
+to the member of a collection (a sphere of a cloud) and the collection, to the shape, and through each
+composition holding it up to the whole object; ``[`` steps back in. Compositions covering the same surfaces
+(a translated union) are one level. The highlight follows, and the status line and the panel say the level:
+where it is among the levels, what it is (a union, a transform), its label, the name of the value that makes
+it in a model ``ebgstudio`` opened, and how many surfaces it holds. Ctrl and a click on a surface inside a
+picked level takes the level out; elsewhere it adds a pick, which ``]`` and ``[`` then step. The buttons add a
+level as they add a part, as every surface of it. Buttons add what is picked to the current surface group, each saying how
 many of the object's pieces it takes in: what is picked, the whole pieces with all their parts, all of their
 surfaces, all surfaces of their regions, or everything between their two regions; another removes them.
 

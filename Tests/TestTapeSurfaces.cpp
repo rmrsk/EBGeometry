@@ -4,7 +4,8 @@
 // Test suite for the surfaces of a shape (EBGeometry_SurfaceRef.hpp): closestSurface() of a sphere cloud, of BVH
 // unions of one type, of several and of containers, and of a tape, drilling into its container leaves and into a
 // nested tape; the members of a BVH union numbered in the order given; a tape's first surfaces and ExprIndex's
-// surface ranges; and copies. Device evaluation is in TestTapeSurfacesDevice.cpp.
+// surface ranges, the levels a surface belongs to and the selectors of a range; and copies. Device evaluation is in
+// TestTapeSurfacesDevice.cpp.
 
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
@@ -368,4 +369,127 @@ TEMPLATE_TEST_CASE("ExprIndex: rejects a surface or a leaf out of range", "[Expr
       (void)index.getFirstSurface(2);
     },
     "ExprIndex: leaf 2 of 1"));
+}
+
+TEMPLATE_TEST_CASE("SurfaceSelector and SurfaceInventory: every level of a surface is a range of surfaces, a node and "
+                   "all below it",
+                   "[SurfaceSelector][SurfaceInventory]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  const auto spheres = randomSpheres<T>(60, 5U);
+
+  Pool pool(hostMemoryResource());
+
+  const auto cloud = SphereCloudBVH<T>::build(pool, spheres, 4);
+  const auto box   = BoxSDF<T>(Vec3(T(-1), T(-1), T(-1)), Vec3(T(9), T(9), T(9)));
+  const auto lid   = SphereSDF<T>(Vec3(T(4), T(4), T(12)), T(2));
+
+  // Nodes: 0 the union, 1 the labeled translation, 2 the union below it, 3 the box, 4 the cloud, 5 the lid. Surfaces:
+  // the box 0, the spheres 1 to 60, the lid 61.
+  const Expr<T> expr = Union(SurfaceLabel(Translate(Union(box, cloud), Vec3(T(1), T(0), T(0))), "assembly"), lid);
+
+  const ExprIndex<T>     index(expr);
+  const SurfaceInventory inventory(index);
+
+  REQUIRE(index.getNumNodes() == 6U);
+  REQUIRE(inventory.getNumSurfaces() == 62U);
+
+  const SurfaceLabelId assembly = index.findSurfaceLabel("assembly");
+
+  // A sphere: itself (a member of the cloud), the cloud, the translated union (one level, the outermost node's, with
+  // its label), the whole object.
+  const std::vector<SurfaceLevel> sphere = inventory.levelsOf(5);
+
+  REQUIRE(sphere.size() == 4U);
+  CHECK(sphere[0].m_node == SurfaceLevel::None);
+  CHECK(sphere[0].m_firstSurface == 5U);
+  CHECK(sphere[0].m_numSurfaces == 1U);
+  CHECK(sphere[0].m_operation == "Member");
+  CHECK(sphere[1].m_node == 4U);
+  CHECK(sphere[1].m_firstSurface == 1U);
+  CHECK(sphere[1].m_numSurfaces == 60U);
+  CHECK(sphere[2].m_node == 1U);
+  CHECK(sphere[2].m_firstSurface == 0U);
+  CHECK(sphere[2].m_numSurfaces == 61U);
+  CHECK(sphere[2].m_label == assembly);
+  CHECK(sphere[2].m_operation == "Transform");
+  CHECK(sphere[3].m_node == 0U);
+  CHECK(sphere[3].m_numSurfaces == 62U);
+  CHECK(sphere[3].m_label.isNone());
+
+  // The box: its shape, then the same levels above; the lid: its shape and the object.
+  const std::vector<SurfaceLevel> wall = inventory.levelsOf(0);
+
+  REQUIRE(wall.size() == 3U);
+  CHECK(wall[0].m_node == 3U);
+  CHECK(wall[0].m_numSurfaces == 1U);
+  CHECK(wall[0].m_operation == "Primitive");
+  CHECK(wall[1].m_node == 1U);
+  CHECK(wall[2].m_node == 0U);
+
+  const std::vector<SurfaceLevel> top = inventory.levelsOf(61);
+
+  REQUIRE(top.size() == 2U);
+  CHECK(top[0].m_node == 5U);
+  CHECK(top[0].m_firstSurface == 61U);
+  CHECK(top[1].m_node == 0U);
+
+  CHECK(SurfaceInventory().levelsOf(0).empty());
+
+  // Each node's selector holds exactly the surfaces whose leaf is the node or below it, as the parents say.
+  const auto below = [&](const uint32_t a_surface, const uint32_t a_node) {
+    for (uint32_t n = index.getLeafNode(index.getLeafOfSurface(a_surface)); n != ExprIndex<T>::None;
+         n          = index.getNode(n).m_parent) {
+      if (n == a_node) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  for (uint32_t node = 0; node < index.getNumNodes(); node++) {
+    const auto&           n        = index.getNode(node);
+    const SurfaceSelector selector = SurfaceSelector::surfaces(n.m_firstSurface, n.m_numSurfaces);
+
+    for (uint32_t surface = 0; surface < index.getNumSurfaces(); surface++) {
+      SurfaceRef<T> ref;
+
+      ref.m_surface = surface;
+      ref.m_part    = 3;
+
+      CAPTURE(node, surface);
+      CHECK(selector.matches(ref) == below(surface, node));
+    }
+  }
+
+  // A range narrowed like a single surface: by part and by the regions on its sides; one surface by default.
+  SurfaceRef<T> ref;
+
+  ref.m_surface        = 7;
+  ref.m_part           = 0;
+  ref.m_ownerRegion    = 1;
+  ref.m_neighborRegion = 0;
+
+  CHECK(SurfaceSelector::surfaces(1, 60).withPart(0).matches(ref));
+  CHECK_FALSE(SurfaceSelector::surfaces(1, 60).withPart(1).matches(ref));
+  CHECK(SurfaceSelector::surfaces(7, 1).matches(ref));
+  CHECK_FALSE(SurfaceSelector::surfaces(8, 54).matches(ref));
+  CHECK_FALSE(SurfaceSelector::surfaces(1, 0).matches(ref));
+  CHECK(SurfaceSelector::surface(7).m_numSurfaces == 1U);
+  CHECK_FALSE(SurfaceSelector::surface(6).matches(ref));
+
+  SurfaceSelector between = SurfaceSelector::surfaces(0, 61);
+
+  between.m_regionA = 0;
+  between.m_regionB = 1;
+
+  CHECK(between.matches(ref));
+
+  between.m_regionB = 2;
+
+  CHECK_FALSE(between.matches(ref));
 }

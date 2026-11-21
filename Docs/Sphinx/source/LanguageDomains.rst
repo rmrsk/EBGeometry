@@ -80,6 +80,9 @@ properties of the condition on them. A selector says what a surface is, never wh
      - the surfaces labeled ``inlet``
    * - ``label("inlet", between = (water, solid))``
      - those of them between two regions
+   * - ``surfaces(frame)``
+     - every surface of the shape value ``frame`` (defined as ``frame = union(...)``), wherever the object uses
+       it, whatever labels the shapes in it have; ``between = (a, b)`` narrows it as for ``label``
    * - ``interface(water, solid)``
      - the surfaces between two regions, either way round
    * - ``region(water)``
@@ -90,7 +93,10 @@ properties of the condition on them. A selector says what a surface is, never wh
    * - ``remaining()``
      - every surface no other selector of the domain holds
 
-A region named in a selector may be a region group, standing for its regions. A group may list several
+A region named in a selector may be a region group, standing for its regions. ``surfaces()`` names a value,
+not a label: it selects a part of the model as a whole (an assembly, a set of bolts), where a label says what a
+surface is. A value used in several places selects all of them; a value the object does not use selects
+nothing, with a warning. A group may list several
 selectors, separated by commas: ``group slip = label("far"), label("ends")``.
 
 **Which group a surface is in.** A surface may be held by several selectors. It goes to the group of the

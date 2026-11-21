@@ -44,7 +44,7 @@ struct SurfaceSelector
   static constexpr uint32_t Any = 0xFFFFFFFFU;
 
   /**
-   * @brief The surface (SurfaceRef::m_surface), or Any.
+   * @brief The surface (SurfaceRef::m_surface), or the first of a range of them (see m_numSurfaces); or Any.
    */
   uint32_t m_surface = Any;
 
@@ -82,6 +82,11 @@ struct SurfaceSelector
    * @brief Whether the selector holds the remaining surfaces (rest()): surface groups try it after every other.
    */
   bool m_rest = false;
+
+  /**
+   * @brief How many surfaces from m_surface it holds (1: one surface); unused when m_surface is Any.
+   */
+  uint32_t m_numSurfaces = 1;
 
   /**
    * @brief The piece a surface point belongs to: its surface between the two regions on its sides, whatever the part
@@ -132,6 +137,25 @@ struct SurfaceSelector
     SurfaceSelector selector;
 
     selector.m_surface = a_surface;
+
+    return selector;
+  }
+
+  /**
+   * @brief Every point of a range of surfaces, whatever their parts, labels and sides: a node of an expression and all
+   * below it (ExprIndex::Node::m_firstSurface and m_numSurfaces), whatever labels the surfaces below it have.
+   * @param[in] a_first The first surface.
+   * @param[in] a_count How many.
+   * @return The selector.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  static inline SurfaceSelector
+  surfaces(const uint32_t a_first, const uint32_t a_count) noexcept
+  {
+    SurfaceSelector selector;
+
+    selector.m_surface     = a_first;
+    selector.m_numSurfaces = a_count;
 
     return selector;
   }
@@ -248,8 +272,10 @@ struct SurfaceSelector
         return (is(a_first, a_minus) && is(a_second, a_plus)) || (is(a_first, a_plus) && is(a_second, a_minus));
       };
 
-    return is(m_surface, a_surface.m_surface) && is(m_part, a_surface.m_part) &&
-           is(m_label, a_surface.m_surfaceLabel.value()) &&
+    // A range of surfaces: below its first, the difference wraps round to a large number.
+    const bool surface = m_surface == Any || a_surface.m_surface - m_surface < m_numSurfaces;
+
+    return surface && is(m_part, a_surface.m_part) && is(m_label, a_surface.m_surfaceLabel.value()) &&
            sides(m_regionA, m_regionB, a_surface.m_ownerRegion, a_surface.m_neighborRegion) &&
            sides(m_materialA, m_materialB, a_surface.m_ownerMaterial.value(), a_surface.m_neighborMaterial.value());
   }
