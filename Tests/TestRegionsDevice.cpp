@@ -116,7 +116,79 @@ struct RegionQuery
   }
 };
 
+// Device functor: the surface group of a surface between a region and the outside, from surface groups taken whole,
+// from a view rebuilt from their layout and location, and from default-constructed (empty) ones. A CUDA build compiles
+// each with warnings as errors.
+struct GroupAnswer
+{
+  uint32_t m_whole;
+  uint32_t m_rebuilt;
+  uint32_t m_empty;
+};
+
+template <class T>
+struct GroupQuery
+{
+  SurfaceGroups m_groups;
+
+  EBGEOMETRY_HOST_DEVICE
+  GroupAnswer
+  operator()(const uint32_t a_region) const noexcept
+  {
+    SurfaceRef<T> surface;
+
+    surface.m_ownerRegion    = a_region;
+    surface.m_neighborRegion = 0U;
+
+    const SurfaceGroups rebuilt(m_groups.layout(), m_groups.location());
+    const SurfaceGroups empty;
+
+    return GroupAnswer{
+      m_groups.surfaceGroupOf(surface), rebuilt.surfaceGroupOf(surface), empty.surfaceGroupOf(surface)};
+  }
+};
+
 } // namespace
+
+TEMPLATE_TEST_CASE("SurfaceGroups: the groups on a device, whole, rebuilt from a layout or empty, match the host",
+                   "[SurfaceGroups][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  // Region 2's surfaces in group 0, region 1's in group 1, the rest in group 2.
+  const SurfaceGroups groups(
+    pool, {SurfaceSelector::region(2), SurfaceSelector::region(1), SurfaceSelector::rest()}, {0U, 1U, 2U}, 3U);
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  const std::vector<uint32_t> regions{1U, 2U, 3U, 4U};
+
+  const auto onDevice = evaluateOnDevice<GroupAnswer>(GroupQuery<T>{groups.rebasedView(device)}, regions);
+  const auto onHost   = evaluateOnHost<GroupAnswer>(GroupQuery<T>{groups}, regions);
+
+  const uint32_t expected[4] = {1U, 0U, 2U, 2U};
+
+  for (size_t i = 0; i < regions.size(); i++) {
+    INFO("region " << regions[i]);
+
+    for (const GroupAnswer& a : {onDevice[i], onHost[i]}) {
+      CHECK(a.m_whole == expected[i]);
+      CHECK(a.m_rebuilt == expected[i]);
+      CHECK(a.m_empty == SurfaceGroups::None);
+    }
+  }
+}
 
 TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a domain taken whole by a kernel",
                    "[Overlay][Tape][gpu]",

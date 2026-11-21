@@ -212,7 +212,8 @@ GPU-CUDA
 ~~~~~~~~
 
 The same device compile with ``nvcc`` (CUDA 12.5), device examples included, optimized (Release), without
-assertions and without SIMD flags. It does not build the performance probes: the device receipt builds every
+assertions and without SIMD flags. The tests compile with nvcc's warnings as errors and without
+``--expt-relaxed-constexpr`` (see :ref:`Sec:WritingDeviceCode`). It does not build the performance probes: the device receipt builds every
 probe for the device on the pull request's final code, and building them here too would double the job's time. Full tier only. CUDA and HIP are separate jobs because they use different
 device compilers and install routes, and run side by side. Marked
 ``continue-on-error: true``, because its toolkit install is the least reliable step in the

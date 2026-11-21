@@ -90,3 +90,49 @@ TEMPLATE_TEST_CASE("Fused: device evaluation matches the host", "[Fused][gpu]", 
   requireSameResults(evaluateOnDevice<T>(Query<T, D>{drilled.rebasedView(device)}, points),
                      evaluateOnHost<T>(Query<T, D>{drilled}, points));
 }
+
+TEMPLATE_TEST_CASE("Fused: a sphere cloud operand is rebuilt from its layout on a device",
+                   "[Fused][SphereCloudBVH][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  const Shapes<T> s;
+
+  const std::vector<Vec3> points = probes<T>();
+
+  // A ball with grains cut out of it: the node rebuilds the cloud from its stored layout and the node's location at
+  // every evaluation (SphereCloudBVH's host-device (Layout, PoolLocation) constructor), which a CUDA build compiles
+  // with warnings as errors.
+  Pool pool(hostMemoryResource());
+
+  std::vector<Vec3> centers;
+  std::vector<T>    radii;
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      centers.emplace_back(T(0.4) * T(i) - T(0.6), T(0.4) * T(j) - T(0.6), T(0.1) * T(i + j) - T(0.3));
+      radii.push_back(T(0.1) + T(0.02) * T((i + 2 * j) % 3));
+    }
+  }
+
+  const SphereCloudBVH<T> cloud(pool, centers, radii);
+
+  const auto grained = Fused::Difference(s.ball, cloud);
+
+  using G = std::decay_t<decltype(grained)>;
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  requireSameResults(evaluateOnDevice<T>(Query<T, G>{grained.rebasedView(device)}, points),
+                     evaluateOnHost<T>(Query<T, G>{grained}, points));
+}

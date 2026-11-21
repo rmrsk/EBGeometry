@@ -397,11 +397,11 @@ visitArrays(const UnionArrays<P, Ps...>& a_arrays,
   if constexpr (sizeof...(Ps) == 0) {
     EBGEOMETRY_EXPECT(a_type == 0);
 
-    return a_f(fromStored<P>(a_arrays.m_head.at(a_location.base(), a_index), a_location));
+    return CallableDetail::call(a_f, fromStored<P>(a_arrays.m_head.at(a_location.base(), a_index), a_location));
   }
   else {
     if (a_type == 0) {
-      return a_f(fromStored<P>(a_arrays.m_head.at(a_location.base(), a_index), a_location));
+      return CallableDetail::call(a_f, fromStored<P>(a_arrays.m_head.at(a_location.base(), a_index), a_location));
     }
 
     return visitArrays(a_arrays.m_tail, a_type - 1, a_index, a_location, static_cast<F&&>(a_f));
