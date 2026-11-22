@@ -47,7 +47,8 @@ namespace EBGeometry::Render::ViewerDetail {
  *
  * A surface's key (closestLeaf(), for coloring and picking) is the one the view gives region k's surface at the point
  * moved back by k's offset (regionAt()). The offsets and the moved boxes are held in the object, so that it copies to a
- * device as it is (a kernel parameter of a few kilobytes), and the view's pool must outlive it, as the view's does.
+ * device as it is (a kernel parameter of a few kilobytes: with the render settings, beyond the 4 KB of CUDA before 12.1, as
+ * every render kernel's parameters already are), and the view's pool must outlive it, as the view's does.
  *
  * Its render kernels are its own: a renderer instantiates them only where an ExplodedView is drawn (the viewer of a
  * view of regions), and no other render's code changes.

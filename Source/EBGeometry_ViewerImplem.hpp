@@ -165,7 +165,8 @@ struct Hooks
 
   /**
    * @brief Each region's box, by region number (see regionBoxes()), for the exploded view of a view of regions; empty:
-   * the window finds them itself, on a grid, when the exploded view is first turned on.
+   * the window finds them itself, on a grid, when the exploded view is first turned on (a region thinner than a cell
+   * of that grid can then lose part of its surface in the exploded view).
    */
   std::vector<RegionNeighborhoodDetail::Box<T>> m_regionBoxes;
 
@@ -1990,7 +1991,9 @@ run(const S&                           a_shape,
   std::string explodeText;
 
   // Each region's box, once: from the program (the expression's own boxes), or found on a grid of the shape's box, a
-  // region's cells grown by one; a region no cell found (a thin one) gets an unbounded box, drawn where it is.
+  // region's cell centers grown by a cell and a half; a region no cell found (a thin one) gets an unbounded box, drawn
+  // where it is. A region found by only a few cells may reach past its grid box (a thin plate at a slant): its surface
+  // is then clipped in the exploded view; programs that have the expression give its boxes instead.
   const auto ensureBoxes = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       if (explodeBoxes != nullptr) {
@@ -2025,8 +2028,8 @@ run(const S&                           a_shape,
               const uint32_t r = shape.getTape().region(p);
 
               if (r < numRegions) {
-                boxes[r].m_lo   = min(boxes[r].m_lo, p - step);
-                boxes[r].m_hi   = max(boxes[r].m_hi, p + step);
+                boxes[r].m_lo   = min(boxes[r].m_lo, p - T(1.5) * step);
+                boxes[r].m_hi   = max(boxes[r].m_hi, p + T(1.5) * step);
                 boxes[r].m_some = true;
               }
             }
@@ -4803,12 +4806,10 @@ run(const S&                           a_shape,
         // scroll (y = 0) does neither.
         if (event.wheel.y != 0) {
           // Ctrl, Shift and the wheel, while exploded: the regions farther apart (rolled up) or closer, by 0.05 a step.
-          if ((SDL_GetModState() & KMOD_CTRL) != 0 && (SDL_GetModState() & KMOD_SHIFT) != 0) {
-            if (exploding()) {
-              setExplode(std::round((explode + T(0.05) * T(event.wheel.y)) * T(100)) / T(100));
+          if ((SDL_GetModState() & KMOD_CTRL) != 0 && (SDL_GetModState() & KMOD_SHIFT) != 0 && exploding()) {
+            setExplode(std::round((explode + T(0.05) * T(event.wheel.y)) * T(100)) / T(100));
 
-              changed = true;
-            }
+            changed = true;
 
             break;
           }
@@ -4851,21 +4852,27 @@ run(const S&                           a_shape,
             const T row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
 
             if (depthHits.empty()) {
-              depthHits  = Renderer<T>(frame).pickAll(shape, camera, column, row);
               depthIndex = 0;
 
               // Exploded, the surfaces as seen, each moved back to where its region is.
+              bool stepped = false;
+
               if constexpr (hasRegionVisibility<S>) {
                 if (exploding()) {
                   const ViewerDetail::ExplodedView<S> drawn(
                     shape.withSettings(frame.m_regions), *explodeBoxes, explode);
 
                   depthHits = Renderer<T>(frame).pickAll(drawn, camera, column, row);
+                  stepped   = true;
 
                   for (HitT<T>& h : depthHits) {
                     h = toReal(frame, h);
                   }
                 }
+              }
+
+              if (!stepped) {
+                depthHits = Renderer<T>(frame).pickAll(shape, camera, column, row);
               }
             }
             else if (event.wheel.y < 0 && depthIndex + 1 < depthHits.size()) {
@@ -5199,12 +5206,10 @@ run(const S&                           a_shape,
           const bool narrower = event.key.keysym.sym != SDLK_MINUS && event.key.keysym.sym != SDLK_KP_MINUS;
 
           // With Ctrl held, while exploded: the regions farther apart (plus) or closer, by 0.1, with Shift by 0.01.
-          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
-            if (exploding()) {
-              const T step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? T(0.01) : T(0.1);
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0 && exploding()) {
+            const T step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? T(0.01) : T(0.1);
 
-              setExplode(std::round((explode + (narrower ? step : -step)) * T(100)) / T(100));
-            }
+            setExplode(std::round((explode + (narrower ? step : -step)) * T(100)) / T(100));
 
             break;
           }
@@ -5843,15 +5848,19 @@ run(const S&                           a_shape,
           // The camera, the light and the picked surfaces, as the window opened with them (out of the slice view).
           leaveSlice();
 
-          camera                        = (a_hooks != nullptr && a_hooks->m_hasHome) ? a_hooks->m_home : a_camera;
-          settings.m_light              = a_settings.m_light;
-          settings.m_lightIntensity     = a_settings.m_lightIntensity;
-          settings.m_ambient            = a_settings.m_ambient;
-          settings.m_fillIntensity      = a_settings.m_fillIntensity;
-          settings.m_hidden             = a_settings.m_hidden;
-          settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
-          settings.m_peel               = a_settings.m_peel;
-          explode                       = T(0);
+          camera                     = (a_hooks != nullptr && a_hooks->m_hasHome) ? a_hooks->m_home : a_camera;
+          settings.m_light           = a_settings.m_light;
+          settings.m_lightIntensity  = a_settings.m_lightIntensity;
+          settings.m_ambient         = a_settings.m_ambient;
+          settings.m_fillIntensity   = a_settings.m_fillIntensity;
+          settings.m_hidden          = a_settings.m_hidden;
+          settings.m_volumePrimitive = a_settings.m_volumePrimitive;
+          settings.m_peel            = a_settings.m_peel;
+          explode                    = T(0);
+
+          if (typingExplode) {
+            finishTypingExplode(false);
+          }
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
           settings.m_highlightCount     = a_settings.m_highlightCount;
           picked                        = false;
