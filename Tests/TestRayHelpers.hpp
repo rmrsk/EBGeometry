@@ -256,6 +256,8 @@ struct ProbedBall
   T            m_hi;
   int*         m_count;
 
+  // Host-device, as a shape is, although only the host evaluates it (the count is in host memory).
+  EBGEOMETRY_HOST_DEVICE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept
   {
@@ -266,6 +268,7 @@ struct ProbedBall
     return m_sphere.signedDistance(a_point);
   }
 
+  EBGEOMETRY_HOST_DEVICE
   BoundingVolumes::AABBT<T>
   computeBoundingVolume() const noexcept
   {

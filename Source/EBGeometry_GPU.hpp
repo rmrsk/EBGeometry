@@ -155,4 +155,57 @@
 #define EBGEOMETRY_GRID_CONSTANT
 #endif
 
+// ── Caller-supplied callables ─────────────────────────────────────────────────
+#if defined(__NVCC__)
+/**
+ * @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only).
+ * @details A host-device template that calls a callable its caller passed (a traversal's leaf evaluator, a
+ * visitor, a function to sample) is compiled for the device as well as the host. nvcc's device pass compiles it
+ * for every instantiation, including one only host code reaches, and cannot tell the two apart: a host lambda
+ * (whose call operator is a constexpr host function) passed from host code, and a host-only callable reached from
+ * a kernel, give the same warnings (#20011, #20013 pointing at --expt-relaxed-constexpr, #20014, #20015). Its host
+ * pass gives none. So the check cannot be limited to host-side entry points: switched off in the host pass only,
+ * every warning stays; in the device pass only, it is the same as in both.
+ *
+ * The library therefore makes every such call through CallableDetail::call(), the one function this pragma is on.
+ * It removes a warning and nothing else: a host-only callable called from device code compiles to nothing with or
+ * without it (the kernel's SASS is the same `MOV; EXIT` either way, CUDA 12.5, sm_86), so the warning was the only
+ * sign of that mistake, and it fired identically on legitimate host use. A callable used on a device must be
+ * host-device, as a lambda written inside device code is. Clang in CUDA mode and HIP do not know the pragma, so the
+ * macro is empty there.
+ */
+#define EBGEOMETRY_EXEC_CHECK_DISABLE _Pragma("nv_exec_check_disable")
+#else
+/** @brief Switch off nvcc's host/device call check for the function template that follows (nvcc only). */
+#define EBGEOMETRY_EXEC_CHECK_DISABLE
+#endif
+
+namespace EBGeometry {
+namespace CallableDetail {
+
+/**
+ * @brief Call a caller-supplied callable from host-device code.
+ * @details Forwards to a_f(a_args...). Every library host-device template that calls a callable its caller passed
+ * calls it through here, so that a host callable (a lambda) used from host code does not make nvcc warn (see
+ * EBGEOMETRY_EXEC_CHECK_DISABLE). It adds nothing to the generated code: the compilers inline it. It is not forced
+ * inline on the host: EBGEOMETRY_HOST_ALWAYS_INLINE here changed GCC's inlining of the double tape's primitive
+ * dispatch (Performance/Tape and ClosestPrimitive, nm -C -S), while plain inline left every function as it was.
+ * @tparam F Callable.
+ * @tparam Args Arguments.
+ * @param[in] a_f    The callable.
+ * @param[in] a_args The arguments.
+ * @return What a_f returns.
+ */
+EBGEOMETRY_EXEC_CHECK_DISABLE
+template <class F, class... Args>
+EBGEOMETRY_HOST_DEVICE
+inline decltype(auto)
+call(F&& a_f, Args&&... a_args)
+{
+  return static_cast<F&&>(a_f)(static_cast<Args&&>(a_args)...);
+}
+
+} // namespace CallableDetail
+} // namespace EBGeometry
+
 #endif // EBGEOMETRY_GPU_HPP

@@ -46,7 +46,11 @@ function(ebgeometry_add_test name)
     # shared_ptr/Vec3T template code that only surface at -O2/-O3 (Release);
     # Clang does not warn on the same code at the same optimization level. Not an
     # issue at -O0 (Debug), so only suppressed for Release-type configs.
-    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:-Wno-null-dereference>)
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CONFIG:Release>>:-Wno-null-dereference>
+    # A test compiled as CUDA fails on any nvcc warning, so that a device path needing a flag the library does
+    # not require of its users (a constexpr host function called from host-device code, which nvcc allows only
+    # with --expt-relaxed-constexpr) breaks the build instead of passing with a warning.
+    $<$<COMPILE_LANGUAGE:CUDA>:SHELL:-Werror all-warnings>)
   # Expose the test-data directory as a compile-time string so tests can load files.
   target_compile_definitions(${name} PRIVATE
     EBGEOMETRY_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"

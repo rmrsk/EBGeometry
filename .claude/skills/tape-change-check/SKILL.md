@@ -53,10 +53,11 @@ a `TapeFeature` (a plain `Tape<float>` must be unchanged; the feature's tape may
 
 Build the `Tape` and `ClosestPrimitive` probes (`PerfTape`, `PerfClosestPrimitive`) of both sides as the
 comparison does (`cmake --preset perf` in each exported tree, then `cmake --build --preset perf --target PerfTape
-PerfClosestPrimitive`), and diff:
+PerfClosestPrimitive`; the binaries are `build/perf/Performance/bin/Tape.ex` and `ClosestPrimitive.ex`), and diff
+each:
 
 ```bash
-nm -C -S --size-sort <side>/build/perf/Performance/PerfTape | grep -E "Tape<|CSGOps" > <side>.nm
+nm -C -S --size-sort <side>/build/perf/Performance/bin/Tape.ex | grep -E "Tape<|CSGOps" > <side>.nm
 diff base.nm head.nm
 ```
 
@@ -90,7 +91,7 @@ The receipt does not measure compile time. Time a Debug CUDA proxy (four kernels
 ```
 
 A large jump means a new distance or loop is being inlined into every call level of every tape kernel. Bisect by
-trimming the type list. The real build to confirm against is a Debug CUDA `TestRay`.
+trimming the type list. The real build to confirm against is a Debug CUDA `TestRayCSG` (the ray tests' tape kernels).
 
 ## 4. When a check moved
 

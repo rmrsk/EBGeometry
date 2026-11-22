@@ -599,7 +599,14 @@ with explicit permission), and may ask whether to act on follow-ups.
   `EBGEOMETRY_HOST_DEVICE` function, call no `std::` function except device math (`std::sqrt`,
   `std::abs`, `std::isfinite`, ...). nvcc rejects the others without `--expt-relaxed-constexpr`, which
   users are not required to pass, and HIP accepts them, so only `Scripts/CheckDeviceMath.py` (a
-  pre-commit hook and CI step) and the advisory CUDA lane catch a violation.
+  pre-commit hook and CI step) and the advisory CUDA lane catch a violation. A struct with default
+  member initializers and no declared constructor gets an implicit default constructor that nvcc makes a
+  constexpr host function, so a device-visible one (`PoolLocation`, `PODVector`) declares
+  `EBGEOMETRY_HOST_DEVICE constexpr Name() noexcept {}` (not `= default`: nvcc ignores the annotation on a
+  function defaulted where it is declared); the CUDA tests build with `-Werror all-warnings` to catch any
+  such call. A host-device template calls a caller-supplied callable (a traversal callback, a visitor, a
+  function to sample) only through `CallableDetail::call()` (`EBGeometry_GPU.hpp`), the one function nvcc's
+  execution-space check is off for, so that a host lambda passed from host code does not warn.
 - **Default K and W are 4, with one build-level exception.** `BVH::DefaultBranchingRatio<T>()`,
   `TriangleSoA::DefaultWidth<T>()` and `PointSoA::DefaultWidth<T>()` never read ISA macros, so a type
   spelled with them is identical in every translation unit and GPU compile pass. The exception is

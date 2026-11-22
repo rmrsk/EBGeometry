@@ -986,7 +986,7 @@ inline auto
 BVHUnion<T, K, Ps...>::visitAt(const Leaf& a_leaf, const PoolLocation& a_location, F&& a_f) const noexcept
 {
   if constexpr (sizeof...(Ps) == 1) {
-    return a_f(CSGDetail::fromStored<First>(a_leaf, a_location));
+    return CallableDetail::call(a_f, CSGDetail::fromStored<First>(a_leaf, a_location));
   }
   else {
     return CSGDetail::visitArrays(this->m_arrays, a_leaf.m_type, a_leaf.m_index, a_location, static_cast<F&&>(a_f));
@@ -1306,7 +1306,7 @@ inline auto
 BVHSmoothUnion<T, K, Blend, Ps...>::visitAt(const Leaf& a_leaf, const PoolLocation& a_location, F&& a_f) const noexcept
 {
   if constexpr (sizeof...(Ps) == 1) {
-    return a_f(CSGDetail::fromStored<First>(a_leaf, a_location));
+    return CallableDetail::call(a_f, CSGDetail::fromStored<First>(a_leaf, a_location));
   }
   else {
     return CSGDetail::visitArrays(this->m_arrays, a_leaf.m_type, a_leaf.m_index, a_location, static_cast<F&&>(a_f));

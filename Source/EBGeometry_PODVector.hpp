@@ -143,6 +143,16 @@ struct PODVector
   uint32_t m_capacity = 0;
 
   /**
+   * @brief An empty array, reserved from no pool.
+   * @details Declared for device code, as PoolLocation's default constructor is (see there): the implicit
+   * one would be a constexpr host function, which a host-device caller may not call without
+   * --expt-relaxed-constexpr.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  constexpr PODVector() noexcept
+  {}
+
+  /**
    * @brief Reserve @p a_capacity slots from @p a_pool, aligned to @c alignof(T).
    * @details Sets @c m_offset and @c m_capacity and resets @c m_size to zero. A host build-phase
    *          operation.

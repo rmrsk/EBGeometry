@@ -2068,7 +2068,7 @@ Tape<T, UserPrimitives...>::dispatchVisit(const LeafRef<T>& a_ref, F&& a_f) cons
     if (a_ref.m_type == I) {
       using P = typename TapeDetail::TypeAt<I, Primitives>::type;
 
-      a_f(this->template primitive<P>(a_ref));
+      CallableDetail::call(a_f, this->template primitive<P>(a_ref));
 
       return;
     }
@@ -3624,8 +3624,8 @@ Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_v
   if (n == 0U) {
     const T whole = this->wholeValue(a_point);
 
-    a_visit(1U, whole);
-    a_visit(0U, -whole);
+    CallableDetail::call(a_visit, 1U, whole);
+    CallableDetail::call(a_visit, 0U, -whole);
 
     return;
   }
@@ -3647,18 +3647,18 @@ Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_v
       const T masked   = this->regionSolid(k, 0U, a_point);
       const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
 
-      a_visit(k, Math::max(masked, -later));
+      CallableDetail::call(a_visit, k, Math::max(masked, -later));
 
       later = Math::min(later, unmasked);
     }
   }
   else {
     for (uint32_t k = n; k > 0U; k--) {
-      a_visit(k, this->signedDistance(a_point, k));
+      CallableDetail::call(a_visit, k, this->signedDistance(a_point, k));
     }
   }
 
-  a_visit(0U, -this->wholeValue(a_point));
+  CallableDetail::call(a_visit, 0U, -this->wholeValue(a_point));
 }
 
 template <class T, class... UserPrimitives>

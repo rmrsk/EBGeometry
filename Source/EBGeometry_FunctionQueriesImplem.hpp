@@ -63,7 +63,7 @@ evaluate(const F& a_function, const Vec3T<T>& a_point) noexcept
     return static_cast<T>(a_function.signedDistance(a_point));
   }
   else {
-    return static_cast<T>(a_function(a_point));
+    return static_cast<T>(CallableDetail::call(a_function, a_point));
   }
 }
 
