@@ -88,10 +88,11 @@ crossing(const Source&                     a_triangle,
   // plane. Each test is multiplied through by a lower bound on twice the area (the largest component of
   // e1 x e2), so that it needs no square root or division, and carries the length of its own edge in the L1
   // norm: u is zero on the edge along e2, v on the edge along e1, and 1 - u - v on the edge along e2 - e1.
-  // Both bounds only widen a test a little more (at most a factor 3 together). One length for all three
-  // tests (bounding every edge by the longest) would widen the test across a short edge by the triangle's
-  // aspect ratio: on a sliver, rays passing far outside its short edge would cross it. A zero det (a ray in
-  // the plane) makes u, v and t infinite or NaN, which every test below rejects.
+  // Both bounds only widen a test a little more: an edge's L1 length is at most sqrt(3) times its length,
+  // and the largest component of e1 x e2 at least 1/sqrt(3) times its length, so a factor 3 at most. One
+  // length for all three tests (bounding every edge by the longest) would widen the test across a short edge
+  // by the triangle's aspect ratio: on a sliver, rays passing far outside its short edge would cross it. A
+  // zero det (a ray in the plane) makes u, v and t infinite or NaN, which every test below rejects.
   const Vec3V<V> n     = cross(e1, e2);
   const V        nx    = abs(n.x);
   const V        ny    = abs(n.y);
