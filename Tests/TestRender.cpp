@@ -1863,6 +1863,44 @@ TEMPLATE_TEST_CASE("Render: the near clip hides what is nearer than it", "[Rende
   CHECK(beyond.m_hits == 0U);
 }
 
+TEMPLATE_TEST_CASE("Render: the viewer's near clip steps by a fraction of the camera distance, never below 0",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  // Steps of 0.05 of a distance of 4: 0.2 each.
+  const T distance = T(4);
+  const T fraction = T(0.05);
+
+  T nearClip = T(0);
+
+  for (int i = 0; i < 7; i++) {
+    nearClip = Render::ViewerDetail::steppedNearClip(nearClip, distance, fraction, 1);
+  }
+
+  CHECK_THAT(nearClip, withinAbsT<T>(T(1.4), tightMargin<T>()));
+
+  // Back by as many steps: exactly 0, whatever the rounding left.
+  for (int i = 0; i < 7; i++) {
+    nearClip = Render::ViewerDetail::steppedNearClip(nearClip, distance, fraction, -1);
+  }
+
+  CHECK(nearClip == T(0));
+
+  // Never below 0, however far back it is stepped.
+  CHECK(Render::ViewerDetail::steppedNearClip(T(0), distance, fraction, -1) == T(0));
+  CHECK(Render::ViewerDetail::steppedNearClip(T(0.1), distance, fraction, -3) == T(0));
+
+  // Several steps at once (a wheel's), and a step that follows the distance (after zooming in to 2).
+  CHECK_THAT(Render::ViewerDetail::steppedNearClip(T(0), distance, T(0.02), 3),
+             withinAbsT<T>(T(0.24), tightMargin<T>()));
+  CHECK_THAT(Render::ViewerDetail::steppedNearClip(T(0.5), T(2), fraction, 1), withinAbsT<T>(T(0.6), tightMargin<T>()));
+
+  // Within a thousandth of a step of 0 is 0: no sliver of a clip is left by a step taken at another zoom.
+  CHECK(Render::ViewerDetail::steppedNearClip(T(0.2) + T(1e-5), distance, fraction, -1) == T(0));
+}
+
 TEMPLATE_TEST_CASE("Render: the camera fits a box from a named view, straight along the up axis too",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)

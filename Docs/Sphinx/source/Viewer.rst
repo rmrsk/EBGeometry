@@ -47,6 +47,11 @@ To look inside:
   Shift + T makes every surface opaque again. Shift and the wheel step through the surfaces under the cursor,
   front to back, seeing through those in front of the one stepped to. Y peels the whole frame a layer at a time: every
   ray shows its next surface, and Shift + Y goes back.
+* **Near clip.** Home pushes the camera's near clip away from the eye, so that whatever is nearer than it is not seen
+  (nor picked), End brings it back, and Ctrl + Home takes it away; the camera and what it looks at stay put, so the
+  camera orbits around the same point as before. Each step is a twentieth of the camera's distance to its target (with
+  Shift, a hundredth), and Alt and the wheel step it too. It works with the section plane, the peeling, the
+  see-through surfaces and the exploded view; the slice view shows the plane without it, and gives it back on leaving.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
   keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut
   (or through the side N draws, or makes it opaque), and Page Up, Page Down and Ctrl + wheel move it. I draws lines
@@ -84,6 +89,11 @@ The keys
        camera, the light and the picked surfaces.
    * - +, -; double-click
      - A narrower or wider field of view; center the camera on the point under the cursor.
+   * - Home, End; Shift + Home, End; Alt + wheel; Ctrl + Home, End
+     - The near clip: push it away from the eye, or bring it back, by a twentieth of the camera's distance to its
+       target a step; the same by a hundredth; by a fiftieth a wheel step (rolled up pushes it away, as the wheel
+       zooms in); take it away. The camera menu shows it while it is on. R puts back the near clip the window opened
+       with.
    * - Right drag; right click
      - Move the light; probe the point under the cursor (on a surface, or on the section plane in front of it):
        its position and the shape's value there, and for a view of regions the region it is in, the active
