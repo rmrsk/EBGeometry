@@ -668,6 +668,12 @@ struct Settings
   T m_sectionFill = T(1);
 
   /**
+   * @brief Whether the fill (m_sectionFill) also covers the plane outside the shape, within its box (a view of regions:
+   * outside its visible regions, where the regions hidden lie); false fills only the cut, as a CAD section does.
+   */
+  bool m_sectionFillOutside = true;
+
+  /**
    * @brief The fill's color where a shape marks the field secondary (where a view of regions' domain or subdomain does
    * not compute): not computed, whatever the material.
    */
@@ -711,6 +717,16 @@ struct Settings
    * occlusion either. The solid's inside is the whole shape's. NoPrimitive marks an unused entry.
    */
   Array<uint32_t, HiddenPrimitives> m_hidden = noneHidden();
+
+  /**
+   * @brief How many surfaces each camera ray passes before the one it shows, peeling the frame layer by layer (0: the
+   * first, below Renderer::MaxCrossings). Every crossing counts, entering or leaving, a cut face too; a surface seen
+   * through (m_hidden) does not. The surface shown is shaded as one seen from outside, and what lies in front of it is
+   * left out (the section plane's drawing too); where a ray meets fewer surfaces, the floor or the backdrop shows. In
+   * the x-ray view, the surfaces peeled do not glow; the depth view and a pick see the surface shown. Shadows and
+   * ambient occlusion are the whole shape's.
+   */
+  uint32_t m_peel = 0;
 
   /**
    * @brief A part (see HitT::m_primitive) whose inside is filled with m_volumeColor wherever it lies along a
@@ -1303,7 +1319,7 @@ private:
 
   /**
    * @brief Whether the settings need more than the shaded view's functor (PixelQuery): another view, a hidden
-   * primitive or a filled part.
+   * primitive, a filled part or peeled surfaces.
    * @return True if so.
    */
   [[nodiscard]] inline bool

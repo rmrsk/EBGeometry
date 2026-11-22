@@ -55,7 +55,8 @@ commands:
   params  MODEL [--json]                           the params, with their values and where they are written
   render  MODEL -o FILE [--size W H]               one frame, as the viewer opens, written as a PPM image (on
                                                    the GPU in a GPU build)
-  view    MODEL                                    the viewer (as ebgstudio MODEL)
+  view    MODEL [--explode F]                      the viewer (as ebgstudio MODEL); --explode opens it with
+                                                   the regions moved apart by F (Ctrl + E in the window)
 
 options of every command:
   -D NAME=VALUE                                    a value for a param, written as in a file
@@ -76,6 +77,7 @@ struct Options
   double                   m_components = 0.0;
   uint32_t                 m_width      = 960;
   uint32_t                 m_height     = 960;
+  double                   m_explode    = 0.0;
 };
 
 // Stop with a message and the usage.
@@ -159,6 +161,21 @@ parseArguments(const int a_argc, char** a_argv)
     }
     else if (arg == "-o") {
       options.m_output = value();
+    }
+    else if (arg == "--explode") {
+      const std::string text = value();
+
+      try {
+        std::size_t used = 0;
+
+        options.m_explode = std::stod(text, &used);
+
+        if (used != text.size() || !(options.m_explode >= 0.0 && options.m_explode <= 10.0)) {
+          throw std::invalid_argument(text);
+        }
+      } catch (const std::exception&) {
+        fail("--explode takes a factor from 0 to 10; got '" + text + "'");
+      }
     }
     else if (arg == "--size") {
       const auto size = [&](const std::string& a_text) {
@@ -939,6 +956,9 @@ view(const Options& a_options)
     return (site != nullptr && !site->m_names.empty()) ? site->m_names.front() : std::string();
   };
 
+  // The exploded view (Ctrl + E) opens with the factor given, and moves the regions by the model's own boxes.
+  hooks.m_explode = T(a_options.m_explode);
+
   // C prints the view as a view block too, to paste into the model.
   hooks.m_viewText = [&current](const Render::Camera<T>& a_camera, const Render::Settings<T>& a_settings) {
     return "ebgstudio: the current view, as the model's view block:\n" +
@@ -1021,6 +1041,8 @@ view(const Options& a_options)
   char* argv[] = {name, nullptr};
 
   while (true) {
+    hooks.m_regionBoxes = Render::ViewerDetail::regionBoxes(current->m_model->object());
+
     Render::ViewerDetail::startInPool(
       *current->m_regions, *current->m_pool, camera, settings, 1, argv, &current->m_names, &hooks, &current->m_domains);
 

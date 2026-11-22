@@ -573,6 +573,10 @@ Test coverage
      - Device renders of a tape against the host's: shaded, with an orthographic camera, a near clip
        and colors set, in the depth and x-ray views and with a hidden primitive; the cost view; and a
        canceled device render skipping its pixels' work. Of a view of regions: cut, filled and translucent.
+   * - ``TestExplodedView``
+     - The viewer's exploded view of regions: its value against the closed form of two moved balls, the region
+       and the point moved back, a nested region moved out leaving its bore, a hidden region not drawn, the regions'
+       boxes from the expression, and a device render against the host's.
    * - ``TestFunctionQueries``
      - ``approximateBoundingVolumeOctree`` against an independent recursive subdivision of
        a sphere, a box and a torus, the bound tightening with depth, the maximal-box fallback for an

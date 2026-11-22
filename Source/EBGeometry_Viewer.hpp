@@ -30,6 +30,7 @@
 #include <vector>
 
 // Our includes
+#include "EBGeometry_ExplodedView.hpp"
 #include "EBGeometry_Expr.hpp"
 #include "EBGeometry_RegionNames.hpp"
 #include "EBGeometry_RegionView.hpp"

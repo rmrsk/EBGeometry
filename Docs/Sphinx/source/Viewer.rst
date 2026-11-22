@@ -45,13 +45,22 @@ To look inside:
 
 * **See through.** T makes the picked surface see-through, so that what is behind or inside it can be picked;
   Shift + T makes every surface opaque again. Shift and the wheel step through the surfaces under the cursor,
-  front to back, seeing through those in front of the one stepped to.
+  front to back, seeing through those in front of the one stepped to. Y peels the whole frame a layer at a time: every
+  ray shows its next surface, and Shift + Y goes back.
 * **Section plane.** X cuts the shape with a plane across x, then y, then z; Ctrl + X removes the cut, N
   keeps the other side, ghosts each side and shows both sides solid in turn, Shift + X sees through the cut
-  (or through the side N draws, or makes it opaque), and the arrow keys and Ctrl + wheel move it. I draws lines
-  of equal distance on the plane, spaced to the view.
-* **Slice view.** Z lays the section plane flat on screen, seen square from the removed side; the wheel then
-  moves the plane through the object.
+  (or through the side N draws, or makes it opaque), and Page Up, Page Down and Ctrl + wheel move it. I draws lines
+  of equal distance on the plane, spaced to the view. Ctrl + N shows a clean cutaway: only the opaque cut face,
+  filled by what it cuts.
+* **Slice view.** Z shows only the section plane, flat on screen and seen square from the removed side, like a CT
+  scan: opaque everywhere in the shape's box, a view of regions filled by material, with the contours, so that nothing
+  behind it shows. The wheel or Up and Down move the plane through the object (Shift + Up, Down in fine steps), and a
+  drag (or a middle drag) pans.
+* **Exploded view.** For a view of regions, Ctrl + E moves the regions apart from the middle, as in an assembly
+  drawing, each by the distance of its box's center from the middle times a factor (0.5 at first), so that nested and
+  touching parts are seen apart. Ctrl + Shift + wheel, or Ctrl + + and Ctrl + -, set the factor, which the status line
+  shows and the panel can type. The regions are still picked and grouped as they are where they belong. Its frames
+  are marched, so slower than the regions' own.
 * **Other views.** M cycles the views: shaded, x-ray, and the costs of finding hits and of finding crossings
   (see :ref:`Chap:Rendering`).
 
@@ -66,8 +75,10 @@ The keys
 
    * - Key
      - Action
-   * - Drag, Ctrl + drag, wheel
-     - Orbit the camera, pan it, zoom.
+   * - Drag; middle drag, Ctrl + drag; wheel
+     - Orbit the camera; pan it (a drag with the wheel pressed, or with Ctrl held on a touchpad); zoom. The wheel zooms towards the point under the cursor: the eye and the target
+       move towards it together, so that it stays under the cursor and the camera then orbits and pans around
+       what is looked at. Over the background, the wheel zooms towards the target.
    * - 1, 2, 3; O; R
      - Look from the front, the side, the top; switch between perspective and orthographic; reset the
        camera, the light and the picked surfaces.
@@ -107,15 +118,22 @@ The keys
        in front of it), then both sides solid (the plane shows outside the shape only), five in turn. While N
        draws the other side, Shift + X makes it opaque where it is ghosted and ghosted where it is solid, until the
        next N.
+   * - Ctrl + N
+     - A clean cutaway, as a CAD section shows it: the section plane on (across x, if there was none), the other
+       side left out, and on the plane only the opaque cut face, filled by what it cuts (for a view of regions,
+       the material of each region, and nothing outside the visible regions), with its contour: no sheet, no lines
+       of equal distance. Ctrl + N again goes
+       back to the settings before it.
    * - Ctrl + wheel; Page Up, Page Down
      - Move the section plane in fine steps; in coarse ones.
    * - U
      - The axis planes through the origin, drawn over the image: all three, the one facing the camera most, or
        none.
    * - Z
-     - The slice view: the section plane flat on screen, seen square from the removed side, without the floor
-       and shadows. The wheel moves the plane, a drag pans, + and - zoom, and X and N turn the view with the
-       plane. Z again or Ctrl + X leave it with the camera as it was; O leaves it with that camera in
+     - The slice view: only the section plane, flat on screen, seen square from the removed side, without the floor
+       and shadows, and opaque everywhere in the shape's box (a view of regions filled by material there), so that
+       nothing behind it shows. The wheel or Up and Down move the plane (Shift + Up, Down in fine steps), a drag pans,
+       + and - zoom, and X and N turn the view with the plane. Z again or Ctrl + X leave it with the camera as it was; O leaves it with that camera in
        perspective; R with the camera the window opened with.
    * - I
      - Lines of equal distance on the section plane: off, as the settings set them, then every 1/20, 1/50 or
@@ -130,6 +148,9 @@ The keys
    * - ]; [
      - For a view of regions: step the last pick out to the level above it, or back in (also the two keys right
        of P, for a keyboard that puts the brackets behind another key).
+   * - Y; Shift + Y
+     - Peel the whole frame: every ray shows its next surface (entering or leaving, a cut face too), with what lies
+       in front of it left out; Shift + Y goes back a layer. R peels nothing again.
    * - T; Shift + T
      - See through the picked surface, or make it opaque again; make every surface opaque.
    * - C; W
@@ -141,6 +162,11 @@ The keys
    * - V; Shift + V; Ctrl + V
      - For a view of regions: show one region at a time, in turn, then all; hide the picked region; show every
        region.
+   * - Ctrl + E; Ctrl + Shift + wheel; Ctrl + +, Ctrl + -
+     - For a view of regions: the exploded view on or off (at the last factor, 0.5 at first), each region moved away
+       from the middle by its box's distance from it times the factor; the factor larger or smaller, by 0.05 a wheel
+       step, by 0.1 a key (with Shift, 0.01). The panel's Explode button and its - and + do the same, and Type types
+       the factor; R turns it off.
    * - E; Shift + E
      - For a view of regions with domains, what the section plane shows, in turn: the whole active domain (each
        point its own subdomain's function, so that the zero line is every boundary and interface); each

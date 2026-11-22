@@ -164,6 +164,18 @@ struct Hooks
   std::function<std::string(const Camera<T>&, const Settings<T>&)> m_viewText;
 
   /**
+   * @brief Each region's box, by region number (see regionBoxes()), for the exploded view of a view of regions; empty:
+   * the window finds them itself, on a grid, when the exploded view is first turned on (a region thinner than a cell
+   * of that grid can then lose part of its surface in the exploded view).
+   */
+  std::vector<RegionNeighborhoodDetail::Box<T>> m_regionBoxes;
+
+  /**
+   * @brief The exploded view's factor the window opens with (0: not exploded).
+   */
+  T m_explode = T(0);
+
+  /**
    * @brief The window kept between calls (an SDL_Window), or null before the first.
    */
   void* m_window = nullptr;
@@ -274,8 +286,8 @@ keys(const bool a_device, const bool a_regions = false)
      "Camera",
      {{nullptr, "Camera"},
       {"Drag", "Orbit the camera"},
-      {"Ctrl + drag", "Pan the camera"},
-      {"Wheel", "Zoom"},
+      {"Middle drag, Ctrl + drag", "Pan the camera"},
+      {"Wheel", "Zoom towards the point under the cursor (over the background, towards the center)"},
       {"Double-click", "Center the camera on the point under the cursor"},
       {"1, 2, 3", "Look from the front, the side, the top"},
       {"O", "Switch between perspective and orthographic"},
@@ -308,14 +320,17 @@ keys(const bool a_device, const bool a_regions = false)
        "See through the cut face and the plane, or make them opaque; with the other side drawn (N), "
        "make it opaque or ghosted"},
       {"N", "Keep the other side; each side with the other ghosted; both sides solid (five in turn)"},
+      {"Ctrl + N",
+       "Clean cutaway: an opaque cut face filled by what it cuts, no sheet or lines; Ctrl + N again goes back"},
       {"Page Up, Page Down", "Move the plane in coarse steps"},
-      {"Z", "Slice view: the plane flat on screen (wheel moves it, drag pans); Z again leaves"},
+      {"Z", "Slice view: only the plane, flat on screen (wheel or Up, Down move it, drag pans); Z again leaves"},
       {"Ctrl + wheel", "Move the plane in fine steps"},
       {"I", "Lines of equal distance: off, as set, coarse, fine, finer (these follow the zoom)"}}},
     {"Picking and measuring",
      "Picking",
      {{"Click", "Pick what is under the cursor (the background clears it)"},
       {"Shift + wheel", "Step through the surfaces under the cursor, front to back"},
+      {"Y, Shift + Y", "Peel the whole frame: show the next surface along every ray, or the one before"},
       {"T", "See through the picked surface, or make it opaque again"},
       {"Shift + T", "Make every surface opaque again"},
       {"Shift + click", "Measure between two points (the background clears it)"},
@@ -349,6 +364,9 @@ keys(const bool a_device, const bool a_regions = false)
                             {"K", "Color by the next kind (the panel's Color by sets one)"},
                             {"L", "Show only surfaces like the picked one, or everything again"},
                             {"V", "Show one region at a time, in turn, then all"},
+                            {"Ctrl + E", "Exploded view on or off: the regions moved apart from the middle"},
+                            {"Ctrl + Shift + wheel; Ctrl + +, -",
+                             "Explode more or less (by 0.05 a step; 0.1, with Shift 0.01); the panel can type it"},
                             {"Shift + V", "Hide the picked region"},
                             {"Ctrl + V", "Show every region"},
                             {nullptr, "Surface groups (as the panel's buttons)"},
@@ -798,7 +816,11 @@ enum class PanelAction : uint8_t
   HideDomain,         ///< Hide the active domain's regions.
   OnlyDomain,         ///< Show only the active domain's regions.
   ShowAllRegions,     ///< Show every region again.
-  HighlightRegion     ///< Highlight a region's surfaces (those with it on either side), or stop.
+  HighlightRegion,    ///< Highlight a region's surfaces (those with it on either side), or stop.
+  Explode,            ///< Turn the exploded view on or off.
+  ExplodeLess,        ///< Explode less.
+  ExplodeMore,        ///< Explode more.
+  ExplodeType         ///< Type the exploded view's factor.
 };
 
 /**
@@ -1282,6 +1304,8 @@ run(const S&                           a_shape,
   bool      sliceFloor     = settings.m_floor;
   bool      sliceShadows   = settings.m_shadows;
   bool      sliceOcclusion = settings.m_occlusion;
+  T         sliceSheet     = settings.m_sheetOpacity;
+  bool      sliceOutside   = settings.m_sectionFillOutside;
 
   // The views, in the order of ViewMode, for the overlay and the window's title.
   const char* viewNames[] = {
@@ -1931,6 +1955,138 @@ run(const S&                           a_shape,
   const T givenIso = a_settings.m_isoSpacing;
   int     isoMode  = (givenIso > T(0)) ? 1 : 0;
 
+  // The clean cutaway (Ctrl + N): the plane on, with no sheet, no lines of equal distance and no other side drawn, an
+  // opaque cut face filled by what it cuts. What it changed, as it was, to go back to with Ctrl + N again.
+  struct Cutaway
+  {
+    int      m_sectionMode;
+    T        m_sectionOffset;
+    bool     m_sectionGhost;
+    bool     m_sectionSolid;
+    bool     m_sectionSwap;
+    int      m_isoMode;
+    T        m_sheetOpacity;
+    T        m_cutOpacity;
+    T        m_sectionFill;
+    bool     m_sectionFillOutside;
+    bool     m_sectionDomain;
+    uint64_t m_sectionRegions;
+  };
+
+  bool    cutaway = false;
+  Cutaway beforeCutaway{};
+
+  // The exploded view of a view of regions (Ctrl + E): each region moved away from the middle by a factor times its
+  // box's distance from it (see ExplodedView); 0 when off, the last factor kept to turn it on again. The regions' boxes,
+  // found when it is first turned on (from the program, or on a grid), are shared with the frames rendering in the
+  // background. A factor can be typed in the panel.
+  using ExplodeBox = RegionNeighborhoodDetail::Box<T>;
+
+  T explode     = (a_hooks != nullptr) ? Math::max(a_hooks->m_explode, T(0)) : T(0);
+  T explodeLast = (explode > T(0)) ? explode : T(0.5);
+
+  std::shared_ptr<const std::vector<ExplodeBox>> explodeBoxes;
+
+  bool        typingExplode = false;
+  std::string explodeText;
+
+  // Each region's box, once: from the program (the expression's own boxes), or found on a grid of the shape's box, a
+  // region's cell centers grown by a cell and a half; a region no cell found (a thin one) gets an unbounded box, drawn
+  // where it is. A region found by only a few cells may reach past its grid box (a thin plate at a slant): its surface
+  // is then clipped in the exploded view; programs that have the expression give its boxes instead.
+  const auto ensureBoxes = [&]() {
+    if constexpr (hasRegionVisibility<S>) {
+      if (explodeBoxes != nullptr) {
+        return;
+      }
+
+      if (a_hooks != nullptr && !a_hooks->m_regionBoxes.empty()) {
+        explodeBoxes = std::make_shared<const std::vector<ExplodeBox>>(a_hooks->m_regionBoxes);
+
+        return;
+      }
+
+      const uint32_t numRegions = shape.getNumRegions();
+      const T        inf        = Math::Limits<T>::infinity();
+
+      std::vector<ExplodeBox> boxes(numRegions, ExplodeBox{Vec3T<T>(inf, inf, inf), Vec3T<T>(-inf, -inf, -inf), false});
+
+      const auto     whole  = shape.computeBoundingVolume();
+      const Vec3T<T> lo     = whole.getLowCorner();
+      const Vec3T<T> hi     = whole.getHighCorner();
+      const bool     finite = std::isfinite(lo[0]) && std::isfinite(lo[1]) && std::isfinite(lo[2]) &&
+                          std::isfinite(hi[0]) && std::isfinite(hi[1]) && std::isfinite(hi[2]);
+
+      if (finite) {
+        constexpr int  cells = 48;
+        const Vec3T<T> step  = (hi - lo) / T(cells);
+
+        for (int i = 0; i < cells; i++) {
+          for (int j = 0; j < cells; j++) {
+            for (int k = 0; k < cells; k++) {
+              const Vec3T<T> p = lo + Vec3T<T>(T(i) + T(0.5), T(j) + T(0.5), T(k) + T(0.5)) * step;
+              const uint32_t r = shape.getTape().region(p);
+
+              if (r < numRegions) {
+                boxes[r].m_lo   = min(boxes[r].m_lo, p - T(1.5) * step);
+                boxes[r].m_hi   = max(boxes[r].m_hi, p + T(1.5) * step);
+                boxes[r].m_some = true;
+              }
+            }
+          }
+        }
+      }
+
+      for (uint32_t r = 1; r < numRegions; r++) {
+        if (!boxes[r].m_some) {
+          boxes[r] = ExplodeBox{Vec3T<T>(-inf, -inf, -inf), Vec3T<T>(inf, inf, inf), true};
+        }
+      }
+
+      boxes[0].m_some = false;
+
+      explodeBoxes = std::make_shared<const std::vector<ExplodeBox>>(std::move(boxes));
+    }
+  };
+
+  // Set the factor (0 to 10; 0 turns the exploded view off, the last factor kept).
+  const auto setExplode = [&](const T a_factor) {
+    if constexpr (hasRegionVisibility<S>) {
+      explode = Math::clamp(a_factor, T(0), T(10));
+
+      if (explode > T(0)) {
+        explodeLast = explode;
+
+        ensureBoxes();
+      }
+    }
+    else {
+      (void)a_factor;
+    }
+  };
+
+  // Type the factor in the panel, or stop: keeping what was typed when it reads as a number.
+  const auto finishTypingExplode = [&](const bool a_keep) {
+    if (typingExplode && a_keep && !explodeText.empty()) {
+      char*        end   = nullptr;
+      const double typed = std::strtod(explodeText.c_str(), &end);
+
+      if (end != nullptr && *end == '\0' && std::isfinite(typed)) {
+        setExplode(T(typed));
+      }
+    }
+
+    typingExplode = false;
+
+    explodeText.clear();
+
+    SDL_StopTextInput();
+  };
+
+  if (explode > T(0)) {
+    setExplode(explode);
+  }
+
   // The section plane as the last frame placed it.
   bool     planeOn     = false;
   Vec3T<T> planePoint  = Vec3T<T>::zeros();
@@ -2455,15 +2611,17 @@ run(const S&                           a_shape,
 
   // Everything a render reads is passed by value, so that a background render never sees the camera or
   // the settings change under it.
-  const auto render = [](const S&             a_host,
-                         const S&             a_device,
-                         const SurfaceGroups& a_deviceScheme,
-                         const Settings<T>&   a_frame,
-                         const Camera<T>      a_view,
-                         const bool           a_onDevice,
-                         Image&               a_image,
-                         Background*          a_job,
-                         const bool           a_asShown) {
+  const auto render = [](const S&                                              a_host,
+                         const S&                                              a_device,
+                         const SurfaceGroups&                                  a_deviceScheme,
+                         const Settings<T>&                                    a_frame,
+                         const Camera<T>                                       a_view,
+                         const bool                                            a_onDevice,
+                         Image&                                                a_image,
+                         Background*                                           a_job,
+                         const bool                                            a_asShown,
+                         const T                                               a_explode,
+                         const std::shared_ptr<const std::vector<ExplodeBox>>& a_boxes) {
     // On a device, the surface groups are read from their pool's mirror.
     Settings<T> frame = a_frame;
 
@@ -2486,6 +2644,20 @@ run(const S&                           a_shape,
 
       return renderer.render(a_hostShape, a_view, a_image);
     };
+
+    // Exploded, the view of regions as shown, its regions moved apart: its own shape, marched, with its own kernels. It
+    // is built from the host's view (the device's pool cannot be read on the host) and given the device's.
+    if constexpr (hasRegionVisibility<S>) {
+      if (a_explode > T(0) && a_boxes != nullptr) {
+        const ViewerDetail::ExplodedView<S> host(a_host.withSettings(a_frame.m_regions), *a_boxes, a_explode);
+
+        if (a_onDevice) {
+          return draw(host, host.withView(a_device.withSettings(frame.m_regions)), frame);
+        }
+
+        return draw(host, host, frame);
+      }
+    }
 
     // A cost view of regions times the queries its labels name, firstHit() and firstCrossing() of the object: its
     // tape's own, through the renderer's path for a tape, not the view's tracing of regions (finding where the region
@@ -2553,13 +2725,16 @@ run(const S&                           a_shape,
     S           m_device;
     Settings<T> m_settings;
     bool        m_own;
+    T           m_explode = T(0);
+
+    std::shared_ptr<const std::vector<ExplodeBox>> m_boxes;
   };
 
   const auto frameOf = [&](const Settings<T>& a_frame) -> Framed {
     const uint32_t own = ownDomain(a_frame);
 
     if (own == Subdomains::None) {
-      return Framed{shape, deviceShape, a_frame, false};
+      return Framed{shape, deviceShape, a_frame, false, explodeBoxes ? explode : T(0), explodeBoxes};
     }
 
     const DomainShape<S>& domain = (*a_domains)[own];
@@ -2578,7 +2753,7 @@ run(const S&                           a_shape,
 
     const S& device = (a_deviceDomains != nullptr) ? (*a_deviceDomains)[own].m_shape : domain.m_shape;
 
-    return Framed{domain.m_shape, device, frame, true};
+    return Framed{domain.m_shape, device, frame, true, T(0), nullptr};
   };
 
   // The view's name; a cost view of a domain alone on its own object says so, and what its rays find.
@@ -2589,6 +2764,41 @@ run(const S&                           a_shape,
     }
 
     return std::string(viewNames[static_cast<int>(settings.m_viewMode)]);
+  };
+
+  // The exploded view (see ExplodedView): whether it is drawn, the shape drawn, a pick in it (where the surface is seen),
+  // and a hit there moved back to where its region is, for what a pick names (the piece, the region).
+  const auto exploding = [&]() { return explode > T(0) && explodeBoxes != nullptr; };
+
+  const auto pickShown = [&](const Settings<T>& a_frame, const T a_column, const T a_row) -> HitT<T> {
+    if constexpr (hasRegionVisibility<S>) {
+      if (exploding()) {
+        const ViewerDetail::ExplodedView<S> drawn(shape.withSettings(a_frame.m_regions), *explodeBoxes, explode);
+
+        return Renderer<T>(a_frame).pick(drawn, camera, a_column, a_row);
+      }
+    }
+
+    return Renderer<T>(a_frame).pick(shape, camera, a_column, a_row);
+  };
+
+  const auto toReal = [&](const Settings<T>& a_frame, HitT<T> a_hit) -> HitT<T> {
+    if constexpr (hasRegionVisibility<S>) {
+      if (exploding() && a_hit.hit()) {
+        const ViewerDetail::ExplodedView<S> drawn(shape.withSettings(a_frame.m_regions), *explodeBoxes, explode);
+
+        Vec3T<T> back;
+
+        (void)drawn.regionAt(a_hit.m_point, back);
+
+        a_hit.m_point = back;
+      }
+    }
+    else {
+      (void)a_frame;
+    }
+
+    return a_hit;
   };
 
   // The slice view's camera turned square to the plane, from its removed side; its target, distance and field of view
@@ -2610,11 +2820,13 @@ run(const S&                           a_shape,
   // Leave the slice view: the camera and the settings as they were before it.
   const auto leaveSlice = [&]() {
     if (slicing) {
-      camera               = beforeSlice;
-      settings.m_floor     = sliceFloor;
-      settings.m_shadows   = sliceShadows;
-      settings.m_occlusion = sliceOcclusion;
-      slicing              = false;
+      camera                        = beforeSlice;
+      settings.m_floor              = sliceFloor;
+      settings.m_shadows            = sliceShadows;
+      settings.m_occlusion          = sliceOcclusion;
+      settings.m_sheetOpacity       = sliceSheet;
+      settings.m_sectionFillOutside = sliceOutside;
+      slicing                       = false;
     }
   };
 
@@ -2742,16 +2954,19 @@ run(const S&                           a_shape,
       {{view + ", on the " + (onDevice ? "GPU" : "CPU"),
         std::string("Shadows ") + onOff(settings.m_shadows) + ", ambient occlusion " + onOff(settings.m_occlusion) +
           ", floor " + onOff(settings.m_floor) + ", look " + lookName(Look(look))},
-       {std::string(coloring),
+       {std::string(coloring) + (exploding() ? ", exploded by " + fixed(double(explode), 2) : std::string()),
         std::to_string(settings.m_supersampling * settings.m_supersampling) + " rays per pixel (" +
           std::to_string(settings.m_supersampling) + " x " + std::to_string(settings.m_supersampling) + ")"}},
       {{std::string("Cut: ") + sectionNames[sectionMode] +
-          ((sectionMode != 0) ? std::string(sectionFlip ? ", reversed" : "") +
-                                  std::string(!sectionGhost                   ? ""
-                                              : (sectionSolid != sectionSwap) ? ", both sides solid"
-                                                                              : ", the other side ghosted") +
-                                  ", moved " + fixed(double(sectionOffset), 3) + (slicing ? ", slice view" : "")
-                              : std::string()),
+          ((sectionMode != 0)
+             ? std::string(sectionFlip ? ", reversed" : "") +
+                 std::string(!sectionGhost                   ? ""
+                             : (sectionSolid != sectionSwap) ? ", both sides solid"
+                                                             : ", the other side ghosted") +
+                 ", moved " + fixed(double(sectionOffset), 3) +
+                 (slicing ? ", slice view at " + fixed(double(dot(planePoint, planeNormal)), 3) : std::string()) +
+                 (cutaway ? ", clean cutaway" : "")
+             : std::string()),
         (settings.m_isoSpacing > T(0)) ? "Lines of equal distance every " + fixed(double(settings.m_isoSpacing), 4)
                                        : std::string("No lines of equal distance")},
        {"Contour " + fixed(double(settings.m_contourWidth), 1) + " pixels wide, sheet " +
@@ -2769,9 +2984,12 @@ run(const S&                           a_shape,
                : std::string("No probe: right click a point")},
        {picked ? "Picked at " + point(pick.m_point, 3) + ", normal " + point(pick.m_normal, 2)
                : std::string("No picked point"),
-        depthHits.empty() ? std::string("Not stepping through surfaces")
-                          : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
-                              " under the cursor",
+        (depthHits.empty() ? std::string("Not stepping through surfaces")
+                           : "Surface " + std::to_string(depthIndex + 1) + " of " + std::to_string(depthHits.size()) +
+                               " under the cursor") +
+          ((settings.m_peel == 0U)   ? std::string()
+           : (settings.m_peel == 1U) ? std::string(", 1 surface peeled")
+                                     : ", " + std::to_string(settings.m_peel) + " surfaces peeled"),
         (measured == 2) ? "Along x, y, z " + point(measureB - measureA, 4) + ", from " + point(measureA, 3)
                         : std::string("No measurement")}},
       {{}, {}}};
@@ -2943,6 +3161,20 @@ run(const S&                           a_shape,
 
       line("");
       button(details ? "Hide details" : "Show details", PanelAction::Details, 0U);
+
+      // The exploded view: on or off, and its factor, stepped or typed.
+      line("");
+      button(exploding() ? "* Exploded" : "Explode", PanelAction::Explode, 0U);
+
+      if (typingExplode) {
+        line("  by > " + explodeText + "_");
+      }
+      else {
+        line("  by " + fixed(double(exploding() ? explode : explodeLast), 2));
+        button("-", PanelAction::ExplodeLess, 0U);
+        button("+", PanelAction::ExplodeMore, 0U);
+        button("Type", PanelAction::ExplodeType, 0U);
+      }
 
       line("");
       // The domains, one a line; under the active one, its subdomains and the regions each computes in. A button
@@ -3696,7 +3928,17 @@ run(const S&                           a_shape,
 
     if constexpr (hasRegionVisibility<S>) {
       if (outline && several) {
-        (void)render(shape, deviceShape, deviceGroups, alone, camera, onDevice, edges, nullptr, false);
+        (void)render(shape,
+                     deviceShape,
+                     deviceGroups,
+                     alone,
+                     camera,
+                     onDevice,
+                     edges,
+                     nullptr,
+                     false,
+                     explodeBoxes ? explode : T(0),
+                     explodeBoxes);
       }
     }
 
@@ -3728,17 +3970,15 @@ run(const S&                           a_shape,
       // the outline's pixel and the one beside it that showed it, at the nearer of the picked surfaces there (the
       // other may be a surface's back, seen past its rim); the ray through that pixel meets the object as shown
       // before it. Hidden edges are not drawn.
-      const Renderer<T> object(shown);
-      const Renderer<T> picks(alone);
 
       const auto hidden = [&](const int a_x, const int a_y, const int a_u, const int a_v) {
-        const HitT<T> here   = picks.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5));
-        const HitT<T> beside = picks.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
+        const HitT<T> here   = pickShown(alone, T(a_x) + T(0.5), T(a_y) + T(0.5));
+        const HitT<T> beside = pickShown(alone, T(a_u) + T(0.5), T(a_v) + T(0.5));
         const bool    nearer = here.hit() && (!beside.hit() || here.m_t < beside.m_t);
         const HitT<T> edge   = nearer ? here : beside;
 
-        const HitT<T> front = nearer ? object.pick(shape, camera, T(a_x) + T(0.5), T(a_y) + T(0.5))
-                                     : object.pick(shape, camera, T(a_u) + T(0.5), T(a_v) + T(0.5));
+        const HitT<T> front = nearer ? pickShown(shown, T(a_x) + T(0.5), T(a_y) + T(0.5))
+                                     : pickShown(shown, T(a_u) + T(0.5), T(a_v) + T(0.5));
 
         // Clearly: by more than a few pixels' width at the edge's depth (at the camera's distance, orthographic).
         const T across    = T(2) * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) / T(height);
@@ -3845,6 +4085,7 @@ run(const S&                           a_shape,
       a_hooks->m_reloading = true;
       a_hooks->m_camera    = camera;
       a_hooks->m_settings  = settings;
+      a_hooks->m_explode   = explode;
 
       break;
     }
@@ -3895,8 +4136,16 @@ run(const S&                           a_shape,
         break;
       }
       case SDL_MOUSEBUTTONDOWN: {
-        // A drag orbits the camera, or pans it with Ctrl held; a drag with the right button moves the light.
-        if (event.button.button == SDL_BUTTON_LEFT) {
+        // A drag orbits the camera, or pans it with Ctrl held or with the middle button (the wheel pressed); a drag
+        // with the right button moves the light.
+        if (event.button.button == SDL_BUTTON_MIDDLE) {
+          panning  = true;
+          dragging = false;
+          pressX   = event.button.x;
+          pressY   = event.button.y;
+          moved    = false;
+        }
+        else if (event.button.button == SDL_BUTTON_LEFT) {
           // In the slice view a drag pans: an orbit would turn the plane away.
           panning  = slicing || (SDL_GetModState() & KMOD_CTRL) != 0;
           dragging = !panning;
@@ -4278,6 +4527,30 @@ run(const S&                           a_shape,
 
                   break;
                 }
+                case PanelAction::Explode: {
+                  setExplode(exploding() ? T(0) : explodeLast);
+
+                  break;
+                }
+                case PanelAction::ExplodeLess: {
+                  setExplode((exploding() ? explode : explodeLast) - T(0.1));
+
+                  break;
+                }
+                case PanelAction::ExplodeMore: {
+                  setExplode((exploding() ? explode : explodeLast) + T(0.1));
+
+                  break;
+                }
+                case PanelAction::ExplodeType: {
+                  typingExplode = true;
+
+                  explodeText.clear();
+
+                  SDL_StartTextInput();
+
+                  break;
+                }
                 case PanelAction::Details: {
                   details = !details;
 
@@ -4314,15 +4587,18 @@ run(const S&                           a_shape,
             const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
             const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
 
-            const HitT<T> hit = Renderer<T>(frame).pick(shape, camera, column, row);
+            // What is seen there, and (exploded) where its region is: a pick names the latter; the camera and a
+            // measurement go by what is seen.
+            const HitT<T> seen = pickShown(frame, column, row);
+            const HitT<T> hit  = toReal(frame, seen);
 
             // Shift and a click marks a point to measure from or to, not a pick.
             if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
-              if (!hit.hit()) {
+              if (!seen.hit()) {
                 measured = 0;
               }
               else if (measured == 1) {
-                measureB = hit.m_point;
+                measureB = seen.m_point;
                 measured = 2;
 
                 std::printf("EBGeometry viewer: measured %g from (%g, %g, %g) to (%g, %g, %g)\n",
@@ -4336,7 +4612,7 @@ run(const S&                           a_shape,
                 std::fflush(stdout);
               }
               else {
-                measureA = hit.m_point;
+                measureA = seen.m_point;
                 measured = 1;
               }
 
@@ -4366,7 +4642,7 @@ run(const S&                           a_shape,
             // camera on the point.
             if (pickAt(hit, together)) {
               if (event.button.clicks >= 2) {
-                camera.m_target = hit.m_point;
+                camera.m_target = seen.m_point;
               }
 
               dragging = false;
@@ -4383,7 +4659,7 @@ run(const S&                           a_shape,
 
             // A double-click also centers the camera on the point.
             if (picked && event.button.clicks >= 2) {
-              camera.m_target = pick.m_point;
+              camera.m_target = seen.m_point;
             }
 
             // The object picked: a tape's leaf or a BVHUnion's member (any other shape names primitive 0, so the
@@ -4421,6 +4697,11 @@ run(const S&                           a_shape,
           dragging = false;
           panning  = false;
         }
+        else if (event.button.button == SDL_BUTTON_MIDDLE) {
+          // A middle drag only pans: its release picks nothing.
+          dragging = false;
+          panning  = false;
+        }
         else if (event.button.button == SDL_BUTTON_RIGHT) {
           lighting = false;
 
@@ -4435,7 +4716,7 @@ run(const S&                           a_shape,
             const Settings<T> frame  = stageSettings(2);
             const T           column = T(event.button.x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
             const T           row    = T(event.button.y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
-            const HitT<T>     hit    = Renderer<T>(frame).pick(shape, camera, column, row);
+            const HitT<T>     hit    = pickShown(frame, column, row);
 
             Vec3T<T> forward;
             Vec3T<T> right;
@@ -4524,6 +4805,15 @@ run(const S&                           a_shape,
         // With Ctrl held the wheel moves the section plane in fine steps; otherwise it zooms. A sideways
         // scroll (y = 0) does neither.
         if (event.wheel.y != 0) {
+          // Ctrl, Shift and the wheel, while exploded: the regions farther apart (rolled up) or closer, by 0.05 a step.
+          if ((SDL_GetModState() & KMOD_CTRL) != 0 && (SDL_GetModState() & KMOD_SHIFT) != 0 && exploding()) {
+            setExplode(std::round((explode + T(0.05) * T(event.wheel.y)) * T(100)) / T(100));
+
+            changed = true;
+
+            break;
+          }
+
           if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
             // Shift and the wheel step through the surfaces under the cursor: the first step picks the nearest,
             // rolling down steps deeper, rolling up back towards the eye. Each is picked in turn, and the primitives
@@ -4562,8 +4852,28 @@ run(const S&                           a_shape,
             const T row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
 
             if (depthHits.empty()) {
-              depthHits  = Renderer<T>(frame).pickAll(shape, camera, column, row);
               depthIndex = 0;
+
+              // Exploded, the surfaces as seen, each moved back to where its region is.
+              bool stepped = false;
+
+              if constexpr (hasRegionVisibility<S>) {
+                if (exploding()) {
+                  const ViewerDetail::ExplodedView<S> drawn(
+                    shape.withSettings(frame.m_regions), *explodeBoxes, explode);
+
+                  depthHits = Renderer<T>(frame).pickAll(drawn, camera, column, row);
+                  stepped   = true;
+
+                  for (HitT<T>& h : depthHits) {
+                    h = toReal(frame, h);
+                  }
+                }
+              }
+
+              if (!stepped) {
+                depthHits = Renderer<T>(frame).pickAll(shape, camera, column, row);
+              }
             }
             else if (event.wheel.y < 0 && depthIndex + 1 < depthHits.size()) {
               depthIndex++;
@@ -4599,7 +4909,31 @@ run(const S&                           a_shape,
             sectionOffset += T(0.02) * scale * T(event.wheel.y);
           }
           else {
-            camera.m_distance *= (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+            // The wheel zooms towards what is under the cursor: the camera is scaled about the point there, so that
+            // the eye moves along the ray through the cursor by a tenth of its distance to the point, the target
+            // with it, and the point stays under the cursor. The target comes closer to what is looked at, so that
+            // orbiting and panning work around it. Over the background, the eye zooms towards the target.
+            const T factor = (event.wheel.y > 0) ? T(0.9) : T(1) / T(0.9);
+
+            int windowWidth  = 0;
+            int windowHeight = 0;
+            int mouseX       = 0;
+            int mouseY       = 0;
+
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            const Settings<T> frame  = stageSettings(2);
+            const T           column = T(mouseX) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+            const T           row    = T(mouseY) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+            const HitT<T>     hit    = pickShown(frame, column, row);
+
+            if (hit.hit() && std::isfinite(hit.m_point[0]) && std::isfinite(hit.m_point[1]) &&
+                std::isfinite(hit.m_point[2])) {
+              camera.m_target = hit.m_point + factor * (camera.m_target - hit.m_point);
+            }
+
+            camera.m_distance *= factor;
 
             endStepping(false);
           }
@@ -4629,6 +4963,20 @@ run(const S&                           a_shape,
           }
 
           askedTitle();
+
+          break;
+        }
+
+        // Typing the exploded view's factor: digits and a decimal point, up to 12.
+        if (typingExplode) {
+          for (const char* c = event.text.text; *c != '\0'; c++) {
+            if (((*c >= '0' && *c <= '9') || *c == '.') && explodeText.size() < 12U) {
+              explodeText += *c;
+            }
+          }
+
+          drawOverlay();
+          present();
 
           break;
         }
@@ -4688,6 +5036,24 @@ run(const S&                           a_shape,
         }
 
         // While a surface group's name is typed, keys type it: Enter keeps it, Esc cancels, Backspace erases.
+        if (typingExplode) {
+          const SDL_Keycode key = event.key.keysym.sym;
+
+          if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
+            finishTypingExplode(key != SDLK_ESCAPE);
+
+            changed = true;
+          }
+          else if (key == SDLK_BACKSPACE && !explodeText.empty()) {
+            explodeText.pop_back();
+          }
+
+          drawOverlay();
+          present();
+
+          break;
+        }
+
         if (renaming != SurfaceGroups::None) {
           const SDL_Keycode key = event.key.keysym.sym;
 
@@ -4786,12 +5152,18 @@ run(const S&                           a_shape,
           sliceFloor     = settings.m_floor;
           sliceShadows   = settings.m_shadows;
           sliceOcclusion = settings.m_occlusion;
+          sliceSheet     = settings.m_sheetOpacity;
+          sliceOutside   = settings.m_sectionFillOutside;
 
-          settings.m_floor     = false;
-          settings.m_shadows   = false;
-          settings.m_occlusion = false;
-          camera.m_target      = center;
-          slicing              = true;
+          // Only the plane: opaque where it lies outside the shape too (a view of regions filled there by what each
+          // point is in), so that nothing behind it shows.
+          settings.m_floor              = false;
+          settings.m_shadows            = false;
+          settings.m_occlusion          = false;
+          settings.m_sheetOpacity       = T(1);
+          settings.m_sectionFillOutside = true;
+          camera.m_target               = center;
+          slicing                       = true;
 
           aimAtSlice();
 
@@ -4833,6 +5205,15 @@ run(const S&                           a_shape,
           // A narrower view (plus) shows less, larger; on a keyboard without a plus key, = does.
           const bool narrower = event.key.keysym.sym != SDLK_MINUS && event.key.keysym.sym != SDLK_KP_MINUS;
 
+          // With Ctrl held, while exploded: the regions farther apart (plus) or closer, by 0.1, with Shift by 0.01.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0 && exploding()) {
+            const T step = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? T(0.01) : T(0.1);
+
+            setExplode(std::round((explode + (narrower ? step : -step)) * T(100)) / T(100));
+
+            break;
+          }
+
           camera.m_fieldOfView = Math::clamp(camera.m_fieldOfView + (narrower ? T(-5) : T(5)), T(10), T(120));
 
           break;
@@ -4860,7 +5241,9 @@ run(const S&                           a_shape,
                        onDevice,
                        image,
                        nullptr,
-                       framed.m_own);
+                       framed.m_own,
+                       framed.m_explode,
+                       framed.m_boxes);
 
           // The next name not taken, so that an earlier run's images are kept.
           const auto taken = [](const std::string& a_name) {
@@ -5044,6 +5427,65 @@ run(const S&                           a_shape,
           break;
         }
         case SDLK_n: {
+          // Ctrl and N: the clean cutaway, as a CAD section shows it, or back to the settings before it. The plane
+          // is turned on (across x, if it was off), the removed side is left out, and the plane draws neither the
+          // sheet nor lines of equal distance nor a domain's functions: only the opaque cut face, filled by what it
+          // cuts (a view of regions: the material of each region), with its contour.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            RegionSettings& regions = settings.m_regions;
+
+            // Back to the settings before it, whatever was changed since (the plane turned off included).
+            if (cutaway) {
+              sectionMode                   = beforeCutaway.m_sectionMode;
+              sectionOffset                 = beforeCutaway.m_sectionOffset;
+              sectionGhost                  = beforeCutaway.m_sectionGhost;
+              sectionSolid                  = beforeCutaway.m_sectionSolid;
+              sectionSwap                   = beforeCutaway.m_sectionSwap;
+              isoMode                       = beforeCutaway.m_isoMode;
+              settings.m_sheetOpacity       = beforeCutaway.m_sheetOpacity;
+              settings.m_cutOpacity         = beforeCutaway.m_cutOpacity;
+              settings.m_sectionFill        = beforeCutaway.m_sectionFill;
+              settings.m_sectionFillOutside = beforeCutaway.m_sectionFillOutside;
+              regions.m_sectionDomain       = beforeCutaway.m_sectionDomain;
+              regions.m_sectionRegions      = beforeCutaway.m_sectionRegions;
+              cutaway                       = false;
+
+              break;
+            }
+
+            beforeCutaway = Cutaway{sectionMode,
+                                    sectionOffset,
+                                    sectionGhost,
+                                    sectionSolid,
+                                    sectionSwap,
+                                    isoMode,
+                                    settings.m_sheetOpacity,
+                                    settings.m_cutOpacity,
+                                    settings.m_sectionFill,
+                                    settings.m_sectionFillOutside,
+                                    regions.m_sectionDomain,
+                                    regions.m_sectionRegions};
+
+            if (sectionMode == 0) {
+              sectionMode   = 2;
+              sectionOffset = T(0);
+            }
+
+            sectionGhost                  = false;
+            sectionSolid                  = false;
+            sectionSwap                   = false;
+            isoMode                       = 0;
+            settings.m_sheetOpacity       = T(0);
+            settings.m_cutOpacity         = T(1);
+            settings.m_sectionFill        = T(1);
+            settings.m_sectionFillOutside = false;
+            regions.m_sectionDomain       = false;
+            regions.m_sectionRegions      = 0U;
+            cutaway                       = true;
+
+            break;
+          }
+
           // Five in turn: this side kept, the other kept, each with the other side ghosted (drawn translucent), then
           // both sides solid (the removed side drawn opaque: the plane shows only outside the shape). The plane stays
           // where it is: its offset is along the normal, which turns around. Shift and X's swap of the removed
@@ -5068,6 +5510,14 @@ run(const S&                           a_shape,
           // that repeated steps do not drift. With Ctrl held, more or fewer rays per pixel, 1 x 1 to 8 x 8 (on the
           // arrows rather than on keys some layouts reach only through AltGr).
           const T step = (event.key.keysym.sym == SDLK_UP) ? T(1) : T(-1);
+
+          // In the slice view, the arrows move the plane through the object, as the wheel does; with Shift, in fine
+          // steps.
+          if (slicing && (event.key.keysym.mod & KMOD_CTRL) == 0) {
+            sectionOffset += step * (((event.key.keysym.mod & KMOD_SHIFT) != 0) ? T(0.005) : T(0.02)) * scale;
+
+            break;
+          }
 
           if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
             settings.m_supersampling = (step > T(0)) ? Math::min(settings.m_supersampling + 1U, 8U)
@@ -5221,6 +5671,13 @@ run(const S&                           a_shape,
           break;
         }
         case SDLK_e: {
+          // Ctrl and E: the exploded view of a view of regions on, at the last factor (0.5 at first), or off.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            setExplode(exploding() ? T(0) : explodeLast);
+
+            break;
+          }
+
           // Shift and E draw lines where the domain or subdomain shown does not compute, or stop.
           if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
             settings.m_isoSecondary = !settings.m_isoSecondary;
@@ -5297,6 +5754,17 @@ run(const S&                           a_shape,
           }
           else {
             changed = pending;
+          }
+
+          break;
+        }
+        case SDLK_y: {
+          // Peel the frame: Y shows the next surface along every camera ray, Shift and Y the one before.
+          if ((event.key.keysym.mod & KMOD_SHIFT) != 0) {
+            settings.m_peel = (settings.m_peel > 0U) ? settings.m_peel - 1U : 0U;
+          }
+          else if (settings.m_peel + 1U < Renderer<T>::MaxCrossings) {
+            settings.m_peel++;
           }
 
           break;
@@ -5387,9 +5855,15 @@ run(const S&                           a_shape,
           settings.m_fillIntensity      = a_settings.m_fillIntensity;
           settings.m_hidden             = a_settings.m_hidden;
           settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
+          settings.m_peel               = a_settings.m_peel;
+          explode                       = T(0);
           settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
           settings.m_highlightCount     = a_settings.m_highlightCount;
           picked                        = false;
+
+          if (typingExplode) {
+            finishTypingExplode(false);
+          }
 
           selection.clear();
           depthHits.clear();
@@ -5475,7 +5949,9 @@ run(const S&                           a_shape,
                                  onDevice,
                                  image,
                                  nullptr,
-                                 framed.m_own);
+                                 framed.m_own,
+                                 framed.m_explode,
+                                 framed.m_boxes);
       const auto   seconds = std::chrono::duration<double>(Clock::now() - start).count();
 
       // Keep previews between about 10 and 40 ms.
@@ -5516,7 +5992,9 @@ run(const S&                           a_shape,
                                onDevice,
                                next->m_image,
                                next,
-                               framed.m_own);
+                               framed.m_own,
+                               framed.m_explode,
+                               framed.m_boxes);
         next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
         next->m_done    = true;
       });

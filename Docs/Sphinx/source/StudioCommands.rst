@@ -10,7 +10,7 @@ Commands
    ebgstudio print  MODEL [-o FILE] [--flatten]
    ebgstudio params MODEL [--json]
    ebgstudio render MODEL -o FILE [--size W H]
-   ebgstudio view   MODEL
+   ebgstudio view   MODEL [--explode F]
 
 ``MODEL`` is a ``.ebg`` file, read with the files it includes, each once; nothing is read that is not named. The
 geometry usually goes in one file and what is computed on it (materials, domains, couplings, the view) in a setup
@@ -23,7 +23,8 @@ Every command takes ``-D NAME=VALUE``, a value for a param, written as in a file
 ``ebgstudio MODEL``, view
 -------------------------
 
-The window on the model (see :ref:`Chap:StudioViewer`).
+The window on the model (see :ref:`Chap:StudioViewer`). ``--explode F`` opens it with the regions moved apart by the
+factor ``F``, from 0 to 10, as Ctrl + E does in the window (see :ref:`Sec:ViewerKeys`).
 
 check
 -----
