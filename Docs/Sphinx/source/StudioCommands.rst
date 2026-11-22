@@ -6,7 +6,7 @@ Commands
 .. code-block:: text
 
    ebgstudio        MODEL                                       the window (the same as view)
-   ebgstudio check  MODEL [--domain NAME]... [--all-domains] [--inventory]
+   ebgstudio check  MODEL [--domain NAME]... [--all-domains] [--inventory] [--components H]
    ebgstudio print  MODEL [-o FILE] [--flatten]
    ebgstudio params MODEL [--json]
    ebgstudio render MODEL -o FILE [--size W H]
@@ -48,6 +48,31 @@ compiles (see :ref:`Chap:ImplemRegions`). ``--all-domains`` checks every domain 
    domain 'electrostatics': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
    domain 'cfd': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
    domain 'conduction': complete; its own object keeps 3 of 4 regions (air, jacket, core)
+
+``--components H`` also finds, for each domain checked, the connected components of its subdomains and of its
+excluded regions at resolution ``H`` (see :ref:`Chap:Regions`; ``H`` is best the solver's cell size). It warns of a
+subdomain in more than one component and of an enclosed cavity of the outside touching the domain (see
+:ref:`Chap:LanguageDomains`), and lists every component with a point in it, its volume, and whether it is on the
+object's outer boundary or enclosed, with the regions around it; an excluded component that is enclosed is a
+floating body (a conductor touching nothing, say), listed but not warned of:
+
+.. code-block:: text
+
+   $ ebgstudio check ../Examples/LanguageDomains/cable/setup.ebg --domain cfd --components 0.05
+   domain 'cfd': complete; its own object keeps 4 of 4 regions (air, jacket, core, sensor)
+   domain 'cfd': connected components at resolution 0.05
+     subdomain 'fluid': 1
+       at (2.9, -0.1, 1.9), volume 244, on the object's outer boundary
+     excluded regions: 3
+       at (-3.07, 2.08, -4.07), volume 26.5, on the object's outer boundary
+       at (-0.65, -0.05, 2.85), volume 11.4, enclosed by 'air'
+       at (3, 0, 0), volume 0.114, enclosed by 'air'
+
+The cable's air is one piece, so nothing is warned of. Of the excluded regions, the first component is the outside
+around the air box, the second the cable (its jacket and core, which the flow does not compute in), and the third the
+sensor: both are bodies floating in the air. A warning names the pieces it is about (see
+:ref:`Chap:LanguageDomains`). A model whose value is not a distance, an unbounded one, or one whose search would
+take more cells than the cap is not searched; a warning says why.
 
 ``--inventory`` lists every name the model offers: its regions and materials with their properties' keys, its
 labels, each shape's parts and their labels, and its domains:

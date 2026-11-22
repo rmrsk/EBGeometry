@@ -128,6 +128,21 @@ The check works from the model's description, so it lists every surface the obje
 the geometry turns out not to have (a shape buried under a later region) can be reported without existing.
 A selector that holds only some of a surface's parts (two faces of a box's six) leaves the rest unassigned.
 
+The check works from the description, so it cannot see how many pieces a subdomain is in: whether a pocket of
+gas is sealed off in a solid, or a conductor touches nothing. Given a resolution, the check also searches the
+geometry for the connected components (see :ref:`Chap:Regions`) of the domain's subdomains, and warns of a
+subdomain in more than one component and of a cavity of the outside, sealed in the object, that touches the
+domain. A hollow steel shell (region ``shell``) in a box of gas, its hollow a region of gas too, puts the gas in two
+pieces:
+
+.. code-block:: text
+
+   pocket.ebg:10:3: warning: subdomain 'gas' of domain 'flow' is in 2 connected components at resolution 0.05: (-1.1, -1.1, -1.1), volume 59.9, on the object's outer boundary; (0, 0, 0), volume 0.528, enclosed by 'shell'
+
+A program asks for it with ``Language::completeness(model, tape, "flow", resolution)``, and ``ebgstudio check
+--components H`` from the command line (see :ref:`Chap:StudioCommands`). These are warnings, since a piece apart
+may be intended; the resolution is best the solver's cell size, since a gap thinner than it may be missed.
+
 Couplings
 ---------
 

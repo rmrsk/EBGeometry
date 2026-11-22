@@ -16,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -39,12 +40,16 @@ const char* const usage = R"(usage: ebgstudio MODEL [options]             open t
 MODEL is a .ebg file, read with the files it includes (a setup file that includes its model.ebg, say).
 
 commands:
-  check   MODEL [--domain NAME]... [--all-domains] [--inventory]
+  check   MODEL [--domain NAME]... [--all-domains] [--inventory] [--components H]
                                                    read the model and report every error and warning; with
                                                    --domain, check that the domain is complete (--all-domains:
                                                    every domain the model has, and what each domain's own
-                                                   object keeps); with --inventory, list every name the model
-                                                   offers. Exits 1 on an error or an incomplete domain.
+                                                   object keeps); with --components, also find the connected
+                                                   components of each domain's subdomains and excluded regions
+                                                   at resolution H, warn of a subdomain in several and of an
+                                                   enclosed cavity, and list them all; with --inventory, list
+                                                   every name the model offers. Exits 1 on an error or an
+                                                   incomplete domain.
   print   MODEL [-o FILE] [--flatten]              the model in canonical form (the first file; --flatten
                                                    resolves the includes and the setup file into one text)
   params  MODEL [--json]                           the params, with their values and where they are written
@@ -68,6 +73,7 @@ struct Options
   bool                     m_allDomains = false;
   bool                     m_flatten    = false;
   bool                     m_json       = false;
+  double                   m_components = 0.0;
   uint32_t                 m_width      = 960;
   uint32_t                 m_height     = 960;
 };
@@ -128,6 +134,19 @@ parseArguments(const int a_argc, char** a_argv)
     }
     else if (arg == "--inventory") {
       options.m_inventory = true;
+    }
+    else if (arg == "--components") {
+      const std::string h = value();
+
+      try {
+        options.m_components = std::stod(h);
+      } catch (const std::exception&) {
+        fail("--components takes a resolution, got '" + h + "'");
+      }
+
+      if (!(options.m_components > 0.0)) {
+        fail("--components takes a positive resolution, got '" + h + "'");
+      }
     }
     else if (arg == "--all-domains") {
       options.m_allDomains = true;
@@ -209,6 +228,151 @@ json(const std::string& a_text)
   return out + "\"";
 }
 
+// The connected components of a domain's subdomains and of its excluded regions, listed: the components of the regions
+// (one search) joined where regions of one group touch. A component is on the object's outer boundary when one of its
+// regions' components reaches the box searched or touches the outside there; it is enclosed otherwise, and the regions
+// around it are named.
+void
+printComponents(const Language::Model<T>& a_model, const std::string& a_domain, const ConnectedComponents<T>& a_regions)
+{
+  const Language::ModelDomain& domain = a_model.domain(a_domain);
+  const DomainSetup&           setup  = domain.setup();
+  const uint32_t               groups = setup.getNumSubdomains() + 1U;
+  const uint32_t               num    = a_regions.getNumComponents();
+
+  const auto groupOf = [&](const uint32_t a_component) {
+    const uint32_t subdomain = setup.subdomainOf(a_regions.component(a_component).m_group);
+
+    return subdomain == Subdomains::None ? groups - 1U : subdomain;
+  };
+
+  const auto regionName = [&](const uint32_t a_region) {
+    const std::string& name = a_model.index().getRegion(a_region).m_name;
+
+    return a_region == 0U ? std::string("outside")
+           : name.empty() ? "region " + std::to_string(a_region)
+                          : "'" + name + "'";
+  };
+
+  std::vector<uint32_t> parent(num);
+
+  for (uint32_t c = 0; c < num; c++) {
+    parent[c] = c;
+  }
+
+  const auto root = [&](uint32_t a_x) {
+    while (parent[a_x] != a_x) {
+      a_x = parent[a_x] = parent[parent[a_x]];
+    }
+
+    return a_x;
+  };
+
+  for (uint32_t c = 0; c < num; c++) {
+    for (const uint32_t n : a_regions.neighbors(c)) {
+      if (groupOf(c) == groupOf(n)) {
+        parent[std::max(root(c), root(n))] = std::min(root(c), root(n));
+      }
+    }
+  }
+
+  // Each joined component: its volume, the seed of its largest part, whether it is open, and the regions around it.
+  struct Joined
+  {
+    uint32_t                 m_group   = 0U;
+    double                   m_volume  = 0.0;
+    double                   m_largest = -1.0;
+    Vec3T<T>                 m_seed;
+    bool                     m_open = false;
+    std::vector<std::string> m_around;
+  };
+
+  std::vector<Joined> joined(num);
+
+  for (uint32_t c = 0; c < num; c++) {
+    const ConnectedComponent<T>& component = a_regions.component(c);
+    Joined&                      into      = joined[root(c)];
+
+    into.m_group = groupOf(c);
+    into.m_volume += double(component.m_volume);
+    into.m_open = into.m_open || component.m_reachesBox;
+
+    if (double(component.m_volume) > into.m_largest) {
+      into.m_largest = double(component.m_volume);
+      into.m_seed    = component.m_seed;
+    }
+
+    for (const uint32_t n : a_regions.neighbors(c)) {
+      const ConnectedComponent<T>& other = a_regions.component(n);
+
+      into.m_open = into.m_open || (other.m_group == 0U && other.m_reachesBox);
+
+      if (root(n) != root(c)) {
+        into.m_around.push_back(regionName(other.m_group));
+      }
+    }
+  }
+
+  // Numbers to three significant digits, as the warnings print them.
+  const auto number = [](const double a_value) {
+    std::ostringstream out;
+
+    out << std::setprecision(3) << a_value;
+
+    return out.str();
+  };
+
+  std::cout << "domain '" << domain.name() << "': connected components at resolution "
+            << number(double(a_regions.resolution())) << "\n";
+
+  for (uint32_t g = 0; g < groups; g++) {
+    std::vector<const Joined*> members;
+
+    for (uint32_t c = 0; c < num; c++) {
+      if (root(c) == c && joined[c].m_group == g) {
+        members.push_back(&joined[c]);
+      }
+    }
+
+    std::stable_sort(members.begin(), members.end(), [](const Joined* a_x, const Joined* a_y) {
+      return a_x->m_open != a_y->m_open ? a_x->m_open : a_x->m_volume > a_y->m_volume;
+    });
+
+    std::cout << "  "
+              << (g + 1U == groups ? std::string("excluded regions") : "subdomain '" + domain.subdomainName(g) + "'")
+              << ": " << members.size() << "\n";
+
+    for (const Joined* member : members) {
+      std::vector<std::string> around = member->m_around;
+
+      std::sort(around.begin(), around.end());
+
+      around.erase(std::unique(around.begin(), around.end()), around.end());
+
+      // Coordinates within a thousandth of h of zero are written as zero.
+      const auto coordinate = [&](const T a_value) {
+        return number(std::abs(a_value) < T(1e-3) * a_regions.resolution() ? 0.0 : double(a_value));
+      };
+
+      std::cout << "    at (" << coordinate(member->m_seed[0]) << ", " << coordinate(member->m_seed[1]) << ", "
+                << coordinate(member->m_seed[2]) << "), volume " << number(member->m_volume);
+
+      if (member->m_open) {
+        std::cout << ", on the object's outer boundary\n";
+      }
+      else {
+        std::cout << ", enclosed by";
+
+        for (size_t i = 0; i < around.size(); i++) {
+          std::cout << (i == 0 ? " " : ", ") << around[i];
+        }
+
+        std::cout << "\n";
+      }
+    }
+  }
+}
+
 int
 check(const Options& a_options, Pool& a_pool)
 {
@@ -234,11 +398,35 @@ check(const Options& a_options, Pool& a_pool)
     }
   }
 
+  if (a_options.m_components > 0.0 && domains.empty()) {
+    fail("--components needs --domain or --all-domains: the components are those of a domain's subdomains");
+  }
+
   if (!domains.empty()) {
     const Tape<T> tape(a_pool, model.object());
 
+    // The components are searched for when asked, and only when the object's value is a distance.
+    const T    resolution = T(a_options.m_components);
+    const bool components = resolution > T(0) && tape.getDistanceQuality() != DistanceQuality::NotADistance;
+
+    std::optional<ConnectedComponents<T>> regions;
+
+    // A search the library refuses (an unbounded object, one too long for the resolution, one reaching the cap on the
+    // cells) lists nothing; the completeness check below warns of it.
+    if (components) {
+      try {
+        const ThrowOnRequire checks;
+
+        regions = connectedComponents(tape, ComponentOptions<T>{resolution});
+      } catch (const RequireError&) {
+        regions.reset();
+      }
+    }
+
     for (const std::string& domain : domains) {
-      const Language::Completeness result = Language::completeness(model, tape, domain);
+      const Language::Completeness result = (resolution > T(0))
+                                              ? Language::completeness(model, tape, domain, resolution)
+                                              : Language::completeness(model, tape, domain);
 
       for (const Language::Diagnostic& finding : result.m_findings) {
         std::cerr << finding.str() << "\n";
@@ -256,6 +444,10 @@ check(const Options& a_options, Pool& a_pool)
       std::cout << "domain '" << domain << "': " << (result.m_complete ? "complete" : "incomplete")
                 << "; its own object keeps " << own.neighborhood().getNumRegions() - 1U << " of "
                 << model.index().getNumRegions() - 1U << " regions (" << kept << ")\n";
+
+      if (regions) {
+        printComponents(model, domain, *regions);
+      }
 
       status = result.m_complete ? status : 1;
     }

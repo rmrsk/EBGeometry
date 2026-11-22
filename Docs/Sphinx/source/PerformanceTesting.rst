@@ -63,6 +63,7 @@ What is in Performance/
      Regions/main.cpp         a tape's regions, their functions, and a domain's labels
      Domain/main.cpp          a domain with many subdomains and surface groups
      DomainObject/main.cpp    a domain compiled on its own, against the whole object
+     ConnectedComponents/main.cpp  the connected components of a model's regions
      MeshTape/main.cpp        a mesh in a tape and in a view of regions, against the mesh
      QueryOrder/main.cpp      queries in Morton order: the order, and queries run in it
      EBGrid/main.cpp          a mesh's distances at a grid's cell centers, as an EB generator asks
@@ -1074,6 +1075,19 @@ Family                                Build  Measures
 ``partsOwn/labels``,                  host   the same, on the domain's own tape
 ``partsOwn/labelAt``
 ``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
+====================================  =====  =====================================================
+
+**ConnectedComponents** (``Performance/ConnectedComponents``): ``connectedComponents()`` (see
+:ref:`Chap:ImplemRegions`) of every region of a box of air holding 27 hollow shells on a grid (one under
+``--smoke``), each shell a region whose hollow is a cavity of the outside, on the host, at two resolutions. The
+search refines down to the resolution near every surface, so its cost grows with the surfaces' area over the
+resolution squared, and with the number of regions each evaluation visits.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``shells/build-coarse``               host   the components at a resolution of 1/64 of the box
+``shells/build-fine``                 host   the same at 1/128
 ====================================  =====  =====================================================
 
 **MeshTape** (``Performance/MeshTape``): a mesh in a tape against the mesh alone: the armadillo (the dodecahedron

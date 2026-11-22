@@ -151,6 +151,9 @@ namespace EBGeometry {
   template class Language::Model<PREC>;                                      \
   template class Language::DomainObject<PREC>;                               \
   template class RegionNeighborhood<PREC>;                                   \
+  template class ConnectedComponents<PREC>;                                  \
+  template struct ConnectedComponent<PREC>;                                  \
+  template struct ComponentOptions<PREC>;                                    \
   template class Language::LanguageDetail::Reader<PREC>;                                     \
   template class Language::Table<Vec3T<PREC>>;                               \
   template Render::Stats Render::Renderer<PREC>::render<Tape<PREC>>(         \
@@ -576,6 +579,14 @@ instantiateFunctionTemplates()
         (void)neighborhood.wholeRegion(1U);
       }
       (void)findSurfacePieces(regions, 4U);
+      {
+        const ComponentOptions<T>    options{T(0.5)};
+        const ConnectedComponents<T> components = connectedComponents(regions, options);
+
+        (void)connectedComponents(regions, std::vector<uint32_t>(regions.getNumRegions(), 0U), options);
+        (void)connectedComponents(domain, options);
+        (void)components.componentAt(Vec3T<T>::zeros());
+      }
       (void)domain.touches(0U, 1U);
       (void)domain.subdomainAt(Vec3T<T>::zeros());
       (void)domain.signedDistance(Vec3T<T>::zeros(), Domain<T>::Excluded);
@@ -737,6 +748,7 @@ instantiateFunctionTemplates()
 
     (void)Language::read<T>("model.ebg", languagePool);
     (void)Language::completeness(model, tape, "domain");
+    (void)Language::completeness(model, tape, "domain", T(0.5));
     (void)Language::inventory(model);
     (void)model.domainObject("domain").names();
     (void)Language::print(model, true);

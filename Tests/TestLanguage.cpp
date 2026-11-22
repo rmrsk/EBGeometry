@@ -943,6 +943,123 @@ object moved
   }
 }
 
+TEMPLATE_TEST_CASE("Language: completeness at a resolution warns of a subdomain in pieces and of enclosed cavities",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  // A hollow steel shell in a box of gas, its hollow a pocket of gas: the gas subdomain is in two components.
+  const auto pocket = Language::parse<T>(R"(ebg 0
+object overlay {
+  region air    = box((-2, -2, -2), (2, 2, 2)) material gas
+  region shell  = difference(sphere((0, 0, 0), 1), sphere((0, 0, 0), 0.5)) material steel
+  region inside = sphere((0, 0, 0), 0.5) material gas
+}
+material gas { density = 1.2 }
+material steel { density = 7850 }
+domain flow {
+  subdomain gas = air, inside
+  group walls = remaining()
+}
+domain solid {
+  subdomain steel = shell
+  group walls = remaining()
+}
+)",
+                                         "pocket.ebg",
+                                         pool);
+
+  const Tape<T> tape(pool, pocket.object());
+
+  const Language::Completeness flow = Language::completeness(pocket, tape, "flow", T(0.05));
+
+  CHECK(flow.m_complete);
+  REQUIRE(flow.m_findings.size() == 1U);
+  CHECK(flow.m_findings[0].m_severity == Language::Diagnostic::Severity::Warning);
+  CHECK_THAT(flow.m_findings[0].m_message,
+             Catch::Matchers::ContainsSubstring(
+               "subdomain 'gas' of domain 'flow' is in 2 connected components at resolution 0.05: "));
+  CHECK_THAT(flow.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("on the object's outer boundary; ("));
+  CHECK_THAT(flow.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("(0, 0, 0), volume 0.5"));
+  CHECK_THAT(flow.m_findings[0].m_message, Catch::Matchers::EndsWith("enclosed by 'shell'"));
+  CHECK(flow.m_findings[0].m_span.m_line == 10U);
+
+  // The shell alone is one component: nothing to warn of; without a resolution, nothing is searched.
+  CHECK(Language::completeness(pocket, tape, "solid", T(0.05)).m_findings.empty());
+  CHECK(Language::completeness(pocket, tape, "flow").m_findings.empty());
+
+  // Without the pocket region, the hollow is a cavity of the outside, against the shell.
+  const auto hollow = Language::parse<T>(R"(ebg 0
+object overlay {
+  region air   = difference(box((-2, -2, -2), (2, 2, 2)), sphere((0, 0, 0), 1)) material gas
+  region shell = difference(sphere((0, 0, 0), 1), sphere((0, 0, 0), 0.5)) material steel
+}
+material gas { density = 1.2 }
+material steel { density = 7850 }
+domain solid {
+  subdomain steel = shell
+  group walls = remaining()
+}
+domain flow {
+  subdomain gas = air
+  group walls = remaining()
+}
+)",
+                                         "hollow.ebg",
+                                         pool);
+
+  const Tape<T> hollowTape(pool, hollow.object());
+
+  const Language::Completeness solid = Language::completeness(hollow, hollowTape, "solid", T(0.05));
+
+  REQUIRE(solid.m_findings.size() == 1U);
+  CHECK_THAT(solid.m_findings[0].m_message,
+             Catch::Matchers::ContainsSubstring(
+               "an enclosed cavity of the outside at resolution 0.05 touches domain 'solid': at ("));
+  CHECK_THAT(solid.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("enclosed by 'shell'"));
+
+  // The gas does not touch the cavity.
+  CHECK(Language::completeness(hollow, hollowTape, "flow", T(0.05)).m_findings.empty());
+
+  // An unbounded object is not searched: a warning says so.
+  const auto halfSpace = Language::parse<T>(R"(ebg 0
+object overlay {
+  region ground = plane((0, 0, 0), (0, 1, 0)) material soil
+}
+material soil { density = 1500 }
+domain soil {
+  subdomain soil = ground
+  group surface = remaining()
+}
+)",
+                                            "half.ebg",
+                                            pool);
+
+  const Tape<T> halfTape(pool, halfSpace.object());
+
+  const Language::Completeness half = Language::completeness(halfSpace, halfTape, "soil", T(0.05));
+
+  REQUIRE(half.m_findings.size() == 1U);
+  CHECK_THAT(half.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("not checked: the object is unbounded"));
+
+  // An object longer than the search's grid at the resolution is not searched either.
+  const Language::Completeness tiny = Language::completeness(pocket, tape, "flow", T(1e-6));
+
+  REQUIRE(tiny.m_findings.size() == 1U);
+  CHECK_THAT(tiny.m_findings[0].m_message, Catch::Matchers::ContainsSubstring("not checked: the object is more than"));
+
+  // A search that would keep more cells than the cap is not finished: a warning, not an abort.
+  const Language::Completeness capped = Language::completeness(pocket, tape, "flow", T(0.05), 10U);
+
+  REQUIRE(capped.m_findings.size() == 1U);
+  CHECK_THAT(
+    capped.m_findings[0].m_message,
+    Catch::Matchers::ContainsSubstring("not checked: the search at resolution 0.05 reached its cap of 10 cells"));
+}
+
 TEMPLATE_TEST_CASE(
   "Language: a domain is complete when every subdomain has properties and every bounding piece a group",
   "[Language]",
