@@ -176,6 +176,16 @@ TEMPLATE_TEST_CASE("Render: the device render of a view of regions matches the h
   }
 
   CHECK(differing(Render::Renderer<T>(settings), Render::Renderer<T>(deviceSettings)) <= pixels / 50);
+
+  // A picked level highlighted: the two cylinders' surfaces as one range of surfaces.
+  for (Render::Settings<T>* s : {&settings, &deviceSettings}) {
+    s->m_regions.m_selected[0] = SurfaceSelector::surfaces(1, 2);
+    s->m_regions.m_numSelected = 1U;
+    s->m_highlightPrimitive    = RegionSettings::Selected;
+    s->m_highlightCount        = 1U;
+  }
+
+  CHECK(differing(Render::Renderer<T>(settings), Render::Renderer<T>(deviceSettings)) <= pixels / 50);
 }
 
 TEMPLATE_TEST_CASE("Render: a device render's pixels skip their work once the cancel flag is set, say so, and count "

@@ -223,7 +223,7 @@ TEST_CASE("Writer: a group the language cannot write is left out, and the note s
   CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote 1 file(s)"));
   CHECK_THAT(writer.note(),
              Catch::Matchers::EndsWith("left out what the language cannot write (an empty group, a "
-                                       "selector) of spare, empty"));
+                                       "selector, one member of a collection) of spare, empty"));
 }
 
 TEST_CASE("Writer: no write over a file changed on disk since it was read", "[Studio]")
@@ -593,4 +593,168 @@ TEST_CASE("Writer: a mesh is picked by its face group, or whole without one, and
     CHECK_THAT(text(folder + "/setup.ebg"),
                Catch::Matchers::ContainsSubstring("group skin = label(\"hull\", between = (solid, gas))"));
   }
+}
+
+TEST_CASE("Writer: a picked level is written by the value making it, or hoisted into one named when asked", "[Studio]")
+{
+  const std::string folder = copyOfWire("levels");
+
+  // Leaves: the two posts (the frame), then the bolts' two, then their copy's two.
+  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+
+frame = union(box((-2, -2, -2), (-1, 2, 2)), box((1, -2, -2), (2, 2, 2)))
+bolts = union(sphere((0, 0, 1), 0.2), sphere((0, 0, -1), 0.2))
+
+object overlay {
+  region gas  = box((-4, -4, -4), (4, 4, 4))
+  region core = union(frame, union(bolts, bolts.translate((0, 1, 0))))
+}
+)";
+  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+
+  Pool pool(hostMemoryResource());
+
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
+
+  const std::string before = text(folder + "/model.ebg");
+
+  const auto pickLevel = [&](const uint32_t a_first, const uint32_t a_count, const std::string& a_name) {
+    Studio::Writer<T> writer(folder + "/setup.ebg");
+
+    writer.attach(model);
+
+    RegionNames names(model.index());
+    DomainSetup setup;
+
+    setup.add(setup.addSurfaceGroup(), SurfaceSelector::surfaces(a_first, a_count));
+    names.setSurfaceGroup(0, "picked");
+
+    CHECK(writer.edited(names, setup) == "Name the new domain");
+
+    std::string question = writer.named("mech");
+
+    if (!a_name.empty()) {
+      CHECK_THAT(question, Catch::Matchers::StartsWith("Name the union at"));
+
+      question = writer.named(a_name);
+    }
+
+    CHECK(question.empty());
+
+    return writer.note();
+  };
+
+  // The frame (the gas's box is leaf 0): written by its value.
+  CHECK_THAT(pickLevel(1, 2, ""), Catch::Matchers::StartsWith("wrote"));
+  CHECK_THAT(text(folder + "/setup.ebg"),
+             Catch::Matchers::ContainsSubstring("domain mech {\n  group picked = surfaces(frame)\n}"));
+  CHECK(text(folder + "/model.ebg") == before);
+
+  // One copy of the bolts: their value is used twice, so it would name both.
+  CHECK_THAT(pickLevel(3, 2, ""), Catch::Matchers::ContainsSubstring("is used 2 times"));
+
+  // Both copies: a union written inside the core's, hoisted into a value of the name given (kept apart from frame).
+  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+
+  const auto fresh = Language::read<T>(folder + "/setup.ebg", pool);
+
+  {
+    Studio::Writer<T> writer(folder + "/setup.ebg");
+
+    writer.attach(fresh);
+
+    RegionNames names(fresh.index());
+    DomainSetup setup;
+
+    setup.add(setup.addSurfaceGroup(), SurfaceSelector::surfaces(3, 4));
+    names.setSurfaceGroup(0, "picked");
+
+    CHECK(writer.edited(names, setup) == "Name the new domain");
+    CHECK_THAT(writer.named("mech"), Catch::Matchers::EndsWith("model.ebg:8"));
+    CHECK(writer.named("frame").empty());
+    CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote"));
+  }
+
+  CHECK(text(folder + "/model.ebg") == R"(ebg 0
+
+frame = union(box((-2, -2, -2), (-1, 2, 2)), box((1, -2, -2), (2, 2, 2)))
+bolts = union(sphere((0, 0, 1), 0.2), sphere((0, 0, -1), 0.2))
+
+frame_2 = union(bolts, bolts.translate((0, 1, 0)))
+object overlay {
+  region gas  = box((-4, -4, -4), (4, 4, 4))
+  region core = union(frame, frame_2)
+}
+)");
+  CHECK_THAT(text(folder + "/setup.ebg"), Catch::Matchers::ContainsSubstring("group picked = surfaces(frame_2)"));
+
+  // The model reads again, and the group holds the four bolts' surfaces.
+  const auto again = Language::read<T>(folder + "/setup.ebg", pool);
+
+  const DomainSetup& mech = again.domain("mech").setup();
+
+  REQUIRE(mech.getNumSelectors() == 1U);
+  CHECK(mech.getSelector(0).m_surface == 3U);
+  CHECK(mech.getSelector(0).m_numSurfaces == 4U);
+}
+
+TEST_CASE("Writer: a level hoisted from a call written over several lines, named apart from the built-ins", "[Studio]")
+{
+  const std::string folder = copyOfWire("chain");
+
+  // Leaves: the gas's box 0, the chain's two boxes 1 and 2, the spheres 3 and 4.
+  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+
+object overlay {
+  region gas  = box((-4, -4, -4), (4, 4, 4))
+  region core = union(union(box((0, 0, 0), (1, 1, 1)),   # the base
+                            box((0, 0, 1), (1, 1, 2)))
+                        .translate((0, 1, 0)),
+                      bvh_union(sphere((3, 0, 0), 0.2), sphere((-3, 0, 0), 0.2)))
+}
+)";
+  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+
+  Pool pool(hostMemoryResource());
+
+  const auto model = Language::read<T>(folder + "/setup.ebg", pool);
+
+  {
+    Studio::Writer<T> writer(folder + "/setup.ebg");
+
+    writer.attach(model);
+
+    RegionNames names(model.index());
+    DomainSetup setup;
+
+    setup.add(setup.addSurfaceGroup(), SurfaceSelector::surfaces(1, 2));
+    names.setSurfaceGroup(0, "pair");
+
+    CHECK(writer.edited(names, setup) == "Name the new domain");
+    CHECK_THAT(writer.named("mech"), Catch::Matchers::EndsWith("model.ebg:5"));
+
+    // A built-in's name is not taken: a value named box would hide the shape.
+    CHECK(writer.named("box").empty());
+    CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote"));
+  }
+
+  CHECK(text(folder + "/model.ebg") == R"(ebg 0
+
+box_2 = union(box((0, 0, 0), (1, 1, 1)),   # the base
+                            box((0, 0, 1), (1, 1, 2)))
+                        .translate((0, 1, 0))
+object overlay {
+  region gas  = box((-4, -4, -4), (4, 4, 4))
+  region core = union(box_2,
+                      bvh_union(sphere((3, 0, 0), 0.2), sphere((-3, 0, 0), 0.2)))
+}
+)");
+
+  const auto again = Language::read<T>(folder + "/setup.ebg", pool);
+
+  const DomainSetup& mech = again.domain("mech").setup();
+
+  REQUIRE(mech.getNumSelectors() == 1U);
+  CHECK(mech.getSelector(0).m_surface == 1U);
+  CHECK(mech.getSelector(0).m_numSurfaces == 2U);
 }

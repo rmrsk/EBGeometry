@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -24,7 +25,9 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <tuple>
 #include <type_traits>
+#include <unordered_map>
 
 // Our includes
 #include "EBGeometry_Language.hpp"
@@ -1307,6 +1310,42 @@ private:
   std::vector<const void*> m_siteObjects;
 
   /**
+   * @brief Every call that made a shape, where it is written: to find the call making a node of the object.
+   */
+  std::vector<std::pair<Span, std::shared_ptr<const S>>> m_calls;
+
+  /**
+   * @brief The objects of an expression's leaves, in order, as a key: how many, the first and the last, and a
+   * polynomial hash of the sequence (so that a node's key is its operands' combined, each node visited once).
+   */
+  struct Run
+  {
+    uint64_t    m_count = 0;
+    uint64_t    m_hash  = 0;
+    uint64_t    m_power = 1;
+    const void* m_first = nullptr;
+    const void* m_last  = nullptr;
+
+    bool
+    operator<(const Run& a_other) const noexcept
+    {
+      return std::tie(m_count, m_hash, m_first, m_last) <
+             std::tie(a_other.m_count, a_other.m_hash, a_other.m_first, a_other.m_last);
+    }
+  };
+
+  /**
+   * @brief Each expression node's run, once computed, by the node's address: valid while the nodes live, as they do
+   * while the model is read (the calls and the values hold their shapes, the model its object).
+   */
+  std::unordered_map<const ExprDetail::Node<T>*, Run> m_runs;
+
+  /**
+   * @brief Each node site's shapes (the run of its leaves), as Model::m_nodeSites numbers them.
+   */
+  std::map<Run, uint32_t> m_nodeSiteRuns;
+
+  /**
    * @brief The model being made.
    */
   Model<T> m_model;
@@ -1329,6 +1368,165 @@ private:
 
     for (const Expr<T>& child : node.m_children) {
       leafObjects(child, a_objects);
+    }
+  }
+
+  /**
+   * @brief The run of an expression's leaves: a leaf's from its object, a composition's from its operands', each node
+   * computed once.
+   * @param[in] a_node The node.
+   * @return The run.
+   */
+  const Run&
+  runOf(const ExprDetail::Node<T>& a_node)
+  {
+    const auto known = m_runs.find(&a_node);
+
+    if (known != m_runs.end()) {
+      return known->second;
+    }
+
+    constexpr uint64_t base = 0x100000001B3ULL;
+
+    Run run;
+
+    if (a_node.m_kind == ExprDetail::Kind::Primitive) {
+      // The object's address, mixed (splitmix64), as the leaf's digit.
+      uint64_t x = static_cast<uint64_t>(reinterpret_cast<std::uintptr_t>(a_node.m_leaf.m_object.get()));
+
+      x = (x ^ (x >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+      x = (x ^ (x >> 27U)) * 0x94D049BB133111EBULL;
+      x = x ^ (x >> 31U);
+
+      run.m_count = 1;
+      run.m_hash  = x;
+      run.m_power = base;
+      run.m_first = a_node.m_leaf.m_object.get();
+      run.m_last  = run.m_first;
+    }
+    else {
+      for (const Expr<T>& child : a_node.m_children) {
+        const Run& operand = this->runOf(child.node());
+
+        if (operand.m_count == 0U) {
+          continue;
+        }
+
+        run.m_first = (run.m_count == 0U) ? operand.m_first : run.m_first;
+        run.m_last  = operand.m_last;
+        run.m_hash  = run.m_hash * operand.m_power + operand.m_hash;
+        run.m_power = run.m_power * operand.m_power;
+        run.m_count += operand.m_count;
+      }
+    }
+
+    return m_runs.emplace(&a_node, run).first->second;
+  }
+
+  /**
+   * @brief The run of a shape value's leaves.
+   * @param[in] a_shape The shape.
+   * @return The run; an empty one for a shape with no expression.
+   */
+  Run
+  runOf(const S& a_shape)
+  {
+    return a_shape.m_expr.has_value() ? this->runOf(a_shape.m_expr->node()) : Run{};
+  }
+
+  /**
+   * @brief The runs of the object's nodes, in ExprIndex's numbering (depth first, each node before its operands).
+   * @param[in]     a_node The node.
+   * @param[in,out] a_runs The runs.
+   */
+  void
+  nodeRuns(const ExprDetail::Node<T>& a_node, std::vector<Run>& a_runs)
+  {
+    a_runs.push_back(this->runOf(a_node));
+
+    for (const Expr<T>& child : a_node.m_children) {
+      this->nodeRuns(child.node(), a_runs);
+    }
+  }
+
+  /**
+   * @brief Find the value of the text making each node of the object (Model::siteOfNode()): the values and calls whose
+   * leaves are the node's.
+   */
+  void
+  findNodeSites()
+  {
+    std::vector<NodeSite>& sites = m_model.m_nodeSites;
+
+    const auto siteOf = [&](const Run& a_run) -> NodeSite& {
+      const auto [at, added] = m_nodeSiteRuns.emplace(a_run, static_cast<uint32_t>(sites.size()));
+
+      if (added) {
+        sites.emplace_back();
+      }
+
+      return sites[at->second];
+    };
+
+    // The calls: the outermost (the widest text) of those making the same shapes.
+    for (const auto& [span, shape] : m_calls) {
+      const Run run = this->runOf(*shape);
+
+      if (run.m_count > 0U) {
+        NodeSite& site = siteOf(run);
+
+        if (site.m_span.m_line == 0 || span.m_end - span.m_begin > site.m_span.m_end - site.m_span.m_begin) {
+          site.m_span = span;
+        }
+      }
+    }
+
+    // The names, in the order defined.
+    for (const std::string& name : m_valueOrder) {
+      const auto value = m_values.find(name);
+
+      if (value != m_values.end() && value->second.m_value.m_type == VT::Shape && value->second.m_value.m_shape) {
+        const Run run = this->runOf(*value->second.m_value.m_shape);
+
+        if (run.m_count > 0U) {
+          NodeSite& site = siteOf(run);
+
+          if (std::find(site.m_names.begin(), site.m_names.end(), name) == site.m_names.end()) {
+            site.m_names.push_back(name);
+          }
+        }
+      }
+    }
+
+    // Each node's site, by its leaves; a site's uses are the places (first leaves) of its nodes.
+    const ExprIndex<T>& index = *m_model.m_index;
+
+    std::vector<std::set<uint32_t>> places(sites.size());
+
+    m_model.m_nodeSiteOf.assign(index.getNumNodes(), ShapeSite::None);
+
+    std::vector<Run> runs;
+
+    this->nodeRuns(m_model.m_object->node(), runs);
+
+    for (uint32_t n = 0; n < index.getNumNodes() && n < runs.size(); n++) {
+      const typename ExprIndex<T>::Node& node = index.getNode(n);
+
+      if (node.m_numLeaves == 0U) {
+        continue;
+      }
+
+      const auto at = m_nodeSiteRuns.find(runs[n]);
+
+      if (at != m_nodeSiteRuns.end()) {
+        m_model.m_nodeSiteOf[n] = at->second;
+
+        places[at->second].insert(node.m_firstLeaf);
+      }
+    }
+
+    for (size_t k = 0; k < sites.size(); k++) {
+      sites[k].m_uses = static_cast<uint32_t>(places[k].size());
     }
   }
 
@@ -1826,15 +2024,7 @@ private:
     case NK::Divide: {
       return this->arithmetic(a_node);
     }
-    case NK::Call: {
-      std::vector<Arg> args;
-
-      for (size_t i = 0; i < a_node.m_children.size(); i++) {
-        args.push_back(Arg{a_node.m_keys[i], this->eval(a_node.m_children[i])});
-      }
-
-      return this->call(a_node, args);
-    }
+    case NK::Call:
     case NK::Method: {
       std::vector<Arg> args;
 
@@ -1842,15 +2032,31 @@ private:
         args.push_back(Arg{a_node.m_keys[i], this->eval(a_node.m_children[i])});
       }
 
-      return this->call(a_node, args);
+      return this->called(this->call(a_node, args), a_node.m_span);
     }
     case NK::Overlay: {
-      return this->overlay(a_node);
+      return this->called(this->overlay(a_node), a_node.m_span);
     }
     default: {
       throw Error(a_node.m_span, "a region is written inside an overlay");
     }
     }
+  }
+
+  /**
+   * @brief Record a call that made a shape, for the node sites (Model::siteOfNode()).
+   * @param[in] a_value The call's value.
+   * @param[in] a_span  Where the call is written.
+   * @return The value.
+   */
+  V
+  called(V a_value, const Span& a_span)
+  {
+    if (a_value.m_type == VT::Shape && a_value.m_shape != nullptr) {
+      m_calls.emplace_back(a_span, a_value.m_shape);
+    }
+
+    return a_value;
   }
 
   /**
@@ -3550,6 +3756,8 @@ private:
         m_model.m_leafSites.push_back(
           site == m_siteObjects.end() ? ShapeSite::None : static_cast<uint32_t>(site - m_siteObjects.begin()));
       }
+
+      this->findNodeSites();
     } catch (const RequireError& e) {
       this->error(m_objectStatement->m_span, "the object: " + checkMessage(e));
     }
@@ -4022,6 +4230,113 @@ private:
           }
         }
       }
+      else if (call.m_text == "surfaces") {
+        const char* form = "surfaces(name) or surfaces(name, between = (region, region))";
+
+        // The name first; between = (a, b) narrows it to the surfaces between two regions.
+        const Node* between = nullptr;
+
+        for (size_t k = 0; k < call.m_children.size(); k++) {
+          if (call.m_keys[k] == "between" && between == nullptr && k > 0) {
+            between = &call.m_children[k];
+          }
+          else if (k > 0 || !call.m_keys[k].empty()) {
+            throw Error(call.m_children[k].m_span, std::string("a selector: ") + form);
+          }
+        }
+
+        if (call.m_children.empty()) {
+          throw Error(call.m_span, std::string("a selector: ") + form);
+        }
+
+        const std::string& name  = nameOf(call.m_children[0], "a shape value");
+        const auto         value = m_values.find(name);
+
+        if (value == m_values.end()) {
+          std::vector<std::string> shapes;
+
+          for (const std::string& defined : m_valueOrder) {
+            const auto at = m_values.find(defined);
+
+            if (at != m_values.end() && at->second.m_value.m_type == VT::Shape) {
+              shapes.push_back(defined);
+            }
+          }
+
+          throw Error(call.m_children[0].m_span,
+                      "no shape value '" + name + "'" + LanguageDetail::suggest(name, shapes) +
+                        " (surfaces() takes a shape defined as name = shape; region(" + name +
+                        ") selects a region's surfaces)");
+        }
+        if (value->second.m_value.m_type != VT::Shape) {
+          throw Error(call.m_children[0].m_span,
+                      "surfaces(" + name + "): '" + name + "' is " +
+                        LanguageDetail::valueTypeName<T>(value->second.m_value.m_type) + ", not a shape");
+        }
+
+        // Every place the object uses the value: the surfaces of the nodes made of its leaves, once per place.
+        std::vector<std::pair<uint32_t, uint32_t>> ranges;
+
+        const auto run = (value->second.m_value.m_shape != nullptr)
+                           ? m_nodeSiteRuns.find(this->runOf(*value->second.m_value.m_shape))
+                           : m_nodeSiteRuns.end();
+
+        if (run != m_nodeSiteRuns.end()) {
+          std::set<uint32_t> places;
+
+          for (uint32_t n = 0; n < index.getNumNodes(); n++) {
+            const auto& node = index.getNode(n);
+
+            if (m_model.m_nodeSiteOf[n] == run->second && places.insert(node.m_firstLeaf).second) {
+              ranges.emplace_back(node.m_firstSurface, node.m_numSurfaces);
+            }
+          }
+        }
+
+        if (ranges.empty()) {
+          this->warning(call.m_span,
+                        "'" + name + "' is not used in the object: surfaces(" + name + ") selects nothing");
+        }
+
+        std::vector<std::pair<uint32_t, uint32_t>> sides;
+
+        if (between != nullptr) {
+          if (between->m_kind != NK::Pair) {
+            throw Error(between->m_span, "between is a pair of regions: between = (a, b)");
+          }
+
+          const auto first = this->regionsOf(nameOf(between->m_children[0], "a region"), between->m_children[0].m_span);
+          const auto second =
+            this->regionsOf(nameOf(between->m_children[1], "a region"), between->m_children[1].m_span);
+
+          for (const uint32_t a : first) {
+            for (const uint32_t b : second) {
+              if (a != b) {
+                sides.emplace_back(a, b);
+              }
+            }
+          }
+
+          if (sides.empty()) {
+            this->warning(between->m_span, "this selects nothing: a region has no interface with itself");
+          }
+        }
+
+        for (const auto& [first, count] : ranges) {
+          if (between == nullptr) {
+            selectors.push_back(SurfaceSelector::surfaces(first, count));
+          }
+
+          for (const auto& [a, b] : sides) {
+            SurfaceSelector selector = SurfaceSelector::surfaces(first, count);
+
+            selector.m_regionA = a;
+            selector.m_regionB = b;
+
+            selectors.push_back(selector);
+          }
+        }
+      }
       else if (call.m_text == "interface") {
         arity(2, 2, "interface(region, region)");
 
@@ -4090,7 +4405,7 @@ private:
       else {
         throw Error(call.m_nameSpan,
                     "no selector '" + call.m_text +
-                      "': label(\"x\"), interface(a, b), region(a), materials(m1, m2), remaining()");
+                      "': label(\"x\"), surfaces(name), interface(a, b), region(a), materials(m1, m2), remaining()");
       }
     }
 

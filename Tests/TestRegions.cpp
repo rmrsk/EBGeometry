@@ -2511,6 +2511,22 @@ TEMPLATE_TEST_CASE("Render: a view of regions shows what the render settings' re
 
   CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Selected);
 
+  // A range of surfaces (a level a viewer picks): the jacket's (surface 0) and the core's (1) select the jacket's
+  // outside; the core's alone does not.
+  const SurfaceSelector entry = settings.m_regions.m_selected[0];
+
+  settings.m_regions.m_hidden      = 0U;
+  settings.m_regions.m_selected[0] = SurfaceSelector::surfaces(0, 2);
+  settings.m_regions.m_numSelected = 1U;
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == RegionSettings::Selected);
+
+  settings.m_regions.m_selected[0] = SurfaceSelector::surfaces(1, 1);
+
+  CHECK(Render::Renderer<T>(settings).pick(view, camera, middle, middle).m_primitive == 1U);
+
+  settings.m_regions.m_selected[0] = entry;
+
   // Only the selected surfaces shown: the jacket passed through, the core's surface keyed by its entry and the side
   // seen, from the core (entering it) or, with the core hidden, from the jacket (its bore).
   settings.m_regions.m_hidden       = 0U;

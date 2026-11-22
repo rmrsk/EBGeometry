@@ -5,7 +5,10 @@
 //
 // A surface the user clicked is written by its label: label("x"), narrowed to a piece with between = (a, b). A shape
 // (or a part of one) without a label of its own gets one first: the writer asks for a name, through the viewer, and
-// writes .label("name") (or .label(part = "name")) after the shape's call in the file that makes it. Only the edited
+// writes .label("name") (or .label(part = "name")) after the shape's call in the file that makes it. A level above a
+// shape (a range of surfaces, see SurfaceSelector::surfaces()) is written by the shape value making it: surfaces(name).
+// A level no value names gets one: the writer asks for a name, and hoists the call making it into a value of that
+// name, on a line before the statement holding it, the call replaced by the name. Only the edited
 // domain's block is rewritten: its subdomain lines and unchanged groups are kept as written, comments included; a
 // changed or new group is written in canonical form, keeping the properties it had. A model without the domain gets
 // it appended to its setup file. Every write keeps the files' previous text, for undo and redo; it first checks that no
@@ -143,16 +146,29 @@ public:
       m_pending.m_names.push_back(name);
     }
 
-    // Every clicked surface that has no label to write it by needs a name.
+    // Every clicked surface that has no label to write it by, and every level no value names, needs a name.
     for (uint32_t i = 0; i < a_setup.getNumSelectors(); i++) {
       const SurfaceSelector& s = a_setup.getSelector(i);
 
-      if (s.m_surface != SurfaceSelector::Any && this->labelFor(s).empty()) {
+      if (this->isLevel(s)) {
+        const uint32_t node = this->nodeOf(s);
+
+        const bool known = std::any_of(
+          m_pending.m_needs.begin(), m_pending.m_needs.end(), [&](const Need& n) { return n.m_node == node; });
+
+        if (!known && this->levelName(s).empty()) {
+          m_pending.m_needs.push_back(Need{0U, SurfaceSelector::Any, "", node});
+        }
+
+        continue;
+      }
+
+      if (s.m_surface != SurfaceSelector::Any && !this->isMember(s) && this->labelFor(s).empty()) {
         const uint32_t leaf = m_model->index().getLeafOfSurface(s.m_surface);
         const uint32_t part = s.m_part;
 
         const bool known = std::any_of(m_pending.m_needs.begin(), m_pending.m_needs.end(), [&](const Need& n) {
-          return n.m_leaf == leaf && n.m_part == part;
+          return n.m_node == ExprIndex<T>::None && n.m_leaf == leaf && n.m_part == part;
         });
 
         if (!known) {
@@ -185,7 +201,17 @@ public:
       m_pending.m_domain = validName(a_name);
     }
     else {
-      m_pending.m_needs[m_pending.m_asked].m_name = validName(a_name);
+      Need& need = m_pending.m_needs[m_pending.m_asked];
+
+      need.m_name = validName(a_name);
+
+      // A level's name becomes a value's: kept apart from every name the text defines, the built-in shapes and
+      // operations, and the names given.
+      const std::string typed = need.m_name;
+
+      for (int k = 2; need.m_node != ExprIndex<T>::None && this->taken(need.m_name, m_pending.m_asked); k++) {
+        need.m_name = typed + "_" + std::to_string(k);
+      }
     }
 
     return this->next();
@@ -206,12 +232,13 @@ public:
   }
 
 private:
-  // A shape or part that needs a name, and the name given.
+  // A shape or part that needs a name, or a level (a node: m_node), and the name given.
   struct Need
   {
     uint32_t    m_leaf = 0;
     uint32_t    m_part = SurfaceSelector::Any;
     std::string m_name;
+    uint32_t    m_node = ExprIndex<T>::None;
   };
 
   // An edit waiting for names.
@@ -243,6 +270,24 @@ private:
 
     for (size_t n = 0; n < m_pending.m_needs.size(); n++) {
       const Need& need = m_pending.m_needs[n];
+
+      if (need.m_name.empty() && need.m_node != ExprIndex<T>::None) {
+        m_pending.m_asked = n;
+
+        const std::string refusal = this->levelRefusal(need.m_node);
+
+        if (!refusal.empty()) {
+          m_pending = Pending{};
+          m_note    = "not written: " + refusal;
+
+          return "";
+        }
+
+        const Language::NodeSite* site = m_model->siteOfNode(need.m_node);
+
+        return "Name the " + this->operationOf(need.m_node) + " at " + site->m_span.m_file + ":" +
+               std::to_string(site->m_span.m_line);
+      }
 
       if (need.m_name.empty()) {
         m_pending.m_asked = n;
@@ -341,6 +386,141 @@ private:
     return uses;
   }
 
+  // Whether a name is one the model's text defines (a value, the object, a material, a domain, a coupling, a region),
+  // a built-in shape's or operation's, or one given to another level of this edit.
+  bool
+  taken(const std::string& a_name, const size_t a_need) const
+  {
+    const std::vector<std::string>& builtins = Language::LanguageDetail::builtinNames();
+
+    if (std::find(builtins.begin(), builtins.end(), a_name) != builtins.end()) {
+      return true;
+    }
+
+    for (const Language::Syntax::File& file : m_model->sources()) {
+      for (const Language::Syntax::Statement& statement : file.m_statements) {
+        if (statement.m_name == a_name) {
+          return true;
+        }
+      }
+    }
+
+    for (size_t n = 0; n < m_pending.m_needs.size(); n++) {
+      if (n != a_need && m_pending.m_needs[n].m_node != ExprIndex<T>::None && m_pending.m_needs[n].m_name == a_name) {
+        return true;
+      }
+    }
+
+    return m_model->index().findRegion(a_name) != ExprIndex<T>::None;
+  }
+
+  // Whether a selector is a level above a shape: a range of more than one surface.
+  static bool
+  isLevel(const SurfaceSelector& a_selector) noexcept
+  {
+    return a_selector.m_surface != SurfaceSelector::Any && a_selector.m_numSurfaces != 1U;
+  }
+
+  // Whether a selector picks one member of a collection (a sphere of a cloud): the language names no single member,
+  // and a label of the collection would name every member.
+  bool
+  isMember(const SurfaceSelector& a_selector) const
+  {
+    if (a_selector.m_surface == SurfaceSelector::Any || a_selector.m_numSurfaces != 1U) {
+      return false;
+    }
+
+    const ExprIndex<T>& index = m_model->index();
+
+    if (a_selector.m_surface >= index.getNumSurfaces()) {
+      return false;
+    }
+
+    const uint32_t leaf = index.getLeafOfSurface(a_selector.m_surface);
+
+    return index.getFirstSurface(leaf + 1U) - index.getFirstSurface(leaf) > 1U;
+  }
+
+  // The node a level is: of those covering its surfaces, the outermost a value of the text makes, else the outermost.
+  uint32_t
+  nodeOf(const SurfaceSelector& a_selector) const
+  {
+    const ExprIndex<T>& index = m_model->index();
+
+    uint32_t found = ExprIndex<T>::None;
+
+    for (uint32_t n = 0; n < index.getNumNodes(); n++) {
+      const auto& node = index.getNode(n);
+
+      if (node.m_firstSurface == a_selector.m_surface && node.m_numSurfaces == a_selector.m_numSurfaces) {
+        if (m_model->siteOfNode(n) != nullptr) {
+          return n;
+        }
+
+        found = (found == ExprIndex<T>::None) ? n : found;
+      }
+    }
+
+    return found;
+  }
+
+  // What a node does, in words ("union").
+  std::string
+  operationOf(const uint32_t a_node) const
+  {
+    std::string operation = m_model->index().getNode(a_node).m_operation;
+
+    for (char& c : operation) {
+      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+
+    return operation;
+  }
+
+  // Why a level cannot be named where it is made, or "" when it can.
+  std::string
+  levelRefusal(const uint32_t a_node) const
+  {
+    const Language::NodeSite* site = (a_node != ExprIndex<T>::None) ? m_model->siteOfNode(a_node) : nullptr;
+
+    if (site == nullptr || site->m_span.m_line == 0U) {
+      return "a picked level is not a call the model's text makes on its own";
+    }
+    if (this->source(site->m_span.m_file) == nullptr) {
+      return "the " + this->operationOf(a_node) + " picked is made outside the model's files (" + site->m_span.m_file +
+             ")";
+    }
+    if (site->m_uses > 1U) {
+      return "the " + this->operationOf(a_node) + " at " + site->m_span.m_file + ":" +
+             std::to_string(site->m_span.m_line) + " is used " + std::to_string(site->m_uses) +
+             " times; give the one picked a value of its own";
+    }
+
+    return "";
+  }
+
+  // The name a level is written by: a value of the text making its node alone, or a name given in this edit; "" for
+  // none.
+  std::string
+  levelName(const SurfaceSelector& a_selector) const
+  {
+    const uint32_t node = this->nodeOf(a_selector);
+
+    if (node == ExprIndex<T>::None) {
+      return "";
+    }
+
+    for (const Need& need : m_pending.m_needs) {
+      if (need.m_node == node && !need.m_name.empty()) {
+        return need.m_name;
+      }
+    }
+
+    const Language::NodeSite* site = m_model->siteOfNode(node);
+
+    return (site != nullptr && site->m_uses == 1U && !site->m_names.empty()) ? site->m_names.front() : "";
+  }
+
   // The label a clicked surface (or part) is written by: one that names it alone; "" for none.
   std::string
   labelFor(const SurfaceSelector& a_selector) const
@@ -414,6 +594,14 @@ private:
 
     if (a_s.m_rest) {
       return "remaining()";
+    }
+    if (isLevel(a_s)) {
+      const std::string name = this->levelName(a_s);
+
+      return name.empty() ? "" : "surfaces(" + name + between() + ")";
+    }
+    if (this->isMember(a_s)) {
+      return "";
     }
     if (a_s.m_surface != SurfaceSelector::Any) {
       const std::string label = this->labelFor(a_s);
@@ -683,7 +871,8 @@ private:
     const auto same = [](const SurfaceSelector& x, const SurfaceSelector& y) {
       return x.m_surface == y.m_surface && x.m_part == y.m_part && x.m_regionA == y.m_regionA &&
              x.m_regionB == y.m_regionB && x.m_label == y.m_label && x.m_materialA == y.m_materialA &&
-             x.m_materialB == y.m_materialB && x.m_rest == y.m_rest;
+             x.m_materialB == y.m_materialB && x.m_rest == y.m_rest &&
+             (x.m_surface == SurfaceSelector::Any || x.m_numSurfaces == y.m_numSurfaces);
     };
 
     return position != a_order.end() && read < before.getNumSurfaceGroups() &&
@@ -697,6 +886,10 @@ private:
     std::vector<Edit> edits;
 
     for (const Need& need : m_pending.m_needs) {
+      if (need.m_node != ExprIndex<T>::None) {
+        continue;
+      }
+
       const Language::ShapeSite* site = m_model->siteOfLeaf(need.m_leaf);
 
       const std::string label = (need.m_part != SurfaceSelector::Any && need.m_part < site->m_parts.size())
@@ -709,11 +902,73 @@ private:
     return edits;
   }
 
-  // Write the pending edit: the labels and the domain's block, every file checked against the text the model read.
+  // The levels named in this edit: each call hoisted into a value of its name, on a line before the statement holding
+  // it, the call replaced by the name. Nothing when another edit falls inside a call (a shape labeled inside it).
+  std::optional<std::vector<Edit>>
+  hoistEdits(const std::vector<Edit>& a_others) const
+  {
+    std::vector<Edit> edits;
+
+    for (const Need& need : m_pending.m_needs) {
+      if (need.m_node == ExprIndex<T>::None) {
+        continue;
+      }
+
+      const Language::Span&         span = m_model->siteOfNode(need.m_node)->m_span;
+      const Language::Syntax::File* file = this->source(span.m_file);
+
+      const Language::Syntax::Statement* holder = nullptr;
+
+      for (const Language::Syntax::Statement& statement : file->m_statements) {
+        if (statement.m_span.m_begin <= span.m_begin && span.m_end <= statement.m_span.m_end) {
+          holder = &statement;
+        }
+      }
+
+      if (holder == nullptr) {
+        return std::nullopt;
+      }
+
+      // Another edit inside the call, or another level's call overlapping it.
+      for (const Edit& other : a_others) {
+        if (other.m_file == span.m_file && other.m_begin >= span.m_begin && other.m_begin <= span.m_end) {
+          return std::nullopt;
+        }
+      }
+
+      for (const Edit& other : edits) {
+        if (other.m_file == span.m_file && other.m_begin != other.m_end && other.m_begin < span.m_end &&
+            span.m_begin < other.m_end) {
+          return std::nullopt;
+        }
+      }
+
+      const std::string call = file->m_text.substr(span.m_begin, span.m_end - span.m_begin);
+
+      edits.push_back(
+        Edit{span.m_file, holder->m_span.m_begin, holder->m_span.m_begin, need.m_name + " = " + call + "\n"});
+      edits.push_back(Edit{span.m_file, span.m_begin, span.m_end, need.m_name});
+    }
+
+    return edits;
+  }
+
+  // Write the pending edit: the labels, the levels named and the domain's block, every file checked against the text
+  // the model read.
   void
   write()
   {
     std::vector<Edit> edits = this->labelEdits();
+
+    const std::optional<std::vector<Edit>> hoisted = this->hoistEdits(edits);
+
+    if (!hoisted.has_value()) {
+      m_note = "not written: a level and a shape or level inside it were named together; name one, then the other";
+
+      return;
+    }
+
+    edits.insert(edits.end(), hoisted->begin(), hoisted->end());
 
     const std::optional<std::vector<Edit>> domain = this->domainEdits();
 
@@ -784,7 +1039,9 @@ private:
     m_note = "wrote " + std::to_string(record.m_after.size()) + " file(s); Ctrl+Z undoes";
 
     if (!m_leftOut.empty()) {
-      m_note += "; left out what the language cannot write (an empty group, a selector) of " + m_leftOut;
+      m_note +=
+        "; left out what the language cannot write (an empty group, a selector, one member of a collection) of " +
+        m_leftOut;
     }
   }
 

@@ -164,6 +164,7 @@ The warnings:
 * a material named by a region but not declared (it has no properties);
 * a material declared but used by no region;
 * a selector that can hold nothing, such as ``interface(a, a)`` (a region has no interface with itself);
+* ``surfaces(name)`` of a value the object does not use (it selects nothing);
 * a key in the view block that a viewer does not read, pointing to the key meant (``red.color`` to
   ``color.red``);
 * a color in the view block for a name nothing in the model has (``color.blue`` with only a ``blu``).
@@ -188,6 +189,9 @@ Common errors, as a reader words them:
      - a name used before its definition, or never defined
    * - ``label: part 'xmin' is already labeled "a" at model.ebg:2``
      - a part labeled twice
+   * - ``no shape value 'fram' (did you mean 'frame'?) ...``
+     - ``surfaces()`` naming something that is not a shape value (a region, say: ``region(name)`` selects a
+       region's surfaces)
    * - ``an overlay (regions) cannot be an operand of union: ...``
      - an overlay where the region of a point would not be clear
    * - ``'a.ebg' includes itself, through the files that include it``

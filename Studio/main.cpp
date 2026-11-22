@@ -932,6 +932,13 @@ view(const Options& a_options)
   hooks.m_undo  = [&writer]() { return writer.undo(); };
   hooks.m_redo  = [&writer]() { return writer.redo(); };
 
+  // A picked level is shown with the name of the value making it.
+  hooks.m_levelName = [&current](const uint32_t a_node) {
+    const Language::NodeSite* site = current->m_model->siteOfNode(a_node);
+
+    return (site != nullptr && !site->m_names.empty()) ? site->m_names.front() : std::string();
+  };
+
   // C prints the view as a view block too, to paste into the model.
   hooks.m_viewText = [&current](const Render::Camera<T>& a_camera, const Render::Settings<T>& a_settings) {
     return "ebgstudio: the current view, as the model's view block:\n" +

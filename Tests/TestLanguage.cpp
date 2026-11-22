@@ -72,7 +72,8 @@ sameSelector(const SurfaceSelector& a_first, const SurfaceSelector& a_second)
   return a_first.m_surface == a_second.m_surface && a_first.m_part == a_second.m_part &&
          a_first.m_regionA == a_second.m_regionA && a_first.m_regionB == a_second.m_regionB &&
          a_first.m_label == a_second.m_label && a_first.m_materialA == a_second.m_materialA &&
-         a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest;
+         a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest &&
+         (a_first.m_surface == SurfaceSelector::Any || a_first.m_numSurfaces == a_second.m_numSurfaces);
 }
 
 std::string
@@ -1132,6 +1133,118 @@ domain heat {
   REQUIRE(incomplete.warnings().size() == 1U);
   CHECK_THAT(incomplete.warnings()[0].m_message,
              Catch::Matchers::ContainsSubstring("material 'steel' is not declared"));
+}
+
+TEMPLATE_TEST_CASE("Language: surfaces(name) selects every surface of a named shape wherever the object uses it",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  // Leaves: the plate 0 and the dome 1 (frame), then the bolts twice: 2 and 3, 4 and 5. A bolt is one shape used four
+  // times; its value makes four nodes, the bolts' two.
+  const std::string text = R"(ebg 0
+bolt  = cylinder((0, 0, 0), (0, 0, 1), 0.1)
+bolts = union(bolt.translate((1, 0, 0)), bolt.translate((2, 0, 0)))
+frame = union(box((-3, -1, -1), (3, 1, 0)).label("plate"), sphere((0, 0, 2), 0.5))
+spare = sphere((9, 9, 9), 1)
+object overlay {
+  region steel = union(frame, bolts, bolts.translate((0, 2, 0))) material steel
+}
+domain mech {
+  group fixed  = surfaces(frame)
+  group loaded = surfaces(bolts, between = (steel, outside))
+  group heads  = surfaces(bolt)
+  group none   = surfaces(spare)
+}
+)";
+
+  const auto model = Language::parse<T>(text, "test.ebg", pool);
+
+  const DomainSetup& setup = model.domain("mech").setup();
+
+  REQUIRE(setup.getNumSelectors() == 7U);
+  CHECK(sameSelector(setup.getSelector(0), SurfaceSelector::surfaces(0, 2)));
+
+  for (uint32_t i = 0; i < 2U; i++) {
+    SurfaceSelector loaded = SurfaceSelector::surfaces(2U + 2U * i, 2);
+
+    loaded.m_regionA = 1;
+    loaded.m_regionB = 0;
+
+    CHECK(sameSelector(setup.getSelector(1U + i), loaded));
+  }
+
+  for (uint32_t i = 0; i < 4U; i++) {
+    CHECK(sameSelector(setup.getSelector(3U + i), SurfaceSelector::surface(2U + i)));
+    CHECK(setup.getSurfaceGroupOfSelector(3U + i) == 2U);
+  }
+
+  // A value the object does not use selects nothing, with a warning.
+  const auto unused = std::find_if(model.warnings().begin(), model.warnings().end(), [](const Language::Diagnostic& d) {
+    return d.m_message.find("'spare' is not used in the object") != std::string::npos;
+  });
+
+  CHECK(unused != model.warnings().end());
+
+  // The values making each node of the object, where their calls are, and how many places use them.
+  const ExprIndex<T>& index = model.index();
+
+  for (uint32_t n = 0; n < index.getNumNodes(); n++) {
+    const auto&               node = index.getNode(n);
+    const Language::NodeSite* site = model.siteOfNode(n);
+
+    CAPTURE(n, node.m_firstLeaf, node.m_numLeaves);
+
+    if (node.m_numLeaves == 2U && node.m_firstLeaf == 0U) {
+      REQUIRE(site != nullptr);
+      CHECK(site->m_names == std::vector<std::string>{"frame"});
+      CHECK(site->m_span.m_line == 4U);
+      CHECK(site->m_uses == 1U);
+    }
+    else if (node.m_numLeaves == 2U) {
+      REQUIRE(site != nullptr);
+      CHECK(site->m_names == std::vector<std::string>{"bolts"});
+      CHECK(site->m_uses == 2U);
+    }
+    else if (node.m_numLeaves == 1U && node.m_firstLeaf >= 2U) {
+      REQUIRE(site != nullptr);
+      CHECK(site->m_names == std::vector<std::string>{"bolt"});
+      CHECK(site->m_uses == 4U);
+    }
+    else if (node.m_numLeaves == 1U && node.m_firstLeaf == 0U) {
+      // A labeled box written inside the frame's call: no name, its call where it is written.
+      REQUIRE(site != nullptr);
+      CHECK(site->m_names.empty());
+      CHECK(site->m_span.m_line == 4U);
+      CHECK(site->m_span.m_column == 15U);
+      CHECK(site->m_uses == 1U);
+    }
+  }
+
+  CHECK(model.siteOfNode(index.getNumNodes()) == nullptr);
+
+  // What is not a shape value of the text.
+  const auto group = [](const std::string& a_selector) {
+    return "ebg 0\nball = sphere((0, 0, 0), 1)\nn = 3\nobject overlay {\n  region solid = ball\n}\ndomain d {\n  "
+           "group g = " +
+           a_selector + "\n}\n";
+  };
+
+  CHECK_THAT(firstError<T>(group("surfaces(bal)")).m_message,
+             Catch::Matchers::ContainsSubstring("no shape value 'bal'") && Catch::Matchers::ContainsSubstring("ball"));
+  CHECK_THAT(firstError<T>(group("surfaces(solid)")).m_message,
+             Catch::Matchers::ContainsSubstring("region(solid) selects a region's surfaces"));
+  CHECK_THAT(firstError<T>(group("surfaces(n)")).m_message, Catch::Matchers::ContainsSubstring("not a shape"));
+  CHECK_THAT(firstError<T>(group("surfaces(\"ball\")")).m_message,
+             Catch::Matchers::ContainsSubstring("expected a shape value by name"));
+  CHECK_THAT(firstError<T>(group("surfaces(ball, solid)")).m_message,
+             Catch::Matchers::ContainsSubstring("surfaces(name) or surfaces(name, between"));
+  CHECK_THAT(firstError<T>(group("surfaces(ball, between = solid)")).m_message,
+             Catch::Matchers::ContainsSubstring("between is a pair of regions"));
+  CHECK_THAT(firstError<T>(group("surfaz(ball)")).m_message, Catch::Matchers::ContainsSubstring("surfaces(name)"));
 }
 
 TEMPLATE_TEST_CASE("Language: a domain and a coupling judge a shape by the parts of it between the regions",
