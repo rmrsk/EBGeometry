@@ -218,6 +218,30 @@ struct Hooks
 };
 
 /**
+ * @brief The near clip moved by whole steps, each a fraction of the camera's distance to its target, never below 0.
+ * @details Internal helper; not part of the public API. The viewer's Home and End keys and Alt + wheel move the near
+ * clip with it, so that a step looks the same at every zoom. What is left within a thousandth of a step of 0 is 0, so
+ * that stepping forward and back again comes back to no clip, whatever the rounding (and whatever zooming changed the
+ * step in between). A template, instantiated only by the window and the tests, so that it compiles into no other
+ * translation unit (see below).
+ * @tparam T Floating-point precision.
+ * @param[in] a_nearClip The near clip now (not negative).
+ * @param[in] a_distance The camera's distance to its target.
+ * @param[in] a_fraction A step, as a fraction of a_distance.
+ * @param[in] a_steps    Steps to move: positive pushes the near clip away from the eye, negative brings it back.
+ * @return The near clip moved, 0 or more.
+ */
+template <class T>
+inline T
+steppedNearClip(const T a_nearClip, const T a_distance, const T a_fraction, const int a_steps) noexcept
+{
+  const T step  = a_fraction * a_distance;
+  const T moved = a_nearClip + T(a_steps) * step;
+
+  return (moved > T(1e-3) * step) ? moved : T(0);
+}
+
+/**
  * @brief Close a window kept between calls (see Hooks).
  * @details Internal helper; not part of the public API.
  * @tparam T Floating-point precision.
@@ -292,6 +316,11 @@ keys(const bool a_device, const bool a_regions = false)
       {"1, 2, 3", "Look from the front, the side, the top"},
       {"O", "Switch between perspective and orthographic"},
       {"+, -", "Narrower or wider field of view"},
+      {"Home, End",
+       "See through what is in front: push the near clip away from the eye, or bring it back (with Shift, in fine "
+       "steps)"},
+      {"Alt + wheel", "Push the near clip away (rolled up) or bring it back"},
+      {"Ctrl + Home, End", "Take the near clip away"},
       {"R", "Reset the camera, the light, what is picked and what is shown"},
       {nullptr, "Light"},
       {"Right drag", "Move the light"},
@@ -2942,7 +2971,8 @@ run(const S&                           a_shape,
 
     std::vector<MenuState> states{
       {{"Yaw " + fixed(double(camera.m_yaw), 1) + ", pitch " + fixed(double(camera.m_pitch), 1) + ", distance " +
-          fixed(double(camera.m_distance), 2),
+          fixed(double(camera.m_distance), 2) +
+          (camera.m_nearClip > T(0) ? ", near clip " + fixed(double(camera.m_nearClip), 3) : std::string()),
         std::string(camera.m_orthographic ? "Orthographic" : "Perspective") + ", field of view " +
           fixed(double(camera.m_fieldOfView), 0)},
        {"Target " + point(camera.m_target, 3) + ", near clip " + fixed(double(camera.m_nearClip), 3),
@@ -4814,6 +4844,18 @@ run(const S&                           a_shape,
             break;
           }
 
+          // Alt and the wheel: the near clip away from the eye (rolled up, as the wheel zooms in) or back, by a fiftieth
+          // of the camera's distance to its target a step (outside the slice view, which has none).
+          if ((SDL_GetModState() & KMOD_ALT) != 0 && !slicing) {
+            camera.m_nearClip = steppedNearClip(camera.m_nearClip, camera.m_distance, T(0.02), event.wheel.y);
+
+            endStepping(false);
+
+            changed = true;
+
+            break;
+          }
+
           if ((SDL_GetModState() & KMOD_SHIFT) != 0) {
             // Shift and the wheel step through the surfaces under the cursor: the first step picks the nearest,
             // rolling down steps deeper, rolling up back towards the eye. Each is picked in turn, and the primitives
@@ -5156,13 +5198,15 @@ run(const S&                           a_shape,
           sliceOutside   = settings.m_sectionFillOutside;
 
           // Only the plane: opaque where it lies outside the shape too (a view of regions filled there by what each
-          // point is in), so that nothing behind it shows.
+          // point is in), so that nothing behind it shows, and no near clip, which could only hide it (leaving gives
+          // the near clip back).
           settings.m_floor              = false;
           settings.m_shadows            = false;
           settings.m_occlusion          = false;
           settings.m_sheetOpacity       = T(1);
           settings.m_sectionFillOutside = true;
           camera.m_target               = center;
+          camera.m_nearClip             = T(0);
           slicing                       = true;
 
           aimAtSlice();
@@ -5553,6 +5597,31 @@ run(const S&                           a_shape,
 
             settings.m_ambient = Math::clamp(steps / T(20), T(0), T(1.5));
           }
+
+          break;
+        }
+        case SDLK_HOME:
+        case SDLK_END: {
+          // The near clip, to see through what is in front without moving the camera: Home pushes it away from the
+          // eye, End brings it back, in steps of a twentieth of the camera's distance to its target (a hundredth with
+          // Shift held); with Ctrl held, either takes it away. The slice view, which shows only the plane, has none.
+          if (slicing) {
+            changed = pending;
+
+            break;
+          }
+
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            camera.m_nearClip = T(0);
+          }
+          else {
+            const T fraction  = ((event.key.keysym.mod & KMOD_SHIFT) != 0) ? T(0.01) : T(0.05);
+            camera.m_nearClip = steppedNearClip(
+              camera.m_nearClip, camera.m_distance, fraction, (event.key.keysym.sym == SDLK_HOME) ? 1 : -1);
+          }
+
+          // What Shift and the wheel stepped through was found from the old near clip.
+          endStepping(false);
 
           break;
         }

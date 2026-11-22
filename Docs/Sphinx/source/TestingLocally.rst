@@ -563,8 +563,8 @@ Test coverage
        unlit surface black, a background of the color set); the fill light lighting what the light leaves
        dark and not the floor; the shoulder rolling bright surfaces off towards white; the section plane's lines of
        equal distance standing out on every look; the floor's checkerboard off and resized;
-       an orthographic camera showing a sphere as a disc of its radius; the near clip; ``Camera::fit``
-       from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
+       an orthographic camera showing a sphere as a disc of its radius; the near clip, and the viewer's steps of it;
+       ``Camera::fit`` from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
        section plane's contour, sheet and lines of equal distance, within the box only; ``writeImage()``
        writing a binary PPM;
        ``view()`` returning at once with ``--no-view``, the pool left unfrozen; and the rejected
