@@ -86,9 +86,12 @@ crossing(const Source&                     a_triangle,
   // edge, twice the area over that edge's length. A point on an edge shared by two triangles is then inside
   // both, however far the ray comes from; the widening does not grow for a ray nearly in the triangle's
   // plane. Each test is multiplied through by a lower bound on twice the area (the largest component of
-  // e1 x e2), so that it needs no square root or division, and every edge's length is bounded by
-  // |e1| + |e2| in the L1 norm: both only widen it a little more. A zero det (a ray in the plane) makes u, v
-  // and t infinite or NaN, which every test below rejects.
+  // e1 x e2), so that it needs no square root or division, and carries the length of its own edge in the L1
+  // norm: u is zero on the edge along e2, v on the edge along e1, and 1 - u - v on the edge along e2 - e1.
+  // Both bounds only widen a test a little more (at most a factor 3 together). One length for all three
+  // tests (bounding every edge by the longest) would widen the test across a short edge by the triangle's
+  // aspect ratio: on a sliver, rays passing far outside its short edge would cross it. A zero det (a ray in
+  // the plane) makes u, v and t infinite or NaN, which every test below rejects.
   const Vec3V<V> n     = cross(e1, e2);
   const V        nx    = abs(n.x);
   const V        ny    = abs(n.y);
@@ -96,11 +99,15 @@ crossing(const Source&                     a_triangle,
   const V        nxy   = select(nx > ny, nx, ny);
   const V        area2 = select(nxy > nz, nxy, nz);
   const V        ulps  = V(T(4) * Math::Limits<T>::epsilon());
-  const V delta = ulps * (abs(a_origin.x) + abs(a_origin.y) + abs(a_origin.z) + abs(v0.x) + abs(v0.y) + abs(v0.z));
-  const V slack = ulps * area2 + delta * (abs(e1.x) + abs(e1.y) + abs(e1.z) + abs(e2.x) + abs(e2.y) + abs(e2.z));
+  const V delta     = ulps * (abs(a_origin.x) + abs(a_origin.y) + abs(a_origin.z) + abs(v0.x) + abs(v0.y) + abs(v0.z));
+  const Vec3V<V> e3 = e2 - e1;
+  const V        base   = ulps * area2;
+  const V        slackU = base + delta * (abs(e2.x) + abs(e2.y) + abs(e2.z));
+  const V        slackV = base + delta * (abs(e1.x) + abs(e1.y) + abs(e1.z));
+  const V        slackW = base + delta * (abs(e3.x) + abs(e3.y) + abs(e3.z));
 
-  const auto inside  = both(both(u * area2 + slack >= constant<V>(0), v * area2 + slack >= constant<V>(0)),
-                           (constant<V>(1) - u - v) * area2 + slack >= constant<V>(0));
+  const auto inside  = both(both(u * area2 + slackU >= constant<V>(0), v * area2 + slackV >= constant<V>(0)),
+                           (constant<V>(1) - u - v) * area2 + slackW >= constant<V>(0));
   const auto inRange = both(t >= a_tMin, a_tMax >= t);
   const auto crosses = both(both(inside, inRange), abs(det) > constant<V>(0));
 
