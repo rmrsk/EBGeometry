@@ -5848,22 +5848,22 @@ run(const S&                           a_shape,
           // The camera, the light and the picked surfaces, as the window opened with them (out of the slice view).
           leaveSlice();
 
-          camera                     = (a_hooks != nullptr && a_hooks->m_hasHome) ? a_hooks->m_home : a_camera;
-          settings.m_light           = a_settings.m_light;
-          settings.m_lightIntensity  = a_settings.m_lightIntensity;
-          settings.m_ambient         = a_settings.m_ambient;
-          settings.m_fillIntensity   = a_settings.m_fillIntensity;
-          settings.m_hidden          = a_settings.m_hidden;
-          settings.m_volumePrimitive = a_settings.m_volumePrimitive;
-          settings.m_peel            = a_settings.m_peel;
-          explode                    = T(0);
+          camera                        = (a_hooks != nullptr && a_hooks->m_hasHome) ? a_hooks->m_home : a_camera;
+          settings.m_light              = a_settings.m_light;
+          settings.m_lightIntensity     = a_settings.m_lightIntensity;
+          settings.m_ambient            = a_settings.m_ambient;
+          settings.m_fillIntensity      = a_settings.m_fillIntensity;
+          settings.m_hidden             = a_settings.m_hidden;
+          settings.m_volumePrimitive    = a_settings.m_volumePrimitive;
+          settings.m_peel               = a_settings.m_peel;
+          explode                       = T(0);
+          settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
+          settings.m_highlightCount     = a_settings.m_highlightCount;
+          picked                        = false;
 
           if (typingExplode) {
             finishTypingExplode(false);
           }
-          settings.m_highlightPrimitive = a_settings.m_highlightPrimitive;
-          settings.m_highlightCount     = a_settings.m_highlightCount;
-          picked                        = false;
 
           selection.clear();
           depthHits.clear();
