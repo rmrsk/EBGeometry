@@ -6,13 +6,18 @@
 # default, or double). ASSERTIONS (ON/OFF) toggles EBGEOMETRY_EXPECT() runtime
 # assertion checks. GPU (OFF, HIP or CUDA) compiles it for a GPU with hipcc or
 # nvcc, so that render and view draw there (HIP_ARCH and CUDA_ARCH pick the
-# target; run `make clean` after switching). VIEWER (SDL2 or OFF) builds the
-# window of `ebgstudio view`, which needs SDL2; it is SDL2 when sdl2-config is
-# found. Override any of these on the command line, e.g.:
+# target). VIEWER (SDL2 or OFF) builds the window of `ebgstudio view`, which
+# needs SDL2; it is SDL2 when sdl2-config is found. A change of any of these, or
+# of the library's headers, rebuilds what it affects. A CUDA build compiles the
+# render kernels in parallel, one translation unit each (Kernels.cpp, see
+# Kernels.hpp), JOBS at a time (default 7, the kernels and main.cpp at once,
+# needing about 30 GB of memory; JOBS=3 needs about 15 GB, JOBS=1 compiles one
+# at a time). Override any of these on the command line, e.g.:
 #
 #   make GPU=CUDA
 #   make PRECISION=double VIEWER=OFF
 #   make GPU=HIP HIP_ARCH=gfx942
+#   make GPU=CUDA JOBS=3
 
 EBGEOMETRY_HOME ?= ..
 PRECISION       ?= float
@@ -32,11 +37,12 @@ endif
 CXXFLAGS ?= -O3 -march=native -Wall -Wextra
 
 ifeq ($(GPU),HIP)
-  CXX      = hipcc
-  CXXFLAGS = -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
+  CXX       = hipcc
+  CXXFLAGS  = -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
 else ifeq ($(GPU),CUDA)
-  CXX      = nvcc
-  CXXFLAGS = -O3 -x cu -arch=$(CUDA_ARCH)
+  CXX       = nvcc
+  CXXFLAGS  = -O3 -x cu -arch=$(CUDA_ARCH)
+  LINKFLAGS = -arch=$(CUDA_ARCH)
 else ifneq ($(GPU),OFF)
   $(error GPU must be OFF, HIP or CUDA)
 endif
@@ -63,11 +69,41 @@ else ifneq ($(VIEWER),OFF)
   $(error VIEWER must be OFF or SDL2)
 endif
 
-TARGET := ebgstudio
+TARGET  := ebgstudio
+DEFINES := -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_STUDIO_PRECISION=$(PRECISION)
+JOBS    ?= 7
 
-$(TARGET): main.cpp Writer.hpp
-	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_STUDIO_PRECISION=$(PRECISION) $< -o $@ $(LDLIBS)
+# What a build depends on besides its sources: the library's headers, and the settings, kept in .build-flags and
+# rewritten only when they differ, so that switching PRECISION, GPU, VIEWER or ASSERTIONS rebuilds every object.
+LIBRARY  := $(wildcard $(EBGEOMETRY_HOME)/EBGeometry.hpp $(EBGEOMETRY_HOME)/Source/*.hpp)
+SETTINGS := $(CXX) $(CXXFLAGS) $(DEFINES) $(LDLIBS)
+$(shell printf '%s\n' '$(SETTINGS)' | cmp -s - .build-flags || printf '%s\n' '$(SETTINGS)' > .build-flags)
+DEPENDS  := .build-flags $(LIBRARY)
+
+ifeq ($(GPU),CUDA)
+# The render kernels, one translation unit each (see Kernels.hpp, which gives both counts); without the window, only
+# those the render command launches.
+COUNT   := $(shell sed -n 's/.*constexpr int Count *= *\([0-9]*\);.*/\1/p' Kernels.hpp)
+ifeq ($(VIEWER),OFF)
+  COUNT := $(shell sed -n 's/.*constexpr int CountWithoutViewer *= *\([0-9]*\);.*/\1/p' Kernels.hpp)
+endif
+KERNELS := $(foreach k,$(shell seq 0 $$(($(COUNT) - 1))),kernel$(k).o)
+
+MAKEFLAGS += -j$(JOBS)
+
+$(TARGET): main.o $(KERNELS)
+	$(CXX) $(LINKFLAGS) $^ -o $@ $(LDLIBS)
+
+main.o: main.cpp Writer.hpp Kernels.hpp $(DEPENDS)
+	$(CXX) -std=c++17 $(CXXFLAGS) $(DEFINES) -DEBGEOMETRY_STUDIO_SPLIT_KERNELS -c $< -o $@
+
+kernel%.o: Kernels.cpp Kernels.hpp $(DEPENDS)
+	$(CXX) -std=c++17 $(CXXFLAGS) $(DEFINES) -DEBGEOMETRY_STUDIO_KERNEL=$* -c $< -o $@
+else
+$(TARGET): main.cpp Writer.hpp $(DEPENDS)
+	$(CXX) -std=c++17 $(CXXFLAGS) $(DEFINES) $< -o $@ $(LDLIBS)
+endif
 
 .PHONY: clean
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TARGET) main.o kernel*.o .build-flags
