@@ -506,6 +506,11 @@ jobs:
       - name: Build
         run: cmake --build --preset debug --parallel $(nproc)
 
+      - name: Generate a decimal-comma locale
+        # The tests that read and write numbers under a decimal-comma locale skip without one, and the runner
+        # image ships only C.UTF-8 and en_US.UTF-8.
+        run: sudo locale-gen de_DE.UTF-8
+
       - name: Run tests
         # AVX-512 is compiled unconditionally (catches ISA-specific compile errors
         # in the PackedBVH/TriangleSoA code paths regardless of runner hardware),

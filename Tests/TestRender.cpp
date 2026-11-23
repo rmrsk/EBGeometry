@@ -5,6 +5,7 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestLocale.hpp"
 #include "TestRenderHelpers.hpp"
 #include "TestTapeUtils.hpp"
 
@@ -2690,4 +2691,24 @@ TEMPLATE_TEST_CASE("Render: pickAll() lists every crossing under a point, front 
   }
 
   CHECK(renderer.pickAll(pair.tape(), camera, T(0.5), T(0.5)).empty());
+}
+
+TEMPLATE_TEST_CASE("Render: toCode() writes numbers with a decimal point under a decimal-comma locale",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const EBGeometryTestLocale::DecimalComma comma;
+
+  if (!comma.active()) {
+    SKIP("no decimal-comma locale is installed");
+  }
+
+  Render::Camera<T> camera;
+
+  camera.m_yaw = T(0.1);
+
+  CHECK(Render::toCode(camera, Render::Settings<T>()) ==
+        "EBGeometry::Render::Camera<T> camera;\ncamera.m_yaw = T(0.1);\nEBGeometry::Render::Settings<T> settings;\n");
 }
