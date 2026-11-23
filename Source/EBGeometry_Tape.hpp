@@ -2216,6 +2216,34 @@ private:
                     const PoolLocation& a_location) const noexcept;
 
   /**
+   * @brief Evaluate a primitive as evaluatePrimitive() does, in the one copy a device kernel's levels share.
+   * @details Out of line in a device pass, and called only there: from the levels below the top one, and from
+   * every level of the tagged evaluator (closestLeaf()), so that a kernel compiles the analytic shapes' distances
+   * once for those instead of once per level and value type. A shape's distance is a plain T, whatever the level,
+   * so one copy serves them all. The top level, and the body signedDistance() inlines for a tape of depth 0, keep
+   * the dispatch inlined: there are nearly all the primitives of a typical tape, and a call there was measured to
+   * cost run time (up to +46% on a float CSG tape when every level called out of line).
+   *
+   * Measured on the MeshCSG probe's device code (nvcc 12.5, sm_86, Release, ptxas alone): 233 s and 6.5 GB of
+   * ptxas, 31 MB of device code, with every copy inlined; 174 s and 4.7 GB, 26 MB, with this split. Each level
+   * below the top kept its operations (about 0.2 MB a kernel) and lost its shapes (about 0.3 MB).
+   * @param[in] a_type     Type index.
+   * @param[in] a_index    Index within the type's array.
+   * @param[in] a_point    Point.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  evaluateShared(const uint32_t      a_type,
+                 const uint32_t      a_index,
+                 const Vec3T<T>&     a_point,
+                 const void*         a_base,
+                 const PoolLocation& a_location) const noexcept;
+
+  /**
    * @brief Evaluate a pool-resident primitive (a mesh SDF, a BVH union, a tape).
    * @details Out of line in a device pass, so that the stack such a primitive needs (a mesh SDF's
    * traversal stack, say) is taken only when one is evaluated, once below the deepest call, rather than in
