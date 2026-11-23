@@ -2712,3 +2712,66 @@ TEMPLATE_TEST_CASE("Render: toCode() writes numbers with a decimal point under a
   CHECK(Render::toCode(camera, Render::Settings<T>()) ==
         "EBGeometry::Render::Camera<T> camera;\ncamera.m_yaw = T(0.1);\nEBGeometry::Render::Settings<T> settings;\n");
 }
+
+TEMPLATE_TEST_CASE("Render: the viewer outlines a picked object by the pixels within two of it that are not part of it",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  constexpr uint32_t Outside = 0xFFFFFFFFU;
+  constexpr uint32_t Key     = 7U;
+  constexpr uint32_t Size    = 12U;
+
+  // A frame whose pixels in columns and rows 4 to 6 show the picked object (key 7), one pixel of another object (key
+  // 3) beside it, and nothing elsewhere.
+  Render::Image frame;
+
+  frame.m_width  = Size;
+  frame.m_height = Size;
+  frame.m_pixels.assign(Size * Size, 0U);
+  frame.m_primitives.assign(Size * Size, Outside);
+
+  for (uint32_t y = 4; y <= 6; y++) {
+    for (uint32_t x = 4; x <= 6; x++) {
+      frame.m_primitives[y * Size + x] = Key;
+    }
+  }
+
+  frame.m_primitives[5 * Size + 9] = 3U;
+
+  const SphereSDF<T>        sphere(Vec3T<T>(T(0), T(0), T(0)), T(1));
+  const Render::Settings<T> settings;
+  const Render::Camera<T>   camera;
+
+  const std::vector<std::uint8_t> outline =
+    Render::ViewerDetail::outlineOf<T>(sphere, frame, false, Key, settings, settings, camera, T(0), nullptr, nullptr);
+
+  REQUIRE(outline.size() == frame.m_primitives.size());
+
+  // The reference: a pixel not showing the object, at most two columns and two rows from one that does.
+  for (int y = 0; y < int(Size); y++) {
+    for (int x = 0; x < int(Size); x++) {
+      const int  dx       = std::max({4 - x, x - 6, 0});
+      const int  dy       = std::max({4 - y, y - 6, 0});
+      const bool onObject = dx == 0 && dy == 0;
+      const bool expected = !onObject && dx <= 2 && dy <= 2;
+
+      INFO("pixel (" << x << ", " << y << ")");
+      CHECK((outline[std::size_t(y) * Size + std::size_t(x)] != 0U) == expected);
+    }
+  }
+
+  // A frame without the pixels' objects, or a stop asked for before it starts, gives no outline.
+  Render::Image bare = frame;
+
+  bare.m_primitives.clear();
+
+  CHECK(Render::ViewerDetail::outlineOf<T>(sphere, bare, false, Key, settings, settings, camera, T(0), nullptr, nullptr)
+          .empty());
+
+  const std::atomic<bool> stop{true};
+
+  CHECK(Render::ViewerDetail::outlineOf<T>(sphere, frame, false, Key, settings, settings, camera, T(0), nullptr, &stop)
+          .empty());
+}

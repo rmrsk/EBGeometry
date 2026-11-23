@@ -218,8 +218,9 @@ material), and colored by surface group, a surface in none is gray. A "Pick" row
 cap, a box's face), or the region there, with all its surfaces.
 
 **What is picked.** Each picked part is listed with its surface, the regions on its two sides and its
-surface group, with an ``[x]`` to take it out, and is highlighted and outlined along its own edges.
-``[Pick nothing]`` clears the list.
+surface group, with an ``[x]`` to take it out, and is highlighted and outlined along its own edges. The
+outline is drawn once the camera rests, with the refined frames: while it moves, the picked parts are only tinted, so
+that the window keeps up. ``[Pick nothing]`` clears the list.
 
 **Levels.** ``]`` steps the last pick out, one level at a time: from the part clicked to the whole surface,
 to the member of a collection (a sphere of a cloud) and the collection, to the shape, and through each

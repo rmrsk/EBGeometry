@@ -251,6 +251,145 @@ template <class T>
 inline void
 closeWindow(Hooks<T>& a_hooks);
 
+/**
+ * @brief The pixels of a frame on the outline of what is picked or selected: those within two pixels of an outlined
+ * object that are not part of it, or on the lower-keyed side of a border between two.
+ * @details Internal helper; not part of the public API. Reads only what it is given, so a background thread may call
+ * it (the shape's queries are const; see the thread-safety page).
+ *
+ * a_keyed holds each pixel's key. With a_several (selected surfaces in a view of regions), it is the frame of the
+ * selected surfaces alone (RegionSettings::m_onlySelected), each side of each keyed apart, so that their edges show
+ * where the rest of the object hides them; an edge the object hides clearly is then left out, which takes up to four
+ * host picks per outline pixel. Otherwise it is the frame itself, and the object outlined is the one keyed a_key (all
+ * of a mesh SDF, whatever face).
+ * @tparam T Precision.
+ * @tparam S Shape type.
+ * @param[in] a_shape  The shape on the host.
+ * @param[in] a_keyed  The keyed frame.
+ * @param[in] a_several Whether the selected surfaces are outlined, from their frame alone.
+ * @param[in] a_key    The picked object's key, when not a_several.
+ * @param[in] a_alone  The settings of the frame of the selected surfaces alone (a_several only).
+ * @param[in] a_shown  The settings of the frame as shown (a_several only).
+ * @param[in] a_camera The camera.
+ * @param[in] a_explode The exploded view's factor (0: not exploded).
+ * @param[in] a_boxes  The regions' boxes, when exploded.
+ * @param[in] a_cancel Set to stop early (nullptr: never); the outline is then empty.
+ * @return One entry per pixel, 1 on the outline; empty when the keyed frame does not match the frame's size.
+ */
+template <class T, class S>
+std::vector<std::uint8_t>
+outlineOf(const S&                                                                                     a_shape,
+          const Image&                                                                                 a_keyed,
+          const bool                                                                                   a_several,
+          const uint32_t                                                                               a_key,
+          const Settings<T>&                                                                           a_alone,
+          const Settings<T>&                                                                           a_shown,
+          const Camera<T>&                                                                             a_camera,
+          [[maybe_unused]] const T                                                                     a_explode,
+          [[maybe_unused]] const std::shared_ptr<const std::vector<RegionNeighborhoodDetail::Box<T>>>& a_boxes,
+          const std::atomic<bool>*                                                                     a_cancel)
+{
+  constexpr uint32_t Outside = 0xFFFFFFFFU;
+
+  const uint32_t width  = a_keyed.m_width;
+  const uint32_t height = a_keyed.m_height;
+
+  if (a_keyed.m_primitives.size() != std::size_t(width) * std::size_t(height)) {
+    return {};
+  }
+
+  // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one; a picked surface's side).
+  const auto objectAt = [&](const int a_x, const int a_y) {
+    const uint32_t id = a_keyed.m_primitives[std::size_t(a_y) * width + std::size_t(a_x)];
+
+    if (primitivesAreFaces<S>) {
+      return (id != Outside) ? 0U : Outside;
+    }
+
+    if (a_several) {
+      return (id - RegionSettings::Selected < 2U * RegionSettings::MaxSelected) ? id : Outside;
+    }
+
+    return (id == a_key) ? id : Outside;
+  };
+
+  // The hit through a pixel's center, as the frame of a_frame shows it.
+  const auto pickAt = [&](const Settings<T>& a_frame, const T a_column, const T a_row) -> HitT<T> {
+    if constexpr (hasRegionVisibility<S>) {
+      if (a_explode > T(0) && a_boxes != nullptr) {
+        const ExplodedView<S> drawn(a_shape.withSettings(a_frame.m_regions), *a_boxes, a_explode);
+
+        return Renderer<T>(a_frame).pick(drawn, a_camera, a_column, a_row);
+      }
+    }
+
+    return Renderer<T>(a_frame).pick(a_shape, a_camera, a_column, a_row);
+  };
+
+  // An edge of the picked surfaces is hidden where the object is hit clearly in front of it. The edge lies between
+  // the outline's pixel and the one beside it that showed it, at the nearer of the picked surfaces there (the other
+  // may be a surface's back, seen past its rim); the ray through that pixel meets the object as shown before it.
+  const auto hidden = [&](const int a_x, const int a_y, const int a_u, const int a_v) {
+    const HitT<T> here   = pickAt(a_alone, T(a_x) + T(0.5), T(a_y) + T(0.5));
+    const HitT<T> beside = pickAt(a_alone, T(a_u) + T(0.5), T(a_v) + T(0.5));
+    const bool    nearer = here.hit() && (!beside.hit() || here.m_t < beside.m_t);
+    const HitT<T> edge   = nearer ? here : beside;
+
+    const HitT<T> front =
+      nearer ? pickAt(a_shown, T(a_x) + T(0.5), T(a_y) + T(0.5)) : pickAt(a_shown, T(a_u) + T(0.5), T(a_v) + T(0.5));
+
+    // Clearly: by more than a few pixels' width at the edge's depth (at the camera's distance, orthographic).
+    const T across    = T(2) * std::tan(T(0.5) * a_camera.m_fieldOfView * pi<T> / T(180)) / T(height);
+    const T footprint = across * (a_camera.m_orthographic ? a_camera.m_distance : edge.m_t);
+
+    return edge.hit() && front.hit() && front.m_t < edge.m_t - T(4) * footprint;
+  };
+
+  const int w     = static_cast<int>(width);
+  const int h     = static_cast<int>(height);
+  const int reach = 2;
+
+  std::vector<std::uint8_t> outline(std::size_t(width) * std::size_t(height), 0U);
+
+  // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
+  // lower-keyed side of a border between two (a line one reach wide either way). Where the object hides the edge,
+  // nothing is drawn.
+  for (int y = 0; y < h; y++) {
+    if (a_cancel != nullptr && a_cancel->load(std::memory_order_relaxed)) {
+      return {};
+    }
+
+    for (int x = 0; x < w; x++) {
+      const uint32_t own = objectAt(x, y);
+
+      bool near  = false;
+      int  nearU = x;
+      int  nearV = y;
+
+      for (int dy = -reach; dy <= reach && !near; dy++) {
+        for (int dx = -reach; dx <= reach && !near; dx++) {
+          const int u = x + dx;
+          const int v = y + dy;
+
+          if (u >= 0 && v >= 0 && u < w && v < h) {
+            const uint32_t other = objectAt(u, v);
+
+            near  = other != Outside && other != own && (own == Outside || own < other);
+            nearU = u;
+            nearV = v;
+          }
+        }
+      }
+
+      if (near && (!a_several || !hidden(x, y, nearU, nearV))) {
+        outline[std::size_t(y) * width + std::size_t(x)] = 1U;
+      }
+    }
+  }
+
+  return outline;
+}
+
 // The window's helpers are compiled only with the window: kept out of every other translation unit that
 // includes the library, they cannot change how the compiler inlines code there (they made GCC stop inlining
 // a tape's primitive dispatch in programs that never open a window).
@@ -784,6 +923,27 @@ struct Background
    * @brief Its height in rows.
    */
   uint32_t m_height = 0;
+
+  /**
+   * @brief Set once the frame (m_image, m_stats, m_seconds) is final: the window shows it then, and the thread writes
+   * only the outline after it.
+   */
+  std::atomic<bool> m_framed{false};
+
+  /**
+   * @brief Whether the window has shown the frame (the window's thread only).
+   */
+  bool m_shown = false;
+
+  /**
+   * @brief Whether it also finds the outline of the selected surfaces (see outlineOf()), after the frame.
+   */
+  bool m_outlining = false;
+
+  /**
+   * @brief The outline found, one entry per pixel (1: on it); empty when none was asked for or the render stopped.
+   */
+  std::vector<std::uint8_t> m_outline;
 
   /**
    * @brief Stop the render and wait for the thread.
@@ -3869,39 +4029,9 @@ run(const S&                           a_shape,
     }
   };
 
-  const auto show = [&](const Image& a_image, const Stats& a_stats, const double a_seconds, const char* a_what) {
-    if (a_stats.m_cameraInside && !warned) {
-      std::printf("EBGeometry viewer: the camera is inside the solid, so what it sees is seen from inside "
-                  "(tinted red).\n");
-
-      warned = true;
-    }
-
-    if (texture == nullptr || texWidth != a_image.m_width || texHeight != a_image.m_height) {
-      if (texture != nullptr) {
-        SDL_DestroyTexture(texture);
-      }
-
-      texture   = SDL_CreateTexture(screen,
-                                  SDL_PIXELFORMAT_RGBA8888,
-                                  SDL_TEXTUREACCESS_STREAMING,
-                                  static_cast<int>(a_image.m_width),
-                                  static_cast<int>(a_image.m_height));
-      texWidth  = a_image.m_width;
-      texHeight = a_image.m_height;
-    }
-
-    // A picked object, tinted gold in the render, is also outlined: the pixels next to it, within two pixels,
-    // that are not part of it turn gold. A mesh SDF is one object, whatever face a pixel shows.
-    const uint32_t* pixels = a_image.m_pixels.data();
-
-    // A pick with no key (a surface in no group, colored by group) has nothing to outline: the background has no key
-    // either.
-    // What is highlighted or picked is outlined: in a view of regions, the surfaces of a highlighted subdomain,
-    // domain or surface group, or each surface picked, along their own edges; otherwise the one picked, around what
-    // shows of it.
-    constexpr uint32_t Outside = 0xFFFFFFFFU;
-
+  // What is outlined from a frame of its own (see outlineOf()): in a view of regions, the surfaces of a highlighted
+  // subdomain, domain or surface group, or each surface picked, along their own edges; none otherwise.
+  const auto outlineSelectors = [&]() {
     std::vector<SurfaceSelector> outlinedBy;
 
     if constexpr (hasRegionVisibility<S>) {
@@ -3932,124 +4062,61 @@ run(const S&                           a_shape,
       }
     }
 
-    const bool     several = !outlinedBy.empty();
+    return outlinedBy;
+  };
+
+  const auto show = [&](const Image&                     a_image,
+                        const Stats&                     a_stats,
+                        const double                     a_seconds,
+                        const char*                      a_what,
+                        const std::vector<std::uint8_t>* a_outline) {
+    if (a_stats.m_cameraInside && !warned) {
+      std::printf("EBGeometry viewer: the camera is inside the solid, so what it sees is seen from inside "
+                  "(tinted red).\n");
+
+      warned = true;
+    }
+
+    if (texture == nullptr || texWidth != a_image.m_width || texHeight != a_image.m_height) {
+      if (texture != nullptr) {
+        SDL_DestroyTexture(texture);
+      }
+
+      texture   = SDL_CreateTexture(screen,
+                                  SDL_PIXELFORMAT_RGBA8888,
+                                  SDL_TEXTUREACCESS_STREAMING,
+                                  static_cast<int>(a_image.m_width),
+                                  static_cast<int>(a_image.m_height));
+      texWidth  = a_image.m_width;
+      texHeight = a_image.m_height;
+    }
+
+    // A picked object, tinted gold in the render, is also outlined (see outlineOf()). The selected surfaces of a view
+    // of regions are outlined from a frame of their own, which a background frame finds after it (a_outline): a
+    // preview shows them tinted only, so that the window answers while the camera moves. A single pick is outlined
+    // from the frame's own keys, which costs nothing.
+    const uint32_t* pixels = a_image.m_pixels.data();
+
+    constexpr uint32_t Outside = 0xFFFFFFFFU;
+
+    const bool     several = !outlineSelectors().empty();
     const uint32_t key     = pick.m_primitive;
     const bool     outline = several || (picked && (primitivesAreFaces<S> || key != Outside));
 
-    // The surfaces outlined, rendered again alone at the frame's size, each side of each keyed apart: their edges are
-    // where the keys change, at their silhouettes and at their rims, wherever the rest of the object hides them.
-    Image edges;
+    std::vector<std::uint8_t>        single;
+    const std::vector<std::uint8_t>* mask = several ? a_outline : nullptr;
 
-    Settings<T> shown = stageSettings(1);
-
-    shown.m_width    = a_image.m_width;
-    shown.m_height   = a_image.m_height;
-    shown.m_viewMode = ViewMode::Shaded;
-
-    Settings<T> alone = shown;
-
-    alone.m_recordPrimitives       = true;
-    alone.m_regions.m_onlySelected = true;
-    alone.m_regions.m_numSelected  = static_cast<uint32_t>(outlinedBy.size());
-
-    for (std::size_t i = 0; i < outlinedBy.size(); i++) {
-      alone.m_regions.m_selected[i] = outlinedBy[i];
+    if (outline && !several) {
+      single = outlineOf<T>(shape, a_image, false, key, Settings<T>(), Settings<T>(), camera, T(0), nullptr, nullptr);
+      mask   = &single;
     }
 
-    if constexpr (hasRegionVisibility<S>) {
-      if (outline && several) {
-        (void)render(shape,
-                     deviceShape,
-                     deviceGroups,
-                     alone,
-                     camera,
-                     onDevice,
-                     edges,
-                     nullptr,
-                     false,
-                     explodeBoxes ? explode : T(0),
-                     explodeBoxes);
-      }
-    }
-
-    const Image& keyed = several ? edges : a_image;
-
-    if (outline && keyed.m_primitives.size() == a_image.m_pixels.size()) {
-      // A pixel's outlined object: Outside, or what it is (all of a mesh SDF is one; a picked surface's side).
-      const auto objectAt = [&](const int a_x, const int a_y) {
-        const uint32_t id = keyed.m_primitives[std::size_t(a_y) * a_image.m_width + std::size_t(a_x)];
-
-        if (primitivesAreFaces<S>) {
-          return (id != Outside) ? 0U : Outside;
-        }
-
-        if (several) {
-          return (id - RegionSettings::Selected < 2U * RegionSettings::MaxSelected) ? id : Outside;
-        }
-
-        return (id == key) ? id : Outside;
-      };
-
-      const int width  = static_cast<int>(a_image.m_width);
-      const int height = static_cast<int>(a_image.m_height);
-      const int reach  = 2;
-
+    if (outline && mask != nullptr && mask->size() == a_image.m_pixels.size()) {
       outlined = a_image.m_pixels;
 
-      // An edge of the picked surfaces is hidden where the object is hit clearly in front of it. The edge lies between
-      // the outline's pixel and the one beside it that showed it, at the nearer of the picked surfaces there (the
-      // other may be a surface's back, seen past its rim); the ray through that pixel meets the object as shown
-      // before it. Hidden edges are not drawn.
-
-      const auto hidden = [&](const int a_x, const int a_y, const int a_u, const int a_v) {
-        const HitT<T> here   = pickShown(alone, T(a_x) + T(0.5), T(a_y) + T(0.5));
-        const HitT<T> beside = pickShown(alone, T(a_u) + T(0.5), T(a_v) + T(0.5));
-        const bool    nearer = here.hit() && (!beside.hit() || here.m_t < beside.m_t);
-        const HitT<T> edge   = nearer ? here : beside;
-
-        const HitT<T> front = nearer ? pickShown(shown, T(a_x) + T(0.5), T(a_y) + T(0.5))
-                                     : pickShown(shown, T(a_u) + T(0.5), T(a_v) + T(0.5));
-
-        // Clearly: by more than a few pixels' width at the edge's depth (at the camera's distance, orthographic).
-        const T across    = T(2) * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180)) / T(height);
-        const T footprint = across * (camera.m_orthographic ? camera.m_distance : edge.m_t);
-
-        return edge.hit() && front.hit() && front.m_t < edge.m_t - T(4) * footprint;
-      };
-
-      // A pixel is on the outline when an outlined object other than its own is near: outside them all, or on the
-      // lower-keyed side of a border between two (a line one reach wide either way).
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          const uint32_t own = objectAt(x, y);
-
-          bool near  = false;
-          int  nearU = x;
-          int  nearV = y;
-
-          for (int dy = -reach; dy <= reach && !near; dy++) {
-            for (int dx = -reach; dx <= reach && !near; dx++) {
-              const int u = x + dx;
-              const int v = y + dy;
-
-              if (u >= 0 && v >= 0 && u < width && v < height) {
-                const uint32_t other = objectAt(u, v);
-
-                near  = other != Outside && other != own && (own == Outside || own < other);
-                nearU = u;
-                nearV = v;
-              }
-            }
-          }
-
-          if (near) {
-            const std::size_t pixel = std::size_t(y) * a_image.m_width + std::size_t(x);
-
-            // Where the object hides the edge, nothing is drawn.
-            if (!several || !hidden(x, y, nearU, nearV)) {
-              outlined[pixel] = 0xFFB81AFFU;
-            }
-          }
+      for (std::size_t i = 0; i < outlined.size(); i++) {
+        if ((*mask)[i] != 0U) {
+          outlined[i] = 0xFFB81AFFU;
         }
       }
 
@@ -6031,7 +6098,7 @@ run(const S&                           a_shape,
         previewScale = Math::min(T(1), T(2) * previewScale);
       }
 
-      show(image, stats, seconds, "preview");
+      show(image, stats, seconds, "preview", nullptr);
 
       changed    = false;
       pending    = 1;
@@ -6050,40 +6117,106 @@ run(const S&                           a_shape,
 
       next->m_stage  = pending;
       next->m_height = framed.m_settings.m_height;
-      next->m_thread = std::thread([next, render, framed, deviceGroups, camera, onDevice]() {
-        const auto start = Clock::now();
 
-        next->m_stats   = render(framed.m_host,
-                               framed.m_device,
-                               deviceGroups,
-                               framed.m_settings,
-                               camera,
-                               onDevice,
-                               next->m_image,
-                               next,
-                               framed.m_own,
-                               framed.m_explode,
-                               framed.m_boxes);
-        next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
-        next->m_done    = true;
-      });
+      // The selected surfaces' outline (see show()), found after the frame on the same thread: the frame of those
+      // surfaces alone, at the frame's size, and the host picks that leave out the edges the object hides.
+      const std::vector<SurfaceSelector> outlinedBy = outlineSelectors();
+
+      Settings<T> shown = stageSettings(1);
+
+      shown.m_width    = framed.m_settings.m_width;
+      shown.m_height   = framed.m_settings.m_height;
+      shown.m_viewMode = ViewMode::Shaded;
+
+      Settings<T> alone = shown;
+
+      alone.m_recordPrimitives = true;
+
+      if constexpr (hasRegionVisibility<S>) {
+        alone.m_regions.m_onlySelected = true;
+        alone.m_regions.m_numSelected  = static_cast<uint32_t>(outlinedBy.size());
+
+        for (std::size_t i = 0; i < outlinedBy.size(); i++) {
+          alone.m_regions.m_selected[i] = outlinedBy[i];
+        }
+      }
+
+      next->m_outlining = hasRegionVisibility<S> && !outlinedBy.empty();
+
+      // The outline is of the whole view as drawn, as a pick sees it: the viewer's shape, not a domain's own frame.
+      const S                                              host       = shape;
+      const S                                              device     = deviceShape;
+      const T                                              outExplode = explodeBoxes ? explode : T(0);
+      const std::shared_ptr<const std::vector<ExplodeBox>> outBoxes   = explodeBoxes;
+
+      next->m_thread = std::thread(
+        [next, render, framed, deviceGroups, camera, onDevice, shown, alone, host, device, outExplode, outBoxes]() {
+          const auto start = Clock::now();
+
+          next->m_stats   = render(framed.m_host,
+                                 framed.m_device,
+                                 deviceGroups,
+                                 framed.m_settings,
+                                 camera,
+                                 onDevice,
+                                 next->m_image,
+                                 next,
+                                 framed.m_own,
+                                 framed.m_explode,
+                                 framed.m_boxes);
+          next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
+          next->m_framed  = true;
+
+          if (next->m_outlining && next->m_stats.m_complete && !next->m_cancel) {
+            Image edges;
+
+            next->m_rows = 0;
+
+            const Stats edgeStats =
+              render(host, device, deviceGroups, alone, camera, onDevice, edges, next, false, outExplode, outBoxes);
+
+            if (edgeStats.m_complete) {
+              next->m_outline =
+                outlineOf<T>(host, edges, true, 0U, alone, shown, camera, outExplode, outBoxes, &next->m_cancel);
+            }
+          }
+
+          next->m_done = true;
+        });
 
       pending = 0;
     }
 
+    // A frame is shown as soon as it is final, its selection tinted; its outline, when it has one, follows when the job
+    // is done. Any change to the selection sets changed, which stops the job, so the outline shown is always of the
+    // selection show() sees.
     if (job != nullptr) {
+      const char* what = (job->m_stage == 1) ? "frame" : "full frame";
+
+      if (job->m_framed && !job->m_shown && !job->m_done) {
+        if (job->m_stats.m_complete) {
+          show(job->m_image, job->m_stats, job->m_seconds, what, nullptr);
+        }
+
+        job->m_shown = true;
+      }
+
       if (job->m_done) {
         job->stop();
 
         if (job->m_stats.m_complete) {
-          show(job->m_image, job->m_stats, job->m_seconds, (job->m_stage == 1) ? "frame" : "full frame");
+          const bool withOutline = job->m_outlining && !job->m_outline.empty();
+
+          if (withOutline || !job->m_shown) {
+            show(job->m_image, job->m_stats, job->m_seconds, what, withOutline ? &job->m_outline : nullptr);
+          }
 
           pending = (job->m_stage == 1 && adds(2)) ? 2 : 0;
         }
 
         job.reset();
       }
-      else if (job->m_stage == 2) {
+      else if (job->m_stage == 2 && !job->m_framed) {
         const uint32_t    percent = (100U * job->m_rows.load()) / Math::max(1U, job->m_height);
         const std::string title   = status + " (refining " + std::to_string(percent) + "%)";
 
