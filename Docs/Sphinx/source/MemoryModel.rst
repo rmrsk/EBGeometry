@@ -265,7 +265,8 @@ abandoned copy and is silently lost, while the object itself now reads from the 
    For the same reason, querying an object while another thread reserves from the same pool is a
    data race: the reader may observe a base being republished, or have the block reallocated
    underneath it. Pools are not internally synchronized. Finish building before sharing a pool
-   across threads, or serialize the reserves.
+   across threads, or serialize the reserves. :ref:`Chap:ThreadSafety` says what else is and is not safe
+   from several threads.
 
 .. note::
 

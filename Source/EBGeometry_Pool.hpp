@@ -200,6 +200,11 @@ static_assert(std::is_trivially_copyable_v<PoolLocation>,
  * block and a resource pointer with RAII semantics); everything stored @e inside it is trivially
  * copyable POD, but the pool itself is not, so no @c std::is_trivially_copyable_v static_assert
  * applies here.
+ *
+ * @note Not synchronized. Reading the pool (queries on the objects in it, mirror(), deepCopy() from it) is
+ * safe from any number of threads at once; anything that writes it (reserve(), a build into it, a refit or
+ * reconcile in place) must not run while another thread uses the pool, since a reserve can move the whole
+ * block. Builds into different pools may run in parallel. freeze() turns a later reserve into an abort.
  */
 class Pool
 {
@@ -558,6 +563,11 @@ private:
  * handle rebuilds a temporary inner handle from that layout and its own location when it evaluates
  * it. Mirroring the pool copies the layout's bytes verbatim, which is exact, since a layout holds no
  * address. isPoolHandle lets a container reject a handle where a layout belongs, at compile time.
+ *
+ * @note A copy of a handle refers to the same pool, so a change made through one copy (a rebuild, a refit,
+ * a reconcile) is a change to every copy, and is not safe while another thread queries any of them. The
+ * const queries of every handle are safe to call from several threads at once. A thread gets an object of
+ * its own only with deepCopy() into a pool of its own.
  */
 class PoolHandle
 {

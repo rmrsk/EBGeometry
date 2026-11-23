@@ -141,6 +141,7 @@ Where it runs
 
    MemoryModel.rst
    RunningOnGPU.rst
+   ThreadSafety.rst
 
 The .ebg language
 *****************
