@@ -8,11 +8,15 @@
 # nvcc, so that render and view draw there (HIP_ARCH and CUDA_ARCH pick the
 # target; run `make clean` after switching). VIEWER (SDL2 or OFF) builds the
 # window of `ebgstudio view`, which needs SDL2; it is SDL2 when sdl2-config is
-# found. Override any of these on the command line, e.g.:
+# found. A GPU build compiles the render kernels in parallel, one translation unit each
+# (Kernels.cpp, see Kernels.hpp), JOBS at a time (default 7, the kernels and main.cpp at once,
+# needing about 30 GB of memory for CUDA; JOBS=3 needs about 15 GB). Override any of these on the
+# command line, e.g.:
 #
 #   make GPU=CUDA
 #   make PRECISION=double VIEWER=OFF
 #   make GPU=HIP HIP_ARCH=gfx942
+#   make GPU=CUDA JOBS=3
 
 EBGEOMETRY_HOME ?= ..
 PRECISION       ?= float
@@ -32,11 +36,13 @@ endif
 CXXFLAGS ?= -O3 -march=native -Wall -Wextra
 
 ifeq ($(GPU),HIP)
-  CXX      = hipcc
-  CXXFLAGS = -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
+  CXX       = hipcc
+  CXXFLAGS  = -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
+  LINKFLAGS = --offload-arch=$(HIP_ARCH)
 else ifeq ($(GPU),CUDA)
-  CXX      = nvcc
-  CXXFLAGS = -O3 -x cu -arch=$(CUDA_ARCH)
+  CXX       = nvcc
+  CXXFLAGS  = -O3 -x cu -arch=$(CUDA_ARCH)
+  LINKFLAGS = -arch=$(CUDA_ARCH)
 else ifneq ($(GPU),OFF)
   $(error GPU must be OFF, HIP or CUDA)
 endif
@@ -63,11 +69,27 @@ else ifneq ($(VIEWER),OFF)
   $(error VIEWER must be OFF or SDL2)
 endif
 
-TARGET := ebgstudio
+TARGET  := ebgstudio
+DEFINES := -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_STUDIO_PRECISION=$(PRECISION)
+KERNELS := $(foreach k,0 1 2 3 4 5,kernel$(k).o)
+JOBS    ?= 7
 
+ifeq ($(GPU),OFF)
 $(TARGET): main.cpp Writer.hpp
-	$(CXX) -std=c++17 $(CXXFLAGS) -I$(EBGEOMETRY_HOME) -DEBGEOMETRY_STUDIO_PRECISION=$(PRECISION) $< -o $@ $(LDLIBS)
+	$(CXX) -std=c++17 $(CXXFLAGS) $(DEFINES) $< -o $@ $(LDLIBS)
+else
+MAKEFLAGS += -j$(JOBS)
+
+$(TARGET): main.o $(KERNELS)
+	$(CXX) $(LINKFLAGS) $^ -o $@ $(LDLIBS)
+
+main.o: main.cpp Writer.hpp Kernels.hpp
+	$(CXX) -std=c++17 $(CXXFLAGS) $(DEFINES) -DEBGEOMETRY_STUDIO_SPLIT_KERNELS -c $< -o $@
+
+kernel%.o: Kernels.cpp Kernels.hpp
+	$(CXX) -std=c++17 $(CXXFLAGS) $(DEFINES) -DEBGEOMETRY_STUDIO_KERNEL=$* -c $< -o $@
+endif
 
 .PHONY: clean
 clean:
-	$(RM) $(TARGET)
+	$(RM) $(TARGET) main.o $(KERNELS)

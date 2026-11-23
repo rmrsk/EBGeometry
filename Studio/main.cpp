@@ -7,6 +7,19 @@
 #include "Source/EBGeometry_Language.hpp"
 #include "Writer.hpp"
 
+// A GPU build compiles the render kernels in Kernels.cpp, one translation unit each, and none of them here (see
+// Kernels.hpp); the GNUmakefile and CMakeLists.txt define EBGEOMETRY_STUDIO_SPLIT_KERNELS for it.
+#if defined(EBGEOMETRY_STUDIO_SPLIT_KERNELS)
+#include "Kernels.hpp"
+
+EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel0)
+EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel1)
+EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel2)
+EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel3)
+EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel4)
+EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel5)
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
