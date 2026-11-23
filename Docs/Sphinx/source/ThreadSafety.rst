@@ -92,5 +92,6 @@ Other things to know
   prints its message and aborts.
 - **Relative paths.** The ``.ebg`` reader resolves relative file names against the process's current directory,
   which a ``chdir`` on another thread changes.
-- **Locales.** The ``.ebg`` reader reads numbers, and ``Render::toCode()`` writes them, with a decimal point
-  whatever locale the program has set, so a program that uses a decimal-comma locale needs to do nothing.
+- **Locales.** The mesh readers and the ``.ebg`` reader read numbers, and ``Render::toCode()`` writes them, with a
+  decimal point whatever locale the program has set (the C library's or the global C++ locale), so a program that
+  uses a decimal-comma locale needs to do nothing.

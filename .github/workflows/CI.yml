@@ -509,7 +509,9 @@ jobs:
       - name: Generate a decimal-comma locale
         # The tests that read and write numbers under a decimal-comma locale skip without one, and the runner
         # image ships only C.UTF-8 and en_US.UTF-8.
-        run: sudo locale-gen de_DE.UTF-8
+        run: |
+          sudo locale-gen de_DE.UTF-8
+          locale -a | grep -qi '^de_DE\.utf-\?8$' || { echo "de_DE.UTF-8 was not generated"; exit 1; }
 
       - name: Run tests
         # AVX-512 is compiled unconditionally (catches ISA-specific compile errors

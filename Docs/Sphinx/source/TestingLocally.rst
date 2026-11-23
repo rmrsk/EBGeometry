@@ -438,8 +438,9 @@ Test coverage
        deciding leaf, first hit), on a shared mesh SDF, on shared point clouds and on a tape read from
        the ``.ebg`` language, each thread's answers equal to one thread's; and tapes and mesh SDFs
        built into one pool per thread from a shared expression and polygon soup, equal to a
-       single-threaded build. Built with ``-fsanitize=thread``, it also checks that no query reads
-       state another thread writes.
+       single-threaded build. Built by hand with ``-fsanitize=thread`` (no preset does it; run it under
+       ``setarch -R`` where the kernel randomizes addresses too widely for ThreadSanitizer), it also checks
+       that no query reads state another thread writes.
    * - ``TestTapeClosest``, ``TestTapeClosestDevice``
      - ``closestLeaf()``'s deciding leaf for a difference, a union (through the BVH and operand by
        operand) and an intersection against the brute-force choice, followed through smooth blends,

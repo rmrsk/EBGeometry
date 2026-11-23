@@ -182,7 +182,8 @@ tokenize(std::string_view a_text, const std::string& a_file, std::vector<Comment
       // Read in the classic "C" locale, whatever locale the program set: std::strtod follows LC_NUMERIC and
       // would stop at the '.' under a decimal-comma locale. A number too small for a double reads as zero or
       // a denormal; only one too large is an error. libstdc++ clamps that to the largest double and sets
-      // failbit, libc++ returns infinity (and sets failbit on an underflow too, keeping the tiny value).
+      // failbit, libc++ returns infinity (and sets failbit on an underflow too, keeping the tiny value). The
+      // lexeme is a well-formed number (an exponent only with digits), so failbit means nothing else.
       std::istringstream number(lexeme.m_text);
 
       number.imbue(std::locale::classic());

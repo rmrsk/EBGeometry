@@ -2,33 +2,39 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// A scope that switches the C library's LC_NUMERIC to a locale with a decimal comma, for tests that check that
-// numbers are read and written with a decimal point whatever locale the program set.
+// A scope that switches the program to a locale with a decimal comma, both the global C++ locale (which streams
+// follow) and the C library's (which std::strtod and std::snprintf follow), for tests that check that numbers are
+// read and written with a decimal point whatever locale the program set.
 
 #ifndef EBGEOMETRY_TESTLOCALE_HPP
 #define EBGEOMETRY_TESTLOCALE_HPP
 
 #include <clocale>
+#include <locale>
+#include <stdexcept>
 #include <string>
 
 namespace EBGeometryTestLocale {
 
-// Switches LC_NUMERIC to the first decimal-comma locale installed, and back to what it was when it goes out of
-// scope. active() is false when none is installed (a test then skips).
+// Makes the first decimal-comma locale installed the global C++ locale (which also sets the C library's), and
+// restores both when it goes out of scope. active() is false when none is installed (a test then skips).
 class DecimalComma
 {
 public:
   DecimalComma()
   {
-    const char* current = std::setlocale(LC_NUMERIC, nullptr);
+    const char* current = std::setlocale(LC_ALL, nullptr);
 
-    m_previous = (current != nullptr) ? current : "C";
+    m_previousC = (current != nullptr) ? current : "C";
 
     for (const char* name : {"de_DE.UTF-8", "de_DE.utf8", "nb_NO.UTF-8", "nb_NO.utf8", "fr_FR.UTF-8", "fr_FR.utf8"}) {
-      if (std::setlocale(LC_NUMERIC, name) != nullptr) {
-        m_active = true;
+      try {
+        m_previous = std::locale::global(std::locale(name));
+        m_active   = true;
 
         break;
+      } catch (const std::runtime_error&) {
+        // Not installed: try the next.
       }
     }
   }
@@ -39,7 +45,11 @@ public:
 
   ~DecimalComma()
   {
-    std::setlocale(LC_NUMERIC, m_previous.c_str());
+    if (m_active) {
+      std::locale::global(m_previous);
+    }
+
+    std::setlocale(LC_ALL, m_previousC.c_str());
   }
 
   bool
@@ -49,7 +59,8 @@ public:
   }
 
 private:
-  std::string m_previous;
+  std::locale m_previous;
+  std::string m_previousC;
   bool        m_active = false;
 };
 

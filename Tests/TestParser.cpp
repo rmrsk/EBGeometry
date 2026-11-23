@@ -7,6 +7,7 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestLocale.hpp"
 
 #include <array>
 #include <cstddef>
@@ -697,4 +698,36 @@ TEST_CASE("Mesh distance functions and BVH unions refuse to build from nothing",
       const BVHUnion<T, 4, SphereSDF<T>> u(pool, {}, {});
     },
     "BVHUnion: a union needs at least one primitive"));
+}
+
+TEMPLATE_TEST_CASE("Parser: ASCII STL, OBJ, PLY and VTK files read with a decimal point under a decimal-comma locale",
+                   "[Parser]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  for (const std::string ext : {"stl", "obj", "ply", "vtk"}) {
+    INFO("format: " << ext);
+
+    const PolygonSoup<T> reference = Parser::readIntoPolygonSoup<T>(dataPath("dodecahedron." + ext));
+
+    const EBGeometryTestLocale::DecimalComma comma;
+
+    if (!comma.active()) {
+      SKIP("no decimal-comma locale is installed");
+    }
+
+    const PolygonSoup<T> read = Parser::readIntoPolygonSoup<T>(dataPath("dodecahedron." + ext));
+
+    const auto& expected = reference.getVertexCoordinates();
+    const auto& actual   = read.getVertexCoordinates();
+
+    REQUIRE(actual.size() == expected.size());
+
+    for (std::size_t i = 0; i < expected.size(); i++) {
+      for (int d = 0; d < 3; d++) {
+        CHECK(actual[i][d] == expected[i][d]);
+      }
+    }
+  }
 }
