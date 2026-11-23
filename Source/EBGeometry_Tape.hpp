@@ -2217,16 +2217,17 @@ private:
 
   /**
    * @brief Evaluate a primitive as evaluatePrimitive() does, in the one copy a device kernel's levels share.
-   * @details Out of line in a device pass, and called only there: from the levels below the top one, and from
-   * every level of the tagged evaluator (closestLeaf()), so that a kernel compiles the analytic shapes' distances
-   * once for those instead of once per level and value type. A shape's distance is a plain T, whatever the level,
-   * so one copy serves them all. The top level, and the body signedDistance() inlines for a tape of depth 0, keep
-   * the dispatch inlined: they read nearly all the primitives of a typical tape, and a call there was measured to
-   * cost run time (up to +46% on a float CSG tape when every level called out of line).
+   * @details Out of line in a device pass, and called only there: from the levels below the top one, plain and
+   * tagged (closestLeaf()), and from the tagged single-shape leaf, so that a kernel compiles the analytic shapes'
+   * distances once for those instead of once per level and value type. A shape's distance is a plain T, whatever the
+   * level, so one copy serves them all. The top level and evaluateBody<0> (which signedDistance() and closestLeaf()
+   * inline for a tape of depth 0) keep the dispatch inlined, for both value types: they read nearly all the primitives
+   * of a typical tape, and a call there costs run time. Every level calling out of line was measured at up to +46% on
+   * a float CSG tape; the tagged top level calling out of line, at +18% on the float CSG closestPrimitive() kernel.
    *
-   * Measured on the MeshCSG probe's device code (nvcc 12.5, sm_86, Release, ptxas alone): 233 s and 6.5 GB of
-   * ptxas, 31 MB of device code, with every copy inlined; 174 s and 4.7 GB, 26 MB, with this split. Each level
-   * below the top kept its operations (about 0.2 MB a kernel) and lost its shapes (about 0.3 MB).
+   * Measured on the MeshCSG probe's device code (nvcc 12.5, sm_86, Release, ptxas alone): 233 s and 6.5 GB of ptxas
+   * with every copy inlined, 192 s and 5.3 GB with this split; MeshTape 516 s and 6.7 GB, 422 s and 5.6 GB. Each
+   * level below the top keeps its operations (about 0.2 MB of code a kernel) and loses its shapes (about 0.3 MB).
    * @param[in] a_type     Type index.
    * @param[in] a_index    Index within the type's array.
    * @param[in] a_point    Point.

@@ -2121,10 +2121,10 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       // A tagged value is tagged with the clause, which names the leaf, its type and its index.
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
       // On a device, the shapes are inlined only where nearly every primitive of a typical tape is read: the top
-      // level, and evaluateBody<0>, which signedDistance() inlines for a tape of depth 0. The deepest level,
-      // evaluate<0>, is a code copy of its own but the same instantiation, so it keeps them inlined too. Every
-      // other level, and every tagged one, calls the one shared copy.
-      constexpr bool inPlace = std::is_same_v<V, T> && (D == MaxCallDepth || D == 0U);
+      // level, and evaluateBody<0>, which signedDistance() and closestLeaf() inline for a tape of depth 0, for plain
+      // and tagged values alike. The deepest level, evaluate<0>, is a code copy of its own but the same
+      // instantiation, so it keeps them inlined too. Every other level calls the one shared copy.
+      constexpr bool inPlace = D == MaxCallDepth || D == 0U;
 
       T primitive;
 
