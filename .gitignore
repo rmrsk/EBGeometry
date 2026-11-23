@@ -37,3 +37,4 @@ __pycache__/
 # ebgstudio built in Studio/ with its GNUmakefile.
 Studio/ebgstudio
 Studio/*.o
+Studio/.build-flags

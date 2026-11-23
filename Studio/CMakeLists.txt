@@ -74,20 +74,8 @@ add_executable(ebgstudio main.cpp)
 target_link_libraries(ebgstudio PRIVATE EBGeometry::EBGeometry)
 
 if(_studio_gpu STREQUAL "HIP" OR _studio_gpu STREQUAL "CUDA")
-  set_source_files_properties(main.cpp PROPERTIES LANGUAGE ${_studio_gpu} COMPILE_DEFINITIONS EBGEOMETRY_STUDIO_SPLIT_KERNELS)
+  set_source_files_properties(main.cpp PROPERTIES LANGUAGE ${_studio_gpu})
   set_target_properties(ebgstudio PROPERTIES ${_studio_gpu}_STANDARD 17 ${_studio_gpu}_STANDARD_REQUIRED ON)
-
-  # The render kernels, one translation unit each, so that they compile in parallel (see Kernels.hpp): Kernels.cpp
-  # once per index, through a generated file that sets it (rewritten only when it changes, so a reconfigure
-  # rebuilds nothing).
-  foreach(_kernel RANGE 5)
-    set(_source "${CMAKE_CURRENT_BINARY_DIR}/ebgstudio_kernel${_kernel}.cpp")
-    file(WRITE "${_source}.in"
-         "#define EBGEOMETRY_STUDIO_KERNEL ${_kernel}\n#include \"${CMAKE_CURRENT_SOURCE_DIR}/Kernels.cpp\"\n")
-    configure_file("${_source}.in" "${_source}" COPYONLY)
-    set_source_files_properties("${_source}" PROPERTIES LANGUAGE ${_studio_gpu})
-    target_sources(ebgstudio PRIVATE "${_source}")
-  endforeach()
 endif()
 
 # On its own, the binary goes here in Studio/, where the GNUmakefile puts it too.
@@ -138,6 +126,36 @@ if(_studio_alone)
   elseif(NOT EBGEOMETRY_VIEWER STREQUAL "OFF")
     message(FATAL_ERROR "EBGEOMETRY_VIEWER must be OFF or SDL2 (got '${EBGEOMETRY_VIEWER}')")
   endif()
+endif()
+
+# A CUDA build compiles the render kernels in translation units of their own, so that they compile in parallel (see
+# Kernels.hpp, which gives how many, and how many without the window): Kernels.cpp once per index, through a
+# generated file that sets it (rewritten only when it changes, so a reconfigure rebuilds nothing).
+if(_studio_gpu STREQUAL "CUDA")
+  file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/Kernels.hpp" _counts REGEX "constexpr int Count(WithoutViewer)? *= *[0-9]+;")
+
+  foreach(_line IN LISTS _counts)
+    string(REGEX REPLACE ".*constexpr int (Count[A-Za-z]*) *= *([0-9]+);.*" "\\1;\\2" _pair "${_line}")
+    list(GET _pair 0 _key)
+    list(GET _pair 1 _studio_kernels_${_key})
+  endforeach()
+
+  if(EBGEOMETRY_VIEWER STREQUAL "SDL2")
+    math(EXPR _last "${_studio_kernels_Count} - 1")
+  else()
+    math(EXPR _last "${_studio_kernels_CountWithoutViewer} - 1")
+  endif()
+
+  set_source_files_properties(main.cpp PROPERTIES COMPILE_DEFINITIONS EBGEOMETRY_STUDIO_SPLIT_KERNELS)
+
+  foreach(_kernel RANGE ${_last})
+    set(_source "${CMAKE_CURRENT_BINARY_DIR}/ebgstudio_kernel${_kernel}.cpp")
+    file(WRITE "${_source}.in"
+         "#define EBGEOMETRY_STUDIO_KERNEL ${_kernel}\n#include \"${CMAKE_CURRENT_SOURCE_DIR}/Kernels.cpp\"\n")
+    configure_file("${_source}.in" "${_source}" COPYONLY)
+    set_source_files_properties("${_source}" PROPERTIES LANGUAGE CUDA)
+    target_sources(ebgstudio PRIVATE "${_source}")
+  endforeach()
 endif()
 
 if(_studio_alone OR EBGEOMETRY_INSTALL)

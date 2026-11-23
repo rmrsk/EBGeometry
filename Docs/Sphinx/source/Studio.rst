@@ -46,7 +46,7 @@ one place.
 
 Built on its own, it takes the examples' switches: ``make GPU=CUDA`` (or ``HIP``) renders on a GPU, ``VIEWER=OFF``
 builds it without the window (``view`` then says so), and ``EBGEOMETRY_HOME`` points at the library elsewhere; with
-CMake, ``-DEBGEOMETRY_STUDIO_GPU=CUDA`` and ``-DEBGEOMETRY_VIEWER=OFF``. A GPU build compiles its render kernels in
+CMake, ``-DEBGEOMETRY_STUDIO_GPU=CUDA`` and ``-DEBGEOMETRY_VIEWER=OFF``. A CUDA build compiles its render kernels in
 parallel, one file each: ``make`` runs ``JOBS`` compilations at once (``JOBS=3`` for a machine with less memory), and
 CMake as many as ``cmake --build`` is given with ``-j``. The window needs SDL2, which it uses when it
 finds it (see :ref:`Chap:ImplemRender`); the other commands run anywhere.
