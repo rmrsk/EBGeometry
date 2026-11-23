@@ -408,7 +408,6 @@ Parser::readSTL(const std::string& a_filename)
   switch (encoding) {
   case Parser::Encoding::ASCII: {
     std::ifstream filestream = ParserDetail::open(a_filename);
-    filestream.imbue(std::locale::classic());
 
     // One pass over the lines: a 'solid' line starts a solid, named by the rest of the line, a 'facet'
     // line starts a new facet, 'vertex' lines add to the current facet, and 'endsolid' ends the solid.
@@ -502,7 +501,6 @@ Parser::readSTL(const std::string& a_filename)
   }
   case Parser::Encoding::Binary: {
     std::ifstream fstream = ParserDetail::open(a_filename, std::ios::in | std::ios::binary);
-    fstream.imbue(std::locale::classic());
 
     // An 80-byte header, a uint32 triangle count, then 50 bytes per triangle: a normal and three
     // vertices (12 float32 values) followed by a 2-byte "attribute byte count". The standard says the
@@ -2083,7 +2081,6 @@ Parser::readOBJ(const std::string& a_filename)
   ParserDetail::GroupReader        groups;
 
   std::ifstream filestream = ParserDetail::open(a_filename);
-  filestream.imbue(std::locale::classic());
 
   {
     std::string line;
