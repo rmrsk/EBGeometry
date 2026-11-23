@@ -15,6 +15,8 @@
 #include <cctype>
 #include <cmath>
 #include <cstring>
+#include <locale>
+#include <sstream>
 
 // Our includes
 #include "EBGeometry_LanguageSyntax.hpp"
@@ -175,11 +177,20 @@ tokenize(std::string_view a_text, const std::string& a_file, std::vector<Comment
                     "a number runs into a name ('" + std::string(a_text.substr(begin, i + 1 - begin)) + "')");
       }
 
-      lexeme.m_token  = Token::Number;
-      lexeme.m_text   = std::string(a_text.substr(begin, i - begin));
-      lexeme.m_number = std::strtod(lexeme.m_text.c_str(), nullptr);
+      lexeme.m_token = Token::Number;
+      lexeme.m_text  = std::string(a_text.substr(begin, i - begin));
+      // Read in the classic "C" locale, whatever locale the program set: std::strtod follows LC_NUMERIC and
+      // would stop at the '.' under a decimal-comma locale. A number too small for a double reads as zero or
+      // a denormal; only one too large is an error. libstdc++ clamps that to the largest double and sets
+      // failbit, libc++ returns infinity (and sets failbit on an underflow too, keeping the tiny value). The
+      // lexeme is a well-formed number (an exponent only with digits), so failbit means nothing else.
+      std::istringstream number(lexeme.m_text);
 
-      if (!std::isfinite(lexeme.m_number)) {
+      number.imbue(std::locale::classic());
+
+      number >> lexeme.m_number;
+
+      if (!std::isfinite(lexeme.m_number) || (number.fail() && std::abs(lexeme.m_number) >= 1.0)) {
         throw Error(spanAt(begin, i, line, lineAt), "the number " + lexeme.m_text + " is too large");
       }
     }

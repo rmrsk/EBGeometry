@@ -21,9 +21,10 @@ Text
 * Names are ``[A-Za-z_][A-Za-z0-9_]*``, case-sensitive. Reserved: ``ebg``, ``param``, ``object``, ``overlay``,
   ``region``, ``material``, ``domain``, ``subdomain``, ``group``, ``couple``, ``include``, ``view``, ``outside``,
   ``true``, ``false``, ``pi``.
-* Numbers are decimal or scientific (``1.8e-5``), read and computed as ``double``; a number or a result too large for a
-  ``double`` is an error, and so is a shape's argument too large for the precision the model is read in (properties
-  are kept as ``double``). Strings are double-quoted, with ``\"`` and ``\\``.
+* Numbers are decimal or scientific (``1.8e-5``), always with a decimal point whatever the program's locale, read and
+  computed as ``double``; a number or a result too large for a ``double`` is an error, and so is a shape's argument too
+  large for the precision the model is read in (properties are kept as ``double``). Strings are double-quoted, with
+  ``\"`` and ``\\``.
 * A column counts bytes, so a character outside ASCII earlier on the line counts as more than one column.
 
 Statements

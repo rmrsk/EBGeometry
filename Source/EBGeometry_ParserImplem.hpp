@@ -19,6 +19,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <locale>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -68,6 +69,7 @@ Parser::getFileEncoding(const std::string& a_filename)
   switch (ft) {
   case Parser::FileType::STL: {
     std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+    is.imbue(std::locale::classic());
 
     if (is.good()) {
       char chars[256];
@@ -90,6 +92,7 @@ Parser::getFileEncoding(const std::string& a_filename)
   }
   case Parser::FileType::PLY: {
     std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+    is.imbue(std::locale::classic());
     if (is.good()) {
 
       std::string line;
@@ -101,6 +104,7 @@ Parser::getFileEncoding(const std::string& a_filename)
       std::getline(is, line);
 
       std::stringstream ss(line);
+      ss.imbue(std::locale::classic());
 
       ss >> str1 >> str2;
 
@@ -119,6 +123,7 @@ Parser::getFileEncoding(const std::string& a_filename)
   }
   case Parser::FileType::VTK: {
     std::ifstream is(a_filename, std::istringstream::in | std::ios::binary);
+    is.imbue(std::locale::classic());
     if (is.good()) {
 
       std::string line;
@@ -130,6 +135,7 @@ Parser::getFileEncoding(const std::string& a_filename)
       std::getline(is, line); // format line
 
       std::stringstream ss(line);
+      ss.imbue(std::locale::classic());
 
       ss >> str1;
 
@@ -161,6 +167,9 @@ namespace ParserDetail {
 
 /**
  * @brief Open a file for reading, or throw.
+ * @details Every stream the readers parse numbers from is imbued with the classic "C" locale (here and where each is
+ * declared), so that a program's global C++ locale (std::locale::global) with a decimal comma cannot make "0.5" read
+ * as 0.
  * @param[in] a_filename File to open.
  * @param[in] a_mode     Open mode.
  * @return The open stream.
@@ -170,6 +179,7 @@ inline std::ifstream
 open(const std::string& a_filename, const std::ios::openmode a_mode = std::ios::in)
 {
   std::ifstream stream(a_filename, a_mode);
+  stream.imbue(std::locale::classic());
 
   if (!stream.is_open()) {
     throw Parser::ParseError(a_filename, 0, "cannot open the file");
@@ -412,6 +422,7 @@ Parser::readSTL(const std::string& a_filename)
     // One stream for every line, reset to each in turn: constructing a stream per line would cost as much
     // as reading the numbers.
     std::stringstream sstream;
+    sstream.imbue(std::locale::classic());
 
     while (std::getline(filestream, line)) {
       lineNumber++;
@@ -594,6 +605,7 @@ Parser::readPLY(const std::string& a_filename)
   switch (encoding) {
   case Parser::Encoding::ASCII: {
     std::ifstream filestream(a_filename);
+    filestream.imbue(std::locale::classic());
 
     if (filestream.is_open()) {
       std::string line;
@@ -618,6 +630,7 @@ Parser::readPLY(const std::string& a_filename)
         lineNumber++;
 
         std::stringstream sstream(line);
+        sstream.imbue(std::locale::classic());
         sstream >> str1;
 
         if (str1 == "element") {
@@ -724,6 +737,7 @@ Parser::readPLY(const std::string& a_filename)
         lineNumber++;
 
         std::stringstream sstream(line);
+        sstream.imbue(std::locale::classic());
 
         T              x = 0, y = 0, z = 0;
         std::vector<T> propValues(vertexPropertyNames.size());
@@ -760,6 +774,7 @@ Parser::readPLY(const std::string& a_filename)
         lineNumber++;
 
         std::stringstream sstream(line);
+        sstream.imbue(std::locale::classic());
 
         std::vector<T>      scalarPropValues;
         std::vector<size_t> faceIndices;
@@ -839,6 +854,7 @@ Parser::readPLY(const std::string& a_filename)
   }
   case Parser::Encoding::Binary: {
     std::ifstream filestream(a_filename, std::ios::binary);
+    filestream.imbue(std::locale::classic());
 
     if (filestream.is_open()) {
       std::string line;
@@ -866,6 +882,7 @@ Parser::readPLY(const std::string& a_filename)
         lineNumber++;
 
         std::stringstream sstream(line);
+        sstream.imbue(std::locale::classic());
         sstream >> str1;
 
         if (str1 == "format") {
@@ -1226,6 +1243,7 @@ Parser::readVTK(const std::string& a_filename)
   switch (encoding) {
   case Parser::Encoding::ASCII: {
     std::ifstream filestream(a_filename);
+    filestream.imbue(std::locale::classic());
 
     if (filestream.is_open()) {
       std::string line;
@@ -1246,7 +1264,8 @@ Parser::readVTK(const std::string& a_filename)
       // Read POINTS section
       while (!malformed && std::getline(filestream, line)) {
         std::stringstream sstream(line);
-        std::string       keyword;
+        sstream.imbue(std::locale::classic());
+        std::string keyword;
         sstream >> keyword;
 
         if (keyword == "POINTS") {
@@ -1283,7 +1302,8 @@ Parser::readVTK(const std::string& a_filename)
           std::getline(filestream, line); // Read next line after POLYGONS
 
           std::stringstream checkStream(line);
-          std::string       nextKeyword;
+          checkStream.imbue(std::locale::classic());
+          std::string nextKeyword;
           checkStream >> nextKeyword;
 
           if (nextKeyword == "OFFSETS") {
@@ -1312,7 +1332,8 @@ Parser::readVTK(const std::string& a_filename)
             bool foundConnectivity = false;
             while (std::getline(filestream, line)) {
               std::stringstream ss(line);
-              std::string       token;
+              ss.imbue(std::locale::classic());
+              std::string token;
               ss >> token;
               if (token == "CONNECTIVITY") {
                 foundConnectivity = true;
@@ -1397,7 +1418,8 @@ Parser::readVTK(const std::string& a_filename)
           // Read point data arrays
           while (std::getline(filestream, line)) {
             std::stringstream ss(line);
-            std::string       dataKeyword;
+            ss.imbue(std::locale::classic());
+            std::string dataKeyword;
             ss >> dataKeyword;
 
             if (dataKeyword == "SCALARS") {
@@ -1462,7 +1484,8 @@ Parser::readVTK(const std::string& a_filename)
           // Read cell data arrays
           while (std::getline(filestream, line)) {
             std::stringstream ss(line);
-            std::string       dataKeyword;
+            ss.imbue(std::locale::classic());
+            std::string dataKeyword;
             ss >> dataKeyword;
 
             if (dataKeyword == "SCALARS") {
@@ -1539,6 +1562,7 @@ Parser::readVTK(const std::string& a_filename)
   }
   case Parser::Encoding::Binary: {
     std::ifstream filestream(a_filename, std::ios::binary);
+    filestream.imbue(std::locale::classic());
 
     if (filestream.is_open()) {
       std::string line;
@@ -1591,7 +1615,8 @@ Parser::readVTK(const std::string& a_filename)
       // Read sections - they are still labeled in ASCII
       while (!malformed && std::getline(filestream, line)) {
         std::stringstream sstream(line);
-        std::string       keyword;
+        sstream.imbue(std::locale::classic());
+        std::string keyword;
         sstream >> keyword;
 
         if (keyword == "POINTS") {
@@ -1635,7 +1660,8 @@ Parser::readVTK(const std::string& a_filename)
           std::getline(filestream, line); // Read next line
 
           std::stringstream checkStream(line);
-          std::string       nextKeyword;
+          checkStream.imbue(std::locale::classic());
+          std::string nextKeyword;
           checkStream >> nextKeyword;
 
           if (nextKeyword == "OFFSETS") {
@@ -1662,6 +1688,7 @@ Parser::readVTK(const std::string& a_filename)
             std::string connKeyword, connType;
             while (std::getline(filestream, line)) {
               std::stringstream connStream(line);
+              connStream.imbue(std::locale::classic());
               connStream >> connKeyword;
               if (connKeyword == "CONNECTIVITY") {
                 connStream >> connType;
@@ -1752,7 +1779,8 @@ Parser::readVTK(const std::string& a_filename)
           // Read point data arrays
           while (std::getline(filestream, line)) {
             std::stringstream ss(line);
-            std::string       dataKeyword;
+            ss.imbue(std::locale::classic());
+            std::string dataKeyword;
             ss >> dataKeyword;
 
             if (dataKeyword == "SCALARS") {
@@ -1823,8 +1851,9 @@ Parser::readVTK(const std::string& a_filename)
               for (size_t a = 0; a < numArrays; a++) {
                 std::getline(filestream, line);
                 std::stringstream as(line);
-                std::string       arrayName, dataType;
-                size_t            numComponents, numTuples;
+                as.imbue(std::locale::classic());
+                std::string arrayName, dataType;
+                size_t      numComponents, numTuples;
                 as >> arrayName >> numComponents >> numTuples >> dataType;
 
                 if (dataType == "float") {
@@ -1897,7 +1926,8 @@ Parser::readVTK(const std::string& a_filename)
           // Read cell data arrays
           while (std::getline(filestream, line)) {
             std::stringstream ss(line);
-            std::string       dataKeyword;
+            ss.imbue(std::locale::classic());
+            std::string dataKeyword;
             ss >> dataKeyword;
 
             if (dataKeyword == "SCALARS") {
@@ -1960,8 +1990,9 @@ Parser::readVTK(const std::string& a_filename)
               for (size_t a = 0; a < numArrays; a++) {
                 std::getline(filestream, line);
                 std::stringstream as(line);
-                std::string       arrayName, dataType;
-                size_t            numComponents, numTuples;
+                as.imbue(std::locale::classic());
+                std::string arrayName, dataType;
+                size_t      numComponents, numTuples;
                 as >> arrayName >> numComponents >> numTuples >> dataType;
 
                 size_t bytesPerElem = 0;
@@ -2058,7 +2089,9 @@ Parser::readOBJ(const std::string& a_filename)
     // One stream for every line, and one for every face index, each reset to its next string in turn:
     // constructing a stream per line and per index would cost as much as reading the numbers.
     std::stringstream sstream;
+    sstream.imbue(std::locale::classic());
     std::stringstream tokstream;
+    tokstream.imbue(std::locale::classic());
 
     while (std::getline(filestream, line)) {
       lineNumber++;

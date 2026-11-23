@@ -9,6 +9,7 @@
 
 #include "Source/EBGeometry_Language.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestLocale.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -481,6 +482,7 @@ object intersection(overlay {
   // What the grammar does not allow, and a number no double holds.
   CHECK_THAT(firstError<T>("ebg 0 r = 1\n").m_message, Catch::Matchers::ContainsSubstring("the version only"));
   CHECK_THAT(firstError<T>("ebg 0\nr = 1e999\n").m_message, Catch::Matchers::ContainsSubstring("too large"));
+  CHECK_NOTHROW(Language::parse<T>("ebg 0\nr = 1e-400\nobject sphere((0, 0, 0), 1 + r)\n", "test.ebg", pool));
   CHECK_THAT(firstError<T>("ebg 0\nr = --1\n").m_message, Catch::Matchers::ContainsSubstring("two '-' in a row"));
   CHECK_THAT(firstError<T>("ebg 0\nobject sphere((0, 0, 0), 1,)\n").m_message,
              Catch::Matchers::ContainsSubstring("expected an argument after ','"));
@@ -1826,4 +1828,25 @@ TEMPLATE_TEST_CASE("Language: a domain's own object keeps its regions and their 
   CHECK(model.domainObject("cfd").neighborhood().getNumRegions() == 5U);
 
   CHECK_THROWS_AS(model.domainObject("heat"), Language::Error);
+}
+
+TEMPLATE_TEST_CASE("Language: numbers are read with a decimal point under a decimal-comma locale",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  const EBGeometryTestLocale::DecimalComma comma;
+
+  if (!comma.active()) {
+    SKIP("no decimal-comma locale is installed");
+  }
+
+  Pool pool(hostMemoryResource());
+
+  const auto    model = Language::parse<T>("ebg 0\nobject sphere((0, 0, 0), 0.5)\n", "test.ebg", pool);
+  const Tape<T> tape(pool, model.object());
+
+  // The sphere has radius 0.5, not 0 as the number would read in the program's locale.
+  CHECK_THAT(tape.signedDistance(Vec3T<T>(T(0), T(0), T(0))), withinAbsT<T>(-0.5, tightMargin<T>()));
 }

@@ -20,8 +20,10 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <locale>
 #include <mutex>
 #include <numeric>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <type_traits>
@@ -2693,15 +2695,32 @@ EBGEOMETRY_HOST
 inline std::string
 literal(const T a_value)
 {
-  char text[64];
+  std::string text;
 
-  // Nine significant digits always read back a float, seventeen a double.
+  // Nine significant digits always read back a float, seventeen a double. Written and read in the classic
+  // "C" locale, so that the code has a decimal point whatever LC_NUMERIC the program set.
   const int maxDigits = (sizeof(T) <= sizeof(float)) ? 9 : 17;
 
   for (int digits = 1; digits <= maxDigits; digits++) {
-    std::snprintf(text, sizeof(text), "%.*g", digits, double(a_value));
+    std::ostringstream out;
 
-    if (T(std::strtod(text, nullptr)) == a_value) {
+    out.imbue(std::locale::classic());
+
+    out.precision(digits);
+
+    out << double(a_value);
+
+    text = out.str();
+
+    std::istringstream in(text);
+
+    in.imbue(std::locale::classic());
+
+    double back = 0.0;
+
+    in >> back;
+
+    if (T(back) == a_value) {
       break;
     }
   }

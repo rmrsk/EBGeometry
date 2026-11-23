@@ -433,6 +433,14 @@ Test coverage
        user primitive types and a tape inside a tape, each against the host; a user octahedron's
        exact values kept through rotation, translation and a BVH union; and a tape built directly in
        managed memory evaluated on the device through its own pool.
+   * - ``TestThreads``
+     - Using the library from several host threads: queries on a shared tape holding a mesh (distance,
+       deciding leaf, first hit), on a shared mesh SDF, on shared point clouds and on a tape read from
+       the ``.ebg`` language, each thread's answers equal to one thread's; and tapes and mesh SDFs
+       built into one pool per thread from a shared expression and polygon soup, equal to a
+       single-threaded build. Built by hand with ``-fsanitize=thread`` (no preset does it; run it under
+       ``setarch -R`` where the kernel randomizes addresses too widely for ThreadSanitizer), it also checks
+       that no query reads state another thread writes.
    * - ``TestTapeClosest``, ``TestTapeClosestDevice``
      - ``closestLeaf()``'s deciding leaf for a difference, a union (through the BVH and operand by
        operand) and an intersection against the brute-force choice, followed through smooth blends,

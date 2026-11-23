@@ -1194,6 +1194,9 @@ public:
 
   /**
    * @brief Render a shape on the host, on Settings::m_threads threads.
+   * @details The renderer starts its own threads (all hardware threads when m_threads is 0), so calling it from
+   * inside a parallel region oversubscribes the machine. Several renders may run at once; none may run while
+   * another thread builds into, refits or reconciles the shape's pool.
    * @tparam S Shape type (see isShape).
    * @param[in]  a_shape  Shape.
    * @param[in]  a_camera Camera.

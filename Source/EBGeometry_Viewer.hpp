@@ -43,7 +43,8 @@ namespace EBGeometry::Render {
  * @details Opens no window (and returns at once, after printing why) when the program was built without
  * EBGEOMETRY_VIEWER_SDL2, when a_argv holds "--no-view", when there is no display, or when SDL cannot
  * start. A shape whose box is unbounded is looked at from the default camera. Returns when the window is
- * closed.
+ * closed. One window at a time: SDL's state is process-wide, so view() must not be called from two threads at
+ * once.
  * @tparam S Shape type (see isShape).
  * @param[in] a_shape Shape, valid on the host.
  * @param[in] a_argc  The program's argument count.
