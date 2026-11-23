@@ -39,7 +39,6 @@ CXXFLAGS ?= -O3 -march=native -Wall -Wextra
 ifeq ($(GPU),HIP)
   CXX       = hipcc
   CXXFLAGS  = -O3 -Wall -Wextra -Wno-unused-parameter -x hip --offload-arch=$(HIP_ARCH)
-  LINKFLAGS = --offload-arch=$(HIP_ARCH)
 else ifeq ($(GPU),CUDA)
   CXX       = nvcc
   CXXFLAGS  = -O3 -x cu -arch=$(CUDA_ARCH)

@@ -48,6 +48,7 @@ using Kernel3 = Frame<EBGeometry::Render::RenderDetail::InspectQuery<T, Object>>
 using Kernel4 = Frame<EBGeometry::Render::PixelQuery<T, Exploded>>;
 using Kernel5 = Frame<EBGeometry::Render::RenderDetail::InspectQuery<T, Exploded>>;
 
+// A kernel added here is also added to the #elif chain of Kernels.cpp and to the extern declarations of main.cpp.
 inline constexpr int Count              = 6;
 inline constexpr int CountWithoutViewer = 2;
 
