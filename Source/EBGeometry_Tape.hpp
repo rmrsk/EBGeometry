@@ -2221,7 +2221,7 @@ private:
    * every level of the tagged evaluator (closestLeaf()), so that a kernel compiles the analytic shapes' distances
    * once for those instead of once per level and value type. A shape's distance is a plain T, whatever the level,
    * so one copy serves them all. The top level, and the body signedDistance() inlines for a tape of depth 0, keep
-   * the dispatch inlined: there are nearly all the primitives of a typical tape, and a call there was measured to
+   * the dispatch inlined: they read nearly all the primitives of a typical tape, and a call there was measured to
    * cost run time (up to +46% on a float CSG tape when every level called out of line).
    *
    * Measured on the MeshCSG probe's device code (nvcc 12.5, sm_86, Release, ptxas alone): 233 s and 6.5 GB of

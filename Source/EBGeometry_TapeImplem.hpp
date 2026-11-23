@@ -2121,12 +2121,19 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
       // A tagged value is tagged with the clause, which names the leaf, its type and its index.
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
       // On a device, the shapes are inlined only where nearly every primitive of a typical tape is read: the top
-      // level, and the body signedDistance() inlines for a tape of depth 0 (also the deepest level's, which shares
-      // its instantiation). Every other level, and every tagged one, calls the one shared copy.
+      // level, and evaluateBody<0>, which signedDistance() inlines for a tape of depth 0. The deepest level,
+      // evaluate<0>, is a code copy of its own but the same instantiation, so it keeps them inlined too. Every
+      // other level, and every tagged one, calls the one shared copy.
       constexpr bool inPlace = std::is_same_v<V, T> && (D == MaxCallDepth || D == 0U);
 
-      const T primitive = inPlace ? this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location)
-                                  : this->evaluateShared(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      T primitive;
+
+      if constexpr (inPlace) {
+        primitive = this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      }
+      else {
+        primitive = this->evaluateShared(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      }
 
       values[nv++] = CSGOps::leafValue<V>(primitive, pc, points[np - 1]);
 #else
@@ -2494,8 +2501,14 @@ Tape<T, UserPrimitives...>::evaluateLeaf(const uint32_t      a_program,
     else if (c.m_op == Op::Primitive) {
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
       // As in evaluateBody(): a tagged leaf calls the shared copy of the shapes.
-      const T primitive = std::is_same_v<V, T> ? this->evaluatePrimitive(c.m_type, c.m_a, point, a_base, a_location)
-                                               : this->evaluateShared(c.m_type, c.m_a, point, a_base, a_location);
+      T primitive;
+
+      if constexpr (std::is_same_v<V, T>) {
+        primitive = this->evaluatePrimitive(c.m_type, c.m_a, point, a_base, a_location);
+      }
+      else {
+        primitive = this->evaluateShared(c.m_type, c.m_a, point, a_base, a_location);
+      }
 
       value = CSGOps::leafValue<V>(primitive, pc, point);
 #else
