@@ -335,8 +335,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
+      # A stalled package mirror can hold this step for the job's whole 30 minutes, so each request times out and
+      # is retried, and the step gives up after 10 minutes so the job fails early and can be re-run.
       - name: Install SDL2
-        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+        timeout-minutes: 10
+        run: |
+          APT="-o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60"
+          sudo apt-get $APT update && sudo apt-get $APT install -y libsdl2-dev
       - name: Configure (debug preset, viewer on)
         run: cmake --preset debug -DEBGEOMETRY_VIEWER=SDL2 -DCMAKE_CXX_FLAGS=-Werror
       # An example opens the viewer when a line of its main.cpp starts with the call (a mention in a comment
