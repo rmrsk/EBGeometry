@@ -278,16 +278,16 @@ closeWindow(Hooks<T>& a_hooks);
  */
 template <class T, class S>
 std::vector<std::uint8_t>
-outlineOf(const S&                                                                    a_shape,
-          const Image&                                                                a_keyed,
-          const bool                                                                  a_several,
-          const uint32_t                                                              a_key,
-          const Settings<T>&                                                          a_alone,
-          const Settings<T>&                                                          a_shown,
-          const Camera<T>&                                                            a_camera,
-          const T                                                                     a_explode,
-          const std::shared_ptr<const std::vector<RegionNeighborhoodDetail::Box<T>>>& a_boxes,
-          const std::atomic<bool>*                                                    a_cancel)
+outlineOf(const S&                                                                                     a_shape,
+          const Image&                                                                                 a_keyed,
+          const bool                                                                                   a_several,
+          const uint32_t                                                                               a_key,
+          const Settings<T>&                                                                           a_alone,
+          const Settings<T>&                                                                           a_shown,
+          const Camera<T>&                                                                             a_camera,
+          [[maybe_unused]] const T                                                                     a_explode,
+          [[maybe_unused]] const std::shared_ptr<const std::vector<RegionNeighborhoodDetail::Box<T>>>& a_boxes,
+          const std::atomic<bool>*                                                                     a_cancel)
 {
   constexpr uint32_t Outside = 0xFFFFFFFFU;
 
@@ -923,6 +923,17 @@ struct Background
    * @brief Its height in rows.
    */
   uint32_t m_height = 0;
+
+  /**
+   * @brief Set once the frame (m_image, m_stats, m_seconds) is final: the window shows it then, and the thread writes
+   * only the outline after it.
+   */
+  std::atomic<bool> m_framed{false};
+
+  /**
+   * @brief Whether the window has shown the frame (the window's thread only).
+   */
+  bool m_shown = false;
 
   /**
    * @brief Whether it also finds the outline of the selected surfaces (see outlineOf()), after the frame.
@@ -6154,6 +6165,7 @@ run(const S&                           a_shape,
                                  framed.m_explode,
                                  framed.m_boxes);
           next->m_seconds = std::chrono::duration<double>(Clock::now() - start).count();
+          next->m_framed  = true;
 
           if (next->m_outlining && next->m_stats.m_complete && !next->m_cancel) {
             Image edges;
@@ -6175,23 +6187,36 @@ run(const S&                           a_shape,
       pending = 0;
     }
 
+    // A frame is shown as soon as it is final, its selection tinted; its outline, when it has one, follows when the job
+    // is done. Any change to the selection sets changed, which stops the job, so the outline shown is always of the
+    // selection show() sees.
     if (job != nullptr) {
+      const char* what = (job->m_stage == 1) ? "frame" : "full frame";
+
+      if (job->m_framed && !job->m_shown && !job->m_done) {
+        if (job->m_stats.m_complete) {
+          show(job->m_image, job->m_stats, job->m_seconds, what, nullptr);
+        }
+
+        job->m_shown = true;
+      }
+
       if (job->m_done) {
         job->stop();
 
         if (job->m_stats.m_complete) {
-          show(job->m_image,
-               job->m_stats,
-               job->m_seconds,
-               (job->m_stage == 1) ? "frame" : "full frame",
-               job->m_outlining ? &job->m_outline : nullptr);
+          const bool withOutline = job->m_outlining && !job->m_outline.empty();
+
+          if (withOutline || !job->m_shown) {
+            show(job->m_image, job->m_stats, job->m_seconds, what, withOutline ? &job->m_outline : nullptr);
+          }
 
           pending = (job->m_stage == 1 && adds(2)) ? 2 : 0;
         }
 
         job.reset();
       }
-      else if (job->m_stage == 2) {
+      else if (job->m_stage == 2 && !job->m_framed) {
         const uint32_t    percent = (100U * job->m_rows.load()) / Math::max(1U, job->m_height);
         const std::string title   = status + " (refining " + std::to_string(percent) + "%)";
 
