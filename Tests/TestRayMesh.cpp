@@ -228,6 +228,54 @@ TEMPLATE_TEST_CASE("Ray: a sliver face is not crossed beyond its ends", "[Ray]",
   check(triangle);
 }
 
+TEMPLATE_TEST_CASE("Ray: a long, thin face far from the origin is not crossed outside its short edge",
+                   "[Ray]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  // One face 251 long and 6 wide, at about 1000 from the origin, in the plane z = 0: its short edge is
+  // x = 1251. A ray may cross a face within a few ulps of the coordinates outside it (the rounding error of
+  // its crossing point), whichever edge it passes, and no further: here 20 times that distance outside the
+  // short edge is a miss, as is 4 times it outside a long edge. A second, small face beside it, which none of
+  // the rays meets, widens the leaf's box past those points, as neighboring faces do in a real mesh, so that
+  // the box test does not reject the rays before the face's own test.
+  const PolygonSoup<T> soup("sliver",
+                            {Vec3(T(1000), T(1000), T(0)),
+                             Vec3(T(1251), T(1000), T(0)),
+                             Vec3(T(1251), T(1006), T(0)),
+                             Vec3(T(1252), T(990), T(0)),
+                             Vec3(T(1260), T(990), T(0)),
+                             Vec3(T(1260), T(995), T(0))},
+                            {{0, 1, 2}, {3, 4, 5}});
+
+  Pool                      pool(hostMemoryResource());
+  const auto                mesh = soup.convertToDCEL(pool);
+  const FlatMeshSDF<T>      polygon(mesh, pool);
+  const TriMeshSDF<T, 4, 4> triangle(soup.convertToTriangles(), pool, BVH::Construction::SAH, 4);
+
+  // An upper bound on the coordinates' size, as the crossing tests take it (the ray's origin and a vertex).
+  const T    height = T(1100);
+  const T    delta  = T(4) * std::numeric_limits<T>::epsilon() * (T(1251) + T(1003) + height + T(1251) + T(1006));
+  const Vec3 down(T(0), T(0), -T(1));
+
+  const auto hits = [&down, height](const auto& a_sliver, const T a_x, const T a_y) {
+    return firstHit(a_sliver, RayT<T>{Vec3(a_x, a_y, height), down}, T(0), T(2) * height).hit();
+  };
+
+  const auto check = [&hits, delta](const auto& a_sliver) {
+    CHECK(hits(a_sliver, T(1250), T(1003)));
+    CHECK(hits(a_sliver, T(1250.9), T(1003)));
+    CHECK_FALSE(hits(a_sliver, T(1251) + T(20) * delta, T(1003)));
+    CHECK_FALSE(hits(a_sliver, T(1251) + T(20) * delta, T(1001)));
+    CHECK_FALSE(hits(a_sliver, T(1100), T(1000) - T(4) * delta));
+  };
+
+  check(polygon);
+  check(triangle);
+}
+
 TEMPLATE_TEST_CASE("Ray: no ray slips between the faces of a fine mesh far from the origin",
                    "[Ray]",
                    EBGEOMETRY_TEST_PRECISIONS)
