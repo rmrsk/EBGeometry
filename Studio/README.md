@@ -15,14 +15,14 @@ make VIEWER=OFF         # without the window
 ```
 
 or with CMake: `cmake -S . -B build && cmake --build build`, which also puts the binary at `Studio/ebgstudio`
-(`-DEBGEOMETRY_STUDIO_GPU=CUDA`, `-DEBGEOMETRY_STUDIO_PRECISION=double`, `-DEBGEOMETRY_VIEWER=OFF`).
+(`-DEBGEOMETRY_STUDIO_GPU=CUDA`, `-DEBGEOMETRY_STUDIO_PRECISION=double`, `-DEBGEOMETRY_VIEWER=OFF`). With the library,
+`-DEBGEOMETRY_BUILD_STUDIO=ON` builds it in the library's build tree and installs it with the library.
 
 A CUDA build compiles each of its six render kernels in a file of its own (`Kernels.cpp`, see `Kernels.hpp`), so that
-they compile in parallel: `make` runs `JOBS` compilations at once (7 by default, about 30 GB of memory, each taking up
-to about 6 GB; `JOBS=1` compiles one at a time, and a `-j` on the command line is overridden by `JOBS`), and CMake as many as `cmake --build build -j N` asks for. Without the
-window (`VIEWER=OFF`) it compiles only the two the render command uses. A change of the settings or of the library's
-headers rebuilds what it affects. With the library,
-`-DEBGEOMETRY_BUILD_STUDIO=ON` builds it in the library's build tree and installs it with the library.
+they compile in parallel. `make` runs `JOBS` compilations at once: 7 by default, needing about 30 GB of memory (each
+takes up to about 6 GB); `JOBS=1` compiles one at a time, and `JOBS` overrides a `-j` on the command line. CMake runs
+as many as `cmake --build build -j N` asks for. Without the window (`VIEWER=OFF`) only the two kernels the render
+command uses are compiled. A change of the settings or of the library's headers rebuilds what it affects.
 
 ## Running
 
