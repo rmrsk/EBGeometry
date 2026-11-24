@@ -87,11 +87,14 @@ they were set to when installing: those are for the project that uses it to choo
 Enabling SIMD in CMake
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``EBGEOMETRY_SIMD`` cache variable (``avx512``, ``avx``, ``sse41`` or ``none``) makes the
-``EBGeometry::EBGeometry`` target add the matching flags to every target in the same build that links
-against it. Its default is ``none`` when another project pulls EBGeometry in, since SIMD flags
-produce binaries that fail on processors without those instructions, and ``avx`` when EBGeometry
-itself is the project being built (its tests, examples and performance probes). To opt in from a project
+The ``EBGEOMETRY_SIMD`` cache variable (``avx512``, ``avx``, ``sse41`` or ``none`` on x86-64; ``neon`` or
+``none`` on aarch64) makes the ``EBGeometry::EBGeometry`` target add the matching flags to every target in
+the same build that links against it; a level the target processor does not have is a configure error. Its
+default is ``none`` when another project pulls EBGeometry in, since SIMD flags produce binaries that fail on
+processors without those instructions, and the target processor's level when EBGeometry itself is the
+project being built (its tests, examples and performance probes): ``avx`` on x86-64, ``neon`` on aarch64,
+``none`` elsewhere. ``neon`` adds no flag, since every aarch64 compiler enables NEON, and the library has no
+NEON code paths, so an aarch64 build takes the scalar path. To opt in from a project
 that uses ``FetchContent`` or ``add_subdirectory``, set it first:
 
 .. code-block:: cmake

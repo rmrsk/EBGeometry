@@ -186,6 +186,14 @@ Configures with the ``release-test`` preset (optimized, AVX, examples and tests 
 ``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``, and runs ``ctest --preset release-test`` (the full
 unit-test and example suite).
 
+Linux-ARM
+~~~~~~~~~
+
+On an aarch64 runner (``ubuntu-24.04-arm``, the system GCC), builds and runs the unit tests with the
+``debug`` preset, then the unit tests and every example with the ``release-test`` preset, both with
+``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``. The release build checks that ``EBGEOMETRY_SIMD`` defaulted
+to ``neon``. It is the only lane on that processor, so it runs in both tiers.
+
 Sanitizers
 ~~~~~~~~~~
 
@@ -212,7 +220,8 @@ GPU-CUDA
 ~~~~~~~~
 
 The same device compile with ``nvcc`` (CUDA 12.5), device examples included, optimized (Release), without
-assertions and without SIMD flags. The tests compile with nvcc's warnings as errors and without
+assertions and without SIMD flags, in two jobs: one for ``sm_70`` (Volta) and one for ``sm_90`` (Hopper, as on
+Grace Hopper nodes), since both architectures in one build would take too long for the job's timeout. The tests compile with nvcc's warnings as errors and without
 ``--expt-relaxed-constexpr`` (see :ref:`Sec:WritingDeviceCode`). It does not build the performance probes: the device receipt builds every
 probe for the device on the pull request's final code, and building them here too would double the job's time. Full tier only. CUDA and HIP are separate jobs because they use different
 device compilers and install routes, and run side by side. Marked
@@ -246,6 +255,7 @@ Dependency graph
     +-- Build-documentation
     +-- Unit-Tests
     +-- Release-Test
+    +-- Linux-ARM
     +-- Sanitizers
     +-- GPU-CUDA                 (advisory; not required by CI-passed)
     +-- GPU-HIP
