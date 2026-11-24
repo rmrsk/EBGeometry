@@ -102,7 +102,7 @@ TEMPLATE_TEST_CASE("Tape: a trivially copyable pool handle, and a shape itself",
   STATIC_REQUIRE(isShape<OtherSphere<T>>);
 }
 
-TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates exactly like the shape",
+TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates like the shape, to rounding",
                    "[Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -144,8 +144,11 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates exactly like the sha
 
     CHECK(tape.tape().getNumClauses() == 1U);
 
+    // Within a few units in the last place, not bit for bit: GCC fuses multiply-adds by default (in C++ also
+    // under -std=c++17), and may fuse a shape's distance differently inlined into the tape's dispatch than
+    // called on its own.
     for (const auto& p : probes<T>()) {
-      CHECK(tape(p) == a_shape.signedDistance(p));
+      CHECK_THAT(tape(p), Catch::Matchers::WithinULP(a_shape.signedDistance(p), 4));
     }
   };
 
