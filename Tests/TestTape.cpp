@@ -146,9 +146,14 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates like the shape, to r
 
     // Within a few units in the last place, not bit for bit: GCC fuses multiply-adds by default (in C++ also
     // under -std=c++17), and may fuse a shape's distance differently inlined into the tape's dispatch than
-    // called on its own.
+    // called on its own. Near a surface the distance is a cancelling difference, so a few epsilons of
+    // absolute error are allowed too.
+    const double floor = 4.0 * static_cast<double>(std::numeric_limits<T>::epsilon());
+
     for (const auto& p : probes<T>()) {
-      CHECK_THAT(tape(p), Catch::Matchers::WithinULP(a_shape.signedDistance(p), 4));
+      const T expected = a_shape.signedDistance(p);
+
+      CHECK_THAT(tape(p), Catch::Matchers::WithinULP(expected, 4) || withinAbsT(expected, floor));
     }
   };
 
