@@ -312,11 +312,11 @@ struct IsComposition<Fused::Node<Op, Cs...>> : std::true_type
  * @brief Whether valueAt() reaches a shape's value through an out-of-line call on a device.
  * @details Internal helper; not part of the public API. A shape that lives in a pool (a mesh SDF, a tape, a
  * BVH union) or a composition (a fused node) has a large distance, which the ray code would otherwise copy
- * into every place it asks for it: a mesh's distance was copied dozens of times per march, and ptxas took
- * gigabytes and up to hours to compile a kernel. An analytic leaf's value is small, and is inlined, as code
- * written by hand would be (a tape's span tracing ran twice as fast on a device). Its trace is not:
- * shapeHit() is out of line for every shape, since a leaf's trace inlined into the span code made a
- * fused scene up to 35% slower on a device.
+ * into every place it asks for it: a mesh's distance would be copied many times per march, and ptxas would
+ * take far more memory and time to compile a kernel. An analytic leaf's value is small, and is inlined, as code
+ * written by hand would be, which makes a tape's span tracing much faster on a device. Its trace is not:
+ * shapeHit() is out of line for every shape, since a leaf's trace inlined into the span code slows a fused
+ * scene on a device.
  * @tparam S Shape type.
  */
 template <class S>
@@ -325,9 +325,8 @@ inline constexpr bool CalledOutOfLine = isPoolHandle<S> || IsComposition<S>::val
 /**
  * @brief A shape's value at a point (its signedDistance()), out of line on a device.
  * @details Internal helper; not part of the public API. What valueAt() calls for a shape that
- * CalledOutOfLine selects. With the ray helpers inlined, one march() held about thirty copies of a mesh's
- * distance, and the CUDA compile of the ray tests took eight minutes and 13 GB; out of line, 75 seconds and
- * 3 GB.
+ * CalledOutOfLine selects. With the ray helpers inlined, one march() would hold many copies of a mesh's
+ * distance, and the CUDA compile of the ray tests would take several times as long and as much memory.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape The shape.
@@ -513,8 +512,8 @@ gradientNormal(const S& a_shape, const Vec3T<T>& a_point, const T a_h) noexcept
  * crossing's normal and primitive) is reached from one place. A span list keeps only a crossing's distance
  * and kind (see endOf()), so the span code marches with a_resolve false: the normal (four values of the shape,
  * see gradientNormal()) and the primitive (one more search) would be thrown away at every crossing. A run-time
- * flag rather than a template parameter: a second instantiation of the march per shape type slowed marched
- * tapes holding a mesh by 13-54% on a device (RayShell, RayParticles) against one copy with a branch.
+ * flag rather than a template parameter: a second instantiation of the march per shape type slows marched
+ * tapes holding a mesh on a device, against one copy with a branch.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in] a_shape   The shape.

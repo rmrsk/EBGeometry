@@ -74,8 +74,8 @@ struct Corner
  * vertices next to the corner (12 bytes), in the order MeshT::reconcile() visits them: a vertex's faces in face
  * order, and the neighbors in the order a walk of the face's loop from its half-edge finds them. Storing the
  * neighbors spares the vertex pass a walk of every face's loop: without them (4 bytes per corner instead of 12)
- * the pass measured 2.6 to 4 times slower in float and 10-20% slower in double on a device (100,000 and 250,000
- * faces, RTX 3080). The schedule also holds one status word, which the vertex pass sets on coincident positions.
+ * the pass is several times slower in float on a device, and slower in double. The schedule also holds one status
+ * word, which the vertex pass sets on coincident positions.
  */
 class ReconcileSchedule
 {

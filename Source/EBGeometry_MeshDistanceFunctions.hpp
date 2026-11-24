@@ -297,8 +297,7 @@ static_assert(std::is_trivially_copyable_v<FlatMeshSDF<double>>, "FlatMeshSDF<do
  * copy of the geometry: flipping the mesh (DCEL::MeshT::flip()) after building flips every distance,
  * and after moving vertices, reconciling the mesh and refitting the BVH (see getRoot()) is enough. The
  * price of four bytes per face rather than the 88 of a face copy is reading faces in mesh order rather than
- * leaf order, which made queries on the armadillo (100k faces) about 15% slower than with copies, near the
- * surface and away from it alike.
+ * leaf order, which makes queries somewhat slower than with copies, near the surface and away from it alike.
  * SIMD node pruning is used when T and K match an available ISA path.
  *
  * A plain value type, like FlatMeshSDF: it holds the mesh descriptor and the BVH by value, both

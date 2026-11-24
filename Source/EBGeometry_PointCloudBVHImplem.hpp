@@ -148,9 +148,8 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
   // padded lanes repeat the last one), so every point is offered once and the set needs no de-duplication.
   //
   // The lane loop has the constant bound W, with the padding test inside it, so that the compiler unrolls
-  // it and keeps the group's distances in registers. With the bound numValid, nvcc kept them in local
-  // memory (a store and a reload per group visited): the device queries ran 9-26% slower in float
-  // (closest point, the nearest other point, 8 nearest; 262,144 queries, RTX 3080) and 0-2% in double.
+  // it and keeps the group's distances in registers. With the bound numValid, nvcc keeps them in local
+  // memory (a store and a reload per group visited), which slows the device queries in float.
   const auto scanLeaf = [&groups, &a_query](Best& a_best, std::size_t a_off, std::size_t a_cnt) noexcept {
     for (std::size_t g = 0; g < a_cnt; g++) {
       const PointGroup&   group     = groups[static_cast<std::uint32_t>(a_off + g)];
@@ -177,8 +176,8 @@ PointCloudBVH<T, K, W>::query(const Vec3T<T>& a_query,
     // Seeded single-nearest self-query: scanning the query point's own leaf first gives a tight
     // prune bound immediately, so a plain unordered scalar DFS prunes just as hard as an ordered
     // descent -- without paying traverse()'s per-interior-node child-sort and its separate
-    // m_childAabbSoA SIMD load. For these cheap SoA point leaves that makes the unordered DFS ~20%
-    // faster. (This holds ONLY because of the seed: an unseeded search starts from an infinite bound,
+    // m_childAabbSoA SIMD load. For these cheap SoA point leaves that makes the unordered DFS the
+    // faster one. (This holds ONLY because of the seed: an unseeded search starts from an infinite bound,
     // where the near-first order is decisive.)
     //
     // One stack entry per level, as in PackedBVH's own traversals: the interior node and a mask of its

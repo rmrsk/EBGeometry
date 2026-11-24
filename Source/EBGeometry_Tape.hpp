@@ -64,12 +64,9 @@ struct TapeOptions
    * @brief A union or smooth union evaluated as written (not built with Accelerate::BVH) of at least this
    * many objects prints a warning to stderr when the tape is built, suggesting Accelerate::BVH; 0 silences
    * it. Nested sharp unions count as one (Union(Union(a, b), c) is a union of three).
-   * @details The default is where a BVH pays on the host and on a device alike. Measured on a lattice of
-   * N spheres, 16 evaluations per point (one core of an i9-12900K, and an RTX 3080 through
-   * GPU::transform()), the BVH beat the union as written from N = 12 on the host (2.6x faster at 64), but
-   * only from about N = 50 to 60 on the device (12 to 15% faster at 64), where the operands' arithmetic is
-   * cheap next to the traversal; at 32 the BVH was 1.6x faster on the host and up to 34% slower on the
-   * device.
+   * @details The default is where a BVH pays on the host and on a device alike. On the host a BVH beats the
+   * union as written from about a dozen operands; on a device only from about fifty, where the operands'
+   * arithmetic is cheap next to the traversal, and below that it can be slower there.
    */
   uint32_t m_largeUnionWarning = 64;
 
@@ -88,8 +85,8 @@ struct TapeOptions
  * Why features exist: a tape's evaluator and ray code are compiled once per tape type, for any expression a
  * tape of that type could hold, and on a device ptxas allocates registers and stack over all the code a kernel
  * can reach, run or not. Reaching the exact-offset code from the ray code, behind a flag no plain tape sets,
- * slowed plain float firstHit kernels by 10-16% (sm_86). So code that only some expressions need, such as a
- * new exact ray form for an operation, is a feature, and a new feature follows these rules:
+ * slows plain float firstHit kernels. So code that only some expressions need, such as a new exact ray form for
+ * an operation, is a feature, and a new feature follows these rules:
  * - **The tape stays correct without it.** Without the feature the compiler emits what it emitted before the
  *   feature existed (for a ray form, a RayOp::Marched clause), so a tape that does not list it computes the
  *   same object by the general path. A feature changes speed or exactness, never which object is computed.
@@ -1604,10 +1601,10 @@ private:
   /**
    * @brief The body of traceRay() (the whole object, program 0, inlined into it) and of traceProgram() (any program,
    * out of line).
-   * @details The whole object's trace compiles as it did before region programs existed: the program is the constant
-   * 0, and the naming of a marched crossing for another program is compiled out (if constexpr). Reached from
-   * traceRay() through an out-of-line traceProgram(), or with that naming merely reachable, a plain float tape's
-   * firstHit() kernel went from 40 to 255 registers and ran 12% slower on a device (sm_86).
+   * @details In the whole object's trace the program is the constant 0, and the naming of a marched crossing for
+   * another program is compiled out (if constexpr). Reached from traceRay() through an out-of-line traceProgram(),
+   * or with that naming merely reachable, a plain float tape's firstHit() kernel takes many more registers and runs
+   * slower on a device.
    * @tparam Whole Whether the program is the whole object's.
    * @tparam Part  Whether to give the part of the leaf crossed (tracePart()).
    * @param[in]  a_program The program (0 when Whole).
@@ -2100,27 +2097,25 @@ private:
    * @details How fast the host evaluates a plain tape depends on how GCC compiles this function and its
    * callers, not only on the work it does: registers and block layout are allocated over the whole loop, and
    * whether the caller's loop is unswitched on the call depth, or the evaluator inlined into it, follows
-   * their sizes. Measured on the Tape probe on one desktop CPU (an i9-12900K; GCC 13.3, -O3 -march=native,
-   * functions aligned to 64 bytes, one pinned core, base and variant binaries alternated over five or six
-   * rounds), with changes that no probe tape executes:
+   * their sizes. For changes that no probe tape executes:
    *   - changes that leave evaluateBody<0> as compiled (a sub-program clause's code, which compiles out at
-   *     depth 0; a shape past DispatchSplit; code in the tape's compiler) move the cases by at most 1.5%,
-   *     against a noise of about 1%;
+   *     depth 0; a shape past DispatchSplit; code in the tape's compiler) move the Tape probe's cases by about
+   *     its noise;
    *   - changes to the switch itself (a new clause kind with a short loop; a branch that never runs, added to
-   *     the Abs case) move them by -5% to +6% (chain16 float +6.4%; csg float -4.5% and +5.7%).
+   *     a case) move them by several percent either way.
    * Aligning loops, jumps or labels (-falign-loops=64, -falign-jumps=64, -falign-labels=64, or
-   * -Wa,-mbranches-within-32B-boundaries) leaves these swings in place, and Clang 19 shows them too (up to
-   * 12%). On the device (nvcc 12.5, sm_86), the same two changes flip a float firstHit() kernel from 255 to
-   * 40 registers, with the signedDistance() kernels unchanged at 168.
+   * -Wa,-mbranches-within-32B-boundaries) leaves these swings in place, and Clang shows them too. On the device,
+   * the same changes can flip the register budget of a float firstHit() kernel, with the signedDistance() kernels
+   * unchanged.
    *
    * The dispatch is kept as it is, without a separate path for rare clauses. The sub-program clauses, and any
    * later clause kind, in one function out of line on the host, tested before the switch and marked noipa (so
    * that GCC does not allocate the caller's registers from the registers the callee clobbers), make this
    * function the same, instruction for instruction, when a clause kind is added or a sub-program clause
-   * changes. But that restructuring itself moves the plain tapes by -17% to +24% against this layout, in each
-   * of six variants measured: the smaller evaluator changes whether GCC unswitches the caller's loop on the
-   * call depth and whether it inlines the evaluator into a loop of 16 evaluations, and a depth-0 entry kept
-   * out of line costs the one-sphere tape and the chain of 16 spheres 18-24%. So a change to any clause here
+   * changes. But that restructuring itself moves the plain tapes by large amounts either way against this layout,
+   * in every variant tried: the smaller evaluator changes whether GCC unswitches the caller's loop on the call
+   * depth and whether it inlines the evaluator into a loop of 16 evaluations, and a depth-0 entry kept out of line
+   * slows the smallest tapes markedly. So a change to any clause here
    * is a new draw of the layout, and the Tape cases of its receipt can move by several percent either way for
    * that reason alone (see "Reading the verdicts" in PerformanceTesting.rst).
    * @tparam D How deep the sub-program's own calls may still nest.
@@ -2286,7 +2281,7 @@ private:
   /**
    * @brief Evaluate a Repeat clause: the minimum of its sub-program over the copies (CSGOps::repetition()).
    * @details Inline in a device pass, unlike evaluateBlur(): as a further out-of-line function between
-   * two call levels, it raised a kernel that evaluates a tape in a loop to 255 registers (from 168).
+   * two call levels, it raises the registers of a kernel that evaluates a tape in a loop.
    * @tparam D Call depth left for the sub-program.
    * @tparam V Value type: T, or CSGOps::Tagged<T> for closestLeaf().
    * @param[in] a_clause   The clause.

@@ -2460,9 +2460,8 @@ Tape<T, UserPrimitives...>::evaluateBlur(const TapeDetail::Clause& a_clause,
 {
   const uint32_t sub = a_clause.m_a;
 
-  // In its own function rather than in evaluateBody(): there, the blur's loop (CSGOps::blur()) changed
-  // how GCC inlines the primitive dispatch into the evaluator, and slowed tapes without a Blur by up to
-  // 20%.
+  // In its own function rather than in evaluateBody(): there, the blur's loop (CSGOps::blur()) changes
+  // how GCC inlines the primitive dispatch into the evaluator, and slows tapes without a Blur.
   const auto f = [this, sub, a_base, &a_location](const Vec3T<T>& a_x) noexcept -> V {
     return this->template evaluate<D - 1, V>(sub, a_x, a_base, a_location);
   };

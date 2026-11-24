@@ -46,8 +46,8 @@ namespace BVH {
  * Grouping by depth rather than refitting in one sweep is what lets a level's nodes run in parallel:
  * a node needs its children's boxes, and every child is one level deeper. A schedule-free alternative,
  * repeated passes over all nodes until the boxes settle (one per tree level after the leaves), needs no
- * memory but measured 3 to 4 times slower than the schedule on a device (float and double, 1M and 4M
- * boxes, K = 4, RTX 3080), from re-reading every node in every pass; it was ruled out.
+ * memory but is several times slower than the schedule on a device, from re-reading every node in every
+ * pass; it was ruled out.
  */
 class RefitSchedule
 {

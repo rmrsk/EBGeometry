@@ -479,8 +479,8 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * @tparam BV Bounding-volume type (must be AABBT<T>).
  * @tparam K  Number of output sub-lists (branching factor of the resulting BVH).
  * @tparam LongestAxisOnly If true, bin candidate planes on only the longest centroid-bbox axis per
- * split instead of all three -- ~a third of the binning work (measured ~20% faster builds on point
- * clouds) for a tree-quality cost that is negligible on near-uniform inputs. Default false.
+ * split instead of all three -- a third of the binning work (faster builds on point clouds) for a
+ * tree-quality cost that is negligible on near-uniform inputs. Default false.
  * @param[in] a_primsAndBVs Input (primitive, BV) pairs.
  * @return K sub-lists.
  */

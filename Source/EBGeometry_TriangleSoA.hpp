@@ -83,20 +83,17 @@ HostWidth() noexcept
  *
  * A host-only build can define EBGEOMETRY_HOST_TUNED_DEFAULTS to make it return HostWidth<T>()
  * instead, the width that fills one SIMD register under the compiler's flags (8 for float under AVX,
- * for example): a wider group evaluates more triangles per instruction, which measured up to about
- * 20% faster TriMeshSDF queries in float. The macro changes this width only; the branching factor and
- * the point-group width stay 4, since widening them measured no faster, and slower under AVX-512.
+ * for example): a wider group evaluates more triangles per instruction, which makes TriMeshSDF queries
+ * faster in float. The macro changes this width only; the branching factor and the point-group width stay
+ * 4, since widening them is no faster, and slower under AVX-512.
  * The macro must be defined for every translation unit of the build, all compiled with the same SIMD
  * flags, or the same spelled type has different layouts in different files. It is a compile error in
  * a CUDA or HIP translation unit. EBGeometry's own CMake build defines it when EBGeometry is the
  * top-level project and no GPU backend is enabled.
  *
- * Measured (200,000 queries, best of three; TriMeshSDF on the 100k-triangle armadillo, PointCloudBVH on a
- * 200,000-point random cloud): on AVX2 in float, W = 8 took TriMeshSDF from 0.531 s to 0.438 s, K = 8 changed
- * nothing, and PointCloudBVH was unchanged. On an AVX-512 machine (runs varied by up to 15%): float TriMeshSDF
- * 1.81 s, 1.85 s at W = 16, 3.51 s at K = 16; float PointCloudBVH 0.175 s, 0.220 s at W = 16, 0.386 s at
- * K = 16; double TriMeshSDF 3.06 s, 2.62 s at W = 8, 3.95 s at K = 8; double PointCloudBVH 0.354 s, 0.352 s at
- * W = 8, 0.380 s at K = 8. On one AVX2 core, host vectorization is worth about 3.4 times for float TriMeshSDF.
+ * On AVX2, W = 8 is faster in float and K = 8 changes nothing. On AVX-512, in float W = 16 is no faster and
+ * K = 16 is slower; in double W = 8 makes TriMeshSDF faster and K = 8 is slower. Host vectorization as a whole
+ * makes float TriMeshSDF several times faster on one core.
  *
  * Usage: `size_t W = TriangleSoA::DefaultWidth<T>()` as a template-parameter default.
  * @tparam T Floating-point precision type (float or double).

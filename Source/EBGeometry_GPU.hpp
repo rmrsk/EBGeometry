@@ -100,8 +100,8 @@
 // from many places is copied into each of them. A function that calls itself one level down from
 // many places (the tape's evaluate<D>) then grows as the number of call sites to the power of the
 // depth. Marking it out of line in the device pass keeps it a real call there; the host pass is left
-// to its own inliner. Fully inlined, an optimized HIP compile of TestTape was stopped after ten minutes and
-// 2.5 GB; with evaluate<D> out of line it takes half a minute.
+// to its own inliner. Fully inlined, an optimized HIP compile of TestTape does not finish in reasonable time;
+// with evaluate<D> out of line it is quick.
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
 /** @brief Keep a function out of line in the device pass (CUDA/HIP); nothing on the host. */
 #define EBGEOMETRY_DEVICE_NOINLINE __noinline__

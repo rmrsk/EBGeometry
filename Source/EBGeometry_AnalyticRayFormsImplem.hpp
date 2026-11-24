@@ -1019,7 +1019,7 @@ convexFirstHit(const S& a_shape, const RayT<T>& a_ray, const T a_tMin, const T a
  * @details Internal helper; not part of the public API. A span list keeps no normals, so for a shape whose span
  * computes its normals apart from its ends, the list takes the ends alone. Computed as a span and then dropped,
  * the normals are left to the compiler to remove, which it does not where it keeps the normal's function out of
- * line: a fused CSG solid of a box, a ball and three infinite cylinders then traced 20-35% slower on the host.
+ * line, and a fused CSG solid then traces markedly slower on the host.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  * @param[in]  a_shape The shape.

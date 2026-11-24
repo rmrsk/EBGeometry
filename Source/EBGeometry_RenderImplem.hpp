@@ -582,9 +582,8 @@ timeStamp() noexcept
 /**
  * @brief Everything one pixel's rays share: the cut shape, the scene's scale, the floor, the light.
  * @details Internal helper; not part of the public API. Aligned to a cache line: built on the stack for each pixel, its
- * fields read for every ray, it otherwise straddled cache lines or not as each run's stack placed it, and host renders
- * of a plain float tape ran in two speeds, up to 9% apart, from one run of the same binary to the next (a field added
- * to Sectioned shifted the layout).
+ * fields read for every ray, it otherwise straddles cache lines or not as each run's stack places it, and host renders
+ * of a plain float tape run at two speeds from one run of the same binary to the next.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
  */
@@ -1449,8 +1448,8 @@ private:
   /**
    * @brief Whether a ray misses the object's box (uncut: a cut only makes it smaller), padded by the tolerance, in an
    * interval from 0.
-   * @details Out of line on a device: inlined into blocked(), the slab test's values added spills to every render
-   * kernel, and made a mesh tape's frames without shadows 4% slower (armadillo, float, sm_86).
+   * @details Out of line on a device: inlined into blocked(), the slab test's values add spills to every render
+   * kernel, and slow a mesh tape's frames without shadows.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
    * @return True if it misses the box.
@@ -1510,12 +1509,12 @@ private:
    * @brief Where a ray first meets a surface that is not seen through (Settings::m_hidden) in an interval.
    * @details A ray that misses the shape's box meets nothing, which one slab test says (missesBox()): most of the
    * floor's shadow and occlusion rays miss it, and a shape that tests its own box first (a mesh, at its BVH's root)
-   * rejects them as cheaply, but a tape pays its interpreter's fixed cost for each (on a device, 16 ms of a mesh tape's
-   * frame against 3 ms of the mesh's; armadillo, float, sm_86). In the renderer, not in the tape: a box test in every
+   * rejects them as cheaply, but a tape pays its interpreter's fixed cost for each, a large part of a mesh tape's
+   * frame on a device. In the renderer, not in the tape: a box test in every
    * tape query costs the random rays of a query, while a frame's floor rays are coherent. With no surface seen through,
    * one crossing without its normal (firstCrossing()), which a shadow does not read: a tape's firstHit() resolves its
    * crossing a second time for the normal. Stepping past surfaces seen through is blockedPastHidden(), out of line on
-   * the host: inlined into the lighting of every shaded pixel, it made host renders of a plain float tape 10% slower.
+   * the host: inlined into the lighting of every shaded pixel, it slows host renders of a plain float tape.
    * @param[in] a_ray  Ray, with a unit direction.
    * @param[in] a_tMax End of the interval.
    * @return The distance along the ray, or infinity if it meets none.
@@ -1998,10 +1997,9 @@ private:
    * @brief The color of the floor where a camera ray hit it, in its style (Settings::m_floorStyle), shadowed by the
    * shape, fading into the backdrop far away.
    * @details The checker and the plain floor are shaded here, inlined into the render kernels; the other styles in
-   * shadeStyledFloor(), out of line on a device. Out of line, the checker floor made the float CSG frame of the Render
-   * probe 11% slower on a device; inlined, the other styles (the grid, the shadow-only floor's second lighting, the
-   * mirror) took part in every render kernel's register allocation, and the kernels of TestRenderDevice spilled up to
-   * 40% more.
+   * shadeStyledFloor(), out of line on a device. Out of line, the checker floor slows a CSG frame on a device; inlined,
+   * the other styles (the grid, the shadow-only floor's second lighting, the mirror) take part in every render kernel's
+   * register allocation, and the render kernels spill more.
    * @param[in] a_point     Point on the floor.
    * @param[in] a_direction Unit direction of the camera ray.
    * @param[in] a_t         Distance along the ray.
@@ -3975,8 +3973,8 @@ Renderer<T>::renderFrameWith(const Q&                 a_query,
   else {
     // While this thread waits for the launch, another passes the cancel flag to the device and the progress
     // back. The kernel reads the flag from device memory, where that thread copies it on a stream of its own,
-    // which runs alongside the kernel; read from host memory mapped into the device's, the flag cost every pixel
-    // a read across the bus, about 10 ms of a 7 ms frame (RTX 3080, 960 x 960 pixels). The kernel writes the
+    // which runs alongside the kernel; read from host memory mapped into the device's, the flag would cost every
+    // pixel a read across the bus, longer than the frame itself. The kernel writes the
     // progress, once a row, to that mapped memory, passed to it as it is, which unified virtual addressing
     // (every 64-bit CUDA and HIP platform) allows. Whether a pixel skipped its work, which says whether the
     // render completed, and the count of rows are in device memory too.
