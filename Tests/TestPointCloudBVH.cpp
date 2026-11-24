@@ -466,8 +466,6 @@ template <class Cloud>
 void
 requireSameTree(const Cloud& a_cloud, const Cloud& a_reference)
 {
-  using T = std::decay_t<decltype(a_cloud.position(0)[0])>;
-
   const auto bvh = a_cloud.getBVH();
   const auto ref = a_reference.getBVH();
 
@@ -503,17 +501,15 @@ requireSameTree(const Cloud& a_cloud, const Cloud& a_reference)
 
   REQUIRE(groups.size() == refGroups.size());
 
-  const Vec3T<T> probe(T(0.3), T(-0.2), T(0.7));
-
+  // Lanes are compared by what they store, not by a distance computed from it: the compiler may fuse the
+  // distance's multiply-adds differently at two call sites (GCC does on aarch64), so one lane's distance can
+  // differ in the last bit between them.
   for (uint32_t g = 0; g < groups.size(); g++) {
     REQUIRE(groups[g].numValid() == refGroups[g].numValid());
 
-    const auto distances    = groups[g].getDistances2(probe);
-    const auto refDistances = refGroups[g].getDistances2(probe);
-
     for (uint32_t lane = 0; lane < groups[g].numValid(); lane++) {
       CHECK(groups[g].getPointId(lane) == refGroups[g].getPointId(lane));
-      CHECK(distances[lane] == refDistances[lane]);
+      CHECK(groups[g].getPosition(lane) == refGroups[g].getPosition(lane));
     }
   }
 
