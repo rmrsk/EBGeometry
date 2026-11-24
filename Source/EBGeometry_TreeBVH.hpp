@@ -473,6 +473,7 @@ SAHKWaySplit(PrimAndBVList<P, BV>&                   a_list,
  * - AVX,      double → K=4  (one @c _mm256_load_pd)
  * - SSE4.1,   float  → K=4  (one @c _mm_load_ps)
  * - NEON,     float  → K=4  (one 4-lane register)
+ * - NEON,     double → K=4  (two 2-lane registers)
  *
  * @note Requires BV == AABBT<T>.
  * @tparam T  Floating-point precision.

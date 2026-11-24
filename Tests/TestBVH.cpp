@@ -6102,6 +6102,7 @@ TEST_CASE("Default K and W are 4, except the triangle-group width under EBGEOMET
   constexpr size_t hostFloat  = 8;
   constexpr size_t hostDouble = 4;
 #else
+  // SSE4.1, NEON (whose 16-byte registers hold four floats) and the scalar build.
   constexpr size_t hostFloat  = 4;
   constexpr size_t hostDouble = 4;
 #endif

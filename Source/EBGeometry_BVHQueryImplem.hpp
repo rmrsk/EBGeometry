@@ -68,13 +68,14 @@ pointDistance2(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, const siz
  * @details Internal helper; not part of the public API. Dispatches at compile time on (T, K) and the
  * compiled ISA: AVX-512F for (double, K=8) and (float, K=16), AVX for (double, K=4), (float, K=8) and
  * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), NEON for (float, K=4) and (double, K=4)
- * as two 2-wide passes, and a scalar loop for every other
- * combination and for device compilation. Every path computes the same quantity in the same association order, so all agree bit for bit (a NaN
+ * as two 2-wide passes, and a scalar loop for every other combination and for device compilation. Every
+ * path computes the same quantity in the same association order, so all agree bit for bit (a NaN
  * coordinate counts as inside along that axis, so it never prunes a child; under -ffast-math the
  * compiler may assume there are no NaNs, and then no path promises anything for one), unless the
- * compiler contracts the scalar path into fused multiply-adds, which the x86 intrinsics do not: Clang does
- * so by default within an expression, and GCC in its GNU language modes (-std=gnu++17; EBGeometry's own
- * CMake build uses -std=c++17), whenever FMA is enabled. GCC may contract the NEON intrinsics too.
+ * compiler contracts the scalar path into fused multiply-adds, which the x86 intrinsics do not: Clang
+ * does so by default within an expression, and GCC in its GNU language modes (-std=gnu++17;
+ * EBGeometry's own CMake build uses -std=c++17), whenever FMA is enabled. GCC may contract the NEON
+ * intrinsics too.
  * @tparam T Precision.
  * @tparam K Branching factor.
  * @param[in]  a_soa   The child boxes.
