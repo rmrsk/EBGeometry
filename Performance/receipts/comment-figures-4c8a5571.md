@@ -28,7 +28,7 @@ date: 2026-11-24
 
 ## Host comparison: yellow
 
-**Accepted:** -
+**Accepted:** Comments only: the Render probe compiled differently only by `__LINE__` constants, and float CSG frames run at two speeds from one run to the next; a layout draw, not a cost.
 
 `a13371f` against `baf4da2` (origin/main), 2026-11-24.
 
