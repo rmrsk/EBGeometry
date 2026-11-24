@@ -73,7 +73,8 @@ no run-time dispatch:
      - none of the above
 
 :ref:`Chap:Building` gives the flags that define them for each build method (``-mavx -mfma``, say, or
-``EBGEOMETRY_SIMD`` with CMake). The instruction set selects code paths only: the branching factor ``K``
+``EBGEOMETRY_SIMD`` with CMake). The library has no ARM (NEON) code paths: an aarch64 host takes the
+scalar path. The instruction set selects code paths only: the branching factor ``K``
 and the SIMD width ``W`` stay 4 on every machine unless chosen otherwise (below).
 
 .. _Sec:DefaultKW:

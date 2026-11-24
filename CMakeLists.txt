@@ -63,18 +63,40 @@ option(EBGEOMETRY_ENABLE_CUDA
 option(EBGEOMETRY_ENABLE_HIP
   "Compile the HIP device-portability smoke test (requires a ROCm/HIP toolchain)" OFF)
 
+# The SIMD levels a target processor offers: sse41, avx and avx512 on x86-64, neon on aarch64. Every
+# aarch64 compiler enables NEON on its own, so neon adds no flag. The library has no NEON code paths, so
+# an aarch64 build takes the scalar path whichever of the two it names.
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _ebgeometry_processor)
+
+if(_ebgeometry_processor MATCHES "^(x86_64|amd64|x64)$")
+  set(_ebgeometry_simd_levels avx512 avx sse41 none)
+  set(_ebgeometry_native_simd "avx")
+elseif(_ebgeometry_processor MATCHES "^(aarch64|arm64)$")
+  set(_ebgeometry_simd_levels neon none)
+  set(_ebgeometry_native_simd "neon")
+else()
+  set(_ebgeometry_simd_levels none)
+  set(_ebgeometry_native_simd "none")
+endif()
+
 # SIMD flags are only a default when EBGeometry is the project being built (its tests, examples and
 # benchmarks). A project that pulls EBGeometry in gets none unless it asks for them: -mavx and
 # friends produce binaries that crash on older CPUs, which is the consuming project's call to make.
 if(EBGEOMETRY_IS_TOP_LEVEL)
-  set(_ebgeometry_default_simd "avx")
+  set(_ebgeometry_default_simd "${_ebgeometry_native_simd}")
 else()
   set(_ebgeometry_default_simd "none")
 endif()
 
 set(EBGEOMETRY_SIMD "${_ebgeometry_default_simd}" CACHE STRING
-  "SIMD level to compile against: avx512 | avx | sse41 | none")
-set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS avx512 avx sse41 none)
+  "SIMD level to compile against: avx512 | avx | sse41 (x86-64), neon (aarch64), or none")
+set_property(CACHE EBGEOMETRY_SIMD PROPERTY STRINGS ${_ebgeometry_simd_levels})
+
+if(NOT EBGEOMETRY_SIMD IN_LIST _ebgeometry_simd_levels)
+  string(REPLACE ";" ", " _ebgeometry_simd_list "${_ebgeometry_simd_levels}")
+  message(FATAL_ERROR "EBGEOMETRY_SIMD=${EBGEOMETRY_SIMD} does not exist for the target processor "
+    "'${CMAKE_SYSTEM_PROCESSOR}'; choose one of: ${_ebgeometry_simd_list}")
+endif()
 
 # ── Propagate options to consumers in this build via the interface target ─────
 # Both are BUILD_INTERFACE only: they apply to targets in the same build (add_subdirectory,
@@ -101,7 +123,7 @@ elseif(NOT EBGEOMETRY_VIEWER STREQUAL "OFF")
   message(FATAL_ERROR "EBGEOMETRY_VIEWER must be OFF or SDL2 (got '${EBGEOMETRY_VIEWER}')")
 endif()
 
-# SIMD flags are x86 host-compiler flags, so scope them to C++ compilation only ($<COMPILE_LANGUAGE:CXX>).
+# SIMD flags are host-compiler flags, so scope them to C++ compilation only ($<COMPILE_LANGUAGE:CXX>).
 # This is identical for ordinary C++ consumers, but keeps -mavx/-msse4.1 from leaking onto a CUDA
 # (or other offload) compile of a translation unit that links EBGeometry, where nvcc would reject them.
 if(EBGEOMETRY_SIMD STREQUAL "avx512")

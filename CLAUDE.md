@@ -105,11 +105,11 @@ ctest --preset examples         # run every example via ctest, several minutes i
 |-----------------|------------|------------|------|-----------------------|
 | `debug`         | Debug      | ON         | none | ON |
 | `debug-san`     | Debug      | ON         | none | ON, + ASan/UBSan |
-| `release`       | Release    | OFF        | avx  | OFF |
-| `release-test`  | Release    | OFF        | avx  | ON |
-| `perf`          | Release    | OFF        | avx + `-march=native` | `Performance/` probes only |
+| `release`       | Release    | OFF        | target's (avx; neon on aarch64) | OFF |
+| `release-test`  | Release    | OFF        | target's (avx; neon on aarch64) | ON |
+| `perf`          | Release    | OFF        | target's + `-march=native` | `Performance/` probes only |
 
-`EBGEOMETRY_SIMD` (`none|sse41|avx|avx512`) and `EBGEOMETRY_ENABLE_ASSERTIONS` are ordinary CMake
+`EBGEOMETRY_SIMD` (`none|sse41|avx|avx512` on x86-64, `none|neon` on aarch64) and `EBGEOMETRY_ENABLE_ASSERTIONS` are ordinary CMake
 cache variables if you need a combination not covered by a preset.
 
 ## Testing

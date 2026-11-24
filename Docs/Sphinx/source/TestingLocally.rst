@@ -83,17 +83,17 @@ Preset reference
    * - ``release``
      - ``Release``
      - OFF
-     - avx
+     - avx (neon on aarch64)
      - OFF (library only)
    * - ``release-test``
      - ``Release``
      - OFF
-     - avx
+     - avx (neon on aarch64)
      - Unit tests + examples
    * - ``perf``
      - ``Release``
      - OFF
-     - avx, ``-march=native``
+     - avx (neon on aarch64), ``-march=native``
      - The performance probes under ``Performance/`` only (see :ref:`Chap:PerformanceTesting`)
    * - ``perf-cuda``
      - ``Release``
@@ -156,9 +156,10 @@ CMake options
        32-byte-aligned slots while still emitting 64-byte-aligned AVX-512 spills, which faults on an
        AVX-512 host in correct code. Clang keeps the use-after-return check.
    * - ``EBGEOMETRY_SIMD``
-     - ``avx`` (``none`` when another project includes EBGeometry)
+     - ``avx`` on x86-64, ``neon`` on aarch64 (``none`` when another project includes EBGeometry)
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
-       enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``;
+       enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``
+       (x86-64 only); ``neon`` (aarch64 only) adds no flag and takes the scalar path;
        ``none`` uses the scalar fallback.
    * - ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
      - ``ON`` (``OFF`` with a GPU backend, or when another project includes EBGeometry)

@@ -552,6 +552,41 @@ jobs:
       - name: Run full suite (unit tests + examples)
         run: ctest --preset release-test --parallel $(nproc)
 
+  Linux-ARM:
+    needs: [Formatting, Codespell, Reuse, Doxygen-check]
+    # An aarch64 host (GitHub's Arm runner, the system GCC): the debug unit tests and the optimized tests and
+    # examples, both precisions, at the target's default SIMD level (neon). It runs in both tiers, since it is
+    # the only lane on this processor.
+    name: Linux aarch64 (debug tests, release tests + examples)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Cache Catch2 builds
+        uses: actions/cache@v6
+        with:
+          path: |
+            build/debug/_deps
+            build/release-test/_deps
+          key: ${{ runner.os }}-${{ runner.arch }}-catch2-${{ hashFiles('Tests/CMakeLists.txt') }}
+      - name: Generate a decimal-comma locale
+        run: |
+          sudo locale-gen de_DE.UTF-8
+          locale -a | grep -qi '^de_DE\.utf-\?8$' || { echo "de_DE.UTF-8 was not generated"; exit 1; }
+      - name: Debug build and unit tests
+        run: |
+          cmake --preset debug -DEBGEOMETRY_BUILD_EXAMPLES=OFF -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
+          cmake --build --preset debug --parallel $(nproc)
+          ctest --preset debug --parallel $(nproc)
+      - name: Release build, unit tests and examples
+        run: |
+          cmake --preset release-test -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON
+          grep -q '^EBGEOMETRY_SIMD:STRING=neon$' build/release-test/CMakeCache.txt
+          cmake --build --preset release-test --parallel $(nproc)
+          ctest --preset release-test --parallel $(nproc)
+
   Sanitizers:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
     name: Sanitizers (${{ matrix.compiler }}, SIMD=${{ matrix.simd }})
@@ -591,7 +626,7 @@ jobs:
 
   GPU-CUDA:
     needs: [Formatting, Codespell, Reuse, Doxygen-check]
-    name: GPU CUDA compile
+    name: GPU CUDA compile (sm_${{ matrix.arch }})
     runs-on: ubuntu-24.04
     # Every tape kernel compiles each built-in shape at every level of the evaluator, so the device tests
     # and examples take 40 to 55 minutes to build here (a ray or render kernel alone keeps ptxas busy for
@@ -603,6 +638,12 @@ jobs:
     # Advisory: the toolkit install is a third-party action that downloads several GB and is the
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
     continue-on-error: true
+    # sm_70 (Volta, the build's default when no GPU is visible) and sm_90 (Hopper, as on Grace Hopper nodes),
+    # one per job: both in one build would take about twice as long, past the timeout.
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [70, 90]
     steps:
       - uses: actions/checkout@v7
       - name: Install CUDA toolkit
@@ -614,7 +655,7 @@ jobs:
       - name: Configure
         # Both precisions so the float instantiations of the device kernels are compiled too. Optimized and
         # without assertions, as users build: assertions make the device code, and ptxas's time, much larger.
-        run: cmake -S . -B build/cuda -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_ENABLE_ASSERTIONS=OFF -DEBGEOMETRY_ENABLE_CUDA=ON -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON
+        run: cmake -S . -B build/cuda -DCMAKE_BUILD_TYPE=Release -DEBGEOMETRY_ENABLE_ASSERTIONS=OFF -DEBGEOMETRY_ENABLE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=${{ matrix.arch }} -DEBGEOMETRY_BUILD_TESTS=ON -DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON -DEBGEOMETRY_BUILD_EXAMPLES=ON
       - name: Build
         # Compiles the per-class test files that carry a device block (guarded by EBGEOMETRY_CUDA)
         # with nvcc, so the device-callable surface must compile for the device. The device-test list
@@ -676,7 +717,7 @@ jobs:
     # then fails unless every dependency succeeded. Static-analysis and GPU-CUDA are advisory and
     # deliberately not listed.
     if: always()
-    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Viewer-SDL2, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
+    needs: [Formatting, Codespell, Reuse, Doxygen-check, Linux-GNU, Linux-ARM, Linux-Intel, Examples-GNUMake, Examples-CMake, Examples-FloatPrecision, Viewer-SDL2, Performance-smoke, Performance-receipt, Build-documentation, Unit-Tests, Release-Test, Sanitizers, GPU-HIP, CMake-consumer]
     runs-on: ubuntu-24.04
     steps:
       - name: Require every dependency to have succeeded
