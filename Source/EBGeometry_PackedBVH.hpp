@@ -170,6 +170,7 @@ DefaultBranchingRatio() noexcept
  * | AVX-512F  |   16    |    8     |
  * | AVX       |    8    |    4     |
  * | SSE4.1    |    4    |    4     |
+ * | NEON      |    4    |    4     |
  * | fallback  |    4    |    4     |
  *
  * The value depends on the flags each translation unit is compiled with, so a type spelled with it
@@ -348,6 +349,7 @@ using NodeKeyFactory = std::function<NodeKey(const NodeType& a_node)>;
  * - K==8,  T==float  → AVX     (__m256)
  * - K==8,  T==double → AVX-512F (__m512d), or AVX (two __m256d passes) without AVX-512F
  * - K==16, T==float  → AVX-512F (__m512)
+ * - K==4,  T==float or double → NEON on aarch64 (one float32x4_t, or two float64x2_t passes)
  * All other combinations, and device compilation, use a scalar loop. RayQuery's slab test runs on
  * SIMD::Pack lanes where a register's width divides K.
  *

@@ -117,9 +117,9 @@ DefaultWidth() noexcept
 /**
  * @brief SoA (Structure of Arrays) layout for W triangles, enabling SIMD evaluation.
  * @details signedDistance() and signedDistances() evaluate TriangleDistance::signedDistance(), the
- * one triangle kernel, on SIMD::NativeWidth<T, W>() lanes at a time: the widest SSE4.1, AVX or
- * AVX-512F register the compiler's flags provide whose lane count divides W (so W = 8 doubles under
- * AVX takes two 4-lane registers, and W = 4 doubles under SSE4.1 two 2-lane ones). Where no register
+ * one triangle kernel, on SIMD::NativeWidth<T, W>() lanes at a time: the widest SSE4.1, AVX,
+ * AVX-512F or NEON register the compiler's flags provide whose lane count divides W (so W = 8 doubles
+ * under AVX takes two 4-lane registers, and W = 4 doubles under SSE4.1 or NEON two 2-lane ones). Where no register
  * fits, and in every device pass, the same kernel runs on one triangle at a time.
  * @warning This type is over-aligned (up to 64 bytes, for AVX-512F) via alignas. The library's own
  * usage is safe: PackedBVH stores groups (inside TriangleAoSoA) in a Pool-backed PODVector, which reserves

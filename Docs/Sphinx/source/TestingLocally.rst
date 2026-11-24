@@ -159,8 +159,9 @@ CMake options
      - ``avx`` on x86-64, ``neon`` on aarch64 (``none`` when another project includes EBGeometry)
      - ``avx512`` enables ``-mavx512f -mavx2 -mavx -mfma -msse4.1``; ``avx``
        enables ``-mavx -mfma -msse4.1``; ``sse41`` enables ``-msse4.1``
-       (x86-64 only); ``neon`` (aarch64 only) adds no flag and takes the scalar path;
-       ``none`` uses the scalar fallback.
+       (x86-64 only); ``neon`` (aarch64 only) adds no flag;
+       ``none`` uses the scalar fallback on x86-64, and the NEON paths on aarch64, whose compilers always
+       enable NEON.
    * - ``EBGEOMETRY_HOST_TUNED_DEFAULTS``
      - ``ON`` (``OFF`` with a GPU backend, or when another project includes EBGeometry)
      - The default triangle-group width ``TriangleSoA::DefaultWidth<T>()`` becomes the host-tuned

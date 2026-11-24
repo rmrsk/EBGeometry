@@ -4,7 +4,7 @@
 
 /**
  * @file   EBGeometry_SIMD.hpp
- * @brief  Thin wrappers over SSE4.1, AVX and AVX-512 registers, so that one kernel template serves
+ * @brief  Thin wrappers over SSE4.1, AVX, AVX-512 and NEON registers, so that one kernel template serves
  * every SIMD width and the scalar path.
  * @details A kernel written against these operations -- arithmetic operators, comparisons that give
  * a mask, select(), sqrt() and abs() -- compiles for a plain float or double (one lane, host and
@@ -27,6 +27,15 @@
 
 // Our includes
 #include "EBGeometry_GPU.hpp"
+
+// EBGEOMETRY_SIMD_NEON (internal) is defined where the NEON code paths are compiled: the host pass of an
+// aarch64 compile, except under nvcc. Every aarch64 compiler enables NEON, so no flag selects these paths.
+// They are left out of a CUDA translation unit, whose host side stays scalar as it does on x86-64, where
+// nvcc compiles no host SIMD code either; they are not built or tested with nvcc.
+#if defined(__aarch64__) && defined(__ARM_NEON) && !defined(EBGEOMETRY_DEVICE_COMPILE) && !defined(__CUDACC__)
+#define EBGEOMETRY_SIMD_NEON
+#include <arm_neon.h>
+#endif
 
 namespace EBGeometry {
 
@@ -114,8 +123,8 @@ abs(const double a_x) noexcept
 
 /**
  * @brief The widest SIMD register, in lanes of T, that this compilation pass has: 16 floats or 8
- * doubles under AVX-512F, 8 or 4 under AVX, 4 or 2 under SSE4.1, and 1 otherwise and in every device
- * pass.
+ * doubles under AVX-512F, 8 or 4 under AVX, 4 or 2 under SSE4.1 or NEON (aarch64), and 1 otherwise and in
+ * every device pass.
  * @tparam T Floating-point type.
  * @return The lane count.
  */
@@ -132,7 +141,7 @@ WidestPack() noexcept
   return 64 / sizeof(T);
 #elif defined(__AVX__)
   return 32 / sizeof(T);
-#elif defined(__SSE4_1__)
+#elif defined(__SSE4_1__) || defined(EBGEOMETRY_SIMD_NEON)
   return 16 / sizeof(T);
 #else
   return 1;
@@ -151,7 +160,7 @@ template <class T, size_t W>
 constexpr size_t
 NativeWidth() noexcept
 {
-  // The narrowest register is 16 bytes (SSE), so no pack is narrower than that.
+  // The narrowest register is 16 bytes (SSE, NEON), so no pack is narrower than that.
   for (size_t n = WidestPack<T>(); n * sizeof(T) >= 16; n /= 2) {
     if (W % n == 0) {
       return n;
@@ -377,6 +386,184 @@ struct Pack<double, 2>
   friend Pack select(const MaskD2 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(_mm_blendv_pd(a_ifFalse.v, a_ifTrue.v, a_mask.m)); }
   friend Pack sqrt(const Pack a_x) noexcept { return Pack(_mm_sqrt_pd(a_x.v)); }
   friend Pack abs(const Pack a_x) noexcept { return Pack(_mm_andnot_pd(_mm_set1_pd(-0.0), a_x.v)); }
+  /// @endcond
+  // clang-format on
+};
+
+#endif
+
+#if defined(EBGEOMETRY_SIMD_NEON)
+
+/**
+ * @brief Mask of a Pack<float, 4> on NEON: a lane is all ones where the comparison held.
+ */
+struct MaskF4
+{
+  /**
+   * @brief The mask, as a register.
+   */
+  uint32x4_t m;
+
+  /// @cond
+  friend inline MaskF4
+  both(const MaskF4 a_lhs, const MaskF4 a_rhs) noexcept
+  {
+    return MaskF4{vandq_u32(a_lhs.m, a_rhs.m)};
+  }
+  /// @endcond
+};
+
+/**
+ * @brief Mask of a Pack<double, 2> on NEON: a lane is all ones where the comparison held.
+ */
+struct MaskD2
+{
+  /**
+   * @brief The mask, as a register.
+   */
+  uint64x2_t m;
+
+  /// @cond
+  friend inline MaskD2
+  both(const MaskD2 a_lhs, const MaskD2 a_rhs) noexcept
+  {
+    return MaskD2{vandq_u64(a_lhs.m, a_rhs.m)};
+  }
+  /// @endcond
+};
+
+/**
+ * @brief Four floats in a NEON register.
+ * @details NEON's comparisons are ordered, as the scalar ones are: false where either side is NaN.
+ */
+template <>
+struct Pack<float, 4>
+{
+  /**
+   * @brief The register.
+   */
+  float32x4_t v;
+
+  /**
+   * @brief Uninitialized.
+   */
+  Pack() noexcept = default;
+
+  /**
+   * @brief From a register.
+   * @param[in] a_v Register.
+   */
+  explicit Pack(const float32x4_t a_v) noexcept : v(a_v)
+  {}
+
+  /**
+   * @brief Every lane set to @p a_x.
+   * @param[in] a_x Value.
+   */
+  explicit Pack(const float a_x) noexcept : v(vdupq_n_f32(a_x))
+  {}
+
+  /**
+   * @brief Load four lanes from 16-byte aligned memory.
+   * @param[in] a_p Address.
+   * @return The pack.
+   */
+  static Pack
+  load(const float* a_p) noexcept
+  {
+    return Pack(vld1q_f32(a_p));
+  }
+
+  /**
+   * @brief Store the four lanes to 16-byte aligned memory.
+   * @param[out] a_p Address.
+   */
+  void
+  store(float* a_p) const noexcept
+  {
+    vst1q_f32(a_p, v);
+  }
+
+  // clang-format off
+  /// @cond
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vaddq_f32(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vsubq_f32(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vmulq_f32(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vdivq_f32(a_lhs.v, a_rhs.v)); }
+  friend MaskF4 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF4{vcltq_f32(a_lhs.v, a_rhs.v)}; }
+  friend MaskF4 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF4{vcgtq_f32(a_lhs.v, a_rhs.v)}; }
+  friend MaskF4 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskF4{vcgeq_f32(a_lhs.v, a_rhs.v)}; }
+  friend Pack select(const MaskF4 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(vbslq_f32(a_mask.m, a_ifTrue.v, a_ifFalse.v)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(vsqrtq_f32(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept { return Pack(vabsq_f32(a_x.v)); }
+  /// @endcond
+  // clang-format on
+};
+
+/**
+ * @brief Two doubles in a NEON register.
+ * @details NEON's comparisons are ordered, as the scalar ones are: false where either side is NaN.
+ */
+template <>
+struct Pack<double, 2>
+{
+  /**
+   * @brief The register.
+   */
+  float64x2_t v;
+
+  /**
+   * @brief Uninitialized.
+   */
+  Pack() noexcept = default;
+
+  /**
+   * @brief From a register.
+   * @param[in] a_v Register.
+   */
+  explicit Pack(const float64x2_t a_v) noexcept : v(a_v)
+  {}
+
+  /**
+   * @brief Every lane set to @p a_x.
+   * @param[in] a_x Value.
+   */
+  explicit Pack(const double a_x) noexcept : v(vdupq_n_f64(a_x))
+  {}
+
+  /**
+   * @brief Load two lanes from 16-byte aligned memory.
+   * @param[in] a_p Address.
+   * @return The pack.
+   */
+  static Pack
+  load(const double* a_p) noexcept
+  {
+    return Pack(vld1q_f64(a_p));
+  }
+
+  /**
+   * @brief Store the two lanes to 16-byte aligned memory.
+   * @param[out] a_p Address.
+   */
+  void
+  store(double* a_p) const noexcept
+  {
+    vst1q_f64(a_p, v);
+  }
+
+  // clang-format off
+  /// @cond
+  friend Pack operator+(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vaddq_f64(a_lhs.v, a_rhs.v)); }
+  friend Pack operator-(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vsubq_f64(a_lhs.v, a_rhs.v)); }
+  friend Pack operator*(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vmulq_f64(a_lhs.v, a_rhs.v)); }
+  friend Pack operator/(const Pack a_lhs, const Pack a_rhs) noexcept { return Pack(vdivq_f64(a_lhs.v, a_rhs.v)); }
+  friend MaskD2 operator<(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD2{vcltq_f64(a_lhs.v, a_rhs.v)}; }
+  friend MaskD2 operator>(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD2{vcgtq_f64(a_lhs.v, a_rhs.v)}; }
+  friend MaskD2 operator>=(const Pack a_lhs, const Pack a_rhs) noexcept { return MaskD2{vcgeq_f64(a_lhs.v, a_rhs.v)}; }
+  friend Pack select(const MaskD2 a_mask, const Pack a_ifTrue, const Pack a_ifFalse) noexcept { return Pack(vbslq_f64(a_mask.m, a_ifTrue.v, a_ifFalse.v)); }
+  friend Pack sqrt(const Pack a_x) noexcept { return Pack(vsqrtq_f64(a_x.v)); }
+  friend Pack abs(const Pack a_x) noexcept { return Pack(vabsq_f64(a_x.v)); }
   /// @endcond
   // clang-format on
 };

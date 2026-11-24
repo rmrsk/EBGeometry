@@ -67,13 +67,15 @@ pointDistance2(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, const siz
  * @brief The squared distances from a point to all K child boxes of a row: the SIMD kernel.
  * @details Internal helper; not part of the public API. Dispatches at compile time on (T, K) and the
  * compiled ISA: AVX-512F for (double, K=8) and (float, K=16), AVX for (double, K=4), (float, K=8) and
- * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), and a scalar loop for every other
- * combination and for device compilation. Every path computes the same quantity in the same association order, so all agree bit for bit (a NaN
+ * (double, K=8) as two 4-wide passes, SSE4.1 for (float, K=4), NEON for (float, K=4) and (double, K=4)
+ * as two 2-wide passes, and a scalar loop for every other combination and for device compilation. Every
+ * path computes the same quantity in the same association order, so all agree bit for bit (a NaN
  * coordinate counts as inside along that axis, so it never prunes a child; under -ffast-math the
  * compiler may assume there are no NaNs, and then no path promises anything for one), unless the
- * compiler contracts the scalar path into fused multiply-adds, which the intrinsics do not: Clang does
- * so by default within an expression, and GCC in its GNU language modes (-std=gnu++17; EBGeometry's own
- * CMake build uses -std=c++17), whenever FMA is enabled.
+ * compiler contracts the scalar path into fused multiply-adds, which the x86 intrinsics do not: Clang
+ * does so by default within an expression, and GCC in its GNU language modes (-std=gnu++17;
+ * EBGeometry's own CMake build uses -std=c++17), whenever FMA is enabled. GCC may contract the NEON
+ * intrinsics too.
  * @tparam T Precision.
  * @tparam K Branching factor.
  * @param[in]  a_soa   The child boxes.
@@ -293,6 +295,66 @@ pointDistances2(const ChildBoxes<T, K>& a_soa, const Vec3T<T>& a_point, T* a_dis
     return;
   }
 #endif // __SSE4_1__
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // NEON paths (aarch64): K==4/float (single pass), K==4/double (two 2-wide passes).
+  //
+  // NEON's max returns NaN where either side is NaN, unlike x86's, so each max is written as the
+  // scalar path's comparison and a select: (a > b) ? a : b. GCC implements the NEON arithmetic
+  // intrinsics as plain vector arithmetic and may contract them into fused multiply-adds, which is why
+  // pointDistance2InRow() recomputes a row through this same function rather than the scalar one.
+  // ──────────────────────────────────────────────────────────────────────────────
+#if defined(EBGEOMETRY_SIMD_NEON)
+  if constexpr (K == 4 && std::is_same_v<T, float>) {
+    const float32x4_t px   = vdupq_n_f32(a_point[0]);
+    const float32x4_t py   = vdupq_n_f32(a_point[1]);
+    const float32x4_t pz   = vdupq_n_f32(a_point[2]);
+    const float32x4_t zero = vdupq_n_f32(0.0F);
+
+    const auto clampedGap = [&](const float32x4_t a_p, const float* a_lo, const float* a_hi) noexcept {
+      const float32x4_t upper = vsubq_f32(a_p, vld1q_f32(a_hi));
+      const float32x4_t lower = vsubq_f32(vld1q_f32(a_lo), a_p);
+      const float32x4_t d     = vbslq_f32(vcgtq_f32(upper, lower), upper, lower);
+
+      return vbslq_f32(vcgtq_f32(d, zero), d, zero);
+    };
+
+    const float32x4_t dx = clampedGap(px, a_soa.m_lo[0], a_soa.m_hi[0]);
+    const float32x4_t dy = clampedGap(py, a_soa.m_lo[1], a_soa.m_hi[1]);
+    const float32x4_t dz = clampedGap(pz, a_soa.m_lo[2], a_soa.m_hi[2]);
+    const float32x4_t d2 = vaddq_f32(vmulq_f32(dx, dx), vaddq_f32(vmulq_f32(dy, dy), vmulq_f32(dz, dz)));
+
+    vst1q_f32(a_dist2, d2);
+
+    return;
+  }
+
+  if constexpr (K == 4 && std::is_same_v<T, double>) {
+    const float64x2_t px   = vdupq_n_f64(a_point[0]);
+    const float64x2_t py   = vdupq_n_f64(a_point[1]);
+    const float64x2_t pz   = vdupq_n_f64(a_point[2]);
+    const float64x2_t zero = vdupq_n_f64(0.0);
+
+    const auto clampedGap = [&](const float64x2_t a_p, const double* a_lo, const double* a_hi) noexcept {
+      const float64x2_t upper = vsubq_f64(a_p, vld1q_f64(a_hi));
+      const float64x2_t lower = vsubq_f64(vld1q_f64(a_lo), a_p);
+      const float64x2_t d     = vbslq_f64(vcgtq_f64(upper, lower), upper, lower);
+
+      return vbslq_f64(vcgtq_f64(d, zero), d, zero);
+    };
+
+    for (size_t half = 0; half < K; half += 2) {
+      const float64x2_t dx = clampedGap(px, a_soa.m_lo[0] + half, a_soa.m_hi[0] + half);
+      const float64x2_t dy = clampedGap(py, a_soa.m_lo[1] + half, a_soa.m_hi[1] + half);
+      const float64x2_t dz = clampedGap(pz, a_soa.m_lo[2] + half, a_soa.m_hi[2] + half);
+      const float64x2_t d2 = vaddq_f64(vmulq_f64(dx, dx), vaddq_f64(vmulq_f64(dy, dy), vmulq_f64(dz, dz)));
+
+      vst1q_f64(a_dist2 + half, d2);
+    }
+
+    return;
+  }
+#endif // EBGEOMETRY_SIMD_NEON
 
 #endif // !EBGEOMETRY_DEVICE_COMPILE
 

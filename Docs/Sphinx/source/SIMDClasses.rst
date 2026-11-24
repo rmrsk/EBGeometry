@@ -3,7 +3,8 @@
 SIMD-accelerated classes
 ==========================
 
-SIMD acceleration in EBGeometry is written with compiler intrinsics (SSE4.1, AVX and AVX-512F), not
+SIMD acceleration in EBGeometry is written with compiler intrinsics (SSE4.1, AVX and AVX-512F on x86-64,
+NEON on aarch64), not
 left to compiler auto-vectorization. It is confined to the three places listed below: the triangle
 groups at the leaves of a ``TriMeshSDF``, the point groups at the leaves of a ``PointCloudBVH``, and the
 bounding-box test that decides which children of a ``PackedBVH`` node a point query visits. Everything
@@ -14,7 +15,7 @@ own storage respects that, and a misplaced member is a compile error (a ``static
 you allocate yourself, outside a pool or a ``std::vector``, must be aligned to its ``alignof``.
 
 Which version of this code a file uses is fixed when it is compiled, by the compiler's SIMD flags
-(``__SSE4_1__``, ``__AVX__``, ``__AVX512F__``). Compile every file of a program that uses EBGeometry
+(``__SSE4_1__``, ``__AVX__``, ``__AVX512F__``; on aarch64, NEON is always on). Compile every file of a program that uses EBGeometry
 with the same flags; see "Mixing SIMD flags in one program" under
 :ref:`branching factor and SIMD width <Sec:DefaultKW>` for what happens otherwise. Device code always
 takes the scalar path.
@@ -70,8 +71,9 @@ gives the real count.
 ``getMinimumDistance2()``/``getMaximumDistance2()`` the nearest and farthest (what a closest-point search
 wants), and the forms without the ``2`` take the square root. This is the leaf cost of a
 ``PointCloudBVH`` search; see :ref:`Chap:ExamplePointClouds`. Only a :math:`W` that fills one register
-(or, for ``double`` under AVX, two) is vectorized -- the widths ``PointSoA::HostWidth<T>()`` gives, and
-4 ``float`` under SSE4.1 -- and any other :math:`W` is evaluated with a scalar loop.
+(or, for ``double`` under AVX or NEON, two) is vectorized -- the widths ``PointSoA::HostWidth<T>()`` gives,
+4 ``float`` under SSE4.1, and 4 of either precision under NEON -- and any other :math:`W` is evaluated with a
+scalar loop.
 
 **Choosing** :math:`W`: as for the triangle groups, the default ``PointSoA::DefaultWidth<T>()`` is 4, and
 ``PointSoA::HostWidth<T>()`` is the host-tuned width (see :ref:`Sec:DefaultKW`). Pass either, or any

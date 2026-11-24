@@ -64,8 +64,8 @@ option(EBGEOMETRY_ENABLE_HIP
   "Compile the HIP device-portability smoke test (requires a ROCm/HIP toolchain)" OFF)
 
 # The SIMD levels a target processor offers: sse41, avx and avx512 on x86-64, neon on aarch64. Every
-# aarch64 compiler enables NEON on its own, so neon adds no flag. The library has no NEON code paths, so
-# an aarch64 build takes the scalar path whichever of the two it names.
+# aarch64 compiler enables NEON on its own, so neon adds no flag, and an aarch64 build takes the NEON code
+# paths whichever of the two it names.
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _ebgeometry_processor)
 
 if(_ebgeometry_processor MATCHES "^(x86_64|amd64|x64)$")

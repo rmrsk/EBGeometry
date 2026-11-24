@@ -69,12 +69,14 @@ no run-time dispatch:
      - ``__AVX__``
    * - SSE 4.1 (older or constrained targets)
      - ``__SSE4_1__``
+   * - NEON (aarch64 processors)
+     - ``__ARM_NEON``, which every aarch64 compiler defines
    * - No SIMD (the portable fallback)
      - none of the above
 
 :ref:`Chap:Building` gives the flags that define them for each build method (``-mavx -mfma``, say, or
-``EBGEOMETRY_SIMD`` with CMake). The library has no ARM (NEON) code paths: an aarch64 host takes the
-scalar path. The instruction set selects code paths only: the branching factor ``K``
+``EBGEOMETRY_SIMD`` with CMake). A CUDA translation unit's host side takes the scalar path on aarch64, as it
+does on x86-64. The instruction set selects code paths only: the branching factor ``K``
 and the SIMD width ``W`` stay 4 on every machine unless chosen otherwise (below).
 
 .. _Sec:DefaultKW:

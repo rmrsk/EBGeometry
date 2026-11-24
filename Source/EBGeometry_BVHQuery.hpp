@@ -230,7 +230,7 @@ struct PointQuery
 
   /**
    * @brief The squared distances from the point to the K child boxes of a node.
-   * @details SSE4.1, AVX and AVX-512 paths on the host, a scalar loop on a device (the kernel that is
+   * @details SSE4.1, AVX, AVX-512 and NEON paths on the host, a scalar loop on a device (the kernel that is
    * QueryDetail::pointDistances2()).
    * @tparam K Branching factor.
    * @param[in] a_row The node's child boxes.

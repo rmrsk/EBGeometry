@@ -93,8 +93,8 @@ the same build that links against it; a level the target processor does not have
 default is ``none`` when another project pulls EBGeometry in, since SIMD flags produce binaries that fail on
 processors without those instructions, and the target processor's level when EBGeometry itself is the
 project being built (its tests, examples and performance probes): ``avx`` on x86-64, ``neon`` on aarch64,
-``none`` elsewhere. ``neon`` adds no flag, since every aarch64 compiler enables NEON, and the library has no
-NEON code paths, so an aarch64 build takes the scalar path. To opt in from a project
+``none`` elsewhere. ``neon`` adds no flag, since every aarch64 compiler enables NEON, so an aarch64 build
+takes the NEON code paths with either level. To opt in from a project
 that uses ``FetchContent`` or ``add_subdirectory``, set it first:
 
 .. code-block:: cmake

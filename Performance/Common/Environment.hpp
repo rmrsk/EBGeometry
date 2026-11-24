@@ -151,7 +151,7 @@ cpuModel()
 
 /**
  * @brief The host SIMD level this translation unit was compiled for.
- * @return One of avx512, avx2, avx, sse41, none.
+ * @return One of avx512, avx2, avx, sse41, neon, none.
  */
 constexpr const char*
 simdLevel() noexcept
@@ -164,6 +164,9 @@ simdLevel() noexcept
   return "avx";
 #elif defined(__SSE4_1__)
   return "sse41";
+#elif defined(__aarch64__) && defined(__ARM_NEON) && !defined(__CUDACC__)
+  // The condition of EBGeometry_SIMD.hpp's NEON paths, which this header does not include.
+  return "neon";
 #else
   return "none";
 #endif

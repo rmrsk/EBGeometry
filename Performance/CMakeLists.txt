@@ -101,10 +101,12 @@ endif()
 
 # Host-side vector flags for a GPU build, so that a host/device comparison does not set unvectorized
 # host code against the device (safe: the default branching factor and widths never follow the ISA).
-# HIP (clang) takes AVX2 and FMA, which every x86 host of a GPU has. nvcc cannot: with any host SIMD
-# macro set, GCC's immintrin.h pulls in the AMX headers, which nvcc's front end fails to parse (GCC 12
-# and 13 alike), so a CUDA build's host side stays scalar, as CI's CUDA lane is.
-if(_perf_gpu STREQUAL "HIP")
+# HIP (clang) takes AVX2 and FMA on an x86-64 host, which every x86 host of a GPU has; an aarch64 host
+# needs no flag, since NEON is always on. nvcc cannot: with any host SIMD macro set, GCC's immintrin.h
+# pulls in the AMX headers, which nvcc's front end fails to parse (GCC 12 and 13 alike), so a CUDA build's
+# host side stays scalar, as CI's CUDA lane is.
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _perf_processor)
+if(_perf_gpu STREQUAL "HIP" AND _perf_processor MATCHES "^(x86_64|amd64|x64)$")
   set(_perf_gpu_host_default "-mavx2;-mfma")
 else()
   set(_perf_gpu_host_default "")

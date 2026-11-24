@@ -237,6 +237,39 @@ PointSoAT<T, W>::getDistances2(const Vec3T<T>& a_point) const noexcept
     return distances;
   }
 #endif
+#if defined(EBGEOMETRY_SIMD_NEON)
+  // NEON: four floats in one register, or four doubles as two 2-wide passes. GCC may contract these
+  // intrinsics into fused multiply-adds, as it may the scalar loop below.
+  if constexpr (W == 4 && std::is_same_v<T, float>) {
+    const float32x4_t dx = vsubq_f32(vdupq_n_f32(a_point[0]), vld1q_f32(m_x));
+    const float32x4_t dy = vsubq_f32(vdupq_n_f32(a_point[1]), vld1q_f32(m_y));
+    const float32x4_t dz = vsubq_f32(vdupq_n_f32(a_point[2]), vld1q_f32(m_z));
+
+    const float32x4_t d2 = vaddq_f32(vaddq_f32(vmulq_f32(dx, dx), vmulq_f32(dy, dy)), vmulq_f32(dz, dz));
+
+    Array<T, W> distances;
+    vst1q_f32(distances.data(), d2);
+
+    return distances;
+  }
+  if constexpr (W == 4 && std::is_same_v<T, double>) {
+    const float64x2_t px = vdupq_n_f64(a_point[0]);
+    const float64x2_t py = vdupq_n_f64(a_point[1]);
+    const float64x2_t pz = vdupq_n_f64(a_point[2]);
+
+    Array<T, W> distances;
+
+    for (size_t half = 0; half < W; half += 2) {
+      const float64x2_t dx = vsubq_f64(px, vld1q_f64(m_x + half));
+      const float64x2_t dy = vsubq_f64(py, vld1q_f64(m_y + half));
+      const float64x2_t dz = vsubq_f64(pz, vld1q_f64(m_z + half));
+
+      vst1q_f64(distances.data() + half, vaddq_f64(vaddq_f64(vmulq_f64(dx, dx), vmulq_f64(dy, dy)), vmulq_f64(dz, dz)));
+    }
+
+    return distances;
+  }
+#endif
 
   // Scalar fallback for every (T, W) combination not covered above. Computes all W lanes; padded
   // lanes hold the last real position (see pack()), so their squared distance is a valid duplicate.
