@@ -639,7 +639,7 @@ jobs:
     # flakiest step in this workflow. GPU-HIP below is the required device-compile lane.
     continue-on-error: true
     # sm_70 (Volta, the build's default when no GPU is visible) and sm_90 (Hopper, as on Grace Hopper nodes),
-    # one per job: both in one build would take about twice as long, past the timeout.
+    # one per job: both in one build would take too long for the job's timeout.
     strategy:
       fail-fast: false
       matrix:
