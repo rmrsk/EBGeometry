@@ -2222,12 +2222,9 @@ private:
    * distances once for those instead of once per level and value type. A shape's distance is a plain T, whatever the
    * level, so one copy serves them all. The top level and evaluateBody<0> (which signedDistance() and closestLeaf()
    * inline for a tape of depth 0) keep the dispatch inlined, for both value types: they read nearly all the primitives
-   * of a typical tape, and a call there costs run time. Every level calling out of line was measured at up to +46% on
-   * a float CSG tape; the tagged top level calling out of line, at +18% on the float CSG closestPrimitive() kernel.
-   *
-   * Measured on the MeshCSG probe's device code (nvcc 12.5, sm_86, Release, ptxas alone): 233 s and 6.5 GB of ptxas
-   * with every copy inlined, 192 s and 5.3 GB with this split; MeshTape 516 s and 6.7 GB, 422 s and 5.6 GB. Each
-   * level below the top keeps its operations (about 0.2 MB of code a kernel) and loses its shapes (about 0.3 MB).
+   * of a typical tape, and a call there costs run time, for plain and tagged queries alike. Below the top, fewer
+   * primitives are read and each level's copy of the shapes is most of its code, so sharing it shortens the device
+   * compile far more than the calls slow the kernel.
    * @param[in] a_type     Type index.
    * @param[in] a_index    Index within the type's array.
    * @param[in] a_point    Point.
