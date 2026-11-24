@@ -91,8 +91,8 @@ HostWidth() noexcept
  * a CUDA or HIP translation unit. EBGeometry's own CMake build defines it when EBGeometry is the
  * top-level project and no GPU backend is enabled.
  *
- * On AVX2, W = 8 is the gain in float, and K = 8 changes nothing; on AVX-512, W = 16 is no faster and K = 16
- * is slower in float, and in double W = 8 helps TriMeshSDF while K = 8 is slower. Host vectorization as a whole
+ * On AVX2, W = 8 is faster in float and K = 8 changes nothing. On AVX-512, in float W = 16 is no faster and
+ * K = 16 is slower; in double W = 8 makes TriMeshSDF faster and K = 8 is slower. Host vectorization as a whole
  * makes float TriMeshSDF several times faster on one core.
  *
  * Usage: `size_t W = TriangleSoA::DefaultWidth<T>()` as a template-parameter default.

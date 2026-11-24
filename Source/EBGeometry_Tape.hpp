@@ -85,8 +85,8 @@ struct TapeOptions
  * Why features exist: a tape's evaluator and ray code are compiled once per tape type, for any expression a
  * tape of that type could hold, and on a device ptxas allocates registers and stack over all the code a kernel
  * can reach, run or not. Reaching the exact-offset code from the ray code, behind a flag no plain tape sets,
- * slows plain float firstHit kernels. So code that only some expressions need, such as a
- * new exact ray form for an operation, is a feature, and a new feature follows these rules:
+ * slows plain float firstHit kernels. So code that only some expressions need, such as a new exact ray form for
+ * an operation, is a feature, and a new feature follows these rules:
  * - **The tape stays correct without it.** Without the feature the compiler emits what it emitted before the
  *   feature existed (for a ray form, a RayOp::Marched clause), so a tape that does not list it computes the
  *   same object by the general path. A feature changes speed or exactness, never which object is computed.

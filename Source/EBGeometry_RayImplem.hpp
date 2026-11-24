@@ -312,8 +312,8 @@ struct IsComposition<Fused::Node<Op, Cs...>> : std::true_type
  * @brief Whether valueAt() reaches a shape's value through an out-of-line call on a device.
  * @details Internal helper; not part of the public API. A shape that lives in a pool (a mesh SDF, a tape, a
  * BVH union) or a composition (a fused node) has a large distance, which the ray code would otherwise copy
- * into every place it asks for it: a mesh's distance would be copied dozens of times per march, and ptxas would
- * take gigabytes and hours to compile a kernel. An analytic leaf's value is small, and is inlined, as code
+ * into every place it asks for it: a mesh's distance would be copied many times per march, and ptxas would
+ * take far more memory and time to compile a kernel. An analytic leaf's value is small, and is inlined, as code
  * written by hand would be, which makes a tape's span tracing much faster on a device. Its trace is not:
  * shapeHit() is out of line for every shape, since a leaf's trace inlined into the span code slows a fused
  * scene on a device.
@@ -325,7 +325,7 @@ inline constexpr bool CalledOutOfLine = isPoolHandle<S> || IsComposition<S>::val
 /**
  * @brief A shape's value at a point (its signedDistance()), out of line on a device.
  * @details Internal helper; not part of the public API. What valueAt() calls for a shape that
- * CalledOutOfLine selects. With the ray helpers inlined, one march() would hold about thirty copies of a mesh's
+ * CalledOutOfLine selects. With the ray helpers inlined, one march() would hold many copies of a mesh's
  * distance, and the CUDA compile of the ray tests would take several times as long and as much memory.
  * @tparam T Floating-point precision.
  * @tparam S Shape type.
