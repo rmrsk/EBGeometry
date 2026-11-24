@@ -191,8 +191,9 @@ Linux-ARM
 
 On an aarch64 runner (``ubuntu-24.04-arm``, the system GCC), builds and runs the unit tests with the
 ``debug`` preset, then the unit tests and every example with the ``release-test`` preset, both with
-``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``. The release build checks that ``EBGEOMETRY_SIMD`` defaulted
-to ``neon``. It is the only lane on that processor, so it runs in both tiers.
+``-DEBGEOMETRY_TEST_BOTH_PRECISIONS=ON``. Both builds take the NEON code paths, which every aarch64
+compiler enables; the release build checks that ``EBGEOMETRY_SIMD`` defaulted to ``neon``. It is the only
+lane on that processor, so it runs in both tiers and is the one test of the NEON paths.
 
 Sanitizers
 ~~~~~~~~~~

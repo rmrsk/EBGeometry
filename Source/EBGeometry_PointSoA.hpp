@@ -22,6 +22,7 @@
 
 // Our includes
 #include "EBGeometry_Array.hpp"
+#include "EBGeometry_SIMD.hpp"
 #include "EBGeometry_Vec.hpp"
 
 namespace EBGeometry {
@@ -118,7 +119,8 @@ HostWidth() noexcept
  * is aligned to `alignof(PointSoAT<T, W>)`; nothing in this class enforces or checks that.
  * @tparam T Floating-point precision.
  * @tparam W Lanes per group. A host build vectorizes (float, 4) with SSE4.1, (float, 8), (double, 4) and
- * (double, 8, as two halves) with AVX, and (float, 16) and (double, 8) with AVX-512F; any other width, and
+ * (double, 8, as two halves) with AVX, (float, 16) and (double, 8) with AVX-512F, and (float, 4) and (double, 4,
+ * as two halves) with NEON on aarch64; any other width, and
  * every width on a device, runs the scalar loop. Defaults to PointSoA::DefaultWidth<T>(), which is 4
  * for both float and double in every translation unit; PointSoA::HostWidth<T>() gives the width that
  * fills one SIMD register for T under the compiler's SIMD flags, for host-only code.
