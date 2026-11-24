@@ -2119,8 +2119,27 @@ Tape<T, UserPrimitives...>::evaluateBody(const uint32_t      a_program,
     switch (c.m_op) {
     case Op::Primitive: {
       // A tagged value is tagged with the clause, which names the leaf, its type and its index.
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+      // On a device, the shapes are inlined only where nearly every primitive of a typical tape is read: the top
+      // level, and evaluateBody<0>, which signedDistance() and closestLeaf() inline for a tape of depth 0, for plain
+      // and tagged values alike. The deepest level, evaluate<0>, is a code copy of its own but the same
+      // instantiation, so it keeps them inlined too. Every other level calls the one shared copy.
+      constexpr bool inPlace = D == MaxCallDepth || D == 0U;
+
+      T primitive;
+
+      if constexpr (inPlace) {
+        primitive = this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      }
+      else {
+        primitive = this->evaluateShared(c.m_type, c.m_a, points[np - 1], a_base, a_location);
+      }
+
+      values[nv++] = CSGOps::leafValue<V>(primitive, pc, points[np - 1]);
+#else
       values[nv++] = CSGOps::leafValue<V>(
         this->evaluatePrimitive(c.m_type, c.m_a, points[np - 1], a_base, a_location), pc, points[np - 1]);
+#endif
 
       EBGEOMETRY_EXPECT(!std::isnan(CSGOps::valueOf(values[nv - 1])));
 
@@ -2324,6 +2343,19 @@ template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline T
+Tape<T, UserPrimitives...>::evaluateShared(const uint32_t      a_type,
+                                           const uint32_t      a_index,
+                                           const Vec3T<T>&     a_point,
+                                           const void*         a_base,
+                                           const PoolLocation& a_location) const noexcept
+{
+  return this->template dispatchPrimitive<0, false>(a_type, a_index, a_point, a_base, a_location);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
 Tape<T, UserPrimitives...>::evaluateHandle(const uint32_t      a_type,
                                            const uint32_t      a_index,
                                            const Vec3T<T>&     a_point,
@@ -2467,7 +2499,21 @@ Tape<T, UserPrimitives...>::evaluateLeaf(const uint32_t      a_program,
       point = CSGOps::affinePoint(params + c.m_a, point);
     }
     else if (c.m_op == Op::Primitive) {
+#if defined(EBGEOMETRY_DEVICE_COMPILE)
+      // As in evaluateBody(): a tagged leaf calls the shared copy of the shapes.
+      T primitive;
+
+      if constexpr (std::is_same_v<V, T>) {
+        primitive = this->evaluatePrimitive(c.m_type, c.m_a, point, a_base, a_location);
+      }
+      else {
+        primitive = this->evaluateShared(c.m_type, c.m_a, point, a_base, a_location);
+      }
+
+      value = CSGOps::leafValue<V>(primitive, pc, point);
+#else
       value = CSGOps::leafValue<V>(this->evaluatePrimitive(c.m_type, c.m_a, point, a_base, a_location), pc, point);
+#endif
     }
     else if (c.m_op == Op::MulConstant) {
       value = CSGOps::times(value, params[c.m_a]);
