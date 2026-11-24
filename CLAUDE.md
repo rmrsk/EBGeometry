@@ -195,14 +195,16 @@ comment at the code it describes, unless it is already there.
   (a maximum call depth, a stack size whose overflow the constructor rejects, the largest exact face id in
   single precision) are facts a user's choices depend on, not measurements, and stay.
 - The contributor pages (`ContributionGuidelines`, `TestingLocally`, `PerformanceTesting`,
-  `ContinuousIntegration`) follow the same rules: they state the contributor's rules and procedures; the
-  measurements and history behind a rule go in the header comment at the code the rule protects.
+  `ContinuousIntegration`) follow the same rules: they state the contributor's rules and procedures; the reasons
+  behind a rule go, in words, in the header comment at the code the rule protects.
 
 **The Doxygen and in-file comments serve users on top and maintainers below.**
 - `@brief`, `@param`, `@tparam`, `@return` state the contract a user relies on: what it does, what it needs,
   what it returns, which side it runs on, which pool must outlive it.
 - `@details` carries what a maintainer needs: the algorithm, invariants, device and performance constraints,
-  why the design is this way and which alternatives were ruled out, and the measurements behind a rule.
+  and the reasons for the design in words (what was tried and why it was ruled out). Measured figures (timings,
+  percentages, register counts, compile times, before and after) are history: they belong in the pull request and
+  its receipt, not in comments.
 - Plain `//` comments inside a function explain the code next to them.
 
 **American English everywhere.** Documentation, comments, examples, commit messages and pull requests are
