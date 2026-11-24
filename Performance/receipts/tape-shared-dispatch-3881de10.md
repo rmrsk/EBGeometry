@@ -106,7 +106,7 @@ date: 2026-11-24
 
 ## Device comparison (CUDA): yellow
 
-**Accepted:** -
+**Accepted:** Sub-program and tagged queries below the top level pay one call per primitive on a device (3–9%, float mostly); accepted for the 18–24% shorter device compile and for unblocking more built-in shapes.
 
 `56b5fa5` against `6371afb` (origin/main), 2026-11-24.
 
