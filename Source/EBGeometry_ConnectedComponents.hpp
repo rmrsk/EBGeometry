@@ -73,10 +73,8 @@ struct ComponentOptions
   /**
    * @brief The default of m_maxCells.
    * @details A search's peak memory grows by about 83 bytes per cell kept (float; a little more in double, whose
-   * leaves are 8 bytes larger): the octree's hash map of cells, its leaves, and the labeling's arrays. Measured as the
-   * peak resident set of a search of 27 hollow shells in a box (the ConnectedComponents probe's model) against
-   * getNumCells(): 75.6 MB at 0.92 million cells, 295 MB at 3.69 million and 1178 MB at 14.8 million, the steps between
-   * them 83 bytes per cell. 100 million cells is therefore about 8.3 GB, under 10 GB in either precision: room for a
+   * leaves are 8 bytes larger): the octree's hash map of cells, its leaves, and the labeling's arrays. 100 million
+   * cells is therefore about 8.3 GB, under 10 GB in either precision: room for a
    * fine search of a large model on a workstation, while a resolution chosen too fine stops with a message rather
    * than exhausting memory.
    */

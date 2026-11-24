@@ -1167,9 +1167,8 @@ private:
    * this level reads the next child's offset and its box from the node's row, so the
    * entry holds neither, and no key or distance either: those are computed again when the child is
    * visited. One entry per level rather than per child, as in compressed wide BVH traversals (Ylitie,
-   * Karras and Laine, HPG 2017): measured on an AMD GPU (gfx90a, clang 17, -O3), a kernel evaluating one
-   * mesh SDF, BVH union or point-cloud query needs 272 bytes of stack per thread, against 768 with one
-   * entry per child.
+   * Karras and Laine, HPG 2017): a kernel evaluating one mesh SDF, BVH union or point-cloud query needs a
+   * fraction of the stack per thread it would with one entry per child.
    */
   struct StackEntry
   {

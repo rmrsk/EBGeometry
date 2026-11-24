@@ -91,15 +91,14 @@ inline constexpr unsigned int DefaultBlockSize = 128;
  * unless it is given another: 384, three blocks of 128, which holds a thread to at most 168 registers.
  * @details The kernel carries it as launch bounds (a minimum number of resident blocks, rounded up). Without
  * a minimum, the compiler picks one register budget for the whole kernel, every function it calls included,
- * and the pick jumps with small changes to code the kernel may not even run (a tape's ray kernel once went
- * from 255 registers to 40, spilling twice as much); given one, it uses the budget the minimum allows. Not
- * tuned for every query: the budget is a ceiling the compiler tends to fill, so a kernel that runs best
- * with few registers may be slower under it (rays traced through a fused composition went from 56
- * registers to 161 and ran up to a third slower, and the renderer's frame of a mesh from 128 to 161, 10%
- * slower). The minimum still pays where registers matter: on one desktop GPU, ray tracing through a tape took
- * 2.5 times as long with no minimum as at 384, and 1.45 times as long at 768, while a mesh's signed distance
- * took the same time at every setting; DeviceTuning's mesh-minus-ball tape distance in float was a fifth to a
- * quarter faster at 768 than at 384, whatever the block size. 0 asks for no minimum. HIP reads a second launch bound differently, and a HIP build ignores it.
+ * and the pick jumps with small changes to code the kernel may not even run (a tape's ray kernel can drop to a
+ * small budget and spill heavily); given one, it uses the budget the minimum allows. Not tuned for every query:
+ * the budget is a ceiling the compiler tends to fill, so a kernel that runs best with few registers may be slower
+ * under it (rays traced through a fused composition, the renderer's frame of a mesh). The minimum still pays where
+ * registers matter: ray tracing through a tape is much slower with no minimum than at 384, and somewhat slower at
+ * 768, while a mesh's signed distance takes the same time at every setting; a tape distance holding a mesh can be
+ * faster at 768 than at 384, which DeviceTuning measures. 0 asks for no minimum. HIP reads a second launch bound
+ * differently, and a HIP build ignores it.
  */
 inline constexpr unsigned int DefaultMinResidentThreads = 384;
 

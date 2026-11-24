@@ -64,7 +64,7 @@ struct Tagged
   /**
    * @brief The deciding leaf, as the structure numbers it (NoTag for none).
    * @details No default member initializer: the tape keeps a fixed stack of values, and one would
-   * write every slot of it on every evaluation (a tagged float tape on a GPU was 59% slower). A value
+   * write every slot of it on every evaluation, which slows a tagged tape on a device considerably. A value
    * that names no leaf is made with noLeaf().
    */
   uint32_t m_tag;
@@ -713,8 +713,8 @@ blur(const T* a_weights, const Vec3T<T>& a_point, const F& a_operand) noexcept
     return withValue(center, value);
   }
   else {
-    // Kept exactly as written for the plain value: holding each tap's value in a variable first made the
-    // device compiler give a kernel that evaluates a tape in a loop 255 registers instead of 168.
+    // Kept exactly as written for the plain value: holding each tap's value in a variable first raises the
+    // registers the device compiler gives a kernel that evaluates a tape in a loop.
     for (int t = 0; t < 27; t++) {
       const int i = t / 9 - 1;
       const int j = (t / 3) % 3 - 1;
@@ -1097,9 +1097,9 @@ repetition(const R& a_repetition, const Vec3T<T>& a_point, const F& a_object) no
     last[dir]  = static_cast<int>(Math::min(hi, a_repetition.high(dir)));
   }
 
-  // Nested loops over i, j and k kept their counters alive across the calls into the object, which in a
-  // Tape's sub-program raised every function of a device kernel to 255 registers (from 168); one counter,
-  // in the same order (k fastest), keeps the kernel's.
+  // Nested loops over i, j and k keep their counters alive across the calls into the object, which in a
+  // Tape's sub-program raises the registers of every function of a device kernel; one counter, in the same
+  // order (k fastest), does not.
   const int64_t ni    = last[0] - first[0] + 1;
   const int64_t nj    = last[1] - first[1] + 1;
   const int64_t nk    = last[2] - first[2] + 1;

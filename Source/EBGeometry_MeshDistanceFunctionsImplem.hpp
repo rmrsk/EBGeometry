@@ -923,9 +923,9 @@ TriMeshSDF<T, K, W>::signedDistance(const Vec3T<T>& a_point) const noexcept
 #if defined(EBGEOMETRY_DEVICE_COMPILE)
   // A device signs every triangle as it tests it. TriMeshSDF is a built-in Tape primitive, so this body is
   // compiled into every tape's device kernels, mesh or no mesh, and ptxas's register allocation there is
-  // sensitive to it: the host's search below, inlined, capped the tape's ray kernels at 40 registers (from
-  // 168 and 255), and out of line it moved every tape kernel's allocation (some tapes 20% faster, others 19%
-  // slower). The device keeps the code its kernels were tuned with.
+  // sensitive to it: the host's search below, inlined, caps the tape's ray kernels at a small register budget,
+  // and out of line it moves every tape kernel's allocation, some faster and others slower. The device keeps the
+  // code its kernels are tuned with.
   T minDist = Math::Limits<T>::max();
 
   const auto evalLeaf = [&groups, &a_point](T& a_state, size_t a_offset, size_t a_count) noexcept {

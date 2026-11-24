@@ -80,10 +80,9 @@ namespace EBGeometry {
  * A cut that needs no median or sort of its range is what makes the tree the same on every side, and
  * cheap to build on a device. The alternatives: a top-down longest-axis midpoint build, the reference
  * below, partitions each range around a coordinate and has no cheap device form; spreading the Morton-sorted points evenly over
- * a perfect K-ary tree queried 1.2-8.6x slower than it (500,000 points, host and an RTX 3080); a
- * prototype of these radix cuts with a quarter-share quota per binary cut queried within about 10% of
- * it (faster on a uniform cube, slower on a sphere's surface). A half-share quota cost about 10% more
- * on the sphere.
+ * a perfect K-ary tree queries much slower than it, on the host and on a device; these radix cuts with a
+ * quarter-share quota per binary cut query about as fast as it (faster on a uniform cube, slower on a sphere's
+ * surface), and a half-share quota is slower on the sphere.
  *
  * Every leaf lane carries its point's **cloud index** (its position in the input positions array),
  * and queries return that index in a PointCloud::Hit. Per-point user data lives in the caller's own
