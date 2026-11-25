@@ -653,10 +653,10 @@ Family                                Build  Measures
 
 **ShapeFamilies** (``Performance/ShapeFamilies``): the shape families, one input each (``icosahedron``, ``pyramid``
 of eight sides, ``box-frame``, ``hyperboloid``, ``hyperboloid-two-sheets``, ``paraboloid``, ``superellipsoid``,
-``solid-angle``, ``vesica``, ``helix`` and ``gyroid``), queried at random points in the shape's box (or the unit cube, for an unbounded one) grown by a quarter on
-every side; and ``ray-forms``, a fused union of the polyhedra, the frame and the quadrics (cut by boxes) side by
-side, with rays from random points in the scene's box in random directions. They are a probe of their own so that
-adding them moved none of the ``Shapes`` cases.
+``solid-angle``, ``vesica``, ``helix`` and ``gyroid``), queried at random points in the shape's box (or the unit
+cube, for an unbounded one) grown by a quarter on every side; and ``ray-forms``, a fused union of the polyhedra, the
+frame and the quadrics (cut by boxes) side by side, with rays from random points in the scene's box in random
+directions. They are a probe of their own so that adding them moved none of the ``Shapes`` cases.
 
 ====================================  =====  =====================================================
 Family                                Build  Measures
