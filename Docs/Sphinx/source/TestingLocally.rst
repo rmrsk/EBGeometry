@@ -307,10 +307,6 @@ Test coverage
        sampled surface; ``LatticeSDF`` on each surface and 1-Lipschitz; every exact one a true signed distance
        function; the ray forms' spans against the values along random rays; the constructors' checks; and the
        device distances and crossings against the host.
-   * - ``TestSampledGridSDF``
-     - ``SampledGridSDF``: a sampled plane and a sloping height field against their exact distances, a sampled
-       sphere 1-Lipschitz with the sphere's sign, its layout, views, deep copy and a tape holding it, the
-       constructors' checks, and the device against the host.
    * - ``TestDCEL``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance

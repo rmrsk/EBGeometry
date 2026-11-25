@@ -2,19 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// Performance cases for the shape families (EBGeometry_AnalyticDistanceFunctions.hpp, EBGeometry_SampledGridSDF.hpp),
-// in float and double: each shape's signed distance at random points around it (a regular solid and a pyramid of
-// ConvexPolyhedronSDF, BoxFrameSDF, the three QuadricSDF kinds, SuperellipsoidSDF, SolidAngleSDF, VesicaSDF, HelixSDF,
-// LatticeSDF and SampledGridSDF), and the first crossing of rays through a fused union of the shapes with closed-form
-// ray forms. A host build runs the host cases; a CUDA or HIP build runs them as host/device pairs. An analytic shape
-// reads no memory but its own few values, so the order of its queries does not matter and its pairs take them as
-// drawn; the sampled grid reads its samples from a pool, so its pairs take both orders. The cases are in a probe of
-// their own, not in Shapes: cases added to a probe's file can move its old cases by changing how GCC inlines them.
+// Performance cases for the shape families (EBGeometry_AnalyticDistanceFunctions.hpp), in float and double: each
+// shape's signed distance at random points around it (a regular solid and a pyramid of ConvexPolyhedronSDF,
+// BoxFrameSDF, the three QuadricSDF kinds, SuperellipsoidSDF, SolidAngleSDF, VesicaSDF, HelixSDF and LatticeSDF), and
+// the first crossing of rays through a fused union of the shapes with closed-form ray forms. A host build runs the
+// host cases; a CUDA or HIP build runs them as host/device pairs. A shape reads no memory but its own few values, so
+// the order of its queries does not matter and its pairs take them as drawn. The cases are in a probe of their own, not in Shapes: cases added to a probe's file can move its old cases by changing how GCC inlines them.
 // See ../README.md and PerformanceTesting.rst.
 
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -31,9 +28,8 @@ constexpr std::size_t HostRays     = 100000;
 constexpr std::size_t PairRays     = 262144;
 constexpr std::size_t SmokeQueries = 1000;
 
-// The pyramid's number of sides, which sets its faces' loop, and the grid's nodes along each axis.
+// The pyramid's number of sides, which sets its faces' loop.
 constexpr unsigned PyramidSides = 8;
-constexpr uint32_t GridNodes    = 64;
 
 // How far a ray is followed: past the whole scene.
 constexpr double RayLength = 8.0;
@@ -112,79 +108,6 @@ addShape(Perf::Suite& a_suite, const std::string& a_input, const Shape& a_shape,
   });
 }
 
-// A sampled ball of radius 0.8, on GridNodes^3 nodes over [-1, 1]^3.
-template <class T>
-EBGeometry::SampledGridSDF<T>
-sampledBall(EBGeometry::Pool& a_pool)
-{
-  const T spacing = T(2) / T(GridNodes - 1U);
-
-  std::vector<T> values;
-
-  for (uint32_t k = 0; k < GridNodes; k++) {
-    for (uint32_t j = 0; j < GridNodes; j++) {
-      for (uint32_t i = 0; i < GridNodes; i++) {
-        const Vec3<T> p = Vec3<T>(T(-1), T(-1), T(-1)) + spacing * Vec3<T>(T(i), T(j), T(k));
-
-        values.push_back(p.length() - T(0.8));
-      }
-    }
-  }
-
-  return EBGeometry::SampledGridSDF<T>(
-    a_pool, Vec3<T>(T(-1), T(-1), T(-1)), spacing * Vec3<T>::ones(), GridNodes, GridNodes, GridNodes, values);
-}
-
-// The sampled grid's cases: its signed distance on the host, and as host/device pairs in both orders.
-template <class T>
-void
-addGrid(Perf::Suite& a_suite)
-{
-  using Grid = EBGeometry::SampledGridSDF<T>;
-
-  const std::string prec = Perf::precisionName<T>();
-  const AABB<T>     box  = Perf::cube(T(-1), T(1));
-
-  a_suite.add(Perf::caseName({"ShapeFamilies", "sampled-grid", "signedDistance", prec, "host"}), [=](Perf::Case& c) {
-    EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-
-    const Grid     grid   = sampledBall<T>(pool);
-    const auto     points = pointsAround(box, c.size(HostQueries, SmokeQueries));
-    std::vector<T> distances;
-
-    c.param("nodes", GridNodes);
-    c.poolBytes(pool.usedBytes());
-
-    Perf::measureHostQuery(c, Distance<T, Grid>{grid}, points, distances);
-
-    c.checksum(Perf::checksumOf(distances));
-  });
-
-  for (const Perf::Order order : Perf::Orders) {
-    a_suite.add(
-      Perf::caseName(
-        {"ShapeFamilies", std::string("sampled-grid-") + Perf::orderName(order), "signedDistance", prec, "hostdevice"}),
-      [=](Perf::Case& c) {
-        EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
-
-        const Grid grid   = sampledBall<T>(pool);
-        const auto points = Perf::inOrder(order, pointsAround(box, c.size(PairQueries, SmokeQueries)));
-
-        c.param("nodes", GridNodes);
-        c.poolBytes(pool.usedBytes());
-
-        const auto distances = Perf::measureHostAndDevice<T>(
-          c,
-          pool,
-          points,
-          [&](const EBGeometry::Pool& a_pool) { return Distance<T, Grid>{grid.rebasedView(a_pool)}; },
-          Perf::agreeDistance<T>);
-
-        c.checksum(Perf::checksumOf(distances));
-      });
-  }
-}
-
 // Rays from random points in a_box, in random directions.
 template <class T>
 std::vector<EBGeometry::RayT<T>>
@@ -241,7 +164,6 @@ addPrecision(Perf::Suite& a_suite)
   addShape<T>(a_suite, "vesica", vesica, vesica.computeBoundingVolume());
   addShape<T>(a_suite, "helix", helix, helix.computeBoundingVolume());
   addShape<T>(a_suite, "gyroid", gyroid, unit);
-  addGrid<T>(a_suite);
 
   // The shapes with closed-form ray forms, side by side in a fused union, the unbounded ones cut by boxes.
   const auto at   = [](const T a_x, const T a_z) { return Vec3<T>(a_x, T(0), a_z); };

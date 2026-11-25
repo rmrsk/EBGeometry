@@ -112,16 +112,11 @@ Analytic shapes
    * - ``LatticeSDF``
      - Walls of a given thickness along a triply periodic minimal surface (gyroid, Schwarz P, Schwarz D or
        diamond, Neovius), filling all of space
-   * - ``SampledGridSDF``
-     - A distance field sampled on a regular grid and interpolated trilinearly, held in a pool; ``heightField()``
-       makes a terrain from heights on a grid
 
 Each is a plain, trivially copyable value type with no base class and no virtual functions, in
 the same way as the mesh distance fields. Its ``signedDistance()`` and accessors are callable on
 the host and on a GPU, so a shape can be passed to a kernel by value and evaluated there; the
-constructors run on the host. ``SampledGridSDF`` is the exception: its samples live in a pool, so it is a handle,
-copied without its samples, and the pool must outlive it, as for the mesh distance fields (see
-:ref:`Chap:MemoryModel`). The :ref:`Chap:ExampleShapes` example constructs every analytic shape.
+constructors run on the host. The :ref:`Chap:ExampleShapes` example constructs every one of them.
 
 Several of the shapes' exact distances follow Quilez :cite:`QuilezDistance`, and ``PerlinSDF`` is Perlin's
 improved noise :cite:`Perlin2002`. The shapes share a few conventions:
@@ -149,7 +144,7 @@ improved noise :cite:`Perlin2002`. The shapes share a few conventions:
   `DistanceQuality <doxygen/html/namespaceEBGeometry.html#aba480dba46b4ac1b2393b5f2872cdad5>`__ levels:
   ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
   never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
-  except ``SuperellipsoidSDF``, ``LatticeSDF`` and ``SampledGridSDF``, which are ``Bound``, and
+  except ``SuperellipsoidSDF`` and ``LatticeSDF``, which are ``Bound``, and
   ``PerlinSDF``, which is ``NotADistance``. The exact distances of the ellipsoid, the hyperboloids and the helix
   have no closed form and are found by a short iteration :cite:`Eberly`, so they cost more to evaluate than the
   other shapes, as do the polyhedra with many faces. The mesh distance fields are ``Exact``. A BVH
@@ -172,11 +167,6 @@ tape's evaluator larger):
   of the hyperboloid of two sheets, cut by an ``Intersection``.
 * ``LatticeSDF`` is the four surfaces. The walls are as thick as given where the surface's field is steepest, and
   thicker elsewhere; cut the lattice to a part with an ``Intersection``.
-* ``SampledGridSDF`` takes the field at the nodes of a grid, negative inside, in units of length (a distance,
-  ideally), and its value is the interpolated field divided by its largest slope. The solid is inside the grid's
-  box. ``heightField()`` stores a terrain the same way, as two layers of nodes whose interpolation is the height
-  above the surface: the solid is between a floor and the surface. The :ref:`Chap:ExampleSampledFields` example
-  builds both.
 
 A chain link is not a type of its own: it is a torus turned into the xy-plane and elongated along y,
 ``Elongate(Rotate(TorusSDF<T>(...), 90, 0), Vec3T<T>(0, h, 0))``, which gives the exact distance to it.

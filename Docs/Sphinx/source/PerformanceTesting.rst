@@ -46,7 +46,7 @@ What is in Performance/
      BVHUnion/main.cpp        BVHUnion
      BVHUnionMixed/main.cpp   BVHUnion of several types
      Shapes/main.cpp          the analytic shapes EllipsoidSDF to WedgeSDF
-     ShapeFamilies/main.cpp   the shape families: polyhedra, frames, quadrics, lattices, sampled grids
+     ShapeFamilies/main.cpp   the shape families: polyhedra, frames, quadrics, lattices
      Tape/main.cpp            Tape's signed distance
      TapeBVHUnion/main.cpp    a Tape's union through a BVH on request
      Fused/main.cpp           fused compositions (Fused::)
@@ -653,8 +653,7 @@ Family                                Build  Measures
 
 **ShapeFamilies** (``Performance/ShapeFamilies``): the shape families, one input each (``icosahedron``, ``pyramid``
 of eight sides, ``box-frame``, ``hyperboloid``, ``hyperboloid-two-sheets``, ``paraboloid``, ``superellipsoid``,
-``solid-angle``, ``vesica``, ``helix``, ``gyroid``, and ``sampled-grid``, a ball sampled on 64 nodes along each
-axis), queried at random points in the shape's box (or the unit cube, for an unbounded one) grown by a quarter on
+``solid-angle``, ``vesica``, ``helix`` and ``gyroid``), queried at random points in the shape's box (or the unit cube, for an unbounded one) grown by a quarter on
 every side; and ``ray-forms``, a fused union of the polyhedra, the frame and the quadrics (cut by boxes) side by
 side, with rays from random points in the scene's box in random directions. They are a probe of their own so that
 adding them moved none of the ``Shapes`` cases.
@@ -664,9 +663,7 @@ Family                                Build  Measures
 ====================================  =====  =====================================================
 ``signedDistance``                    host   the shape's signed distance at every point
 ``signedDistance``                    GPU    the same, one point per thread, against the host on
-                                             every hardware thread but one; the sampled grid's
-                                             points in Morton and in random order
-                                             (``sampled-grid-morton``, ``sampled-grid-random``)
+                                             every hardware thread but one
 ``firstHit``                          host   the first crossing of every ray (``ray-forms``)
 ``firstHit``                          GPU    the same, one ray per thread
 ====================================  =====  =====================================================

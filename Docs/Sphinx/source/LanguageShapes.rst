@@ -22,8 +22,7 @@ Each shape is a C++ class of the library, and its name and parameters follow the
 without ``SDF``, in snake_case (``RoundedBoxSDF`` is ``rounded_box``), and the constructor's parameters in
 order, without their ``a_`` prefix. The regular solids and the pyramid are made in C++ by the static functions of
 ``ConvexPolyhedronSDF`` and the hyperboloids and the paraboloid by those of ``QuadricSDF``; here each is a shape of
-its own name. A sampled distance field (``SampledGridSDF``) has no call: its samples come from a file of a kind the
-language does not read, so a model that needs one is built in C++.
+its own name.
 
 Bounded shapes
 --------------

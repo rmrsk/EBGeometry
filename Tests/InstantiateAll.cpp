@@ -55,7 +55,6 @@ namespace EBGeometry {
   template class VesicaSDF<PREC>;                                            \
   template class HelixSDF<PREC>;                                             \
   template class LatticeSDF<PREC>;                                           \
-  template class SampledGridSDF<PREC>;                                       \
                                                                                \
   /* -- CSG: blends, BVH unions, expressions and tapes ----------------------*/ \
   template struct SmoothMinOp<PREC>;                                         \

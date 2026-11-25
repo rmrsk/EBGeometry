@@ -22,7 +22,7 @@ Geometry and queries
      - Closest
      - Rays
      - Neighbors
-   * - Analytic shapes, sampled fields
+   * - Analytic shapes
      - signed distance
      - the surface
      - yes
@@ -78,7 +78,7 @@ The four sections
 The rest of this guide follows the table.
 
 * **Geometry**: what you can describe. A shape is anything with a signed value at a point and a bounding box
-  (:ref:`Chap:GeometryRepresentations`): analytic shapes and your own, distance fields sampled on a grid, meshes read from files
+  (:ref:`Chap:GeometryRepresentations`): analytic shapes and your own, meshes read from files
   (:ref:`Chap:Meshes`), clouds of points and spheres (:ref:`Chap:PointCloud`), and compositions of all of them
   (:ref:`Chap:ConstructiveSolidGeometry`). Regions, materials, labels and surface groups
   (:ref:`Chap:LeavesAndSurfaces`, :ref:`Chap:Regions`) are a layer of meaning on that geometry: what a part of

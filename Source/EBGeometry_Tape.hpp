@@ -46,7 +46,6 @@
 #include "EBGeometry_PackedBVH.hpp"
 #include "EBGeometry_Pool.hpp"
 #include "EBGeometry_Ray.hpp"
-#include "EBGeometry_SampledGridSDF.hpp"
 #include "EBGeometry_Subdomains.hpp"
 #include "EBGeometry_SurfaceRef.hpp"
 #include "EBGeometry_Vec.hpp"
@@ -642,7 +641,7 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 /**
  * @brief The tape's primitive types: twelve analytic shapes (PlaneSDF to PerlinSDF), the three mesh SDFs with the
  * default branching factor and SIMD width, the user's types (its template arguments that are not features), then
- * seventeen more analytic shapes (EllipsoidSDF to LatticeSDF) and the sampled grid (SampledGridSDF).
+ * seventeen more analytic shapes (EllipsoidSDF to LatticeSDF).
  * @details Internal helper; not part of the public API. The evaluator finds a primitive's type by testing the
  * types in this order, so a type further down costs a test more; on the host, every type from Tape::DispatchSplit
  * on is dispatched out of line. The user's types come before the last shapes, so that a tape of user types
@@ -684,8 +683,7 @@ using Primitives =
                            SolidAngleSDF<T>,
                            VesicaSDF<T>,
                            HelixSDF<T>,
-                           LatticeSDF<T>,
-                           SampledGridSDF<T>>>::type;
+                           LatticeSDF<T>>>::type;
 
 /**
  * @brief Whether a tape's user primitive types are shapes of its precision.
