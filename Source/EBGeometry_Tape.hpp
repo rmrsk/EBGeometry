@@ -2228,9 +2228,9 @@ private:
    * line (dispatchRest()), so that the common analytic shapes before it are inlined into the evaluator
    * whatever else the translation unit holds.
    * @details The ray program's two leaf dispatches split at the same index (rayLeafRest(), leafHitRest()), for the
-   * same reason: every shape with a ray form adds its trace to the chain, and without the split a new one made
-   * GCC lay out the whole chain afresh inside the renderer's loop, slowing float tape frames of the first shapes
-   * only. A device compile has no split (EBGEOMETRY_HOST_NOINLINE is empty there).
+   * same reason: every shape with a ray form adds its trace to the chain, and without the split each one can
+   * make GCC lay out the whole chain afresh inside the caller's loop (the renderer's), slowing tapes of the
+   * shapes before the split. A device compile has no split (EBGEOMETRY_HOST_NOINLINE is empty there).
    */
   static constexpr size_t DispatchSplit = 6;
 
