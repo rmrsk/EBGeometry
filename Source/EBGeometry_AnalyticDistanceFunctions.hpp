@@ -4980,10 +4980,14 @@ public:
 
   /**
    * @brief Signed distance function for the polyhedron.
+   * @details Out of line on a device (its loops over the faces and edges are the whole distance): inlined, it would be
+   * copied into every level of every tape kernel, whatever shapes the tape holds, which makes the device compile of
+   * every tape kernel much slower. A call costs little beside those loops.
    * @param[in] a_point Position.
    * @return Signed distance from a_point to the surface; negative inside.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   T
   signedDistance(const Vec3T<T>& a_point) const noexcept;
 
@@ -5236,10 +5240,14 @@ protected:
   /**
    * @brief The three bars that meet at the corner of the octant a point is in: the signed distance to the one along
    * x, along y and along z.
+   * @details Out of line on a device (the frame's solver): inlined, it would be copied into every level of every tape
+   * kernel, whatever shapes the tape holds, which makes the device compile of every tape kernel much slower. A call
+   * costs little beside its three bars.
    * @param[in] a_point Position.
    * @return The three distances.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   Vec3T<T>
   barTerms(const Vec3T<T>& a_point) const noexcept;
 
@@ -5975,7 +5983,9 @@ namespace AnalyticDetail {
  * for the root u in (0, A^2 + B^2) of F(u) = (a_x A / u)^2 - (a_y B / (A^2 + B^2 - u))^2 - 1, which decreases from
  * +infinity to -infinity there, so the root is unique, as for an ellipse (Eberly). It is found by Newton steps kept
  * inside a bracket that bisection shrinks, in one loop, which keeps the code a tape copies into each of its levels
- * small. A point on an axis has its closest point in closed form.
+ * small. A point on an axis has its closest point in closed form. Out of line on a device (the quadric's solver):
+ * inlined, it would be copied into every level of every tape kernel, whatever shapes the tape holds, which makes the
+ * device compile of every tape kernel much slower. A call costs little beside the iteration.
  * @tparam T Floating-point precision.
  * @param[in] a_A Semi-axis along X.
  * @param[in] a_B Semi-axis along Y.
@@ -5985,6 +5995,7 @@ namespace AnalyticDetail {
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
 {
@@ -6067,11 +6078,13 @@ hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
 /**
  * @brief The distance from a point to the parabola y = -r^2 / (2 rho), for a point with coordinates a_r >= 0 and
  * a_y.
- * @details Internal helper; not part of the public API. The closest point (s, -s^2 / (2 rho)) has s the largest
- * root of the cubic g(s) = s^3 + P s + Q, P = 2 rho (rho + y), Q = -2 rho^2 r <= 0. With a = sqrt(max(-P, 0)) and
- * b = cbrt(-Q), g(a + b) >= (a + b) b (2 a + b) - b^3 >= 0, and g is convex for s > 0, so Newton steps from a + b
- * decrease monotonically to that root. Cardano's formula would need a cube root, an arc cosine and a cosine, whose
- * code a tape copies into each of its levels; the loop is smaller.
+ * @details Internal helper; not part of the public API. The closest point (s, -s^2 / (2 rho)) has s the largest root of
+ * the cubic g(s) = s^3 + P s + Q, P = 2 rho (rho + y), Q = -2 rho^2 r <= 0. With a = sqrt(max(-P, 0)) and b = cbrt(-Q),
+ * g(a + b) >= (a + b) b (2 a + b) - b^3 >= 0, and g is convex for s > 0, so Newton steps from a + b decrease
+ * monotonically to that root. Cardano's formula would need a cube root, an arc cosine and a cosine, whose code a tape
+ * copies into each of its levels; the loop is smaller. Out of line on a device (the quadric's solver): inlined, it
+ * would be copied into every level of every tape kernel, whatever shapes the tape holds, which makes the device compile
+ * of every tape kernel much slower. A call costs little beside the iteration.
  * @tparam T Floating-point precision.
  * @param[in] a_rho The radius of curvature at the tip.
  * @param[in] a_r   The point's distance from the axis.
@@ -6080,6 +6093,7 @@ hyperbolaDistance(const T a_A, const T a_B, const T a_x, const T a_y) noexcept
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 parabolaDistance(const T a_rho, const T a_r, const T a_y) noexcept
 {
@@ -6607,10 +6621,14 @@ public:
 
   /**
    * @brief The superquadric's gauge at a point: below 1 inside, 1 on the surface, above 1 outside.
+   * @details Out of line on a device (the superellipsoid's solver): inlined, it would be copied into every level of
+   * every tape kernel, whatever shapes the tape holds, which makes the device compile of every tape kernel much slower.
+   * A call costs little beside its powers.
    * @param[in] a_point Position.
    * @return The gauge.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   T
   gauge(const Vec3T<T>& a_point) const noexcept
   {
@@ -7374,9 +7392,11 @@ protected:
    * @brief The smallest squared distance from a point to the center line over one window of helix angles,
    * phi + 2 pi k + s with |s| <= pi, cut to the helix' angles.
    * @details f(s) = rho^2 + R^2 - 2 rho R cos(s) + (Y - rate s)^2, with Y the point's height over the line at s = 0.
-   * Its derivative is 2 g(s), g(s) = rho R sin(s) + rate^2 s - rate Y, which increases where rho R cos(s) + rate^2 >
-   * 0, on (-s_c, s_c), and decreases outside it. A minimum inside the window is therefore where g crosses zero in
-   * (-s_c, s_c), at most once; otherwise f is least at an end.
+   * Its derivative is 2 g(s), g(s) = rho R sin(s) + rate^2 s - rate Y, which increases where rho R cos(s) + rate^2 > 0,
+   * on (-s_c, s_c), and decreases outside it. A minimum inside the window is therefore where g crosses zero in (-s_c,
+   * s_c), at most once; otherwise f is least at an end. Out of line on a device (the helix' solver): inlined, it would
+   * be copied into every level of every tape kernel, whatever shapes the tape holds, which makes the device compile of
+   * every tape kernel much slower. A call costs little beside the search.
    * @param[in] a_k    The window, as a whole number.
    * @param[in] a_rho  The point's distance from the axis.
    * @param[in] a_phi  The point's angle around the axis, from the start direction.
@@ -7386,6 +7406,7 @@ protected:
    * @return The squared distance.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   T
   windowMinimum(const T a_k, const T a_rho, const T a_phi, const T a_y, const T a_rate, const T a_last) const noexcept
   {
@@ -7624,10 +7645,14 @@ public:
 
   /**
    * @brief The surface's field f at a point, zero on the surface.
+   * @details Out of line on a device (the lattice's solver): inlined, it would be copied into every level of every tape
+   * kernel, whatever shapes the tape holds, which makes the device compile of every tape kernel much slower. A call
+   * costs little beside its trigonometry.
    * @param[in] a_point Position.
    * @return The field.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   T
   field(const Vec3T<T>& a_point) const noexcept
   {
