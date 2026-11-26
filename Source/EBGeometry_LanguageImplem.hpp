@@ -3342,25 +3342,25 @@ private:
 
         // Its parts are its face groups: their names made names of the language (letters, digits and underscores), so
         // that .label(part = "x") can name each; their labels by default are the groups' own names.
-        FaceGroups groups = soup.getFaceGroups();
+        FaceGroups faceGroups = soup.getFaceGroups();
 
-        shape->m_groupPicked.assign(groups.m_names.size(), false);
+        shape->m_groupPicked.assign(faceGroups.m_names.size(), false);
 
         if (!partsPath.empty()) {
           const FaceGroups picked = EBGeometry::Parser::readFaceParts(partsPath, soup);
 
-          groups = EBGeometry::Parser::overlayFaceGroups(groups, picked);
+          faceGroups = EBGeometry::Parser::overlayFaceGroups(faceGroups, picked);
 
-          shape->m_groupPicked.resize(groups.m_names.size(), false);
+          shape->m_groupPicked.resize(faceGroups.m_names.size(), false);
 
-          for (size_t g = 0; g < groups.m_names.size(); g++) {
+          for (size_t g = 0; g < faceGroups.m_names.size(); g++) {
             shape->m_groupPicked[g] =
-              std::find(picked.m_names.begin(), picked.m_names.end(), groups.m_names[g]) != picked.m_names.end();
+              std::find(picked.m_names.begin(), picked.m_names.end(), faceGroups.m_names[g]) != picked.m_names.end();
           }
         }
 
-        shape->m_groupNames = groups.m_names;
-        shape->m_faceGroup  = groups.m_group;
+        shape->m_groupNames = faceGroups.m_names;
+        shape->m_faceGroup  = faceGroups.m_group;
 
         for (const std::string& group : shape->m_groupNames) {
           std::string part;
