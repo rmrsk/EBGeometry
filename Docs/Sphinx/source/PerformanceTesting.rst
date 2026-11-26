@@ -426,8 +426,12 @@ pull request as its *receipt*:
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare origin/<base> --record   # writes Performance/receipts/<branch>-<fingerprint>.md
+   Scripts/run-performance.sh compare $(git merge-base HEAD origin/<base>) --record   # writes Performance/receipts/<branch>-<fingerprint>.md
    git add -A Performance/receipts && git commit -m "Performance receipt"
+
+The comparison is made against the commit the branch starts from, its merge-base with ``origin/<base>``, not
+against ``origin/<base>`` itself: once another pull request has merged, ``origin/<base>`` holds code the branch
+does not, and the comparison would report that pull request's changes, reversed, as this one's.
 
 The receipt is one file per pull request, ``Performance/receipts/<branch>-<fingerprint>.md``: the branch it is
 recorded on (so it is recorded on the pull request's branch, checked out) and the start of the fingerprint

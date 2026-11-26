@@ -42,9 +42,10 @@ The code is final only after the `@claude review` rounds have converged; a fix f
 stale. No extra rounds or repeated full runs while the code still moves.
 
 1. **Run the comparison against the PR's base**, from the top of the branch's worktree, with the code committed.
-   The receipt must have measured the base the branch is built on (its merge-base with `origin/<base>`), so rebase
-   the branch onto `origin/<base>` first; a receipt recorded against a newer `origin/<base>` than the branch is
-   built on fails CI.
+   The receipt must have measured the base the branch is built on, its merge-base with `origin/<base>`, so the
+   commands name that commit, not `origin/<base>`. Once another PR has merged, `origin/<base>` holds code the branch
+   does not: a comparison against it reports that PR's changes, reversed, as this one's, and CI rejects the receipt
+   for its base. The branch is not rebased for the receipt (only for a conflict, `CLAUDE.md`, "Merging").
    `--smoke` first gives a one-minute check that both sides build and every case runs with the same answers. The
    defaults, 2 rounds of 3 repetitions, are the least that gives a verdict, and take about eight minutes for every
    case, builds included. A probe that compiled to the same code on both sides is not run (listed as such in the
@@ -53,8 +54,9 @@ stale. No extra rounds or repeated full runs while the code still moves.
    afresh).
 
    ```bash
-   Scripts/run-performance.sh compare origin/<base> --record                       # host cases, receipt
-   Scripts/run-performance.sh compare origin/<base> <pr-branch> --gpu cuda --gpu-arch <local GPU's, e.g. 86> \
+   base=$(git merge-base HEAD origin/<base>)
+   Scripts/run-performance.sh compare $base --record                               # host cases, receipt
+   Scripts/run-performance.sh compare $base <pr-branch> --gpu cuda --gpu-arch <local GPU's, e.g. 86> \
                               --cuda-compiler <nvcc> --record                      # + device section
    ```
 
