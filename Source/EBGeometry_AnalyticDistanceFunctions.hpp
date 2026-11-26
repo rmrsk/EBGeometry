@@ -2538,7 +2538,9 @@ ellipseDistance(const T a_e0, const T a_e1, const T a_y0, const T a_y1) noexcept
  * coordinates a_y0, a_y1, a_y2 >= 0 (Eberly's algorithm).
  * @details Internal helper; not part of the public API. A point on a coordinate plane is handled by the
  * planar cases of the algorithm: its closest point is on the ellipse in that plane, or, for a point inside
- * near the plane of the two larger axes, off it.
+ * near the plane of the two larger axes, off it. Out of line on a device (the ellipsoid's root finding): inlined, it
+ * would be copied into every level of every tape kernel, whatever shapes the tape holds, which makes the device compile
+ * of every tape kernel much slower. A call costs little beside the iteration.
  * @tparam T Floating-point precision.
  * @param[in] a_e0 Largest semi-axis.
  * @param[in] a_e1 Middle semi-axis.
@@ -2550,6 +2552,7 @@ ellipseDistance(const T a_e0, const T a_e1, const T a_y0, const T a_y1) noexcept
  */
 template <class T>
 [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
 inline T
 ellipsoidDistance(const T a_e0, const T a_e1, const T a_e2, const T a_y0, const T a_y1, const T a_y2) noexcept
 {
@@ -3451,11 +3454,15 @@ public:
   /**
    * @brief The signed distance to the polygon in the cross-section, at coordinates a_u along the vertex
    * direction and a_v across it.
+   * @details Out of line on a device (its trigonometry is most of the prism's distance): inlined, it would be copied
+   * into every level of every tape kernel, whatever shapes the tape holds, which makes the device compile of every
+   * tape kernel much slower. A call costs little beside the trigonometry.
    * @param[in] a_u Coordinate along the direction toward the first vertex.
    * @param[in] a_v Coordinate along the other direction across the axis.
    * @return The signed distance to the polygon.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
   T
   polygonDistance(const T a_u, const T a_v) const noexcept
   {
