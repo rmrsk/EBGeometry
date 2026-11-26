@@ -15,12 +15,14 @@ Every shape below is used once in ``Studio/Models/gallery/model.ebg``, laid out 
    :width: 90%
    :align: center
 
-   ``Studio/Models/gallery``: the bounded shapes (the two front rows), the unbounded ones inside a cube and a mesh (the
-   third row), then the operations of :ref:`Chap:LanguageOperations` (the rows behind).
+   ``Studio/Models/gallery``: the bounded shapes and the meshes (the four front rows), the unbounded ones inside a cube
+   (the fifth row), then the operations of :ref:`Chap:LanguageOperations` (the rows behind).
 
 Each shape is a C++ class of the library, and its name and parameters follow the class's: the class name
 without ``SDF``, in snake_case (``RoundedBoxSDF`` is ``rounded_box``), and the constructor's parameters in
-order, without their ``a_`` prefix.
+order, without their ``a_`` prefix. The regular solids and the pyramid are made in C++ by the static functions of
+``ConvexPolyhedronSDF`` and the hyperboloids and the paraboloid by those of ``QuadricSDF``; here each is a shape of
+its own name.
 
 Bounded shapes
 --------------
@@ -81,6 +83,32 @@ Bounded shapes
    * - ``cut_hollow_sphere``
      - ``cut_hollow_sphere((0, 0, 0), 1, 0.4, 0.15)``: center, radius, height, thickness
      - shell, rim
+   * - ``tetrahedron``, ``octahedron``, ``dodecahedron``, ``icosahedron``
+     - ``icosahedron((0, 0, 0), 1)``: center, radius (to a vertex), in each solid's standard orientation
+     - face0 ... face(n-1)
+   * - ``pyramid``
+     - ``pyramid((0, -0.7, 0), (0, 0.9, 0), 0.9, 4, (1, 0, 0))``: base_center, apex, radius, sides (3 to 19),
+       vertex_direction
+     - side0 ... side(n-1), base
+   * - ``convex_polyhedron``
+     - ``convex_polyhedron(plane(...), plane(...), ...)``: 4 to 20 planes, each normal pointing out of the solid
+     - face0 ... face(n-1), in the planes' order
+   * - ``box_frame``
+     - ``box_frame((-0.8, -0.8, -0.8), (0.8, 0.8, 0.8), 0.15)``: lo_corner, hi_corner, thickness (of a bar)
+     - x00, x01, x10, x11, y00, ... z11: the bar along an axis, on the low (0) or high (1) side of the other two
+   * - ``superellipsoid``
+     - ``superellipsoid((0, 0, 0), (1, 0.7, 0.8), 0.3, 0.3)``: center, radii, exponent1, exponent2 (each 0.1 to 2)
+     - one surface
+   * - ``solid_angle``
+     - ``solid_angle((0, -0.6, 0), 1.2, 70)``: center, radius, angle (opening toward +y)
+     - cap, side
+   * - ``vesica``
+     - ``vesica((0, -1, 0), (0, 1, 0), 0.45)``: tip1, tip2, radius (at the middle)
+     - one surface
+   * - ``helix``
+     - ``helix((0, -0.9, 0), (0, 0.9, 0), 0.7, 4, 0.12, (1, 0, 0))``: center1, center2, helix_radius, turns,
+       tube_radius, start_direction
+     - one surface
 
 Unbounded shapes
 ----------------
@@ -107,6 +135,19 @@ These reach to infinity. Used as a model's object they would fill the scene, so 
    * - ``wedge``
      - ``wedge((0, 1, 0), 60)``: tip, angle (a knife edge along z, pointing along +y)
      - xmin, xmax
+   * - ``hyperboloid``
+     - ``hyperboloid((0, 0, 0), 0.4, 60)``: center, waist, angle (of the asymptotic cone; around y)
+     - one surface
+   * - ``hyperboloid_two_sheets``
+     - ``hyperboloid_two_sheets((0, 0, 0), 0.3, 80)``: center, tip_distance, angle
+     - one surface
+   * - ``paraboloid``
+     - ``paraboloid((0, 0.8, 0), 0.4)``: tip, tip_radius (opening toward -y)
+     - one surface
+   * - ``lattice``
+     - ``lattice("gyroid", (1, 1, 1), 0.15)``: kind (``"gyroid"``, ``"schwarz_p"``, ``"schwarz_d"`` or ``"diamond"``,
+       ``"neovius"``), cell_size, thickness (of the walls)
+     - one surface
    * - ``perlin``
      - ``perlin(0.3, (2, 2, 2), 0.5, 3)``: noise_amplitude, noise_frequency, noise_persistence, noise_octaves; noise, not
        a distance

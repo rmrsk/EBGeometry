@@ -641,10 +641,10 @@ storeAt(PrimitiveStore<P, Ps...>& a_store) noexcept
 /**
  * @brief The tape's primitive types: twelve analytic shapes (PlaneSDF to PerlinSDF), the three mesh SDFs with the
  * default branching factor and SIMD width, the user's types (its template arguments that are not features), then
- * nine more analytic shapes (EllipsoidSDF to WedgeSDF).
+ * seventeen more analytic shapes (EllipsoidSDF to LatticeSDF).
  * @details Internal helper; not part of the public API. The evaluator finds a primitive's type by testing the
  * types in this order, so a type further down costs a test more; on the host, every type from Tape::DispatchSplit
- * on is dispatched out of line. The user's types come before the last nine shapes, so that a tape of user types
+ * on is dispatched out of line. The user's types come before the last shapes, so that a tape of user types
  * (a BVH union, a mesh with another branching factor, a fused part) reaches them right after the first fifteen.
  * @tparam T            Floating-point precision.
  * @tparam UserPrimitives User primitive types and features.
@@ -675,7 +675,15 @@ using Primitives =
                            CappedTorusSDF<T>,
                            CutSphereSDF<T>,
                            CutHollowSphereSDF<T>,
-                           WedgeSDF<T>>>::type;
+                           WedgeSDF<T>,
+                           ConvexPolyhedronSDF<T>,
+                           BoxFrameSDF<T>,
+                           QuadricSDF<T>,
+                           SuperellipsoidSDF<T>,
+                           SolidAngleSDF<T>,
+                           VesicaSDF<T>,
+                           HelixSDF<T>,
+                           LatticeSDF<T>>>::type;
 
 /**
  * @brief Whether a tape's user primitive types are shapes of its precision.
@@ -1748,6 +1756,26 @@ private:
                   const PoolLocation&          a_location) const noexcept;
 
   /**
+   * @brief The leaf-hit dispatch from DispatchSplit on, out of line in a host pass (see DispatchSplit).
+   * @param[in] a_clause   The leaf clause.
+   * @param[in] a_ray      The ray.
+   * @param[in] a_t        Where along the ray the leaf decided the value.
+   * @param[in] a_options  How to march.
+   * @param[in] a_base     The pool base.
+   * @param[in] a_location The pool location.
+   * @return The crossing on the primitive.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  HitT<T>
+  leafHitRest(const TapeDetail::RayClause& a_clause,
+              const RayT<T>&               a_ray,
+              T                            a_t,
+              const RayOptions<T>&         a_options,
+              const void*                  a_base,
+              const PoolLocation&          a_location) const noexcept;
+
+  /**
    * @brief The spans of a Marched clause that is an operand of an intersection: its subtree marched only within
    * the spans of the operands before it (see TapeDetail::RayOp::Marched).
    * @details Out of line on a device: inlined beside the march of any other Marched clause, it made every
@@ -1945,6 +1973,31 @@ private:
                   const void*                  a_base,
                   const PoolLocation&          a_location,
                   RaySpansT<T>&                a_spans) const noexcept;
+
+  /**
+   * @brief The ray-leaf dispatch from DispatchSplit on, out of line in a host pass (see DispatchSplit).
+   * @param[in]  a_clause    The leaf clause.
+   * @param[in]  a_ray       The ray.
+   * @param[in]  a_t0        Start of the interval.
+   * @param[in]  a_t1        End of the interval.
+   * @param[in]  a_options   How to march.
+   * @param[in]  a_firstOnly Whether only the first crossing is needed.
+   * @param[in]  a_base      The pool base.
+   * @param[in]  a_location  The pool location.
+   * @param[out] a_spans     The list.
+   */
+  EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  void
+  rayLeafRest(const TapeDetail::RayClause& a_clause,
+              const RayT<T>&               a_ray,
+              T                            a_t0,
+              T                            a_t1,
+              const RayOptions<T>&         a_options,
+              bool                         a_firstOnly,
+              const void*                  a_base,
+              const PoolLocation&          a_location,
+              RaySpansT<T>&                a_spans) const noexcept;
 
   /**
    * @brief The spans of a BVH union clause: the union of its operands' spans, walking its BVH along the
@@ -2172,6 +2225,10 @@ private:
    * @brief Where the host splits the primitive dispatch: the types from this index on are evaluated out of
    * line (dispatchRest()), so that the common analytic shapes before it are inlined into the evaluator
    * whatever else the translation unit holds.
+   * @details The ray program's two leaf dispatches split at the same index (rayLeafRest(), leafHitRest()), for the
+   * same reason: every shape with a ray form adds its trace to the chain, and without the split each one can
+   * make GCC lay out the whole chain afresh inside the caller's loop (the renderer's), slowing tapes of the
+   * shapes before the split. A device compile has no split (EBGEOMETRY_HOST_NOINLINE is empty there).
    */
   static constexpr size_t DispatchSplit = 6;
 

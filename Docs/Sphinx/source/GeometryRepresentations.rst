@@ -102,7 +102,8 @@ Shapes
 ------
 
 A :term:`shape` is anything with a signed value at a point and a bounding box: the analytic shapes (a sphere, a
-box, a cylinder, ...), the mesh distance functions, the point and sphere clouds, a composition, and any type
+box, a cylinder, the regular solids, lattices, ...), the mesh distance functions, the point and
+sphere clouds, a composition, and any type
 of your own with the same two members (see :ref:`Chap:ExampleCustomShape`). Shapes are plain values that
 can be copied as a block of memory, so that the same shape is evaluated on the host and, copied to a GPU,
 on the device; those holding large data (a mesh, a BVH) keep it in a memory pool, which is what is copied

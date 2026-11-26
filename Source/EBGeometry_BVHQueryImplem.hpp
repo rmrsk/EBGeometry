@@ -72,10 +72,12 @@ pointDistance2(const ChildBoxes<T, K>& a_row, const Vec3T<T>& a_point, const siz
  * path computes the same quantity in the same association order, so all agree bit for bit (a NaN
  * coordinate counts as inside along that axis, so it never prunes a child; under -ffast-math the
  * compiler may assume there are no NaNs, and then no path promises anything for one), unless the
- * compiler contracts the scalar path into fused multiply-adds, which the x86 intrinsics do not: Clang
- * does so by default within an expression, and GCC in its GNU language modes (-std=gnu++17;
- * EBGeometry's own CMake build uses -std=c++17), whenever FMA is enabled. GCC may contract the NEON
- * intrinsics too.
+ * compiler contracts multiplies and adds into fused multiply-adds, which it may do whenever FMA is
+ * enabled. Clang does so by default within an expression, on the scalar path only (not across the
+ * intrinsics). GCC does so by default in every C++ language mode (its ISO-mode -ffp-contract=off
+ * applies to C only), on the scalar path and across the x86 and NEON intrinsics alike, so its paths
+ * can differ in the last bit both from each other and from a build without FMA. -ffp-contract=off
+ * restores the agreement.
  * @tparam T Precision.
  * @tparam K Branching factor.
  * @param[in]  a_soa   The child boxes.

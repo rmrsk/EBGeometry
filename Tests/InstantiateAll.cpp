@@ -47,6 +47,14 @@ namespace EBGeometry {
   template class CutSphereSDF<PREC>;                                         \
   template class CutHollowSphereSDF<PREC>;                                   \
   template class WedgeSDF<PREC>;                                             \
+  template class ConvexPolyhedronSDF<PREC>;                                  \
+  template class BoxFrameSDF<PREC>;                                          \
+  template class QuadricSDF<PREC>;                                           \
+  template class SuperellipsoidSDF<PREC>;                                    \
+  template class SolidAngleSDF<PREC>;                                        \
+  template class VesicaSDF<PREC>;                                            \
+  template class HelixSDF<PREC>;                                             \
+  template class LatticeSDF<PREC>;                                           \
                                                                                \
   /* -- CSG: blends, BVH unions, expressions and tapes ----------------------*/ \
   template struct SmoothMinOp<PREC>;                                         \

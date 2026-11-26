@@ -92,6 +92,26 @@ Analytic shapes
      - The part of a sphere, or of a spherical shell, above a horizontal cut: a dome
    * - ``WedgeSDF``
      - An infinite wedge along z, pointing toward +y
+   * - ``ConvexPolyhedronSDF``
+     - A convex polyhedron from its planes, of up to 20 faces and 20 vertices; the regular solids
+       (``tetrahedron()``, ``octahedron()``, ``dodecahedron()``, ``icosahedron()``) and right pyramids on a
+       regular polygon (``pyramid()``) are its static functions
+   * - ``BoxFrameSDF``
+     - The frame of an axis-aligned box: its twelve edges as bars of a given thickness
+   * - ``QuadricSDF``
+     - A hyperboloid of one or two sheets around y, or a paraboloid opening along -y from its tip, made by its
+       static functions ``hyperboloid()``, ``hyperboloidTwoSheets()`` and ``paraboloid()``; unbounded
+   * - ``SuperellipsoidSDF``
+     - Barr's superquadric, from an ellipsoid toward a box or an octahedron, with semi-axes along x, y and z
+   * - ``SolidAngleSDF``
+     - The part of a ball inside a cone from its center, opening toward +y
+   * - ``VesicaSDF``
+     - A lens between two tips: a vesica turned around the line through them
+   * - ``HelixSDF``
+     - A tube along a helix between two points (a spring, a coil, a thread), with rounded ends
+   * - ``LatticeSDF``
+     - Walls of a given thickness along a triply periodic minimal surface (gyroid, Schwarz P, Schwarz D or
+       diamond, Neovius), filling all of space
 
 Each is a plain, trivially copyable value type with no base class and no virtual functions, in
 the same way as the mesh distance fields. Its ``signedDistance()`` and accessors are callable on
@@ -104,10 +124,11 @@ improved noise :cite:`Perlin2002`. The shapes share a few conventions:
 * **Placement first.** Each constructor takes where the shape is (a center, a corner, a tip or a
   point on it) before its sizes.
 * **One axis.** A shape with a built-in axis has it along y: the torus, both cones, the rounded
-  cylinder, the capped torus, the cut spheres and the wedge, and also the default-constructed
-  versions of the others; ``Rotate`` turns them. ``CylinderSDF``, ``CapsuleSDF``, ``CappedConeSDF``,
-  ``RoundConeSDF``, ``PolygonPrismSDF`` and ``TubeSDF`` take two end points and ``InfiniteCylinderSDF``
-  an axis index, so they can point anywhere. Angles are in degrees.
+  cylinder, the capped torus, the cut spheres, the wedge, the quadrics and the solid angle, and also the
+  default-constructed versions of the others; ``Rotate`` turns them. ``CylinderSDF``, ``CapsuleSDF``,
+  ``CappedConeSDF``, ``RoundConeSDF``, ``PolygonPrismSDF``, ``TubeSDF``, ``VesicaSDF``, ``HelixSDF`` and the
+  pyramid take two end points and ``InfiniteCylinderSDF`` an axis index, so they can point anywhere. The regular
+  solids are in their standard orientations, documented with each function. Angles are in degrees.
 * **Outer sizes.** A size is the size of the finished shape, rounding included: ``RoundedBoxSDF``
   takes the box it fits exactly, and its rounding radius must be less than half of every side. The
   other shapes have sharp edges; to round them, take ``Offset`` of a slightly smaller shape (the
@@ -116,16 +137,39 @@ improved noise :cite:`Perlin2002`. The shapes share a few conventions:
   the host and on a GPU, ready to pass to a BVH union. Along a direction in which a shape is
   unbounded, the box extends to plus or minus the largest finite value of ``T`` (not infinity, so
   that box arithmetic such as a center stays finite): the infinite cylinder along its axis, the
-  infinite cone everywhere but above its tip, and the plane and the noise in every direction.
+  infinite cone everywhere but above its tip, the paraboloid everywhere but above its tip, and the plane, the
+  hyperboloids, the lattices and the noise in every direction.
 * **A distance quality.** A static member ``distanceQuality`` says how far ``signedDistance()``
   can be trusted as a distance, as one of three
   `DistanceQuality <doxygen/html/namespaceEBGeometry.html#aba480dba46b4ac1b2393b5f2872cdad5>`__ levels:
   ``Exact`` (the magnitude is the Euclidean distance to the surface), ``Bound`` (the magnitude
   never exceeds it) or ``NotADistance`` (only the sign means anything). Every shape is ``Exact``
-  except ``PerlinSDF``, which is ``NotADistance``. The ellipsoid's exact distance has no closed form
-  and is found by a short iteration :cite:`Eberly`, so it costs more to evaluate than the other shapes. The mesh distance fields are ``Exact``. A BVH
+  except ``SuperellipsoidSDF`` and ``LatticeSDF``, which are ``Bound``, and
+  ``PerlinSDF``, which is ``NotADistance``. The exact distances of the ellipsoid, the hyperboloids and the helix
+  have no closed form and are found by a short iteration :cite:`Eberly`, so they cost more to evaluate than the
+  other shapes, as do the polyhedra with many faces. The mesh distance fields are ``Exact``. A BVH
   union is ``Bound``, or ``NotADistance`` if its primitives are. ``distanceQualityOf<P>`` reads the
   member, and treats a type without one as ``Bound``.
+
+Families of shapes
+__________________
+
+Shapes that share their code are one type, so that a tape holds few types (each type it can hold makes every
+tape's evaluator larger):
+
+* ``ConvexPolyhedronSDF`` holds its faces, edges and vertices in fixed-size arrays inside the shape, so it is
+  trivially copyable and needs no pool, but has at most 20 faces and 20 vertices (``MaxFaces``,
+  ``MaxVertices``): enough for every regular solid and for pyramids of up to 19 sides. A larger polyhedron is a
+  mesh. Its constructor takes the planes, each with its normal pointing out of the solid, and rejects a plane
+  that bounds no face of it. Its parts are its faces: in the order of the planes, or as each static function
+  documents them. A box and a regular prism are cheaper as ``BoxSDF`` and ``PolygonPrismSDF``.
+* ``QuadricSDF`` is the hyperboloids and the paraboloid. A needle with a rounded tip is the paraboloid, or one cup
+  of the hyperboloid of two sheets, cut by an ``Intersection``.
+* ``LatticeSDF`` is the four surfaces. The walls are as thick as given where the surface's field is steepest, and
+  thicker elsewhere; cut the lattice to a part with an ``Intersection``.
+
+A chain link is not a type of its own: it is a torus turned into the xy-plane and elongated along y,
+``Elongate(Rotate(TorusSDF<T>(...), 90, 0), Vec3T<T>(0, h, 0))``, which gives the exact distance to it.
 
 Every shape can be composed with the expression builder and evaluated through a ``Tape``
 (:ref:`Sec:Tape`); many shapes, of one type or several, can also be joined directly by a BVH union

@@ -3009,14 +3009,37 @@ Tape<T, UserPrimitives...>::dispatchRayLeaf(const TapeDetail::RayClause& a_claus
       }
     }
 
-    this->template dispatchRayLeaf<I + 1>(
-      a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+    if constexpr (I + 1 == DispatchSplit) {
+      this->rayLeafRest(a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+    }
+    else {
+      this->template dispatchRayLeaf<I + 1>(
+        a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
+    }
   }
   else {
     EBGEOMETRY_EXPECT(false);
 
     a_spans.reset(a_t1);
   }
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+void
+Tape<T, UserPrimitives...>::rayLeafRest(const TapeDetail::RayClause& a_clause,
+                                        const RayT<T>&               a_ray,
+                                        const T                      a_t0,
+                                        const T                      a_t1,
+                                        const RayOptions<T>&         a_options,
+                                        const bool                   a_firstOnly,
+                                        const void*                  a_base,
+                                        const PoolLocation&          a_location,
+                                        RaySpansT<T>&                a_spans) const noexcept
+{
+  this->template dispatchRayLeaf<DispatchSplit>(
+    a_clause, a_ray, a_t0, a_t1, a_options, a_firstOnly, a_base, a_location, a_spans);
 }
 
 template <class T, class... UserPrimitives>
@@ -3286,13 +3309,32 @@ Tape<T, UserPrimitives...>::dispatchLeafHit(const TapeDetail::RayClause& a_claus
       }
     }
 
-    return this->template dispatchLeafHit<I + 1>(a_clause, a_ray, a_t, a_options, a_base, a_location);
+    if constexpr (I + 1 == DispatchSplit) {
+      return this->leafHitRest(a_clause, a_ray, a_t, a_options, a_base, a_location);
+    }
+    else {
+      return this->template dispatchLeafHit<I + 1>(a_clause, a_ray, a_t, a_options, a_base, a_location);
+    }
   }
   else {
     EBGEOMETRY_EXPECT(false);
 
     return HitT<T>();
   }
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+HitT<T>
+Tape<T, UserPrimitives...>::leafHitRest(const TapeDetail::RayClause& a_clause,
+                                        const RayT<T>&               a_ray,
+                                        const T                      a_t,
+                                        const RayOptions<T>&         a_options,
+                                        const void*                  a_base,
+                                        const PoolLocation&          a_location) const noexcept
+{
+  return this->template dispatchLeafHit<DispatchSplit>(a_clause, a_ray, a_t, a_options, a_base, a_location);
 }
 
 template <class T, class... UserPrimitives>

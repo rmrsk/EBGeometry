@@ -713,10 +713,19 @@ with explicit permission), and may ask whether to act on follow-ups.
   compile of `TestTape` did not finish). Keep them out of line, and mark any new function called that
   way the same. What multiplies nothing is inlined, for speed on a device (#221): the body
   `evaluateBody<D>` into `evaluate<D>`, and into `signedDistance()` for a tape of call depth 0; and an
-  analytic primitive into the level that reads it. On the host, the primitive dispatch is split at
-  `Tape::DispatchSplit` (`dispatchRest()`, `EBGEOMETRY_HOST_NOINLINE`): without the split, unrelated code
-  added to the tape's headers (the ray program compiler, #237) made GCC keep double's whole dispatch out
-  of `evaluateBody<0>`, and double tapes ran up to 28% slower. A new operation needs an `ExprDetail::Kind`,
+  analytic primitive into the level that reads it, except a built-in shape's heavy part. Every built-in shape
+  is compiled into every level of every tape kernel, whatever shapes the tape holds, so a heavy part (an
+  iterative root finding, a loop over faces or edges, a window search, heavy trigonometry: the ellipsoid's,
+  the polygon prism's, the convex polyhedron's, the frame's, the quadric's, the superellipsoid's, the helix's
+  and the lattice's) is `EBGEOMETRY_DEVICE_NOINLINE`, inlined on the host. Inlined, they made the GPU build of
+  ebgstudio 852 s instead of 123 s (#361). A new built-in shape keeps its inline part cheap and puts its heavy
+  part out of line the same way, and the `tape-change-check` skill's compile-cost step measures it; moving
+  every shape out of line was measured slower (#361: a traced double mesh shell in a tape +8-11%). On the
+  host, the primitive dispatch is split at `Tape::DispatchSplit` (`dispatchRest()`, `EBGEOMETRY_HOST_NOINLINE`),
+  and the ray program's two leaf dispatches at the same index (`rayLeafRest()`, `leafHitRest()`): without the
+  split, unrelated code added to the tape's headers (the ray program compiler, #237) made GCC keep double's
+  whole dispatch out of `evaluateBody<0>`, and double tapes ran up to 28% slower, and #361's new ray forms
+  made GCC lay the ray leaf chain out afresh in the renderer's loop. A new operation needs an `ExprDetail::Kind`,
   its box and distance-quality rule in the builder, its arithmetic in `CSGOps`, clauses in
   `TapeDetail::Op` and a case in `Tape::evaluateBody`, and a `Fused::` operation and function; a ray
   marches it unless it is also given span arithmetic (`EBGeometry_RaySpans.hpp`), a `RayOp` in the
