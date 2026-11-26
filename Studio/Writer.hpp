@@ -332,8 +332,14 @@ public:
           return "not written: the mesh's call was not found in " + site->m_span.m_file;
         }
 
-        const std::string relative =
-          fs::path(file).lexically_relative(fs::path(site->m_span.m_file).parent_path()).generic_string();
+        const std::string relative = fs::absolute(file)
+                                       .lexically_normal()
+                                       .lexically_relative(fs::absolute(site->m_span.m_file).parent_path())
+                                       .generic_string();
+
+        if (relative.empty()) {
+          return "not written: the parts file's path relative to " + site->m_span.m_file + " was not found";
+        }
 
         // The call has its file argument (the language reads no trailing comma), so the new one follows a comma.
         edits.push_back(Edit{

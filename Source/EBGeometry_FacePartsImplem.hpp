@@ -152,9 +152,11 @@ readFaceParts(const std::string& a_file, const PolygonSoup<T>& a_soup)
       head.imbue(std::locale::classic());
 
       std::string keyword;
+      std::string extra;
 
       if ((head >> keyword) && keyword == "mesh") {
-        if (close == std::string::npos) {
+        // Only spaces between the keyword and the quoted name.
+        if (close == std::string::npos || (head >> extra)) {
           throw ParseError(a_file, lineNumber, "expected 'mesh \"<file>\" fingerprint <hex>'");
         }
 

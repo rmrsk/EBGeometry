@@ -2218,7 +2218,9 @@ run(const S&                           a_shape,
   // Picking a mesh's faces one by one, for its parts (Ctrl + F, with a program's hooks that read meshes): off, a fill
   // to a crease angle from the face clicked, or a brush. The faces picked are of one mesh (its leaf), a flag each; they
   // are shown as the entry after the selection's last, through a mask built in a small pool of its own (and its mirror,
-  // for a render on a device) after each change, kept, like the surface groups' pools, until the viewer closes.
+  // for a render on a device). A change only marks the mask stale; it is built again when a frame's settings are made
+  // with no render running in the background (see publishFaces()), so once per frame however many mouse moves a brush
+  // stroke has, and the pools of the mask it replaces, which no render reads any more, are freed.
   enum class FaceTool
   {
     Off,
@@ -2235,6 +2237,8 @@ run(const S&                           a_shape,
   T                                                 brushFraction = T(0.02);
   bool                                              brushing      = false;
   bool                                              namingFaces   = false;
+  bool                                              facesStale    = false;
+  std::vector<std::unique_ptr<Pool>>                facePools;
 
   // The faces picked, in increasing order.
   const auto pickedFaces = [&]() {
@@ -2249,32 +2253,8 @@ run(const S&                           a_shape,
     return faces;
   };
 
-  // Show the faces picked: a mask in a new pool, mirrored for a device.
-  const auto publishFaces = [&]() {
-    if constexpr (hasRegionVisibility<S>) {
-      auto           host = std::make_unique<Pool>(hostMemoryResource());
-      const FaceMask mask = facePicked.empty()
-                              ? FaceMask()
-                              : FaceMask(*host, faceSurface, static_cast<uint32_t>(facePicked.size()), pickedFaces());
-
-      host->freeze();
-
-      settings.m_regions.m_faceMask = mask;
-      deviceGroups.m_faceMask       = FaceMask();
-
-      if (mask.size() != 0U && GPU::enabled && a_deviceShape != nullptr && GPU::deviceAvailable()) {
-        auto device = std::make_unique<Pool>(Pool::mirror(*host, GPU::memoryResource()));
-
-        deviceGroups.m_faceMask = mask.rebasedView(*device);
-
-        groupPools.push_back(std::move(device));
-      }
-
-      groupPools.push_back(std::move(host));
-
-      showHighlight();
-    }
-  };
+  // The faces picked changed: the mask is built again with the next frame.
+  const auto publishFaces = [&]() { facesStale = true; };
 
   // Drop the faces picked (and the mesh they are on).
   const auto clearFaces = [&]() {
@@ -3103,8 +3083,45 @@ run(const S&                           a_shape,
 
   // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
   // the full settings.
+  // Show the faces picked, when they changed and no render runs in the background: a mask in a new pool, mirrored for
+  // a device, replacing the last one, whose pools are freed (the window's own renders are done with them).
+  const auto buildFaceMask = [&]() {
+    if constexpr (hasRegionVisibility<S>) {
+      if (!facesStale || job != nullptr) {
+        return;
+      }
+
+      facesStale = false;
+
+      facePools.clear();
+
+      auto           host = std::make_unique<Pool>(hostMemoryResource());
+      const FaceMask mask = facePicked.empty()
+                              ? FaceMask()
+                              : FaceMask(*host, faceSurface, static_cast<uint32_t>(facePicked.size()), pickedFaces());
+
+      host->freeze();
+
+      settings.m_regions.m_faceMask = mask;
+      deviceGroups.m_faceMask       = FaceMask();
+
+      if (mask.size() != 0U && GPU::enabled && a_deviceShape != nullptr && GPU::deviceAvailable()) {
+        auto device = std::make_unique<Pool>(Pool::mirror(*host, GPU::memoryResource()));
+
+        deviceGroups.m_faceMask = mask.rebasedView(*device);
+
+        facePools.push_back(std::move(device));
+      }
+
+      facePools.push_back(std::move(host));
+
+      showHighlight();
+    }
+  };
+
   const auto stageSettings = [&](const int a_stage) {
     publishGroups();
+    buildFaceMask();
 
     Settings<T> frame = settings;
 
@@ -4617,6 +4634,9 @@ run(const S&                           a_shape,
       a_hooks->m_camera    = camera;
       a_hooks->m_settings  = settings;
       a_hooks->m_explode   = explode;
+
+      // The faces picked are not kept across a reload: their pools end with the window's call.
+      a_hooks->m_settings.m_regions.m_faceMask = FaceMask();
 
       break;
     }

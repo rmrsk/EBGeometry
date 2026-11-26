@@ -245,6 +245,7 @@ TEMPLATE_TEST_CASE("FaceParts: a malformed parts file, or one for another mesh, 
   const std::vector<Case> cases{
     {"ebg-parts 2\n", "expected 'ebg-parts 1'", 1},
     {"ebg-parts 1\nmesh d.obj fingerprint 12\n", "expected 'mesh \"<file>\" fingerprint <hex>'", 2},
+    {"ebg-parts 1\nmesh # \"d.obj\" fingerprint 12\n", "expected 'mesh \"<file>\" fingerprint <hex>'", 2},
     {"ebg-parts 1\nmesh \"d.obj\" fingerprint xyz\n", "is not a hexadecimal number", 2},
     {"ebg-parts 1\nmesh \"d.obj\" fingerprint 1234\n", "picked on another version of the mesh 'd.obj'", 2},
     {head + "a 1 x\n", "'x' is not a face id", 3},

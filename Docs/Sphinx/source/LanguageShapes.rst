@@ -144,7 +144,8 @@ joins it. Picked parts are labeled by their names,
 whatever ``groups`` says, and ``.label(inlet = "...")`` relabels one like any part. The parts file records which
 mesh it was picked on: when the mesh's faces change (a new export), reading the model is an error that names the
 parts file, so that faces are picked again rather than labeled wrongly. A mesh file used by several ``mesh`` calls has
-the parts of the file each call names: name the same parts file in each. ``meshes`` takes no parts file.
+the parts of the file each call names: name the same parts file in each. The parts file must exist (ebgstudio makes
+it, and adds ``parts =`` to the call, for a mesh whose call names none). ``meshes`` takes no parts file.
 
 ``meshes`` reads every file whose name matches a pattern, for an assembly kept as one file per part: ``*`` stands for
 any characters and ``?`` for one, in the file's name only (the folder is written out). The files are read in natural
