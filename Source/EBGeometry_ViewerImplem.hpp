@@ -3081,10 +3081,9 @@ run(const S&                           a_shape,
     publishedOnce = true;
   };
 
-  // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
-  // the full settings.
   // Show the faces picked, when they changed and no render runs in the background: a mask in a new pool, mirrored for
-  // a device, replacing the last one, whose pools are freed (the window's own renders are done with them).
+  // a device, replacing the last one, whose pools are freed (the window's own renders are done with them). Settings made
+  // while a background render runs (a pick, a saved image) keep the last mask; the next frame builds the new one.
   const auto buildFaceMask = [&]() {
     if constexpr (hasRegionVisibility<S>) {
       if (!facesStale || job != nullptr) {
@@ -3119,6 +3118,8 @@ run(const S&                           a_shape,
     }
   };
 
+  // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
+  // the full settings.
   const auto stageSettings = [&](const int a_stage) {
     publishGroups();
     buildFaceMask();
