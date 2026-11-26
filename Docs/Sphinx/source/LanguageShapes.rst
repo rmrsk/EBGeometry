@@ -139,10 +139,12 @@ two faces, faces folding back onto each other) is read with a warning, its dista
 
 ``parts = "part.parts"`` names a parts file (relative to the file the call is in): parts of the mesh picked face by
 face, which ebgstudio writes (see :ref:`Chap:StudioViewer`) for a mesh whose file names no groups, a CAD export, say.
-A picked face takes its picked part; every other face keeps its file group. Picked parts are labeled by their names,
+A picked face takes its picked part; every other face keeps its file group, and a picked part named like a file group
+joins it. Picked parts are labeled by their names,
 whatever ``groups`` says, and ``.label(inlet = "...")`` relabels one like any part. The parts file records which
 mesh it was picked on: when the mesh's faces change (a new export), reading the model is an error that names the
-parts file, so that faces are picked again rather than labeled wrongly. ``meshes`` takes no parts file.
+parts file, so that faces are picked again rather than labeled wrongly. A mesh file used by several ``mesh`` calls has
+the parts of the file each call names: name the same parts file in each. ``meshes`` takes no parts file.
 
 ``meshes`` reads every file whose name matches a pattern, for an assembly kept as one file per part: ``*`` stands for
 any characters and ``?`` for one, in the file's name only (the folder is written out). The files are read in natural

@@ -143,6 +143,62 @@ readFaceParts(const std::string& a_file, const PolygonSoup<T>& a_soup)
   while (std::getline(in, line)) {
     lineNumber++;
 
+    // The mesh line's file name is between quotes and may hold a '#': it is read before comments are cut.
+    if (sawHeader && !sawMesh) {
+      const size_t open  = line.find('"');
+      const size_t close = (open == std::string::npos) ? std::string::npos : line.find('"', open + 1);
+
+      std::istringstream head(line.substr(0, open == std::string::npos ? line.size() : open));
+      head.imbue(std::locale::classic());
+
+      std::string keyword;
+
+      if ((head >> keyword) && keyword == "mesh") {
+        if (close == std::string::npos) {
+          throw ParseError(a_file, lineNumber, "expected 'mesh \"<file>\" fingerprint <hex>'");
+        }
+
+        std::string rest = line.substr(close + 1);
+
+        const size_t restComment = rest.find('#');
+
+        if (restComment != std::string::npos) {
+          rest.erase(restComment);
+        }
+
+        std::istringstream tail(rest);
+        tail.imbue(std::locale::classic());
+
+        std::string word;
+        std::string hex;
+
+        if (!(tail >> word >> hex) || word != "fingerprint") {
+          throw ParseError(a_file, lineNumber, "expected 'mesh \"<file>\" fingerprint <hex>'");
+        }
+
+        uint64_t recorded = 0;
+
+        std::istringstream hexStream(hex);
+        hexStream.imbue(std::locale::classic());
+
+        if (!(hexStream >> std::hex >> recorded) || !hexStream.eof()) {
+          throw ParseError(a_file, lineNumber, "the fingerprint '" + hex + "' is not a hexadecimal number");
+        }
+
+        if (recorded != meshFingerprint(a_soup)) {
+          throw ParseError(a_file,
+                           lineNumber,
+                           "the parts were picked on another version of the mesh '" +
+                             line.substr(open + 1, close - open - 1) +
+                             "' (its faces or vertices changed); pick them again");
+        }
+
+        sawMesh = true;
+
+        continue;
+      }
+    }
+
     const size_t comment = line.find('#');
 
     if (comment != std::string::npos) {
@@ -171,44 +227,7 @@ readFaceParts(const std::string& a_file, const PolygonSoup<T>& a_soup)
     }
 
     if (!sawMesh) {
-      // mesh "<file>" fingerprint <hex>: the file name may hold spaces, so it is read between the quotes.
-      const size_t open  = line.find('"');
-      const size_t close = (open == std::string::npos) ? std::string::npos : line.find('"', open + 1);
-
-      if (first != "mesh" || close == std::string::npos) {
-        throw ParseError(a_file, lineNumber, "expected 'mesh \"<file>\" fingerprint <hex>'");
-      }
-
-      std::istringstream rest(line.substr(close + 1));
-      rest.imbue(std::locale::classic());
-
-      std::string keyword;
-      std::string hex;
-
-      if (!(rest >> keyword >> hex) || keyword != "fingerprint") {
-        throw ParseError(a_file, lineNumber, "expected 'mesh \"<file>\" fingerprint <hex>'");
-      }
-
-      uint64_t recorded = 0;
-
-      std::istringstream hexStream(hex);
-      hexStream.imbue(std::locale::classic());
-
-      if (!(hexStream >> std::hex >> recorded) || !hexStream.eof()) {
-        throw ParseError(a_file, lineNumber, "the fingerprint '" + hex + "' is not a hexadecimal number");
-      }
-
-      if (recorded != meshFingerprint(a_soup)) {
-        throw ParseError(a_file,
-                         lineNumber,
-                         "the parts were picked on another version of the mesh '" +
-                           line.substr(open + 1, close - open - 1) +
-                           "' (its faces or vertices changed); pick them again");
-      }
-
-      sawMesh = true;
-
-      continue;
+      throw ParseError(a_file, lineNumber, "expected 'mesh \"<file>\" fingerprint <hex>'");
     }
 
     // A part line: the name, then face ids and ranges.
@@ -300,6 +319,10 @@ text(const FaceGroups& a_parts, const PolygonSoup<T>& a_soup, const std::string&
                      0,
                      "the parts have " + std::to_string(a_parts.m_group.size()) + " face entries, the mesh " +
                        std::to_string(numFaces) + " faces");
+  }
+
+  if (a_meshFile.find_first_of("\"\n\r") != std::string::npos) {
+    throw ParseError(noFile, 0, "the mesh's file name '" + a_meshFile + "' holds a quote or a line break");
   }
 
   for (const std::string& name : a_parts.m_names) {

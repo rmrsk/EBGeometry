@@ -335,6 +335,7 @@ public:
         const std::string relative =
           fs::path(file).lexically_relative(fs::path(site->m_span.m_file).parent_path()).generic_string();
 
+        // The call has its file argument (the language reads no trailing comma), so the new one follows a comma.
         edits.push_back(Edit{
           site->m_span.m_file, site->m_span.m_end - 1U, site->m_span.m_end - 1U, ", parts = \"" + relative + "\""});
       }

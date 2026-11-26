@@ -469,7 +469,8 @@ creaseFill(const MeshFaces<T>& a_faces, const uint32_t a_seed, const T a_angle)
 /**
  * @brief The faces a brush covers: those whose center is within a radius of a point, reached from a face under it
  * across neighbors, so that a brush on one side of a thin wall leaves the other side.
- * @details Internal helper; not part of the public API.
+ * @details Internal helper; not part of the public API. The face under the brush is covered whatever its center's
+ * distance (a face larger than the brush is still painted where it is clicked).
  * @tparam T Floating-point precision.
  * @param[in] a_faces  The mesh's faces.
  * @param[in] a_seed   The face under the brush.
@@ -5724,6 +5725,11 @@ run(const S&                           a_shape,
               clearFaces();
             }
             else {
+              // The faces picked are the selection's only entry while picking faces.
+              if (faceTool == FaceTool::Fill) {
+                clearSelection();
+              }
+
               std::printf("EBGeometry viewer: %s\n", faceToolText().c_str());
               std::fflush(stdout);
             }

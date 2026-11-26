@@ -161,7 +161,9 @@ TEMPLATE_TEST_CASE("FaceParts: a parts file is read into one entry per face, wit
   CHECK(parts.m_group == expected);
 }
 
-TEMPLATE_TEST_CASE("FaceParts: writing and reading back gives the same parts", "[FaceParts]", EBGEOMETRY_TEST_PRECISIONS)
+TEMPLATE_TEST_CASE("FaceParts: writing and reading back gives the same parts",
+                   "[FaceParts]",
+                   EBGEOMETRY_TEST_PRECISIONS)
 {
   using T = TestType;
 
@@ -213,6 +215,14 @@ TEMPLATE_TEST_CASE("FaceParts: writing and reading back gives the same parts", "
   }
 
   CHECK(Parser::readFaceParts((folder / "big.parts").string(), big).m_group == every.m_group);
+
+  // A mesh file name holding a '#' (no comment there) reads back; one holding a quote cannot be written.
+  Parser::writeFaceParts((folder / "hash.parts").string(), parts, soup, "pipe #2.obj");
+
+  CHECK_THAT(readText(folder / "hash.parts"), Catch::Matchers::ContainsSubstring("mesh \"pipe #2.obj\" fingerprint"));
+  CHECK(Parser::readFaceParts((folder / "hash.parts").string(), soup).m_group == parts.m_group);
+  CHECK_THROWS_AS(Parser::writeFaceParts((folder / "quote.parts").string(), parts, soup, "a\"b.obj"),
+                  Parser::ParseError);
 }
 
 TEMPLATE_TEST_CASE("FaceParts: a malformed parts file, or one for another mesh, is rejected at its line",

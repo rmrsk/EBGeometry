@@ -161,7 +161,8 @@ struct RegionSettings
 
   /**
    * @brief Faces of one mesh selected one by one (a viewer picking faces for a mesh's parts), selected as the entry
-   * after the last of m_selected (m_numSelected) when it is below MaxSelected; empty by default. Its pool (or, on a
+   * after the last of m_selected (m_numSelected) when it is below MaxSelected (with every entry of m_selected used,
+   * the faces are not shown as selected); empty by default. Its pool (or, on a
    * device, the pool's mirror) must outlive a render that reads it.
    */
   FaceMask m_faceMask;

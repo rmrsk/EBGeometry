@@ -498,7 +498,9 @@ static_assert(std::is_trivially_copyable_v<SurfaceGroups>,
  * renderer to show as selected (RegionSettings::m_faceMask).
  * @details A view of one bit per face in a pool: trivially copyable, a pool handle (see PoolHandle). A surface point is
  * in the set when its surface (SurfaceRef::m_surface) is the mesh's and its part (SurfaceRef::m_part, the face id, as
- * closestPart() reports it) has its bit set. The pool must outlive it. A default-constructed one is empty.
+ * closestPart() reports it) has its bit set. Every mesh SDF reports the reader's face id as its part, a TriMeshSDF the
+ * id of the face a triangle was cut from, so a mask of face ids serves every kind. The pool must outlive it. A
+ * default-constructed one is empty.
  */
 class FaceMask : public PoolHandle
 {
