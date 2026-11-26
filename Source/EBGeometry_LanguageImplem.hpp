@@ -294,6 +294,12 @@ struct Shape
   std::vector<uint32_t> m_faceGroup;
 
   /**
+   * @brief For a mesh: whether each face group is a part picked by face (mesh(..., parts = "...")), not one the mesh
+   * file names.
+   */
+  std::vector<bool> m_groupPicked;
+
+  /**
    * @brief Whether it is a mesh.
    */
   bool m_mesh = false;
@@ -3265,7 +3271,10 @@ private:
   }
 
   /**
-   * @brief mesh(file, kind = "triangles", groups = true, on_defect = "warn"): read once per model.
+   * @brief mesh(file, kind = "triangles", groups = true, on_defect = "warn", parts = "file.parts"): read once per model.
+   * @details With parts, the parts file (Parser::readFaceParts(), relative to the file the call is in) adds parts picked
+   * by face on top of the mesh file's groups (Parser::overlayFaceGroups()): a picked face takes its picked part. A
+   * picked part is labeled by its name by default, whatever groups says; groups says whether the file's own groups are.
    * @param[in] a_call The call.
    * @param[in] a_args The arguments.
    * @return The mesh, a plain shape whose parts are its face groups.
@@ -3278,7 +3287,8 @@ private:
                                {{"file", Kind::String},
                                 {"kind", Kind::String, true},
                                 {"groups", Kind::Bool, true},
-                                {"on_defect", Kind::String, true}},
+                                {"on_defect", Kind::String, true},
+                                {"parts", Kind::String, true}},
                                a_args);
 
     const std::string kind   = b.m_values[1] != nullptr ? b.m_values[1]->m_string : "triangles";
@@ -3297,10 +3307,17 @@ private:
     const std::string file = b.m_values[0]->m_string;
     const std::string path = (folderOf(a_call.m_span.m_file) / file).string();
 
+    const std::string partsPath =
+      b.m_values[4] != nullptr ? (folderOf(a_call.m_span.m_file) / b.m_values[4]->m_string).string() : std::string();
+
+    if (b.m_values[4] != nullptr && b.m_values[4]->m_string.empty()) {
+      throw Error(b.m_values[4]->m_span, "mesh: parts names a parts file, such as \"pipe.parts\"");
+    }
+
     std::error_code ec;
 
     const std::string canonical = std::filesystem::weakly_canonical(path, ec).string();
-    const std::string key       = (ec ? path : canonical) + "|" + kind + "|" + onDefect;
+    const std::string key       = (ec ? path : canonical) + "|" + kind + "|" + onDefect + "|" + partsPath;
 
     std::shared_ptr<const S> read;
 
@@ -3319,8 +3336,25 @@ private:
 
         // Its parts are its face groups: their names made names of the language (letters, digits and underscores), so
         // that .label(part = "x") can name each; their labels by default are the groups' own names.
-        shape->m_groupNames = soup.getFaceGroups().m_names;
-        shape->m_faceGroup  = soup.getFaceGroups().m_group;
+        FaceGroups groups = soup.getFaceGroups();
+
+        shape->m_groupPicked.assign(groups.m_names.size(), false);
+
+        if (!partsPath.empty()) {
+          const FaceGroups picked = EBGeometry::Parser::readFaceParts(partsPath, soup);
+
+          groups = EBGeometry::Parser::overlayFaceGroups(groups, picked);
+
+          shape->m_groupPicked.resize(groups.m_names.size(), false);
+
+          for (size_t g = 0; g < groups.m_names.size(); g++) {
+            shape->m_groupPicked[g] = std::find(picked.m_names.begin(), picked.m_names.end(), groups.m_names[g]) !=
+                                      picked.m_names.end();
+          }
+        }
+
+        shape->m_groupNames = groups.m_names;
+        shape->m_faceGroup  = groups.m_group;
 
         for (const std::string& group : shape->m_groupNames) {
           std::string part;
@@ -3364,6 +3398,10 @@ private:
 
       m_model.m_files.push_back(path);
 
+      if (!partsPath.empty()) {
+        m_model.m_files.push_back(partsPath);
+      }
+
       read          = shape;
       m_meshes[key] = shape;
     }
@@ -3375,8 +3413,12 @@ private:
     shape->m_mesh      = true;
     shape->m_faceGroup = read->m_faceGroup;
 
-    if (groups) {
-      shape->m_partLabels = read->m_groupNames;
+    if (groups || !partsPath.empty()) {
+      for (size_t g = 0; g < read->m_groupNames.size(); g++) {
+        if (groups || read->m_groupPicked[g]) {
+          shape->m_partLabels[g] = read->m_groupNames[g];
+        }
+      }
 
       m_model.m_shapes[shape->m_site].m_partLabels = shape->m_partLabels;
     }
