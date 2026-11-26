@@ -807,6 +807,17 @@ struct ShapeSite
    * @brief Where the call is written.
    */
   Span m_span;
+
+  /**
+   * @brief For a mesh: the mesh file, as the call's path resolves it; "" for another shape.
+   */
+  std::string m_meshFile;
+
+  /**
+   * @brief For a mesh: the parts file of its faces picked by name (mesh(..., parts = "...")), as the call's path
+   * resolves it; "" for none.
+   */
+  std::string m_partsFile;
 };
 
 /**

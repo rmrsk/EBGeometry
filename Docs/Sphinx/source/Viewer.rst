@@ -157,7 +157,11 @@ The keys
      - Step through the surfaces under the cursor, front to back, seeing through those in front.
    * - ]; [
      - For a view of regions: step the last pick out to the level above it, or back in (also the two keys right
-       of P, for a keyboard that puts the brackets behind another key).
+       of P, for a keyboard that puts the brackets behind another key). Picking faces: a wider or narrower crease
+       angle, or brush.
+   * - Ctrl + F
+     - In ebgstudio: pick a mesh's faces for its parts, with a fill to a crease angle, then with a brush, then not
+       (see :ref:`Chap:StudioViewer`).
    * - Y; Shift + Y
      - Peel the whole frame: every ray shows its next surface (entering or leaving, a cut face too), with what lies
        in front of it left out; Shift + Y goes back a layer. R peels nothing again.

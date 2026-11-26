@@ -493,6 +493,148 @@ private:
 static_assert(std::is_trivially_copyable_v<SurfaceGroups>,
               "SurfaceGroups must be trivially copyable, for a kernel to take it");
 
+/**
+ * @brief A set of one mesh's faces, read on the host or a device: the faces a viewer has picked one by one, for a
+ * renderer to show as selected (RegionSettings::m_faceMask).
+ * @details A view of one bit per face in a pool: trivially copyable, a pool handle (see PoolHandle). A surface point is
+ * in the set when its surface (SurfaceRef::m_surface) is the mesh's and its part (SurfaceRef::m_part, the face id, as
+ * closestPart() reports it) has its bit set. The pool must outlive it. A default-constructed one is empty.
+ */
+class FaceMask : public PoolHandle
+{
+public:
+  /**
+   * @brief The arrays, as offsets.
+   */
+  struct Layout
+  {
+    /**
+     * @brief One bit per face, 32 to a word: face f is bit f % 32 of word f / 32.
+     */
+    PODVector<uint32_t> m_bits;
+
+    /**
+     * @brief The mesh's surface (SurfaceRef::m_surface).
+     */
+    uint32_t m_surface = SurfaceSelector::Any;
+
+    /**
+     * @brief How many faces the mesh has (the bits beyond are unset).
+     */
+    uint32_t m_numFaces = 0;
+
+    /**
+     * @brief How many faces are in the set.
+     */
+    uint32_t m_count = 0;
+  };
+
+  /**
+   * @brief An empty set.
+   */
+  FaceMask() noexcept = default;
+
+  /**
+   * @brief Build the set in a pool.
+   * @details Aborts with a message, in every build, when a face is not below @p a_numFaces.
+   * @param[in,out] a_pool     Pool to reserve the bits from (not frozen).
+   * @param[in]     a_surface  The mesh's surface (SurfaceRef::m_surface).
+   * @param[in]     a_numFaces How many faces the mesh has.
+   * @param[in]     a_faces    The faces in the set, in any order; repeats are allowed.
+   */
+  EBGEOMETRY_HOST
+  FaceMask(Pool& a_pool, const uint32_t a_surface, const uint32_t a_numFaces, const std::vector<uint32_t>& a_faces)
+  {
+    this->attach(a_pool, "FaceMask");
+
+    const uint32_t words = (a_numFaces + 31U) / 32U;
+
+    m_layout.m_bits.reserveSizedFrom(a_pool, words);
+    m_layout.m_surface  = a_surface;
+    m_layout.m_numFaces = a_numFaces;
+
+    for (uint32_t w = 0; w < words; w++) {
+      m_layout.m_bits.at(this->base(), w) = 0U;
+    }
+
+    for (const uint32_t face : a_faces) {
+      EBGEOMETRY_REQUIRE(
+        face < a_numFaces, "FaceMask: face %u of a mesh of %u faces", unsigned(face), unsigned(a_numFaces));
+
+      uint32_t&      word = m_layout.m_bits.at(this->base(), face / 32U);
+      const uint32_t bit  = 1U << (face % 32U);
+
+      m_layout.m_count += (word & bit) != 0U ? 0U : 1U;
+      word |= bit;
+    }
+  }
+
+  /**
+   * @brief The arrays, as offsets.
+   * @return The layout.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline const Layout&
+  layout() const noexcept
+  {
+    return m_layout;
+  }
+
+  /**
+   * @brief How many faces are in the set.
+   * @return The count.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline uint32_t
+  size() const noexcept
+  {
+    return m_layout.m_count;
+  }
+
+  /**
+   * @brief Whether a surface point is on a face in the set.
+   * @tparam T Floating-point precision.
+   * @param[in] a_surface The surface point (its surface and part).
+   * @return True if it is.
+   */
+  template <class T>
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  contains(const SurfaceRef<T>& a_surface) const noexcept
+  {
+    if (m_layout.m_count == 0U || a_surface.m_surface != m_layout.m_surface ||
+        a_surface.m_part >= m_layout.m_numFaces) {
+      return false;
+    }
+
+    return (m_layout.m_bits.at(this->base(), a_surface.m_part / 32U) & (1U << (a_surface.m_part % 32U))) != 0U;
+  }
+
+  /**
+   * @brief A view resolving against another pool of the bits' mirror chain (see PoolHandle).
+   * @param[in] a_pool The pool, or a mirror of it.
+   * @return The view.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  inline FaceMask
+  rebasedView(const Pool& a_pool) const noexcept
+  {
+    FaceMask view = *this;
+
+    view.setLocation(this->rebasedLocation(a_pool, m_layout.m_bits.endByte(), "FaceMask"));
+
+    return view;
+  }
+
+private:
+  /**
+   * @brief The arrays.
+   */
+  Layout m_layout;
+};
+
+static_assert(std::is_trivially_copyable_v<FaceMask>, "FaceMask must be trivially copyable, for a kernel to take it");
+
 } // namespace EBGeometry
 
 #endif

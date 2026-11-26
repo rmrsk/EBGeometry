@@ -229,6 +229,22 @@ above the mesh; a face in no group keeps those. The group names are numbered wit
 Any shape with parts can be labeled this way, with one group per part. ``SurfaceLabel(object, groups)`` takes one
 shape, not a composition: label it before translating or combining it.
 
+**Parts picked by face.** A mesh whose file names no groups (one STL from a CAD export) can be given parts face by
+face, in a parts file: ``Parser::readFaceParts(file, soup)`` reads one into ``FaceGroups``, and
+``Parser::overlayFaceGroups(fileGroups, picked)`` lays the picked parts over the file's own groups (a picked face takes
+its picked part). ebgstudio writes parts files as faces are picked in its window (``Parser::writeFaceParts()``). A
+parts file records a fingerprint of the mesh's face numbering (``Parser::meshFingerprint()``), and reading it for a
+mesh whose faces changed is an error rather than a wrong labeling (see
+`EBGeometry_FaceParts.hpp <doxygen/html/EBGeometry__FaceParts_8hpp.html>`__):
+
+.. code-block:: c++
+
+   const auto       soup   = Parser::readIntoPolygonSoup<T>("pump.stl");
+   const FaceGroups picked = Parser::readFaceParts("pump.parts", soup);   // inlet, outlet
+   const FaceGroups groups = Parser::overlayFaceGroups(soup.getFaceGroups(), picked);
+
+   const Expr<T> part = SurfaceLabel(Parser::readIntoTriMeshSDF<T>("pump.stl", pool), groups);
+
 The tape reports a leaf's label with ``getSurfaceLabel()``, on the host and inside a GPU kernel, so a kernel
 (a particle hitting a wall, say) looks up per-label data in an array of its own. The label is a number;
 the names live on the host, in an

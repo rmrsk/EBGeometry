@@ -124,8 +124,8 @@ Meshes
      - Parts
    * - ``mesh``
      - ``mesh("part.stl")``: file, kind = ``"triangles"`` or ``"polygons"``, groups = ``true``, on_defect = ``"warn"``
-       or ``"throw"``
-     - its file's face groups
+       or ``"throw"``, parts = ``"part.parts"``
+     - its file's face groups, and the parts picked by face
    * - ``meshes``
      - ``meshes("parts/*.stl")``: pattern, then the options of ``mesh``
      - each mesh's own (a list of meshes)
@@ -136,6 +136,13 @@ is used. ``"triangles"`` makes a `TriMeshSDF <doxygen/html/classEBGeometry_1_1Tr
 ``o``, ...) are its parts, each labeled by its group's name. A mesh with a topology defect (an edge shared by more than
 two faces, faces folding back onto each other) is read with a warning, its distance's sign unreliable near the defect;
 ``on_defect = "throw"`` makes it an error. A face that visits a vertex twice is an error either way.
+
+``parts = "part.parts"`` names a parts file (relative to the file the call is in): parts of the mesh picked face by
+face, which ebgstudio writes (see :ref:`Chap:StudioViewer`) for a mesh whose file names no groups, a CAD export, say.
+A picked face takes its picked part; every other face keeps its file group. Picked parts are labeled by their names,
+whatever ``groups`` says, and ``.label(inlet = "...")`` relabels one like any part. The parts file records which
+mesh it was picked on: when the mesh's faces change (a new export), reading the model is an error that names the
+parts file, so that faces are picked again rather than labeled wrongly. ``meshes`` takes no parts file.
 
 ``meshes`` reads every file whose name matches a pattern, for an assembly kept as one file per part: ``*`` stands for
 any characters and ``?`` for one, in the file's name only (the folder is written out). The files are read in natural

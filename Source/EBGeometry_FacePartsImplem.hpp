@@ -202,7 +202,8 @@ readFaceParts(const std::string& a_file, const PolygonSoup<T>& a_soup)
         throw ParseError(a_file,
                          lineNumber,
                          "the parts were picked on another version of the mesh '" +
-                           line.substr(open + 1, close - open - 1) + "' (its faces or vertices changed); pick them again");
+                           line.substr(open + 1, close - open - 1) +
+                           "' (its faces or vertices changed); pick them again");
       }
 
       sawMesh = true;
@@ -233,10 +234,9 @@ readFaceParts(const std::string& a_file, const PolygonSoup<T>& a_soup)
       uint64_t lo = 0;
       uint64_t hi = 0;
 
-      const bool ok = (dash == std::string::npos)
-                        ? FacePartsDetail::parseId(token, lo)
-                        : (FacePartsDetail::parseId(token.substr(0, dash), lo) &&
-                           FacePartsDetail::parseId(token.substr(dash + 1), hi));
+      const bool ok = (dash == std::string::npos) ? FacePartsDetail::parseId(token, lo)
+                                                  : (FacePartsDetail::parseId(token.substr(0, dash), lo) &&
+                                                     FacePartsDetail::parseId(token.substr(dash + 1), hi));
 
       if (dash == std::string::npos) {
         hi = lo;
@@ -275,17 +275,28 @@ readFaceParts(const std::string& a_file, const PolygonSoup<T>& a_soup)
   return parts;
 }
 
+namespace FacePartsDetail {
+
+/**
+ * @brief The text of a parts file (see writeFaceParts()).
+ * @tparam T Floating-point precision.
+ * @param[in] a_parts    The parts.
+ * @param[in] a_soup     The mesh.
+ * @param[in] a_meshFile The mesh's file name, as written.
+ * @return The text.
+ * @throws ParseError as writeFaceParts() (with no file name).
+ */
 template <typename T>
-inline void
-writeFaceParts(const std::string&    a_file,
-               const FaceGroups&     a_parts,
-               const PolygonSoup<T>& a_soup,
-               const std::string&    a_meshFile)
+inline std::string
+text(const FaceGroups& a_parts, const PolygonSoup<T>& a_soup, const std::string& a_meshFile)
 {
+  // The reasons name no file: writeFaceParts() adds its own.
+  const std::string noFile;
+
   const size_t numFaces = a_soup.numFacets();
 
   if (a_parts.m_group.size() != numFaces) {
-    throw ParseError(a_file,
+    throw ParseError(noFile,
                      0,
                      "the parts have " + std::to_string(a_parts.m_group.size()) + " face entries, the mesh " +
                        std::to_string(numFaces) + " faces");
@@ -293,7 +304,8 @@ writeFaceParts(const std::string&    a_file,
 
   for (const std::string& name : a_parts.m_names) {
     if (!FacePartsDetail::isWritableName(name)) {
-      throw ParseError(a_file, 0, "the part name '" + name + "' is empty, holds whitespace or a quote, or starts with '#'");
+      throw ParseError(
+        noFile, 0, "the part name '" + name + "' is empty, holds whitespace or a quote, or starts with '#'");
     }
   }
 
@@ -307,7 +319,8 @@ writeFaceParts(const std::string&    a_file,
     }
 
     if (part >= a_parts.m_names.size()) {
-      throw ParseError(a_file, 0, "face " + std::to_string(face) + " is in part " + std::to_string(part) + ", which has no name");
+      throw ParseError(
+        noFile, 0, "face " + std::to_string(face) + " is in part " + std::to_string(part) + ", which has no name");
     }
 
     faces[part].push_back(uint32_t(face));
@@ -337,8 +350,8 @@ writeFaceParts(const std::string&    a_file,
         j++;
       }
 
-      const std::string token = (j == i) ? std::to_string(ids[i])
-                                         : std::to_string(ids[i]) + "-" + std::to_string(ids[j]);
+      const std::string token =
+        (j == i) ? std::to_string(ids[i]) : std::to_string(ids[i]) + "-" + std::to_string(ids[j]);
 
       if (current.size() + 1 + token.size() > LineLength && current.size() > name.size()) {
         out << current << '\n';
@@ -356,13 +369,33 @@ writeFaceParts(const std::string&    a_file,
     }
   }
 
+  return out.str();
+}
+
+} // namespace FacePartsDetail
+
+template <typename T>
+inline void
+writeFaceParts(const std::string&    a_file,
+               const FaceGroups&     a_parts,
+               const PolygonSoup<T>& a_soup,
+               const std::string&    a_meshFile)
+{
+  std::string contents;
+
+  try {
+    contents = FacePartsDetail::text(a_parts, a_soup, a_meshFile);
+  } catch (const ParseError& e) {
+    throw ParseError(a_file, 0, e.reason());
+  }
+
   std::ofstream file(a_file);
 
   if (!file) {
     throw ParseError(a_file, 0, "cannot write the parts file");
   }
 
-  file << out.str();
+  file << contents;
 
   if (!file) {
     throw ParseError(a_file, 0, "cannot write the parts file");

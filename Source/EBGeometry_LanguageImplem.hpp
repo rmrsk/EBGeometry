@@ -2476,8 +2476,14 @@ private:
     shape->m_partLabels.assign(shape->m_parts.size(), "");
     shape->m_partLabelSpans.assign(shape->m_parts.size(), Span{});
 
-    m_model.m_shapes.push_back(ShapeSite{
-      a_name, shape->m_parts, shape->m_partLabels, std::vector<bool>(shape->m_parts.size(), false), "", a_span});
+    m_model.m_shapes.push_back(ShapeSite{a_name,
+                                         shape->m_parts,
+                                         shape->m_partLabels,
+                                         std::vector<bool>(shape->m_parts.size(), false),
+                                         "",
+                                         a_span,
+                                         "",
+                                         ""});
     m_siteObjects.push_back(a_expr.node().m_leaf.m_object.get());
 
     V value;
@@ -3348,8 +3354,8 @@ private:
           shape->m_groupPicked.resize(groups.m_names.size(), false);
 
           for (size_t g = 0; g < groups.m_names.size(); g++) {
-            shape->m_groupPicked[g] = std::find(picked.m_names.begin(), picked.m_names.end(), groups.m_names[g]) !=
-                                      picked.m_names.end();
+            shape->m_groupPicked[g] =
+              std::find(picked.m_names.begin(), picked.m_names.end(), groups.m_names[g]) != picked.m_names.end();
           }
         }
 
@@ -3412,6 +3418,9 @@ private:
 
     shape->m_mesh      = true;
     shape->m_faceGroup = read->m_faceGroup;
+
+    m_model.m_shapes[shape->m_site].m_meshFile  = path;
+    m_model.m_shapes[shape->m_site].m_partsFile = partsPath;
 
     if (groups || !partsPath.empty()) {
       for (size_t g = 0; g < read->m_groupNames.size(); g++) {

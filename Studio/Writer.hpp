@@ -22,6 +22,7 @@
 #include "Source/EBGeometry_Language.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -229,6 +230,123 @@ public:
   redo()
   {
     return this->step(m_redo, m_undo, false);
+  }
+
+  // Faces picked on a mesh (by its leaf) written as a part of that name: into the mesh's parts file, taken out of any
+  // other part there; a mesh with no parts file gets one next to it (its name, with .parts), named in its call. ""
+  // when written (Ctrl+Z undoes it), or why not.
+  std::string
+  faceParts(const uint32_t a_leaf, const std::vector<uint32_t>& a_faces, const std::string& a_name)
+  {
+    namespace fs = std::filesystem;
+
+    const Language::ShapeSite* site = m_model->siteOfLeaf(a_leaf);
+
+    if (site == nullptr || site->m_meshFile.empty()) {
+      return "not written: faces are parts of a mesh read with mesh()";
+    }
+
+    for (const char c : a_name) {
+      if (std::isalnum(static_cast<unsigned char>(c)) == 0 && c != '_') {
+        return "not written: a part's name is letters, digits and underscores";
+      }
+    }
+
+    if (a_name.empty() || std::isdigit(static_cast<unsigned char>(a_name[0])) != 0 ||
+        Language::Syntax::isReserved(a_name)) {
+      return "not written: '" + a_name + "' cannot name a part (it starts with a digit, or the language uses it)";
+    }
+
+    try {
+      const PolygonSoup<T> soup  = Parser::readIntoPolygonSoup<T>(site->m_meshFile);
+      const uint32_t       faces = static_cast<uint32_t>(soup.numFacets());
+
+      const bool        named = !site->m_partsFile.empty();
+      const std::string file =
+        named ? site->m_partsFile : fs::path(site->m_meshFile).replace_extension(".parts").string();
+
+      if (!named && fs::exists(file)) {
+        return "not written: " + file + " exists, and the mesh's call names no parts file; add parts = to it first";
+      }
+
+      FaceGroups parts;
+
+      if (named && fs::exists(file)) {
+        parts = Parser::readFaceParts(file, soup);
+      }
+      else {
+        parts.m_group.assign(faces, FaceGroups::None);
+      }
+
+      // The part's group, the faces moved into it, and the parts left with no face dropped.
+      auto     at   = std::find(parts.m_names.begin(), parts.m_names.end(), a_name);
+      uint32_t part = static_cast<uint32_t>(at - parts.m_names.begin());
+
+      if (at == parts.m_names.end()) {
+        parts.m_names.push_back(a_name);
+      }
+
+      for (const uint32_t face : a_faces) {
+        if (face >= faces) {
+          return "not written: face " + std::to_string(face) + " is not on the mesh as it is now (it reloads)";
+        }
+
+        parts.m_group[face] = part;
+      }
+
+      std::vector<uint32_t> used(parts.m_names.size(), 0U);
+
+      for (const uint32_t group : parts.m_group) {
+        if (group != FaceGroups::None) {
+          used[group]++;
+        }
+      }
+
+      FaceGroups            kept;
+      std::vector<uint32_t> renumbered(parts.m_names.size(), FaceGroups::None);
+
+      for (uint32_t g = 0; g < parts.m_names.size(); g++) {
+        if (used[g] > 0U) {
+          renumbered[g] = static_cast<uint32_t>(kept.m_names.size());
+
+          kept.m_names.push_back(parts.m_names[g]);
+        }
+      }
+
+      for (const uint32_t group : parts.m_group) {
+        kept.m_group.push_back(group == FaceGroups::None ? FaceGroups::None : renumbered[group]);
+      }
+
+      const std::string meshName = fs::path(site->m_meshFile).filename().string();
+      const std::string text     = Parser::FacePartsDetail::text(kept, soup, meshName);
+      const auto        before   = readFile(file);
+
+      std::vector<Edit> edits{Edit{file, 0, static_cast<uint32_t>(before.value_or("").size()), text}};
+
+      // A mesh with no parts file: the call names the new one, relative to the file the call is in.
+      if (!named) {
+        const Language::Syntax::File* source = this->source(site->m_span.m_file);
+
+        if (source == nullptr || site->m_span.m_end == 0U || site->m_span.m_end > source->m_text.size() ||
+            source->m_text[site->m_span.m_end - 1U] != ')') {
+          return "not written: the mesh's call was not found in " + site->m_span.m_file;
+        }
+
+        const std::string relative =
+          fs::path(file).lexically_relative(fs::path(site->m_span.m_file).parent_path()).generic_string();
+
+        edits.push_back(Edit{
+          site->m_span.m_file, site->m_span.m_end - 1U, site->m_span.m_end - 1U, ", parts = \"" + relative + "\""});
+      }
+
+      if (!this->apply(edits)) {
+        return m_note;
+      }
+
+      return "";
+    } catch (const std::exception& e) {
+      return std::string("not written: ") + e.what();
+    }
   }
 
 private:
@@ -980,6 +1098,22 @@ private:
       edits.push_back(edit);
     }
 
+    if (!this->apply(edits)) {
+      return;
+    }
+
+    if (!m_leftOut.empty()) {
+      m_note +=
+        "; left out what the language cannot write (an empty group, a selector, one member of a collection) of " +
+        m_leftOut;
+    }
+  }
+
+  // Write edits, all or none, each file checked against the text the model read (a file it did not read, against
+  // nothing): false, with the reason in the note, when they were not written; else recorded for undo.
+  bool
+  apply(std::vector<Edit> edits)
+  {
     // The files, and their new text: the edits applied from the end, so that earlier positions hold.
     std::map<std::string, std::optional<std::string>> before;
 
@@ -994,7 +1128,7 @@ private:
       if (read != nullptr && (!disk.has_value() || *disk != read->m_text)) {
         m_note = edit.m_file + " changed on disk since it was read: not written (it reloads)";
 
-        return;
+        return false;
       }
 
       before[edit.m_file] = disk;
@@ -1014,7 +1148,7 @@ private:
       if (edit.m_begin > edit.m_end || edit.m_end > text.size()) {
         m_note = "not written: an edit falls outside " + edit.m_file;
 
-        return;
+        return false;
       }
 
       text.replace(edit.m_begin, edit.m_end - edit.m_begin, edit.m_text);
@@ -1030,7 +1164,7 @@ private:
     if (!writeFiles(record.m_after, record.m_before)) {
       m_note = "not written: a file could not be written";
 
-      return;
+      return false;
     }
 
     m_undo.push_back(record);
@@ -1038,11 +1172,7 @@ private:
 
     m_note = "wrote " + std::to_string(record.m_after.size()) + " file(s); Ctrl+Z undoes";
 
-    if (!m_leftOut.empty()) {
-      m_note +=
-        "; left out what the language cannot write (an empty group, a selector, one member of a collection) of " +
-        m_leftOut;
-    }
+    return true;
   }
 
   // A file written through a link is its target: the target is replaced, the link kept.
