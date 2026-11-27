@@ -4405,18 +4405,45 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     return false;
   };
 
-  // Across the region's own surface, the last other region that reaches the surface's nearest point: whose solid is
-  // no farther from the point than the region's surface is, within the tolerance (other + own <= eps; own is minus the
-  // depth). Its solid holding the point is the case of a region overlapping this one; a region flush with it or welded
-  // to it is found too, from any depth. Across a later region's face, the last region on top of it at the point.
-  const T reach = byLater ? T(0) : m_layout.m_interfaceTolerance - own.m_value;
-
   for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
-    if (m != a_region && (cutBy == Subdomains::None || !cut(m)) &&
-        (byLater ? this->regionSolid(m, 0U, a_point) < T(0) : this->regionSolid(m, 0U, a_point) <= reach)) {
+    if (m != a_region && (cutBy == Subdomains::None || !cut(m)) && this->regionSolid(m, 0U, a_point) < T(0)) {
       across = m;
 
       break;
+    }
+  }
+
+  // Across the region's own surface with no other region holding the point: the point may lie deeper than another
+  // region reaches into this one (a region flush with it, or welded to it across a gap). The last region whose solid
+  // reaches the surface's nearest point, within the tolerance, is across; the background only if none does. The
+  // nearest point is the point moved along the solid's normal (by central differences) by its value.
+  if (!byLater && across == 0U && n > 1U) {
+    const BoundingVolumes::AABBT<T> box      = m_layout.m_boundingVolume;
+    const T                         diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+    const T                         scale    = (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal : T(1);
+    const T                         h        = Math::max(T(1e-3) * std::abs(own.m_value), T(1e-6) * scale);
+
+    Vec3T<T> normal = Vec3T<T>::zeros();
+
+    for (int dir = 0; dir < 3; dir++) {
+      Vec3T<T> step = Vec3T<T>::zeros();
+
+      step[dir] = h;
+
+      normal[dir] = this->regionSolid(a_region, 0U, a_point + step) - this->regionSolid(a_region, 0U, a_point - step);
+    }
+
+    const T length = normal.length();
+
+    const Vec3T<T> nearest = (length > T(0)) ? a_point - (own.m_value / length) * normal : a_point;
+
+    for (uint32_t m = n; m > 0U; m--) {
+      if (m != a_region && (cutBy == Subdomains::None || !cut(m)) &&
+          this->regionSolid(m, 0U, nearest) <= m_layout.m_interfaceTolerance) {
+        across = m;
+
+        break;
+      }
     }
   }
 
