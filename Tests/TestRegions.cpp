@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -3181,6 +3182,20 @@ TEMPLATE_TEST_CASE("Tape: the interface tolerance is a fraction of the box's dia
       (void)Tape(local, pair, bad);
     },
     "Tape: TapeOptions::m_interfaceLength is"));
+
+  // A length the precision cannot hold (beyond float's largest value) is refused in float.
+  if constexpr (std::is_same_v<T, float>) {
+    REQUIRE(abortsWith(
+      [&] {
+        Pool        local(hostMemoryResource());
+        TapeOptions bad;
+
+        bad.m_interfaceLength = 1e39;
+
+        (void)Tape(local, pair, bad);
+      },
+      "larger than the precision holds"));
+  }
 }
 
 TEMPLATE_TEST_CASE("findNearGaps: regions a thin layer of the background separates, each pair once, with its gap",
