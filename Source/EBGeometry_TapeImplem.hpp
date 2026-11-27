@@ -139,6 +139,11 @@ struct Staging
   uint32_t m_largestPlainUnion = 0;
 
   /**
+   * @brief TapeOptions::m_interfaceTolerance as a length.
+   */
+  T m_interfaceTolerance = T(0);
+
+  /**
    * @brief Each leaf's label; empty when the expression has none.
    */
   std::vector<uint32_t> m_surfaceLabels;
@@ -1704,6 +1709,19 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   staging.m_numPrimitives     = compiler.numPrimitives();
   staging.m_largestPlainUnion = compiler.largestPlainUnion();
 
+  EBGEOMETRY_REQUIRE(a_options.m_interfaceTolerance >= 0.0 && a_options.m_interfaceTolerance < 1.0,
+                     "Tape: TapeOptions::m_interfaceTolerance is %g, but must be at least 0 and less than 1",
+                     a_options.m_interfaceTolerance);
+
+  // The interface tolerance as a length: a fraction of the box's diagonal, or 0 for an unbounded object.
+  {
+    const Vec3T<T> size     = staging.m_boundingVolume.getHighCorner() - staging.m_boundingVolume.getLowCorner();
+    const T        diagonal = size.length();
+
+    staging.m_interfaceTolerance =
+      (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? T(a_options.m_interfaceTolerance) * diagonal : T(0);
+  }
+
   // Each region's program: its operand, under the maps and masks above it, with the leaves numbered as in the
   // whole expression.
   //
@@ -1884,14 +1902,15 @@ Tape<T, UserPrimitives...>::finalize(Pool& a_pool, const TapeDetail::Staging<T, 
 
   TapeDetail::assignStore<0>(base, layout.m_primitives, a_staging.m_primitives);
 
-  layout.m_boundingVolume    = a_staging.m_boundingVolume;
-  layout.m_quality           = a_staging.m_quality;
-  layout.m_callDepth         = a_staging.m_depth.front();
-  layout.m_numPrograms       = a_staging.m_flatNumPrograms;
-  layout.m_numPrimitives     = a_staging.m_numPrimitives;
-  layout.m_largestPlainUnion = a_staging.m_largestPlainUnion;
-  layout.m_rayPrograms       = a_staging.m_flatRayPrograms;
-  layout.m_numLabels         = a_staging.m_numLabels;
+  layout.m_boundingVolume     = a_staging.m_boundingVolume;
+  layout.m_quality            = a_staging.m_quality;
+  layout.m_callDepth          = a_staging.m_depth.front();
+  layout.m_numPrograms        = a_staging.m_flatNumPrograms;
+  layout.m_numPrimitives      = a_staging.m_numPrimitives;
+  layout.m_largestPlainUnion  = a_staging.m_largestPlainUnion;
+  layout.m_interfaceTolerance = a_staging.m_interfaceTolerance;
+  layout.m_rayPrograms        = a_staging.m_flatRayPrograms;
+  layout.m_numLabels          = a_staging.m_numLabels;
 
   m_layout = layout;
 }
@@ -3537,6 +3556,14 @@ inline uint32_t
 Tape<T, UserPrimitives...>::getLargestPlainUnion() const noexcept
 {
   return m_layout.m_largestPlainUnion;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::getInterfaceTolerance() const noexcept
+{
+  return m_layout.m_interfaceTolerance;
 }
 
 template <class T, class... UserPrimitives>

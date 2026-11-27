@@ -3117,3 +3117,86 @@ TEMPLATE_TEST_CASE("regionNeighborhood: a setup translates by numbers and names,
 
   REQUIRE(abortsWith([&] { (void)neighborhood.setup(far); }, "RegionNeighborhood: region 3 of subdomain 0"));
 }
+
+TEMPLATE_TEST_CASE("Tape: the interface tolerance is a fraction of the box's diagonal, 0 for an unbounded object",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // Two unit cubes side by side: a box from (0, 0, 0) to (2, 1, 1), diagonal sqrt(6).
+  const Expr<T> pair =
+    Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()), BoxSDF<T>(Vec3(T(1), T(0), T(0)), Vec3(T(2), T(1), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const T diagonal = std::sqrt(T(6));
+
+  CHECK_THAT(Tape(pool, pair).getInterfaceTolerance(), withinAbsT<T>(T(1e-5) * diagonal, tightMargin<T>()));
+
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-3;
+
+  CHECK_THAT(Tape(pool, pair, options).getInterfaceTolerance(), withinAbsT<T>(T(1e-3) * diagonal, tightMargin<T>()));
+
+  options.m_interfaceTolerance = 0.0;
+
+  CHECK(Tape(pool, pair, options).getInterfaceTolerance() == T(0));
+
+  // A half-space has no bounded box.
+  CHECK(Tape(pool, Overlay(PlaneSDF<T>(Vec3::zeros(), Vec3(T(0), T(0), T(1))), SphereSDF<T>(Vec3::zeros(), T(1))))
+          .getInterfaceTolerance() == T(0));
+
+  const std::string refused = "Tape: TapeOptions::m_interfaceTolerance is";
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool        local(hostMemoryResource());
+      TapeOptions bad;
+
+      bad.m_interfaceTolerance = -1e-5;
+
+      (void)Tape(local, pair, bad);
+    },
+    refused));
+}
+
+TEMPLATE_TEST_CASE("findNearGaps: regions a thin layer of the background separates, each pair once, with its gap",
+                   "[Overlay][SurfacePieces]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // Three unit cubes along x: the second a gap of 1e-3 past the first (reported at the default width, 1e-3 of the
+  // diagonal, about 3.6e-3), the third 0.1 past the second (too wide).
+  const T narrow = T(1e-3);
+  const T wide   = T(0.1);
+
+  const Expr<T> row =
+    Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()),
+            BoxSDF<T>(Vec3(T(1) + narrow, T(0), T(0)), Vec3(T(2) + narrow, T(1), T(1))),
+            BoxSDF<T>(Vec3(T(2) + narrow + wide, T(0), T(0)), Vec3(T(3) + narrow + wide, T(1), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape tape(pool, row);
+
+  const std::vector<NearGap<T>> gaps = findNearGaps(tape);
+
+  REQUIRE(gaps.size() == 1U);
+  CHECK(gaps[0].m_region == 1U);
+  CHECK(gaps[0].m_other == 2U);
+  CHECK_THAT(gaps[0].m_gap, withinAbsT<T>(narrow, 1e-2 * static_cast<double>(narrow)));
+  CHECK(gaps[0].m_point[0] > T(1));
+  CHECK(gaps[0].m_point[0] < T(1) + narrow);
+  CHECK(tape.region(gaps[0].m_point) == 0U);
+
+  // A wider width finds the second gap too; none is found in an object of one region.
+  CHECK(findNearGaps(tape, 0.05).size() == 2U);
+  CHECK(findNearGaps(Tape(pool, BoxSDF<T>(Vec3::zeros(), Vec3::ones()))).empty());
+}

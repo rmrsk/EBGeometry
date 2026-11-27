@@ -74,6 +74,23 @@ struct TapeOptions
    * @brief How the BVHs of unions built with Accelerate::BVH are built.
    */
   BVH::Construction m_construction = BVH::Construction::SAH;
+
+  /**
+   * @brief How close two regions must come to share one interface, as a fraction of the diagonal of the object's
+   * bounding box. Where a region's solid and a later region's solid overlap, are flush, or leave a gap narrower than
+   * this, the gap is closed (the earlier region fills it up to the later region's face) and the later region's face is
+   * the interface between them, seen from either side: in the region functions, region(), closestSurface() and
+   * firstRegionChange(). 0 welds only exact contacts. Default 1e-5. Must be at least 0.
+   * @details Applies only to an object with an Overlay, and only where its regions are concerned: the value of the
+   * whole object (signedDistance() without a region) is its expression evaluated as written. For an object whose box
+   * is unbounded the tolerance is 0.
+   *
+   * The default lies above the rounding of distances in single precision (a few 1e-7 of the coordinates) and above
+   * how flush meshes exported by different tools are (about 1e-6 of their size), and below what an embedded-boundary
+   * grid resolves and the default march tolerance (RayOptions::m_tolerance), so that the weld never decides more than
+   * a marched surface resolves.
+   */
+  double m_interfaceTolerance = 1e-5;
 };
 
 /**
@@ -886,6 +903,11 @@ public:
     uint32_t m_largestPlainUnion = 0;
 
     /**
+     * @brief TapeOptions::m_interfaceTolerance as a length (see getInterfaceTolerance()).
+     */
+    T m_interfaceTolerance = T(0);
+
+    /**
      * @brief Where in m_programs the ray programs begin: sub-program i's is entry m_rayPrograms + i (an empty
      * range for one a ray never follows).
      */
@@ -1168,6 +1190,15 @@ public:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   getLargestPlainUnion() const noexcept;
+
+  /**
+   * @brief How close two regions must come to share one interface, as a length: TapeOptions::m_interfaceTolerance
+   * times the diagonal of the object's bounding box, fixed when the tape was built.
+   * @return The tolerance (0 for an object whose box is unbounded, or built with a tolerance of 0).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  getInterfaceTolerance() const noexcept;
 
   /**
    * @brief A leaf's label, as SurfaceLabel() resolves it (ExprIndex::getSurfaceLabel()): the nearest label above the

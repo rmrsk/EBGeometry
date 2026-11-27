@@ -590,6 +590,8 @@ instantiateFunctionTemplates()
         (void)neighborhood.wholeRegion(1U);
       }
       (void)findSurfacePieces(regions, 4U);
+      (void)findNearGaps(regions, 1e-3, 4U);
+      (void)regions.getInterfaceTolerance();
       {
         const ComponentOptions<T>    options{T(0.5)};
         const ConnectedComponents<T> components = connectedComponents(regions, options);
