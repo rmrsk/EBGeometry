@@ -28,7 +28,7 @@ date: 2026-11-27
 
 ## Host comparison: yellow
 
-**Accepted:** -
+**Accepted:** Accept as acceptable side effect of the feature
 
 `9963dc61` against `235ade11` (235ade11), 2026-11-27.
 
