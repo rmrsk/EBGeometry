@@ -1721,6 +1721,10 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
   // The interface tolerance as a length: as given, or a fraction of the box's diagonal (0 for an unbounded object).
   if (a_options.m_interfaceLength.has_value()) {
     staging.m_interfaceTolerance = T(*a_options.m_interfaceLength);
+
+    EBGEOMETRY_REQUIRE(staging.m_interfaceTolerance < Math::Limits<T>::max(),
+                       "Tape: TapeOptions::m_interfaceLength is %g, larger than the precision holds",
+                       *a_options.m_interfaceLength);
   }
   else {
     const Vec3T<T> size     = staging.m_boundingVolume.getHighCorner() - staging.m_boundingVolume.getLowCorner();
