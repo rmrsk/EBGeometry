@@ -399,9 +399,11 @@ moves. How to run both, read the verdicts and fill the PR's *Performance* sectio
 The rules it carries out:
 
 - **Timed runs need a quiet machine**: the maintainer's go, and no other agent's run going.
-- **The receipt** (`Performance/receipts/<branch>-<fingerprint>.md`, one per PR, written by
-  `Scripts/run-performance.sh compare origin/<base> --record` on the committed branch, which also deletes the
-  receipts of earlier PRs there, plus a device section when the PR touches code a device runs) is committed to the PR
+- **The receipt** (`Performance/receipts/<branch>-<fingerprint>.md`, one per PR) is written by
+  `Scripts/run-performance.sh compare $(git merge-base HEAD origin/<base>) --record` on the committed branch: against
+  the commit the branch starts from, since once another PR has merged, `origin/<base>` holds code the branch does
+  not. It also deletes the receipts of earlier PRs there, and gets a device section when the PR touches code a
+  device runs. It is committed to the PR
   branch; pushing it needs the user's go-ahead. The PR body's *Performance* section summarizes its verdicts and
   points to it; the full report is not pasted there. A PR that changes neither the library nor the probes keeps
   the receipt it inherited.
