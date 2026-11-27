@@ -3675,6 +3675,64 @@ Tape<T, UserPrimitives...>::sharedMasks(const uint32_t a_first, const uint32_t a
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::laterSolid(const uint32_t a_region, const Vec3T<T>& a_point) const noexcept
+{
+  const uint32_t n = this->numRegionOperands();
+
+  T later = Math::Limits<T>::max();
+
+  for (uint32_t j = a_region + 1U; j <= n; j++) {
+    later = Math::min(later, this->regionSolid(j, this->sharedMasks(a_region, j), a_point));
+  }
+
+  return later;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_DEVICE_NOINLINE
+inline T
+Tape<T, UserPrimitives...>::weldedSolid(const uint32_t  a_region,
+                                        const T         a_own,
+                                        const T         a_later,
+                                        const Vec3T<T>& a_point) const noexcept
+{
+  const T tolerance = m_layout.m_interfaceTolerance;
+
+  // Outside the band within the tolerance of both solids, outside both: the region's own solid.
+  if (!(tolerance > T(0)) || !(a_own >= T(0)) || !(a_own < tolerance) || !(a_later >= T(0)) || !(a_later < tolerance)) {
+    return a_own;
+  }
+
+  // How much the two surfaces face each other: minus the cosine between their normals, by central differences.
+  const T h = T(0.25) * tolerance;
+
+  Vec3T<T> own   = Vec3T<T>::zeros();
+  Vec3T<T> later = Vec3T<T>::zeros();
+
+  for (int dir = 0; dir < 3; dir++) {
+    Vec3T<T> step = Vec3T<T>::zeros();
+
+    step[dir] = h;
+
+    own[dir]   = this->regionSolid(a_region, 0U, a_point + step) - this->regionSolid(a_region, 0U, a_point - step);
+    later[dir] = this->laterSolid(a_region, a_point + step) - this->laterSolid(a_region, a_point - step);
+  }
+
+  const T lengths = own.length() * later.length();
+  const T facing  = (lengths > T(0)) ? Math::clamp(-own.dot(later) / lengths, T(0), T(1)) : T(0);
+  const T e       = tolerance * facing;
+
+  if (!(e > T(0))) {
+    return a_own;
+  }
+
+  return Math::min(a_own, Math::max(T(0.5) * (a_own + a_later - e), a_own - e));
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
 EBGEOMETRY_DEVICE_NOINLINE
 inline uint32_t
 Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
@@ -3687,8 +3745,35 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
   const uint32_t n = this->numRegionOperands();
 
   // The last region whose solid, with all its masks, holds the point: later regions are on top.
+  if (!(m_layout.m_interfaceTolerance > T(0))) {
+    for (uint32_t k = n; k > 0U; k--) {
+      if (this->regionSolid(k, 0U, a_point) < T(0)) {
+        return k;
+      }
+    }
+
+    return 0U;
+  }
+
+  // With the regions welded: the last region whose function is negative there, its solid grown into a gap to a
+  // later one (weldedSolid()). Going down, the later regions hold no point checked, so the region whose function is
+  // negative is the one there, as signedDistance(p, region) says.
   for (uint32_t k = n; k > 0U; k--) {
-    if (this->regionSolid(k, 0U, a_point) < T(0)) {
+    const T own = this->regionSolid(k, 0U, a_point);
+
+    if (own < T(0)) {
+      return k;
+    }
+
+    // A point the region's own solid misses is in its weld only within the tolerance of it (where own + later is
+    // below the tolerance with the later solid not holding the point), so only there are the later solids asked.
+    if (!(own < m_layout.m_interfaceTolerance)) {
+      continue;
+    }
+
+    const T later = this->laterSolid(k, a_point);
+
+    if (Math::max(this->weldedSolid(k, own, later, a_point), -later) < T(0)) {
       return k;
     }
   }
@@ -3708,22 +3793,34 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
 
   // The background is the outside of the whole object; an object with no Overlay is region 1.
   if (a_region == 0U) {
-    return -this->wholeValue(a_point);
+    const T whole = this->wholeValue(a_point);
+
+    // Welded regions fill the gaps between them: within the tolerance outside the object, a point is in the background
+    // only where no region's function is negative. Elsewhere the weld changes nothing (it fills only gaps narrower
+    // than the tolerance), and the value is the object's.
+    if (!(m_layout.m_interfaceTolerance > T(0)) || n == 0U || whole < T(0) ||
+        !(whole < m_layout.m_interfaceTolerance)) {
+      return -whole;
+    }
+
+    T inside = whole;
+
+    for (uint32_t k = n; k > 0U; k--) {
+      inside = Math::min(inside, this->signedDistance(a_point, k));
+    }
+
+    return -inside;
   }
 
   if (n == 0U) {
     return this->wholeValue(a_point);
   }
 
-  // Region k is its solid with its masks, minus each later solid without the masks the two share (see
-  // TapeDetail::RegionSolid): max(S_k, -min_{j>k} S_j).
-  T later = Math::Limits<T>::max();
+  // Region k is its solid with its masks, welded to the later solids (weldedSolid()), minus each later solid without
+  // the masks the two share (see TapeDetail::RegionSolid): max(welded S_k, -min_{j>k} S_j).
+  const T later = this->laterSolid(a_region, a_point);
 
-  for (uint32_t j = a_region + 1U; j <= n; j++) {
-    later = Math::min(later, this->regionSolid(j, this->sharedMasks(a_region, j), a_point));
-  }
-
-  return Math::max(this->regionSolid(a_region, 0U, a_point), -later);
+  return Math::max(this->weldedSolid(a_region, this->regionSolid(a_region, 0U, a_point), later, a_point), -later);
 }
 
 template <class T, class... UserPrimitives>
@@ -3754,25 +3851,39 @@ Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_v
               this->sharedMasks(1U, k) == masks;
   }
 
+  // The smallest region function, for the background where regions are welded (see signedDistance(p, 0)).
+  T inside = Math::Limits<T>::max();
+
   if (uniform) {
     T later = Math::Limits<T>::max();
 
     for (uint32_t k = n; k > 0U; k--) {
       const T masked   = this->regionSolid(k, 0U, a_point);
       const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
+      const T value    = Math::max(this->weldedSolid(k, masked, later, a_point), -later);
 
-      CallableDetail::call(a_visit, k, Math::max(masked, -later));
+      CallableDetail::call(a_visit, k, value);
 
-      later = Math::min(later, unmasked);
+      inside = Math::min(inside, value);
+      later  = Math::min(later, unmasked);
     }
   }
   else {
     for (uint32_t k = n; k > 0U; k--) {
-      CallableDetail::call(a_visit, k, this->signedDistance(a_point, k));
+      const T value = this->signedDistance(a_point, k);
+
+      CallableDetail::call(a_visit, k, value);
+
+      inside = Math::min(inside, value);
     }
   }
 
-  CallableDetail::call(a_visit, 0U, -this->wholeValue(a_point));
+  const T whole  = this->wholeValue(a_point);
+  const T welded = (m_layout.m_interfaceTolerance > T(0) && !(whole < T(0)) && whole < m_layout.m_interfaceTolerance)
+                     ? Math::min(whole, inside)
+                     : whole;
+
+  CallableDetail::call(a_visit, 0U, -welded);
 }
 
 template <class T, class... UserPrimitives>
@@ -4036,6 +4147,24 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
       }
     }
 
+    // Leaving a region's solid straight into a later region (flush, or across a gap narrower than the nudge or welded
+    // shut): the interface is the later region's face, so the crossing is taken where the ray enters the later solid,
+    // within the reach of the refinement above.
+    if (to != from && to > from && !first.m_entering) {
+      const uint32_t record = m_layout.m_regionPrograms.at(base, to);
+      const uint32_t solid =
+        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+
+      const T       reach = T(100) * a_options.m_tolerance * scale + m_layout.m_interfaceTolerance;
+      const HitT<T> entry =
+        this->traceProgram(solid, a_ray, Math::max(a_tMin, first.m_t - nudge), first.m_t + reach, a_options);
+
+      if (entry.hit() && entry.m_entering) {
+        first   = entry;
+        program = solid;
+      }
+    }
+
     if (to != from) {
       // The surface crossed: the leaf the trace crossed, drilled.
       result.m_hit     = first;
@@ -4213,7 +4342,9 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     }
   }
 
-  const bool byLater = (met != 0U) && (-later.m_value > own.m_value);
+  // The later region's face where it reaches into the region (own + later < 0), or, with the regions welded, where
+  // the two come closer than the tolerance: the face of the later one, from either side.
+  const bool byLater = (met != 0U) && (own.m_value + later.m_value <= m_layout.m_interfaceTolerance);
 
   SurfaceRef<T> surface = this->surfaceOf(this->leafOf(byLater ? later : own));
 
@@ -4258,8 +4389,15 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
     return false;
   };
 
+  // Across the region's own surface, the last other region that reaches the surface's nearest point: whose solid is
+  // no farther from the point than the region's surface is, within the tolerance (other + own <= eps; own is minus the
+  // depth). Its solid holding the point is the case of a region overlapping this one; a region flush with it or welded
+  // to it is found too, from any depth. Across a later region's face, the last region on top of it at the point.
+  const T reach = byLater ? T(0) : m_layout.m_interfaceTolerance - own.m_value;
+
   for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
-    if (m != a_region && (cutBy == Subdomains::None || !cut(m)) && this->regionSolid(m, 0U, a_point) < T(0)) {
+    if (m != a_region && (cutBy == Subdomains::None || !cut(m)) &&
+        (byLater ? this->regionSolid(m, 0U, a_point) < T(0) : this->regionSolid(m, 0U, a_point) <= reach)) {
       across = m;
 
       break;

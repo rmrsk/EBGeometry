@@ -404,6 +404,41 @@ printComponents(const Language::Model<T>& a_model, const std::string& a_domain, 
   }
 }
 
+// The pairs of the model's regions a thin layer of the outside separates (findNearGaps()): parts probably meant to
+// touch, wider apart than the tape welds.
+void
+printNearGaps(const Language::Model<T>& a_model, const Tape<T>& a_tape, const uint32_t a_resolution)
+{
+  if (a_tape.getNumRegions() <= 2U) {
+    return;
+  }
+
+  for (const NearGap<T>& gap : findNearGaps(a_tape, 1e-3, a_resolution)) {
+    const Vec3T<T>& p = gap.m_point;
+
+    std::cerr << "regions '" << a_model.index().getRegion(gap.m_region).m_name << "' and '"
+              << a_model.index().getRegion(gap.m_other).m_name << "' nearly touch: gap " << gap.m_gap << " at (" << p[0]
+              << ", " << p[1] << ", " << p[2] << ")\n";
+  }
+}
+
+// The options of a tape of part of a model (a domain's own object), welding regions within the same distance as the
+// whole model's tape: the tolerance is a fraction of the object's box, and the part's box is smaller.
+TapeOptions
+partOptions(const Tape<T>& a_whole, const Expr<T>& a_part)
+{
+  const BoundingVolumes::AABBT<T> box      = a_part.computeBoundingVolume();
+  const T                         diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+
+  TapeOptions options;
+
+  if (diagonal > T(0) && diagonal < Math::Limits<T>::max()) {
+    options.m_interfaceTolerance = Math::min(0.5, static_cast<double>(a_whole.getInterfaceTolerance() / diagonal));
+  }
+
+  return options;
+}
+
 int
 check(const Options& a_options, Pool& a_pool)
 {
@@ -416,6 +451,8 @@ check(const Options& a_options, Pool& a_pool)
   if (a_options.m_inventory) {
     std::cout << Language::inventory(model);
   }
+
+  printNearGaps(model, Tape<T>(a_pool, model.object()), 64U);
 
   int status = 0;
 
@@ -864,13 +901,16 @@ load(const Options& a_options, const Stamps& a_before)
       wholeRegion.push_back(own.neighborhood().wholeRegion(r));
     }
 
-    loaded->m_domainTapes.push_back(std::make_unique<Tape<T>>(*loaded->m_pool, own.object()));
+    loaded->m_domainTapes.push_back(
+      std::make_unique<Tape<T>>(*loaded->m_pool, own.object(), partOptions(*loaded->m_tape, own.object())));
     loaded->m_domains.push_back({RegionView<Tape<T>>(*loaded->m_domainTapes.back()), wholeRegion});
   }
 
   for (const Language::Diagnostic& warning : loaded->m_model->warnings()) {
     std::cerr << warning.str() << "\n";
   }
+
+  printNearGaps(*loaded->m_model, *loaded->m_tape, 32U);
 
   // The files stamped before the read, and every other file it read (a mesh first named in this version), as it is now.
   loaded->m_stamps = a_before;

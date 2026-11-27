@@ -2166,6 +2166,39 @@ private:
   inline uint32_t
   sharedMasks(uint32_t a_first, uint32_t a_second) const noexcept;
 
+  /**
+   * @brief The solid a region's function clips the region with: the smallest of the later regions' solids, each
+   * without the masks it shares with the region (see sharedMasks()).
+   * @param[in] a_region Region.
+   * @param[in] a_point  Point.
+   * @return The value (Limits<T>::max() for the last region).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  laterSolid(uint32_t a_region, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief A region's solid welded to the later regions': grown into a gap between the two narrower than the interface
+   * tolerance, up to the later solid's face.
+   * @details Only outside both solids and within the tolerance eps of both (0 <= own < eps, 0 <= later < eps) does the
+   * value change; everywhere else it is the region's own solid, exactly. There it is
+   * min(own, max((own + later - e) / 2, own - e)), with e = eps c, where c = max(0, -n_own . n_later) is how much the
+   * two surfaces face each other (their normals, by central differences): the term is negative where own + later < e,
+   * which fills the gap between surfaces that face each other (c near 1), and nothing beside faces that lie side by
+   * side in one plane (c near 0), such as the end of a channel flush with the end of the block it bores. The change
+   * is at most eps, and the value stays negative in the gap and at least 0 at the band's edges, so the function keeps
+   * its sign everywhere and its value away from the band.
+   * @param[in] a_region The region.
+   * @param[in] a_own    The region's solid at the point.
+   * @param[in] a_later  The later regions' solid at the point (laterSolid()).
+   * @param[in] a_point  The point.
+   * @return The welded solid.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_DEVICE_NOINLINE
+  inline T
+  weldedSolid(uint32_t a_region, T a_own, T a_later, const Vec3T<T>& a_point) const noexcept;
+
   template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   EBGEOMETRY_DEVICE_NOINLINE
