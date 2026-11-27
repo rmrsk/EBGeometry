@@ -10,6 +10,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestUtilities.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -29,39 +30,10 @@ template <class T>
 using SoA = PointSoAT<T, W>;
 
 template <class T>
-std::vector<Vec3T<T>>
-fourPositions()
-{
-  using Vec3 = Vec3T<T>;
-
-  std::vector<Vec3> positions;
-  positions.reserve(4);
-  for (int i = 0; i < 4; i++) {
-    positions.emplace_back(T(3.0 * i), T(0), T(0));
-  }
-  return positions;
-}
-
-template <class T>
 std::vector<uint32_t>
 fourPointIds()
 {
   return {10, 11, 12, 13};
-}
-
-template <class T>
-std::vector<Vec3T<T>>
-queryPoints()
-{
-  using Vec3 = Vec3T<T>;
-  return {
-    Vec3(0.1, 0.1, 0.1),
-    Vec3(3.2, -0.1, 0.05),
-    Vec3(6.0, 0.3, 0),
-    Vec3(9.1, 0, 0),
-    Vec3(-5, -5, -5),
-    Vec3(20, 20, 20),
-  };
 }
 
 } // namespace
@@ -84,7 +56,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 agree exa
   SoA<T> positionOnly;
   positionOnly.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     // Bit-for-bit: both walk the identical scalar loop over the identical positions, so the ids
     // truly never enters the distance computation. Every distance query delegates straight through.
     REQUIRE(withIds.getMinimumDistance2(q) == positionOnly.getMinimumDistance2(q));
@@ -153,7 +125,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: getMinimumDistance/getMinimumDistance2 unaffecte
   AoSoA<T> group;
   group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     T best2 = std::numeric_limits<T>::max();
     for (const auto& pos : positions) {
       best2 = std::min(best2, (pos - q).length2());
@@ -212,7 +184,7 @@ TEMPLATE_TEST_CASE("PointAoSoA: omitting W defaults to PointSoA::DefaultWidth<T>
   DefaultWidthAoSoA group;
   group.pack(positions.data(), pointIds.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     T best2 = std::numeric_limits<T>::max();
     for (const auto& pos : positions) {
       best2 = std::min(best2, (pos - q).length2());

@@ -11,6 +11,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestTapeSurfacesHelpers.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -23,28 +24,6 @@ using namespace EBGeometry;
 using namespace EBGeometryTestSurfaces;
 
 namespace {
-
-// The signed distance from a point to a sphere's surface.
-template <class T>
-T
-sphereDistance(const SphereCloud::Sphere<T>& a_sphere, const Vec3T<T>& a_point)
-{
-  return (a_point - a_sphere.m_center).length() - a_sphere.m_radius;
-}
-
-// The smallest signed distance from a point to any of the spheres, by brute force.
-template <class T>
-T
-bruteMin(const std::vector<SphereCloud::Sphere<T>>& a_spheres, const Vec3T<T>& a_point)
-{
-  T best = Math::Limits<T>::infinity();
-
-  for (const auto& sphere : a_spheres) {
-    best = std::min(best, sphereDistance(sphere, a_point));
-  }
-
-  return best;
-}
 
 // The same spheres as analytic shapes, for the BVH unions.
 template <class T>
@@ -82,11 +61,12 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: closestSurface names the sphere that decides
   CHECK(cloud.getNumSurfaces() == 200U);
   CHECK(roomy.getNumSurfaces() == 300U);
 
-  for (const auto& p : queryPoints<T>(500)) {
+  for (const auto& p : spreadPoints<T>(500)) {
     const SurfaceRef<T> surface = cloud.closestSurface(p);
 
     REQUIRE(surface.m_surface < spheres.size());
-    CHECK_THAT(sphereDistance(spheres[surface.m_surface], p), withinAbsT(bruteMin(spheres, p), tightMargin<T>()));
+    CHECK_THAT(sphereDistance(spheres[surface.m_surface], p),
+               withinAbsT(bruteForceDistance(spheres, p), tightMargin<T>()));
     CHECK(surface.m_localPoint == p);
   }
 }
@@ -124,8 +104,8 @@ TEMPLATE_TEST_CASE("BVHUnion: members are numbered in the order given, and close
   CHECK(smooth.getNumSurfaces() == shapes.size());
   CHECK(sharp.getFirstSurface(7) == 7U);
 
-  for (const auto& p : queryPoints<T>(500)) {
-    const T best = bruteMin(spheres, p);
+  for (const auto& p : spreadPoints<T>(500)) {
+    const T best = bruteForceDistance(spheres, p);
 
     for (const SurfaceRef<T>& surface : {sharp.closestSurface(p), smooth.closestSurface(p)}) {
       REQUIRE(surface.m_surface < shapes.size());
@@ -193,11 +173,11 @@ TEMPLATE_TEST_CASE("BVHUnion: a union of sphere clouds numbers each cloud's sphe
     all.insert(all.end(), part.begin(), part.end());
   }
 
-  for (const auto& p : queryPoints<T>(400)) {
+  for (const auto& p : spreadPoints<T>(400)) {
     const SurfaceRef<T> surface = scene.closestSurface(p);
 
     REQUIRE(surface.m_surface < all.size());
-    CHECK_THAT(sphereDistance(all[surface.m_surface], p), withinAbsT(bruteMin(all, p), tightMargin<T>()));
+    CHECK_THAT(sphereDistance(all[surface.m_surface], p), withinAbsT(bruteForceDistance(all, p), tightMargin<T>()));
   }
 }
 
@@ -244,7 +224,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills into a container leaf, numbering
 
   size_t onCloud = 0;
 
-  for (const auto& p : queryPoints<T>(600)) {
+  for (const auto& p : spreadPoints<T>(600)) {
     const LeafRef<T>    leaf    = tape.closestLeaf(p);
     const SurfaceRef<T> surface = tape.closestSurface(p);
 
@@ -256,7 +236,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills into a container leaf, numbering
       const uint32_t sphere = surface.m_surface - tape.getFirstSurface(1);
 
       REQUIRE(sphere < spheres.size());
-      CHECK_THAT(sphereDistance(spheres[sphere], p), withinAbsT(bruteMin(spheres, p), tightMargin<T>()));
+      CHECK_THAT(sphereDistance(spheres[sphere], p), withinAbsT(bruteForceDistance(spheres, p), tightMargin<T>()));
 
       onCloud++;
     }
@@ -271,7 +251,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills into a container leaf, numbering
   Pool       other(hostMemoryResource());
   const auto copy = tape.deepCopy(other);
 
-  for (const auto& p : queryPoints<T>(100)) {
+  for (const auto& p : spreadPoints<T>(100)) {
     CHECK(copy.closestSurface(p).m_surface == tape.closestSurface(p).m_surface);
   }
 }
@@ -295,7 +275,7 @@ TEMPLATE_TEST_CASE("Tape: without a container leaf, a surface is its leaf and no
   CHECK(tape.getNumSurfaces() == 3U);
   CHECK(ExprIndex<T>(expr).getNumSurfaces() == 3U);
 
-  for (const auto& p : queryPoints<T>(200)) {
+  for (const auto& p : spreadPoints<T>(200)) {
     CHECK(tape.closestSurface(p).m_surface == tape.closestLeaf(p).m_leaf);
   }
 }
@@ -324,14 +304,14 @@ TEMPLATE_TEST_CASE("Tape: closestSurface drills through a tape listed as a primi
   CHECK(inner.getNumSurfaces() == 41U);
   CHECK(outer.getNumSurfaces() == 42U);
 
-  for (const auto& p : queryPoints<T>(300)) {
+  for (const auto& p : spreadPoints<T>(300)) {
     const SurfaceRef<T> surface = outer.closestSurface(p);
 
     REQUIRE(surface.m_surface != SurfaceRef<T>::None);
 
     if (surface.m_surface >= 2U) {
       CHECK_THAT(sphereDistance(spheres[surface.m_surface - 2U], p),
-                 withinAbsT(bruteMin(spheres, p), tightMargin<T>()));
+                 withinAbsT(bruteForceDistance(spheres, p), tightMargin<T>()));
     }
   }
 }

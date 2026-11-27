@@ -52,7 +52,7 @@ randomSpheres(const size_t a_count, const uint64_t a_seed)
 // Points spread over [-1, 9]^3.
 template <class T>
 std::vector<Vec3T<T>>
-queryPoints(const size_t a_count)
+spreadPoints(const size_t a_count)
 {
   Lcg rng{777U};
 

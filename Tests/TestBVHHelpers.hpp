@@ -24,22 +24,6 @@ namespace EBGeometryTestBVH {
 
 using namespace EBGeometry;
 
-inline std::string
-dataPath(const std::string& a_filename)
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_filename;
-}
-
-// Comparisons between a brute-force scan and a BVH-accelerated traversal (or between different
-// partitioning/packing/build strategies) chain many more dot/cross products across the mesh's 36
-// faces, so tolerate more accumulated rounding error than a simple format round-trip.
-template <class T>
-double
-traversalMargin()
-{
-  return std::is_same_v<T, float> ? 1.0e-2 : 1.0e-6;
-}
-
 // Bare point primitive with no signedDistance() (or any other) member at all -- used below to
 // prove that PackedBVH::traverse() imposes no interface requirement on its primitive type,
 // unlike a caller-built signed-distance wrapper (e.g. MeshSDF/TriMeshSDF::signedDistance()),
@@ -434,6 +418,34 @@ requireTightAndQueryable(const BVH::PackedBVH<T, uint32_t, K>& a_bvh, const std:
 
     REQUIRE(state == brute);
   }
+}
+
+// True if two packed BVHs have the same nodes: the same bounding volumes and primitive ranges.
+template <class Root>
+bool
+sameNodes(const Root& a_lhs, const Root& a_rhs)
+{
+  const auto lhs = a_lhs.getNodes();
+  const auto rhs = a_rhs.getNodes();
+
+  if (lhs.size() != rhs.size()) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < lhs.size(); i++) {
+    const auto& l = lhs[i];
+    const auto& r = rhs[i];
+
+    const auto lb = a_lhs.getBoundingVolume(l);
+    const auto rb = a_rhs.getBoundingVolume(r);
+
+    if (lb.getLowCorner() != rb.getLowCorner() || lb.getHighCorner() != rb.getHighCorner() ||
+        l.getPrimitivesOffset() != r.getPrimitivesOffset() || l.getNumPrimitives() != r.getNumPrimitives()) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 } // namespace EBGeometryTestBVH

@@ -11,6 +11,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestTapeUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -27,12 +28,6 @@ using namespace EBGeometry;
 using EBGeometry::TestUtils::labeledRow;
 
 namespace {
-
-std::string
-dodecahedron()
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
-}
 
 // A visitor for visitPrimitive(): the leaf's value at a point. A struct with an EBGEOMETRY_HOST_DEVICE
 // call operator, as a CUDA or HIP translation unit needs, rather than a lambda.

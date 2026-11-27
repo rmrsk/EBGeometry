@@ -10,6 +10,7 @@
 #include "Source/EBGeometry_Language.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestLocale.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -29,26 +30,6 @@
 using namespace EBGeometry;
 
 namespace {
-
-// Points on a grid around the origin, off the axes.
-template <class T>
-std::vector<Vec3T<T>>
-gridPoints(const T a_half, const int a_n)
-{
-  std::vector<Vec3T<T>> points;
-
-  for (int i = 0; i < a_n; i++) {
-    for (int j = 0; j < a_n; j++) {
-      for (int k = 0; k < a_n; k++) {
-        const auto at = [&](const int a_i) { return -a_half + T(2) * a_half * (T(a_i) + T(0.37)) / T(a_n); };
-
-        points.emplace_back(at(i), at(j), at(k));
-      }
-    }
-  }
-
-  return points;
-}
 
 // The first error of a text, or "" when it reads.
 template <class T>
@@ -75,12 +56,6 @@ sameSelector(const SurfaceSelector& a_first, const SurfaceSelector& a_second)
          a_first.m_label == a_second.m_label && a_first.m_materialA == a_second.m_materialA &&
          a_first.m_materialB == a_second.m_materialB && a_first.m_rest == a_second.m_rest &&
          (a_first.m_surface == SurfaceSelector::Any || a_first.m_numSurfaces == a_second.m_numSurfaces);
-}
-
-std::string
-dataFile(const char* a_name)
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_name;
 }
 
 } // namespace
@@ -545,7 +520,7 @@ object intersection(overlay {
   }
 
   // A mesh's face groups whose names are not names of the language: its parts are named so that they can be.
-  const auto mesh = Language::read<T>(dataFile("language/odd_groups/model.ebg"), pool);
+  const auto mesh = Language::read<T>(dataPath("language/odd_groups/model.ebg"), pool);
 
   CHECK(mesh.shapes()[0].m_parts == std::vector<std::string>{"bottom", "_2top", "side_wall"});
   CHECK(mesh.shapes()[0].m_partLabels == std::vector<std::string>{"bottom", "2top", "outer"});
@@ -732,7 +707,7 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   fs::remove_all(folder);
   fs::create_directories(folder / "parts");
-  fs::copy_file(dataFile("language/cube_odd_groups.obj"), folder / "parts" / "cube.obj");
+  fs::copy_file(dataPath("language/cube_odd_groups.obj"), folder / "parts" / "cube.obj");
 
   const auto write = [&](const fs::path& a_file, const std::string& a_text) {
     std::ofstream(a_file, std::ios::binary) << a_text;
@@ -840,7 +815,7 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
   // Three copies of one cube, numbered so that text order (1, 10, 2) and natural order (1, 2, 10) differ, and a file
   // the pattern does not match.
   for (const char* name : {"cube-1.obj", "cube-2.obj", "cube-10.obj", "other.obj"}) {
-    fs::copy_file(dataFile("language/cube_odd_groups.obj"), folder / "parts" / name);
+    fs::copy_file(dataPath("language/cube_odd_groups.obj"), folder / "parts" / name);
   }
 
   const auto write = [&](const fs::path& a_file, const std::string& a_text) {
@@ -1378,7 +1353,7 @@ TEMPLATE_TEST_CASE("Language: a setup file including its model and more; a mesh 
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::read<T>(dataFile("language/cubes/setup.ebg"), pool, {{"shift", "(0, 4, 0)"}});
+  const auto model = Language::read<T>(dataPath("language/cubes/setup.ebg"), pool, {{"shift", "(0, 4, 0)"}});
 
   // setup.ebg, the model it includes and the file that includes (every file is read before any is evaluated), and the
   // mesh, once however often it is used.
@@ -1390,7 +1365,7 @@ TEMPLATE_TEST_CASE("Language: a setup file including its model and more; a mesh 
 
   // A folder is no model: the file is named.
   try {
-    (void)Language::read<T>(dataFile("language/cubes"), pool);
+    (void)Language::read<T>(dataPath("language/cubes"), pool);
 
     FAIL("a folder reads");
   } catch (const Language::Error& e) {
@@ -1429,7 +1404,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
 
   fs::remove_all(folder);
   fs::create_directories(folder / "meshes");
-  fs::copy_file(dataFile("cube_groups.obj"), folder / "meshes" / "cube.obj");
+  fs::copy_file(dataPath("cube_groups.obj"), folder / "meshes" / "cube.obj");
 
   const auto write = [&](const fs::path& a_file, const std::string& a_text) {
     std::ofstream(a_file, std::ios::binary) << a_text;
@@ -1734,7 +1709,7 @@ object overlay {
   }
 
   // A setup and the model it includes flatten into one text.
-  const auto setup     = Language::read<T>(dataFile("language/cubes/setup.ebg"), pool);
+  const auto setup     = Language::read<T>(dataPath("language/cubes/setup.ebg"), pool);
   const auto flattened = Language::print(setup, true);
 
   CHECK_THAT(flattened, Catch::Matchers::ContainsSubstring("cube = mesh("));

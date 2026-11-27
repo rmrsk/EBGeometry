@@ -5,6 +5,7 @@
 
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -20,12 +21,6 @@ using namespace EBGeometry;
 namespace {
 
 namespace fs = std::filesystem;
-
-std::string
-dataFile(const std::string& a_filename)
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_filename;
-}
 
 fs::path
 scratchFolder(const std::string& a_name)
@@ -89,12 +84,12 @@ TEMPLATE_TEST_CASE("FaceParts: the fingerprint follows the face numbering, not t
 {
   using T = TestType;
 
-  const auto cube  = Parser::readIntoPolygonSoup<T>(dataFile("cube_groups.obj"));
-  const auto dodec = Parser::readIntoPolygonSoup<T>(dataFile("dodecahedron.obj"));
+  const auto cube  = Parser::readIntoPolygonSoup<T>(dataPath("cube_groups.obj"));
+  const auto dodec = Parser::readIntoPolygonSoup<T>(dataPath("dodecahedron.obj"));
 
   // The same file in the other precision: the same fingerprint.
   CHECK(Parser::meshFingerprint(cube) ==
-        Parser::meshFingerprint(Parser::readIntoPolygonSoup<double>(dataFile("cube_groups.obj"))));
+        Parser::meshFingerprint(Parser::readIntoPolygonSoup<double>(dataPath("cube_groups.obj"))));
 
   // Another mesh: another fingerprint.
   CHECK(Parser::meshFingerprint(cube) != Parser::meshFingerprint(dodec));
@@ -102,7 +97,7 @@ TEMPLATE_TEST_CASE("FaceParts: the fingerprint follows the face numbering, not t
   // Moved vertices with the same faces: the same fingerprint, since every face id still names the same face.
   const fs::path folder = scratchFolder("fingerprint-" + std::to_string(sizeof(T)));
 
-  std::string moved = readText(dataFile("cube_groups.obj"));
+  std::string moved = readText(dataPath("cube_groups.obj"));
 
   moved.replace(moved.find("v 1 1 1"), 7, "v 2 2 2");
 
@@ -112,7 +107,7 @@ TEMPLATE_TEST_CASE("FaceParts: the fingerprint follows the face numbering, not t
         Parser::meshFingerprint(cube));
 
   // The faces in another order: another fingerprint, since face ids now name other faces.
-  std::string swapped = readText(dataFile("cube_groups.obj"));
+  std::string swapped = readText(dataPath("cube_groups.obj"));
 
   swapped.replace(swapped.find("f 1 4 3 2"), 9, "f 5 6 7 8");
   swapped.replace(swapped.rfind("f 5 6 7 8"), 9, "f 1 4 3 2");
@@ -129,7 +124,7 @@ TEMPLATE_TEST_CASE("FaceParts: a parts file is read into one entry per face, wit
 {
   using T = TestType;
 
-  const auto     soup   = Parser::readIntoPolygonSoup<T>(dataFile("dodecahedron.obj"));
+  const auto     soup   = Parser::readIntoPolygonSoup<T>(dataPath("dodecahedron.obj"));
   const fs::path folder = scratchFolder("read-" + std::to_string(sizeof(T)));
 
   REQUIRE(soup.numFacets() == 36U);
@@ -167,7 +162,7 @@ TEMPLATE_TEST_CASE("FaceParts: writing and reading back gives the same parts",
 {
   using T = TestType;
 
-  const auto     soup   = Parser::readIntoPolygonSoup<T>(dataFile("dodecahedron.obj"));
+  const auto     soup   = Parser::readIntoPolygonSoup<T>(dataPath("dodecahedron.obj"));
   const fs::path folder = scratchFolder("roundtrip-" + std::to_string(sizeof(T)));
   const uint32_t N      = FaceGroups::None;
 
@@ -194,7 +189,7 @@ TEMPLATE_TEST_CASE("FaceParts: writing and reading back gives the same parts",
   CHECK(back.m_group == parts.m_group);
 
   // A long part is continued on further lines, and still reads back.
-  const auto big = Parser::readIntoPolygonSoup<T>(dataFile("lblock.stl"));
+  const auto big = Parser::readIntoPolygonSoup<T>(dataPath("lblock.stl"));
 
   FaceGroups every;
 
@@ -231,7 +226,7 @@ TEMPLATE_TEST_CASE("FaceParts: a malformed parts file, or one for another mesh, 
 {
   using T = TestType;
 
-  const auto        soup   = Parser::readIntoPolygonSoup<T>(dataFile("dodecahedron.obj"));
+  const auto        soup   = Parser::readIntoPolygonSoup<T>(dataPath("dodecahedron.obj"));
   const fs::path    folder = scratchFolder("errors-" + std::to_string(sizeof(T)));
   const std::string head   = "ebg-parts 1\nmesh \"d.obj\" fingerprint " + hex(Parser::meshFingerprint(soup)) + "\n";
 
@@ -291,7 +286,7 @@ TEMPLATE_TEST_CASE("FaceParts: picked parts lie on top of the file's groups", "[
 {
   using T = TestType;
 
-  const auto       soup = Parser::readIntoPolygonSoup<T>(dataFile("cube_groups.obj"));
+  const auto       soup = Parser::readIntoPolygonSoup<T>(dataPath("cube_groups.obj"));
   const FaceGroups file = soup.getFaceGroups();
   const uint32_t   N    = FaceGroups::None;
 

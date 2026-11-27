@@ -12,6 +12,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -30,15 +31,9 @@ using namespace EBGeometry;
 
 namespace {
 
-std::string
-dodecahedron()
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
-}
-
 template <class T>
 std::vector<Vec3T<T>>
-probes()
+tapeProbes()
 {
   std::vector<Vec3T<T>> points;
 
@@ -150,7 +145,7 @@ TEMPLATE_TEST_CASE("Tape: a single analytic shape evaluates like the shape, to r
     // absolute error are allowed too.
     const double floor = 4.0 * static_cast<double>(std::numeric_limits<T>::epsilon());
 
-    for (const auto& p : probes<T>()) {
+    for (const auto& p : tapeProbes<T>()) {
       const T expected = a_shape.signedDistance(p);
 
       CHECK_THAT(tape(p), Catch::Matchers::WithinULP(expected, 4) || withinAbsT(expected, floor));
@@ -211,7 +206,7 @@ TEMPLATE_TEST_CASE("Tape: a union of a mesh SDF and a sphere is the smaller of t
   const Tape<T> meshUnion(pool, Union(bvhMesh, sphere));
   const Tape<T> triUnion(pool, Union(triMesh, sphere));
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     CHECK(flatUnion.signedDistance(p) == Math::min(flat.signedDistance(p), sphere.signedDistance(p)));
     CHECK(meshUnion.signedDistance(p) == Math::min(bvhMesh.signedDistance(p), sphere.signedDistance(p)));
     CHECK(triUnion.signedDistance(p) == Math::min(triMesh.signedDistance(p), sphere.signedDistance(p)));
@@ -263,7 +258,7 @@ TEMPLATE_TEST_CASE("Tape: a union of many objects of different types matches bru
   CHECK(withBVH.getCallDepth() == 1U);
   CHECK(linear.getCallDepth() == 0U);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     const T expected = bruteForce(p);
 
     CHECK(withBVH.signedDistance(p) == expected);
@@ -313,7 +308,7 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
   CHECK(smooth.getNumBVHUnions() == 1U);
   CHECK(drilled.getNumBVHUnions() == 1U);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     CHECK_THAT(withBVH.signedDistance(p), withinAbsT(asWritten.signedDistance(p), tightMargin<T>()));
     CHECK_THAT(smooth.signedDistance(p), withinAbsT(smoothAsWritten.signedDistance(p), tightMargin<T>()));
     CHECK_THAT(exponential.signedDistance(p), withinAbsT(exponentialAsWritten.signedDistance(p), tightMargin<T>()));
@@ -346,7 +341,7 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
   // A list of one object is that object: no BVH.
   CHECK(Tape<T>(pool, Union(std::vector<Expr<T>>{objects[0]}, Accelerate::BVH)).getNumBVHUnions() == 0U);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     CHECK_THAT(inner.signedDistance(p), withinAbsT(innerAsWritten.signedDistance(p), tightMargin<T>()));
     CHECK_THAT(outer.signedDistance(p), withinAbsT(outerAsWritten.signedDistance(p), tightMargin<T>()));
     CHECK(outer.closestLeaf(p).m_leaf == outerAsWritten.closestLeaf(p).m_leaf);
@@ -361,7 +356,7 @@ TEMPLATE_TEST_CASE("Tape: Accelerate::BVH builds a BVH for any union and gives t
   CHECK(signOnly.getNumBVHUnions() == 1U);
   CHECK(signOnly.getDistanceQuality() == DistanceQuality::NotADistance);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     CHECK((signOnly.signedDistance(p) < T(0)) == (signAsWritten.signedDistance(p) < T(0)));
   }
 }
@@ -505,7 +500,7 @@ TEMPLATE_TEST_CASE("Tape: user primitive types, including a BVH union and anothe
 
   const Tape<T, Mixed> withMixed(pool, Difference(mixed, SphereSDF<T>(Vec3(T(2), T(0), T(0)), T(0.2))));
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     CHECK(withMixed.signedDistance(p) ==
           Math::max(mixed.signedDistance(p), -SphereSDF<T>(Vec3(T(2), T(0), T(0)), T(0.2)).signedDistance(p)));
     CHECK(outer.signedDistance(p) == Math::min(row.signedDistance(p), other.signedDistance(p) - T(0.1)));
@@ -545,7 +540,7 @@ TEMPLATE_TEST_CASE("Tape: a handle rebuilt from its layout, a view on a mirror a
 
   std::vector<T> expected;
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     expected.push_back(tape.signedDistance(p));
 
     CHECK(again.signedDistance(p) == expected.back());
@@ -560,8 +555,8 @@ TEMPLATE_TEST_CASE("Tape: a handle rebuilt from its layout, a view on a mirror a
   const Pool mirror = Pool::mirror(pool, hostMemoryResource());
   const auto view   = tape.rebasedView(mirror);
 
-  for (size_t i = 0; i < probes<T>().size(); i++) {
-    const Vec3 p = probes<T>()[i];
+  for (size_t i = 0; i < tapeProbes<T>().size(); i++) {
+    const Vec3 p = tapeProbes<T>()[i];
 
     CHECK(view.signedDistance(p) == expected[i]);
     CHECK(copy.signedDistance(p) == expected[i]);
@@ -641,7 +636,7 @@ TEMPLATE_TEST_CASE("Tape: an intersection of disjoint objects is empty, and a BV
 
   CHECK(withBVH.getNumBVHUnions() == 1U);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     CHECK(Tape<T>(pool, empty).signedDistance(p) == Math::max(left.signedDistance(p), right.signedDistance(p)));
     CHECK(withBVH.signedDistance(p) == linear.signedDistance(p));
   }
@@ -673,7 +668,7 @@ TEMPLATE_TEST_CASE("Tape: a BVH union of Bound operands keeps the sign and never
   CHECK(withBVH.getNumBVHUnions() == 1U);
   CHECK(withBVH.getDistanceQuality() == DistanceQuality::Bound);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : tapeProbes<T>()) {
     const T bvh   = withBVH.signedDistance(p);
     const T plain = linear.signedDistance(p);
 

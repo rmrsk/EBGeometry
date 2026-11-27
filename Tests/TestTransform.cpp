@@ -14,6 +14,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestTapeUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -95,15 +96,6 @@ reflectedPoint(const Vec3T<T>& a_point, const size_t a_axis)
   q[a_axis] = -q[a_axis];
 
   return q;
-}
-
-// A hand-computed closed-form expected value, or a partition-of-unity sum (Blur/Mollify sample
-// weights), involving a handful more floating-point operations than the "exact" comparisons.
-template <class T>
-double
-formulaMargin()
-{
-  return std::is_same_v<T, float> ? 1.0e-3 : 1.0e-9;
 }
 
 } // namespace

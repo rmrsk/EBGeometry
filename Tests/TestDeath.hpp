@@ -14,9 +14,11 @@
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <sys/wait.h>
 #include <unistd.h>
@@ -24,6 +26,8 @@
 #if defined(__linux__)
 #include <sys/prctl.h>
 #endif
+
+#include <catch2/catch_test_macros.hpp>
 
 // Run a_fn in a forked child. Returns what the child wrote to stderr if it terminated via SIGABRT,
 // and std::nullopt otherwise. If the operation wrongly returns without aborting, the child calls
@@ -100,6 +104,24 @@ abortsWith(F&& a_fn, const std::string& a_expected)
   const auto message = abortMessage(std::forward<F>(a_fn));
 
   return message.has_value() && message->find(a_expected) != std::string::npos;
+}
+
+// One row of a table of death tests: an operation that must abort, and text its message must contain.
+struct AbortCase
+{
+  std::function<void()> m_run;
+  std::string           m_message;
+};
+
+// Requires each row's operation to abort with its message: one assertion per row, which names the row's message
+// when it fails.
+static inline void
+requireAbortsWith(const std::vector<AbortCase>& a_cases)
+{
+  for (const auto& row : a_cases) {
+    INFO("expected: " << row.m_message);
+    REQUIRE(abortsWith(row.m_run, row.m_message));
+  }
 }
 
 // True iff a_fn, run in a forked child that then exits through std::exit (running the static

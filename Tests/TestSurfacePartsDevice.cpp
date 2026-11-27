@@ -7,6 +7,7 @@
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstdint>
 #include <string>
@@ -17,12 +18,6 @@
 using namespace EBGeometry;
 
 namespace {
-
-std::string
-dataFile(const std::string& a_name)
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_name;
-}
 
 // Device functor: the surface's label and part at a point.
 template <class T, class TapeType>
@@ -73,8 +68,8 @@ TEMPLATE_TEST_CASE("Tape: part labels on a device match the host", "[Tape][gpu]"
 
   Pool pool(hostMemoryResource());
 
-  const auto soup = Parser::readIntoPolygonSoup<T>(dataFile("cube_groups.obj"));
-  const Mesh cube = Parser::readIntoTriMeshSDF<T>(dataFile("cube_groups.obj"), pool);
+  const auto soup = Parser::readIntoPolygonSoup<T>(dataPath("cube_groups.obj"));
+  const Mesh cube = Parser::readIntoTriMeshSDF<T>(dataPath("cube_groups.obj"), pool);
 
   const Tape<T> tape(
     pool,
@@ -118,7 +113,7 @@ TEMPLATE_TEST_CASE("FaceMask: faces picked one by one are selected on a device a
   Pool pool(hostMemoryResource());
 
   // cube_groups.obj: faces 2 (y = 0) and 5 (x = 0) picked; the tape's one leaf is surface 0.
-  const Mesh    cube = Parser::readIntoTriMeshSDF<T>(dataFile("cube_groups.obj"), pool);
+  const Mesh    cube = Parser::readIntoTriMeshSDF<T>(dataPath("cube_groups.obj"), pool);
   const Tape<T> tape(pool, toExpr(cube));
 
   Pool masks(hostMemoryResource());

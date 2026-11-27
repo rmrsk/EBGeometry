@@ -10,6 +10,7 @@
 #include "TestBVHHelpers.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstdint>
 #include <type_traits>

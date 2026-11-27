@@ -12,6 +12,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestPointCloudQueries.hpp"
+#include "TestUtilities.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -530,18 +531,6 @@ TEMPLATE_TEST_CASE("PointCloudHashGrid: a rebased view answers queries on device
 }
 
 namespace {
-
-// Memory a build through GPU::parallelFor() writes and the host reads: managed memory in a CUDA or HIP build,
-// where the build's steps run as kernels, and emulated device memory otherwise, where they run as host loops.
-MemoryResource&
-parallelBuildResource() noexcept
-{
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  return managedMemoryResource();
-#else
-  return emulatedDeviceMemoryResource();
-#endif
-}
 
 // Two grids answer every query identically, ties included, and agree on every point's position.
 template <class T>

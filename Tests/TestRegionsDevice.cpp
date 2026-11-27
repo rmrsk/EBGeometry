@@ -8,6 +8,7 @@
 #include "EBGeometry.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -17,17 +18,6 @@
 using namespace EBGeometry;
 
 namespace {
-
-// A cable: a copper core inside a PTFE jacket; the outside, region 0, has no material.
-template <class T>
-Expr<T>
-cable()
-{
-  const auto core   = MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(0.5)), "copper");
-  const auto jacket = MaterialLabel(SphereSDF<T>(Vec3T<T>::zeros(), T(1)), "PTFE");
-
-  return Overlay(jacket, core);
-}
 
 // What the device answers at a point: the region, the three regions' functions, the jacket's surface there with
 // its sides, and the first change of region along +x.

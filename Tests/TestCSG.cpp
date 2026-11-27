@@ -16,6 +16,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -102,16 +103,6 @@ blendTwoLargest(std::vector<T> a_values, const T a_smoothLen, Blend a_blend)
   const size_t n = a_values.size();
 
   return a_blend(a_values[n - 2], a_values[n - 1], a_smoothLen);
-}
-
-// A hand-computed closed-form expected value (SmoothMin's exact blend formula, FiniteRepetition's
-// tile folding, ...), or a "never worse than the sharp value" bound that holds by construction of
-// the blending formula, swept over many sample points.
-template <class T>
-double
-formulaMargin()
-{
-  return std::is_same_v<T, float> ? 1.0e-3 : 1.0e-9;
 }
 
 // A smooth CSG blend converging to its sharp counterpart far from the blend region: the residual

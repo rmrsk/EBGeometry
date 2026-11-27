@@ -96,7 +96,7 @@ minAbsSignedDistance(const std::vector<Tri<T>>& a_tris, const Vec3T<T>& a_point)
 
 template <class T>
 std::vector<Vec3T<T>>
-queryPoints()
+fourTrianglesQueries()
 {
   using Vec3 = Vec3T<T>;
   return {
@@ -124,7 +124,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance matches the minimum-|distance| 
   SoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
-  for (const auto& p : queryPoints<T>()) {
+  for (const auto& p : fourTrianglesQueries<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(minAbsSignedDistance<T>(tris, p), looseMargin<T>()));
   }
 }
@@ -141,7 +141,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance is unaffected by padding when c
   SoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
-  for (const auto& p : queryPoints<T>()) {
+  for (const auto& p : fourTrianglesQueries<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(minAbsSignedDistance<T>(tris, p), looseMargin<T>()));
   }
 }
@@ -158,7 +158,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistance handles a single packed triangl
   SoA<T> group;
   group.pack(tris.data(), 1);
 
-  for (const auto& p : queryPoints<T>()) {
+  for (const auto& p : fourTrianglesQueries<T>()) {
     REQUIRE_THAT(group.signedDistance(p), withinAbsT(tris.front().signedDistance(p), looseMargin<T>()));
   }
 }
@@ -256,7 +256,7 @@ TEMPLATE_TEST_CASE("TriangleSoAT::signedDistances returns per-lane distances who
   SoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
-  for (const auto& p : queryPoints<T>()) {
+  for (const auto& p : fourTrianglesQueries<T>()) {
     const Array<T, W> perLane = group.signedDistances(p);
 
     // Each lane must match the corresponding individual triangle, and the min-|lane| must equal the
@@ -288,7 +288,7 @@ TEMPLATE_TEST_CASE("TriangleAoSoA::signedDistance(point, faceId) reports the clo
   AoSoA<T> group;
   group.pack(tris.data(), static_cast<uint32_t>(tris.size()));
 
-  for (const auto& p : queryPoints<T>()) {
+  for (const auto& p : fourTrianglesQueries<T>()) {
     // Brute-force the closest triangle (by |signed distance|) and its face id.
     T        best           = std::numeric_limits<T>::max();
     uint32_t expectedFaceId = UINT32_MAX;

@@ -11,6 +11,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestSphereCloudBVHHelpers.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -262,8 +263,8 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: centers and radii kept apart build the same 
   const SphereCloudBVH<T> fromSource = SphereCloudBVH<T>::build(
     pool, Source{PointCloud::FromArray<T>{centers.data()}, SphereCloud::FromRadii<T>{radii.data()}}, 700);
 
-  requireSameTree(fromVectors, fromSpheres);
-  requireSameTree(fromSource, fromSpheres);
+  requireSameSphereTree(fromVectors, fromSpheres);
+  requireSameSphereTree(fromSource, fromSpheres);
 }
 
 TEMPLATE_TEST_CASE("SphereCloudBVH: equal spheres tie to the lower index, a radius of 0 is a point, an empty cloud "
@@ -665,8 +666,8 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: a deep copy and a rebased view answer like t
   REQUIRE(copy.isAttachedTo(copyPool));
   REQUIRE(view.base() == mirror.base());
 
-  requireSameTree(copy, cloud);
-  requireSameTree(view, cloud);
+  requireSameSphereTree(copy, cloud);
+  requireSameSphereTree(view, cloud);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -993,53 +994,44 @@ TEST_CASE("SphereCloudBVH: rejects a sphere it cannot build over, mismatched cen
   const std::vector<SphereCloud::Sphere<T>> notFinite = {
     {Vec3T<T>(T(0), T(0), T(0)), T(1)}, {Vec3T<T>(T(1), std::numeric_limits<T>::quiet_NaN(), T(0)), T(0.5)}};
 
-  REQUIRE(abortsWith(
-    [&negative] {
-      Pool                    pool(hostMemoryResource());
-      const SphereCloudBVH<T> cloud(pool, negative);
-    },
-    "SphereCloudBVH::build: sphere 1 of 2 has a non-finite or negative radius"));
+  // A BVH over the spheres, built with room for a rebuild of up to two spheres.
+  const auto twoSpheres = [](Pool& a_pool, const std::vector<SphereCloud::Sphere<T>>& a_spheres) {
+    return SphereCloudBVH<T>::build(a_pool, a_spheres, 4, 2);
+  };
 
-  REQUIRE(abortsWith(
-    [&notFinite] {
-      Pool                    pool(hostMemoryResource());
-      const SphereCloudBVH<T> cloud(pool, notFinite);
-    },
-    "SphereCloudBVH::build: sphere 1 of 2 has a non-finite coordinate"));
-
-  REQUIRE(abortsWith(
-    [] {
-      Pool                    pool(hostMemoryResource());
-      const SphereCloudBVH<T> cloud(pool, std::vector<Vec3T<T>>(3), std::vector<T>(2));
-    },
-    "SphereCloudBVH::build: 3 centers but 2 radii"));
-
-  REQUIRE(abortsWith(
-    [&good] {
-      Pool              pool(hostMemoryResource());
-      SphereCloudBVH<T> cloud(pool, good);
-
-      cloud.rebuild(SphereCloud::FromArray<T>{good.data()}, 2U);
-    },
-    "SphereCloudBVH::rebuild: the BVH has no room for a rebuild (see build()'s a_maxSpheres)"));
-
-  REQUIRE(abortsWith(
-    [&good] {
-      Pool              pool(hostMemoryResource());
-      SphereCloudBVH<T> cloud = SphereCloudBVH<T>::build(pool, good, 4, 2);
-
-      cloud.rebuild(SphereCloud::FromArray<T>{good.data()}, 3U);
-    },
-    "SphereCloudBVH::rebuild: 3 spheres, but the BVH has room for 2 (see build()'s a_maxSpheres)"));
-
-  REQUIRE(abortsWith(
-    [&good, &negative] {
-      Pool              pool(hostMemoryResource());
-      SphereCloudBVH<T> cloud = SphereCloudBVH<T>::build(pool, good, 4, 2);
-
-      cloud.rebuild(SphereCloud::FromArray<T>{negative.data()}, 2U);
-    },
-    "SphereCloudBVH::rebuild: sphere 1 of 2 has a non-finite or negative radius"));
+  requireAbortsWith({
+    {[&] {
+       Pool pool(hostMemoryResource());
+       (void)SphereCloudBVH<T>(pool, negative);
+     },
+     "SphereCloudBVH::build: sphere 1 of 2 has a non-finite or negative radius"},
+    {[&] {
+       Pool pool(hostMemoryResource());
+       (void)SphereCloudBVH<T>(pool, notFinite);
+     },
+     "SphereCloudBVH::build: sphere 1 of 2 has a non-finite coordinate"},
+    {[] {
+       Pool pool(hostMemoryResource());
+       (void)SphereCloudBVH<T>(pool, std::vector<Vec3T<T>>(3), std::vector<T>(2));
+     },
+     "SphereCloudBVH::build: 3 centers but 2 radii"},
+    {[&] {
+       Pool              pool(hostMemoryResource());
+       SphereCloudBVH<T> cloud(pool, good);
+       cloud.rebuild(SphereCloud::FromArray<T>{good.data()}, 2U);
+     },
+     "SphereCloudBVH::rebuild: the BVH has no room for a rebuild (see build()'s a_maxSpheres)"},
+    {[&] {
+       Pool pool(hostMemoryResource());
+       twoSpheres(pool, good).rebuild(SphereCloud::FromArray<T>{good.data()}, 3U);
+     },
+     "SphereCloudBVH::rebuild: 3 spheres, but the BVH has room for 2 (see build()'s a_maxSpheres)"},
+    {[&] {
+       Pool pool(hostMemoryResource());
+       twoSpheres(pool, good).rebuild(SphereCloud::FromArray<T>{negative.data()}, 2U);
+     },
+     "SphereCloudBVH::rebuild: sphere 1 of 2 has a non-finite or negative radius"},
+  });
 
   // Through GPU::parallelFor() (emulated device memory, in a host build, where the launches can read the host
   // array), a bad sphere is found from the boxes, without its index. A CUDA context does not survive the fork.

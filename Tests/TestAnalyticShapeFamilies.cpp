@@ -10,6 +10,7 @@
 #include "TestDeath.hpp"
 #include "TestExactSDF.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <array>
@@ -32,22 +33,6 @@ using Catch::Matchers::WithinRel;
 namespace {
 
 using V = Vec3T<double>;
-
-// Random points in the cube [-a_extent, a_extent]^3.
-template <class T>
-std::vector<Vec3T<T>>
-randomPoints(const T a_extent, const int a_count, const unsigned a_seed = 2468)
-{
-  std::mt19937                      rng(a_seed);
-  std::uniform_real_distribution<T> coord(-a_extent, a_extent);
-  std::vector<Vec3T<T>>             points;
-
-  for (int i = 0; i < a_count; i++) {
-    points.emplace_back(coord(rng), coord(rng), coord(rng));
-  }
-
-  return points;
-}
 
 // The distance from a point to a triangle (Ericson, Real-Time Collision Detection, 5.1.5).
 double
@@ -972,118 +957,60 @@ TEST_CASE("Shape families: invalid constructor arguments abort with a message", 
   using T    = double;
   using Vec3 = Vec3T<T>;
 
-  REQUIRE(abortsWith(
-    [] {
-      const auto p = ConvexPolyhedronSDF<T>::pyramid(Vec3::zeros(), Vec3::unit(1), T(1), 20U, Vec3::unit(0));
+  // The six faces of the cube [-1, 1]^3.
+  const auto cubePlanes = [] {
+    std::vector<PlaneSDF<T>> planes;
 
-      (void)p;
-    },
-    "ConvexPolyhedronSDF::pyramid: the number of sides must be from 3 to 19 (20)"));
+    for (size_t dir = 0; dir < 3; dir++) {
+      planes.emplace_back(Vec3::unit(dir), Vec3::unit(dir));
+      planes.emplace_back(-Vec3::unit(dir), -Vec3::unit(dir));
+    }
 
-  // An open box: five faces leave it unbounded.
-  REQUIRE(abortsWith(
-    [] {
-      const std::vector<PlaneSDF<T>> planes{PlaneSDF<T>(Vec3::unit(0), Vec3::unit(0)),
-                                            PlaneSDF<T>(-Vec3::unit(0), -Vec3::unit(0)),
-                                            PlaneSDF<T>(Vec3::unit(1), Vec3::unit(1)),
-                                            PlaneSDF<T>(-Vec3::unit(1), -Vec3::unit(1)),
-                                            PlaneSDF<T>(Vec3::unit(2), Vec3::unit(2))};
+    return planes;
+  };
 
-      const ConvexPolyhedronSDF<T> p(planes);
+  requireAbortsWith({
+    {[] { (void)ConvexPolyhedronSDF<T>::pyramid(Vec3::zeros(), Vec3::unit(1), T(1), 20U, Vec3::unit(0)); },
+     "ConvexPolyhedronSDF::pyramid: the number of sides must be from 3 to 19 (20)"},
+    // An open box: five faces leave it unbounded.
+    {[&] {
+       auto planes = cubePlanes();
 
-      (void)p;
-    },
-    "ConvexPolyhedronSDF: plane 0 does not bound a face of the solid, or the solid is not finite"));
+       planes.pop_back();
 
-  // A plane beyond the cube bounds no face.
-  REQUIRE(abortsWith(
-    [] {
-      std::vector<PlaneSDF<T>> planes;
+       (void)ConvexPolyhedronSDF<T>(planes);
+     },
+     "ConvexPolyhedronSDF: plane 0 does not bound a face of the solid, or the solid is not finite"},
+    // A plane beyond the cube bounds no face.
+    {[&] {
+       auto planes = cubePlanes();
 
-      for (size_t dir = 0; dir < 3; dir++) {
-        planes.emplace_back(Vec3::unit(dir), Vec3::unit(dir));
-        planes.emplace_back(-Vec3::unit(dir), -Vec3::unit(dir));
-      }
+       planes.emplace_back(T(2) * Vec3::unit(0), Vec3::unit(0));
 
-      planes.emplace_back(T(2) * Vec3::unit(0), Vec3::unit(0));
-
-      const ConvexPolyhedronSDF<T> p(planes);
-
-      (void)p;
-    },
-    "ConvexPolyhedronSDF: plane 6 does not bound a face of the solid, or the solid is not finite"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const ConvexPolyhedronSDF<T> p(std::vector<PlaneSDF<T>>(3));
-
-      (void)p;
-    },
-    "ConvexPolyhedronSDF: a polyhedron has from 4 to 20 planes (3)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const BoxFrameSDF<T> f(Vec3::zeros(), Vec3::ones(), T(0.5));
-
-      (void)f;
-    },
-    "BoxFrameSDF: the thickness must be positive and less than half the shortest side 1 (0.5)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const auto q = QuadricSDF<T>::hyperboloid(Vec3::zeros(), T(1), T(180));
-
-      (void)q;
-    },
-    "QuadricSDF::hyperboloid: the angle must be in (0, 180) degrees (180)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const SuperellipsoidSDF<T> s(Vec3::zeros(), Vec3::ones(), T(3), T(1));
-
-      (void)s;
-    },
-    "SuperellipsoidSDF: the exponents must be in [0.1, 2] (3, 1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const SolidAngleSDF<T> s(Vec3::zeros(), T(1), T(360));
-
-      (void)s;
-    },
-    "SolidAngleSDF: the angle must be in (0, 360) degrees (360)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const VesicaSDF<T> v(Vec3::zeros(), Vec3::unit(1), T(0.5));
-
-      (void)v;
-    },
-    "VesicaSDF: the radius must be positive and less than half the distance between the tips 0.5 (0.5)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const HelixSDF<T> h(Vec3::zeros(), Vec3::unit(1), T(1), T(10), T(0.06), Vec3::unit(0));
-
-      (void)h;
-    },
-    "HelixSDF: the tube radius must be positive and less than the helix radius 1 and half the distance between turns"));
-
-  // A tube under half the pitch that still touches the next turn, the turns being closer than the pitch: the closest
-  // approach is not straight across, along the axis, so this tube is short of half the across distance and overlaps.
-  REQUIRE(abortsWith(
-    [] {
-      const HelixSDF<T> h(Vec3::zeros(), Vec3::unit(1), T(0.5), T(1), T(0.4765), Vec3::unit(0));
-
-      (void)h;
-    },
-    "HelixSDF: the tube radius must be positive and less than the helix radius 0.5 and half the distance between turns"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const LatticeSDF<T> l(LatticeSDF<T>::Kind::Gyroid, Vec3::ones(), T(1));
-
-      (void)l;
-    },
-    "LatticeSDF: the thickness must be positive and less than the smallest cell size 1 (1)"));
+       (void)ConvexPolyhedronSDF<T>(planes);
+     },
+     "ConvexPolyhedronSDF: plane 6 does not bound a face of the solid, or the solid is not finite"},
+    {[] { (void)ConvexPolyhedronSDF<T>(std::vector<PlaneSDF<T>>(3)); },
+     "ConvexPolyhedronSDF: a polyhedron has from 4 to 20 planes (3)"},
+    {[] { (void)BoxFrameSDF<T>(Vec3::zeros(), Vec3::ones(), T(0.5)); },
+     "BoxFrameSDF: the thickness must be positive and less than half the shortest side 1 (0.5)"},
+    {[] { (void)QuadricSDF<T>::hyperboloid(Vec3::zeros(), T(1), T(180)); },
+     "QuadricSDF::hyperboloid: the angle must be in (0, 180) degrees (180)"},
+    {[] { (void)SuperellipsoidSDF<T>(Vec3::zeros(), Vec3::ones(), T(3), T(1)); },
+     "SuperellipsoidSDF: the exponents must be in [0.1, 2] (3, 1)"},
+    {[] { (void)SolidAngleSDF<T>(Vec3::zeros(), T(1), T(360)); },
+     "SolidAngleSDF: the angle must be in (0, 360) degrees (360)"},
+    {[] { (void)VesicaSDF<T>(Vec3::zeros(), Vec3::unit(1), T(0.5)); },
+     "VesicaSDF: the radius must be positive and less than half the distance between the tips 0.5 (0.5)"},
+    {[] { (void)HelixSDF<T>(Vec3::zeros(), Vec3::unit(1), T(1), T(10), T(0.06), Vec3::unit(0)); },
+     "HelixSDF: the tube radius must be positive and less than the helix radius 1 and half the distance between turns"},
+    // A tube under half the pitch that still touches the next turn, the turns being closer than the pitch: the
+    // closest approach is not straight across, along the axis, so this tube is short of half the across distance and
+    // overlaps.
+    {[] { (void)HelixSDF<T>(Vec3::zeros(), Vec3::unit(1), T(0.5), T(1), T(0.4765), Vec3::unit(0)); },
+     "HelixSDF: the tube radius must be positive and less than the helix radius 0.5 and half the distance between "
+     "turns"},
+    {[] { (void)LatticeSDF<T>(LatticeSDF<T>::Kind::Gyroid, Vec3::ones(), T(1)); },
+     "LatticeSDF: the thickness must be positive and less than the smallest cell size 1 (1)"},
+  });
 }

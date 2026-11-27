@@ -9,6 +9,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestFusedHelpers.hpp"
 #include "TestGPU.hpp"
+#include "TestUtilities.hpp"
 
 #include <type_traits>
 #include <vector>

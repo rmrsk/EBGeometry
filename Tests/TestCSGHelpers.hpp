@@ -9,6 +9,7 @@
 #define EBGEOMETRY_TESTCSGHELPERS_HPP
 
 #include "EBGeometry.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -29,23 +30,6 @@ BV<T>
 sphereBV(const Vec3T<T>& a_center, const T a_radius)
 {
   return {a_center - a_radius * Vec3T<T>::ones(), a_center + a_radius * Vec3T<T>::ones()};
-}
-
-// Evenly-spaced sweep of `a_count` values in [a_lo, a_hi], inclusive of both endpoints. Used
-// instead of a floating-point loop counter (flagged by clang-tidy's FloatLoopCounter check,
-// since float accumulation drift can make the number of iterations non-obvious).
-template <class T>
-std::vector<T>
-sweepValues(const T a_lo, const T a_hi, const int a_count)
-{
-  std::vector<T> values;
-  values.reserve(static_cast<size_t>(a_count) + 1);
-
-  for (int i = 0; i <= a_count; i++) {
-    values.push_back(a_lo + (a_hi - a_lo) * T(i) / T(a_count));
-  }
-
-  return values;
 }
 
 // A small scene of spheres on a line, spaced so neighbors are disjoint -- enough primitives to
