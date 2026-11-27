@@ -81,18 +81,22 @@ struct TapeOptions
    * fraction of the diagonal of the object's bounding box. Where a region's solid and a later region's solid overlap, are flush, or leave a gap narrower than
    * this, the gap is closed (the earlier region fills it up to the later region's face) and the later region's face is
    * the interface between them, seen from either side: in the region functions, region(), closestSurface() and
-   * firstRegionChange(). 0 welds only exact contacts. Default 1e-5. Must be at least 0. m_interfaceLength, when
-   * set, replaces it.
+   * firstRegionChange(). Default 0, which welds only exact contacts (overlapping or exactly flush regions). Must be
+   * at least 0 and less than 1. m_interfaceLength, when set, replaces it.
    * @details Applies only to an object with an Overlay, and only where its regions are concerned: the value of the
    * whole object (signedDistance() without a region) is its expression evaluated as written. For an object whose box
    * is unbounded the tolerance is 0.
    *
-   * The default lies above the rounding of distances in single precision (a few 1e-7 of the coordinates) and above
-   * how flush meshes exported by different tools are (about 1e-6 of their size), and below what an embedded-boundary
-   * grid resolves and the default march tolerance (RayOptions::m_tolerance), so that the weld never decides more than
-   * a marched surface resolves.
+   * The default closes no gap: which gaps are flaws and which are geometry depends on the model, not on its units or
+   * its size. A fraction of the box closes a real gap in a model whose features are much smaller than the whole,
+   * so a gap is welded only when the caller says how wide a gap may be closed. findNearGaps() reports the pairs of
+   * regions a thin gap separates, to choose it from. A tolerance should lie above the rounding of distances in the
+   * precision used (a few 1e-7 of the coordinates in single precision) and above how flush the parts' meshes are
+   * (meshes exported by different tools: about 1e-6 of their size), and below what an embedded-boundary grid
+   * resolves and the march tolerance (RayOptions::m_tolerance), so that the weld never decides more than a marched
+   * surface resolves.
    */
-  double m_interfaceTolerance = 1e-5;
+  double m_interfaceTolerance = 0.0;
 
   /**
    * @brief The interface tolerance as a length, in the object's units: when set, it replaces m_interfaceTolerance. 0
@@ -2238,7 +2242,7 @@ private:
    * block it bores, nowhere. Near a welded contact the region's function then measures to the later solid's face on
    * both sides of it. The taper makes e vanish at the band's edge, so the function is continuous; it changes the value
    * by at most 2 eps, and keeps its sign outside welded gaps. In single precision, far from the origin (a hundred
-   * diagonals, say), the rounding of the values approaches the default tolerance, and so does the estimate of c: a weld
+   * diagonals, say), the rounding of the values approaches a tolerance of 1e-5 of the box, and so does the estimate of c: a weld
    * there is less sure.
    * @param[in] a_region The region.
    * @param[in] a_own    The region's solid at the point.

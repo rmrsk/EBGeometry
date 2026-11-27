@@ -964,8 +964,8 @@ Model<T>::domainObject(std::string_view a_domain) const
     return neighborhood.wholeSurface(a_surface);
   });
 
-  // The whole model's interface tolerance as a length: the domain's object has a smaller box, of which the default
-  // fraction would be a shorter length.
+  // The whole model's interface tolerance as a length: the domain's object has a smaller box, of which a fraction
+  // would be a shorter length.
   TapeOptions options = this->tapeOptions();
 
   if (!options.m_interfaceLength.has_value()) {

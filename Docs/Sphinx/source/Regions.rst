@@ -58,10 +58,13 @@ surface, with the other region and its material across it. Overlapping and exact
 interface. Only faces that face each other across a gap are welded. Faces that lie side by side in one plane,
 such as the end of a channel flush with the end of the block it is bored through, are not.
 
-The tolerance is a fraction of the object's size, small enough to stay below what a grid resolves. Two
-parts that nearly touch at a point (two spheres, a cylinder lying on a plane) are joined by a thin neck
-where they come within the tolerance. Gaps wider than the tolerance are left as they are, as geometry, but
-they can be found and reported, so that a model with parts meant to touch can be fixed.
+By default the tolerance is 0: only parts that overlap or are exactly flush are welded, and every gap stays
+open. Which gaps are flaws and which are geometry depends on the model (a narrow channel between two parts may
+be real), so a gap is closed only when the model or the program says how wide a gap may be closed: a length
+small enough to stay below what a grid resolves. Two parts that nearly touch at a point (two spheres, a cylinder
+lying on a plane) are then joined by a thin neck where they come within the tolerance. Gaps wider than the
+tolerance are left as they are, as geometry, but they can be found and reported, so that a model with parts
+meant to touch can be fixed, or given a tolerance that closes them.
 
 Materials
 ---------

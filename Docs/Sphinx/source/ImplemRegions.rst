@@ -90,9 +90,10 @@ Regions are welded by a tape that lists the feature ``TapeFeature::Weld``,
 :ref:`Sec:TapeFeatures`). A plain ``Tape<T>`` keeps its regions' solids exactly as its operands give them, and asks
 about them a little faster on a device. The interface tolerance is set when the tape is built
 (`TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__): as a fraction of the diagonal of the
-object's box, ``m_interfaceTolerance`` (1e-5 by default; 0 welds only exact contacts), or as a length,
-``m_interfaceLength``, which replaces the fraction when it is set. Give a length for parts that are only roughly
-flush, or for a real gap that is small next to the whole object and must stay open:
+object's box, ``m_interfaceTolerance``, or as a length, ``m_interfaceLength``, which replaces the fraction when
+it is set. By default the fraction is 0 and no length is set, which welds only exact contacts (overlapping or exactly flush regions) and closes no
+gap. Give a length for parts that are only roughly flush (``findNearGaps()``, below, reports how narrow their gaps
+are); a fraction of the box could close a real gap that is small next to the whole object:
 
 .. code-block:: c++
 
@@ -231,8 +232,8 @@ solver of one domain can compile a smaller object instead: the domain's regions 
 * **What stays the same.** In the regions given and around them, every subdomain function has the same value as
   on the whole object's tape, and everywhere the same sign; ``closestSurface()`` finds the same surfaces, with
   the same regions on their two sides. Far from them, in the excluded regions, the values may differ. This
-  holds when both tapes weld regions within the same length: the default tolerance is a fraction of the
-  object's box, and the smaller object's box is smaller, so its tape is built with the whole tape's tolerance
+  holds when both tapes weld regions within the same length: a tolerance given as a fraction of the
+  object's box would be a shorter length on the smaller object, so its tape is built with the whole tape's tolerance
   as a length (``options.m_interfaceLength = whole.getInterfaceTolerance()``).
 * **What is numbered anew.** The kept regions keep their order and are numbered from 1; ``region()``,
   ``wholeRegion()``, ``surface()`` and ``wholeSurface()`` map regions and surfaces both ways. ``setup()``

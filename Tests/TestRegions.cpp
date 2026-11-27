@@ -3119,7 +3119,7 @@ TEMPLATE_TEST_CASE("regionNeighborhood: a setup translates by numbers and names,
   REQUIRE(abortsWith([&] { (void)neighborhood.setup(far); }, "RegionNeighborhood: region 3 of subdomain 0"));
 }
 
-TEMPLATE_TEST_CASE("Tape: the interface tolerance is a fraction of the box's diagonal, 0 for an unbounded object",
+TEMPLATE_TEST_CASE("Tape: the interface tolerance is 0 by default, else a fraction of the box's diagonal or a length",
                    "[Overlay][Tape]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -3135,7 +3135,8 @@ TEMPLATE_TEST_CASE("Tape: the interface tolerance is a fraction of the box's dia
 
   const T diagonal = std::sqrt(T(6));
 
-  CHECK_THAT(Tape(pool, pair).getInterfaceTolerance(), withinAbsT<T>(T(1e-5) * diagonal, tightMargin<T>()));
+  // By default only exact contacts are welded.
+  CHECK(Tape(pool, pair).getInterfaceTolerance() == T(0));
 
   TapeOptions options;
 
@@ -3302,16 +3303,18 @@ TEMPLATE_TEST_CASE("Tape: abutting regions share one interface, the later one's 
 
   Pool pool(hostMemoryResource());
 
-  // Flush (a gap of 0), a gap of 3e-6 of the diagonal (welded at the default tolerance, 1e-5 of it; a ray steps 1e-6
-  // of it past a crossing), and one of 1e-4 welded at a tolerance of 1e-3.
+  // Flush (a gap of 0) at the default tolerance, a gap of 3e-6 of the diagonal (welded at a tolerance of 1e-5 of it;
+  // a ray steps 1e-6 of it past a crossing), and one of 1e-4 welded at a tolerance of 1e-3.
   const T diagonal = std::sqrt(T(6));
 
+  TapeOptions fine;
   TapeOptions coarse;
 
+  fine.m_interfaceTolerance   = 1e-5;
   coarse.m_interfaceTolerance = 1e-3;
 
   for (const auto& [gap, options] : {std::make_pair(T(0), TapeOptions()),
-                                     std::make_pair(T(3e-6) * diagonal, TapeOptions()),
+                                     std::make_pair(T(3e-6) * diagonal, fine),
                                      std::make_pair(T(1e-4) * diagonal, coarse)}) {
     INFO("gap " << gap);
 
@@ -3387,14 +3390,14 @@ TEMPLATE_TEST_CASE("Tape: a gap wider than the interface tolerance, or any gap a
 
   const T diagonal = std::sqrt(T(6));
 
-  TapeOptions exact;
+  TapeOptions fine;
 
-  exact.m_interfaceTolerance = 0.0;
+  fine.m_interfaceTolerance = 1e-5;
 
-  // A gap of 1e-4 of the diagonal at the default tolerance, and one of 1e-5 (wider than the step a ray takes past a
-  // crossing) with none.
+  // A gap of 1e-4 of the diagonal at a tolerance of 1e-5 of it, and one of 1e-5 (wider than the step a ray takes past
+  // a crossing) at the default tolerance, 0.
   for (const auto& [gap, options] :
-       {std::make_pair(T(1e-4) * diagonal, TapeOptions()), std::make_pair(T(1e-5) * diagonal, exact)}) {
+       {std::make_pair(T(1e-4) * diagonal, fine), std::make_pair(T(1e-5) * diagonal, TapeOptions())}) {
     INFO("gap " << gap);
 
     const Tape tape(pool, cubePair<T>(gap), options);
@@ -3418,10 +3421,10 @@ TEMPLATE_TEST_CASE("Tape: a gap wider than the interface tolerance, or any gap a
     CHECK(changesAlongX<T>(tape, false).size() == 4U);
   }
 
-  // Exactly flush at a tolerance of 0: an exact tie, which names the later cube's face, with it across, from either
+  // Exactly flush at the default tolerance, 0: an exact tie, which names the later cube's face, with it across, from either
   // side.
   {
-    const Tape flush(pool, cubePair<T>(T(0)), exact);
+    const Tape flush(pool, cubePair<T>(T(0)));
 
     const SurfaceRef<T> fromFirst  = flush.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U);
     const SurfaceRef<T> fromSecond = flush.closestSurface(Vec3(T(1.1), T(0.5), T(0.5)), 2U);
@@ -3432,9 +3435,11 @@ TEMPLATE_TEST_CASE("Tape: a gap wider than the interface tolerance, or any gap a
     CHECK(fromSecond.m_neighborRegion == 1U);
   }
 
-  // The wide gap is reported, the welded one is not.
-  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(1e-4) * diagonal))).size() == 1U);
-  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(3e-6) * diagonal))).empty());
+  // At a tolerance of 1e-5 of the diagonal, the wide gap is reported and the welded one is not; at the default
+  // tolerance, 0, both are reported.
+  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(1e-4) * diagonal), fine)).size() == 1U);
+  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(3e-6) * diagonal), fine)).empty());
+  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(3e-6) * diagonal))).size() == 1U);
 }
 
 TEMPLATE_TEST_CASE("Tape: two nearly touching spheres in different regions are welded by a neck",
@@ -3586,10 +3591,14 @@ TEMPLATE_TEST_CASE("Tape: a tape without TapeFeature::Weld keeps its regions' so
 
   Pool pool(hostMemoryResource());
 
-  // A gap of 3e-6 of the diagonal, which a welding tape closes at the default tolerance.
+  // A gap of 3e-6 of the diagonal, which a welding tape closes at a tolerance of 1e-5 of it.
   const T gap = T(3e-6) * std::sqrt(T(6));
 
-  const Tape<T> plain(pool, cubePair<T>(gap));
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-5;
+
+  const Tape<T> plain(pool, cubePair<T>(gap), options);
 
   const Vec3 middle(T(1) + T(0.5) * gap, T(0.4142), T(0.5858));
 
@@ -3602,7 +3611,7 @@ TEMPLATE_TEST_CASE("Tape: a tape without TapeFeature::Weld keeps its regions' so
   CHECK(plain.closestSurface(Vec3(T(1.1) + gap, T(0.5), T(0.5)), 2U).m_neighborRegion == 0U);
   CHECK(plain.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U).m_leaf == 0U);
 
-  const Tape<T, TapeFeature::Weld> welded(pool, cubePair<T>(gap));
+  const Tape<T, TapeFeature::Weld> welded(pool, cubePair<T>(gap), options);
 
   CHECK(welded.region(middle) == 1U);
 }
