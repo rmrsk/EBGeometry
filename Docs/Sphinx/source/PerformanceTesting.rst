@@ -62,6 +62,7 @@ What is in Performance/
      ClosestSurface/main.cpp  a tape's closestSurface(), drilled into a collection
      SurfaceParts/main.cpp    parts and labels of a tape's surfaces, and firstSurface()
      Regions/main.cpp         a tape's regions, their functions, and a domain's labels
+     Weld/main.cpp            a tape that welds its regions, away from welds and at them
      Domain/main.cpp          a domain with many subdomains and surface groups
      DomainObject/main.cpp    a domain compiled on its own, against the whole object
      ConnectedComponents/main.cpp  the connected components of a model's regions
@@ -1057,6 +1058,22 @@ Family                                Build  Measures
 ``assembly/firstRegionChange``,       host   where 50,000 rays at the assembly first change region,
 ``assembly/firstHit``                        with the surface; or where they first cross it
 ``<input>/<operation>``               GPU    each of the above at 262,144 points or rays on both sides
+====================================  =====  =====================================================
+
+**Weld** (``Performance/Weld``): a tape that welds its regions (``TapeFeature::Weld``, see
+:ref:`Chap:ImplemRegions`), with an interface tolerance of 1e-4. The particles are the Regions probe's matrix, at random
+points, where almost no point is near a weld: what the feature costs where it does nothing. The blocks are a stack of
+4 x 4 x 4 unit blocks, each a region, with gaps of 0.3 tolerances between neighbors, at points within two tolerances
+of the gaps: what a weld costs where every query reaches it.
+
+====================================  =====  =====================================================
+Family                                Build  Measures
+====================================  =====  =====================================================
+``particles/region``,                 host   the region, or every region's function in one pass,
+``particles/regionDistances``                of each of 20,000 points in the matrix
+``blocks/region``,                    host   the region, or the nearest surface with the region
+``blocks/closestSurface``                    across, of each of 20,000 points near the gaps
+``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
 ====================================  =====  =====================================================
 
 **Domain** (``Performance/Domain``): a domain (see :ref:`Chap:Regions`) with many subdomains and surface
