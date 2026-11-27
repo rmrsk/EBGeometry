@@ -3806,7 +3806,7 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
     T inside = whole;
 
     for (uint32_t k = n; k > 0U; k--) {
-      inside = Math::min(inside, this->signedDistance(a_point, k));
+      inside = Math::min(inside, this->regionFunction(k, a_point));
     }
 
     return -inside;
@@ -3816,6 +3816,14 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
     return this->wholeValue(a_point);
   }
 
+  return this->regionFunction(a_region, a_point);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+inline T
+Tape<T, UserPrimitives...>::regionFunction(const uint32_t a_region, const Vec3T<T>& a_point) const noexcept
+{
   // Region k is its solid with its masks, welded to the later solids (weldedSolid()), minus each later solid without
   // the masks the two share (see TapeDetail::RegionSolid): max(welded S_k, -min_{j>k} S_j).
   const T later = this->laterSolid(a_region, a_point);
@@ -3870,7 +3878,7 @@ Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_v
   }
   else {
     for (uint32_t k = n; k > 0U; k--) {
-      const T value = this->signedDistance(a_point, k);
+      const T value = this->regionFunction(k, a_point);
 
       CallableDetail::call(a_visit, k, value);
 

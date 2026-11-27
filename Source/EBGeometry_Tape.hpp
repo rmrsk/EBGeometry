@@ -2178,6 +2178,18 @@ private:
   laterSolid(uint32_t a_region, const Vec3T<T>& a_point) const noexcept;
 
   /**
+   * @brief Region k's function, for a region of an Overlay (1 to the number of regions less one): its solid welded to
+   * the later solids, minus them (see signedDistance(p, region), which calls it; the background's function calls it
+   * too, so that no function calls itself, which a device compiler cannot bound the stack of).
+   * @param[in] a_region Region.
+   * @param[in] a_point  Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  regionFunction(uint32_t a_region, const Vec3T<T>& a_point) const noexcept;
+
+  /**
    * @brief A region's solid welded to the later regions': grown into a gap between the two narrower than the interface
    * tolerance, up to the later solid's face.
    * @details Only outside both solids and within the tolerance eps of both (0 <= own < eps, 0 <= later < eps) does the
