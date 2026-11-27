@@ -383,6 +383,9 @@ code. The features are:
    * - ``ExactOffsets``
      - Ray queries trace ``Offset`` and ``Annular`` of a primitive with closed-form level sets, or of an
        affine map of one, exactly (see :ref:`Sec:OffsetRays`). Without it, they are marched.
+   * - ``Weld``
+     - Regions closer than the interface tolerance share one interface (see :ref:`Chap:ImplemRegions`). The object
+       is the same either way; without it, its regions are exactly their operands' solids.
 
 .. _Sec:Fused:
 

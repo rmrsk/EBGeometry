@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -3116,4 +3117,651 @@ TEMPLATE_TEST_CASE("regionNeighborhood: a setup translates by numbers and names,
   (void)far.addSubdomain({3U});
 
   REQUIRE(abortsWith([&] { (void)neighborhood.setup(far); }, "RegionNeighborhood: region 3 of subdomain 0"));
+}
+
+TEMPLATE_TEST_CASE("Tape: the interface tolerance is 0 by default, else a fraction of the box's diagonal or a length",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  // Two unit cubes side by side: a box from (0, 0, 0) to (2, 1, 1), diagonal sqrt(6).
+  const Expr<T> pair =
+    Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()), BoxSDF<T>(Vec3(T(1), T(0), T(0)), Vec3(T(2), T(1), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const T diagonal = std::sqrt(T(6));
+
+  // By default only exact contacts are welded.
+  CHECK(Tape(pool, pair).getInterfaceTolerance() == T(0));
+
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-3;
+
+  CHECK_THAT(Tape(pool, pair, options).getInterfaceTolerance(), withinAbsT<T>(T(1e-3) * diagonal, tightMargin<T>()));
+
+  options.m_interfaceTolerance = 0.0;
+
+  CHECK(Tape(pool, pair, options).getInterfaceTolerance() == T(0));
+
+  // A length, given: it replaces the fraction, whatever the box.
+  options.m_interfaceLength = 2.5e-4;
+
+  CHECK_THAT(Tape(pool, pair, options).getInterfaceTolerance(), withinAbsT<T>(T(2.5e-4), tightMargin<T>()));
+
+  options.m_interfaceLength = 0.0;
+
+  CHECK(Tape(pool, pair, options).getInterfaceTolerance() == T(0));
+
+  // A tape without TapeFeature::Weld does not weld: its tolerance is 0, whatever the options.
+  CHECK(EBGeometry::Tape<T>(pool, pair).getInterfaceTolerance() == T(0));
+
+  // A half-space has no bounded box.
+  CHECK(Tape(pool, Overlay(PlaneSDF<T>(Vec3::zeros(), Vec3(T(0), T(0), T(1))), SphereSDF<T>(Vec3::zeros(), T(1))))
+          .getInterfaceTolerance() == T(0));
+
+  const std::string refused = "Tape: TapeOptions::m_interfaceTolerance is";
+
+  REQUIRE(abortsWith(
+    [&] {
+      Pool        local(hostMemoryResource());
+      TapeOptions bad;
+
+      bad.m_interfaceTolerance = -1e-5;
+
+      (void)Tape(local, pair, bad);
+    },
+    refused));
+  REQUIRE(abortsWith(
+    [&] {
+      Pool        local(hostMemoryResource());
+      TapeOptions bad;
+
+      bad.m_interfaceLength = -1.0;
+
+      (void)Tape(local, pair, bad);
+    },
+    "Tape: TapeOptions::m_interfaceLength is"));
+
+  // A length the precision cannot hold (beyond float's largest value) is refused in float.
+  if constexpr (std::is_same_v<T, float>) {
+    REQUIRE(abortsWith(
+      [&] {
+        Pool        local(hostMemoryResource());
+        TapeOptions bad;
+
+        bad.m_interfaceLength = 1e39;
+
+        (void)Tape(local, pair, bad);
+      },
+      "larger than the precision holds"));
+  }
+}
+
+TEMPLATE_TEST_CASE("findNearGaps: regions a thin layer of the background separates, each pair once, with its gap",
+                   "[Overlay][SurfacePieces]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  // Three unit cubes along x: the second a gap of 1e-3 past the first (reported at the default width, 1e-3 of the
+  // diagonal, about 3.6e-3), the third 0.1 past the second (too wide).
+  const T narrow = T(1e-3);
+  const T wide   = T(0.1);
+
+  const Expr<T> row =
+    Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()),
+            BoxSDF<T>(Vec3(T(1) + narrow, T(0), T(0)), Vec3(T(2) + narrow, T(1), T(1))),
+            BoxSDF<T>(Vec3(T(2) + narrow + wide, T(0), T(0)), Vec3(T(3) + narrow + wide, T(1), T(1))));
+
+  Pool pool(hostMemoryResource());
+
+  const Tape tape(pool, row);
+
+  const std::vector<NearGap<T>> gaps = findNearGaps(tape);
+
+  REQUIRE(gaps.size() == 1U);
+  CHECK(gaps[0].m_region == 1U);
+  CHECK(gaps[0].m_other == 2U);
+  CHECK_THAT(gaps[0].m_gap, withinAbsT<T>(narrow, 1e-2 * static_cast<double>(narrow)));
+  CHECK(gaps[0].m_point[0] > T(1));
+  CHECK(gaps[0].m_point[0] < T(1) + narrow);
+  CHECK(tape.region(gaps[0].m_point) == 0U);
+
+  // A wider width finds the second gap too; none is found in an object of one region.
+  CHECK(findNearGaps(tape, 0.05).size() == 2U);
+  CHECK(findNearGaps(Tape(pool, BoxSDF<T>(Vec3::zeros(), Vec3::ones()))).empty());
+}
+
+namespace {
+
+// Two unit cubes along x, the second a gap past the first: copper (region 1, leaf 0) and PTFE (region 2, leaf 1).
+template <class T>
+Expr<T>
+cubePair(const T a_gap)
+{
+  using Vec3 = Vec3T<T>;
+
+  const auto first  = MaterialLabel(BoxSDF<T>(Vec3::zeros(), Vec3::ones()), "copper");
+  const auto second = MaterialLabel(BoxSDF<T>(Vec3(T(1) + a_gap, T(0), T(0)), Vec3(T(2) + a_gap, T(1), T(1))), "PTFE");
+
+  return Overlay(first, second);
+}
+
+// The regions a ray along x through the middle of the cubes changes between, in order.
+template <class T, class TapeType>
+std::vector<std::pair<uint32_t, uint32_t>>
+changesAlongX(const TapeType& a_tape, const bool a_backwards)
+{
+  using Vec3 = Vec3T<T>;
+
+  const T        sign = a_backwards ? T(-1) : T(1);
+  const RayT<T>  ray{Vec3(a_backwards ? T(3) : T(-1), T(0.4142), T(0.5858)), Vec3(sign, T(0), T(0))};
+  const uint32_t none = 0xFFFFFFFFU;
+
+  std::vector<std::pair<uint32_t, uint32_t>> changes;
+
+  T t = T(0);
+
+  for (int i = 0; i < 16; i++) {
+    const SurfaceHitT<T> change = a_tape.firstRegionChange(ray, t, T(4));
+
+    if (!change.m_hit.hit()) {
+      break;
+    }
+
+    changes.emplace_back(change.m_surface.m_ownerRegion, change.m_surface.m_neighborRegion);
+
+    // The crossing between the cubes is on the second cube's face (leaf 1), from either side.
+    if (change.m_surface.m_ownerRegion != 0U && change.m_surface.m_neighborRegion != 0U) {
+      CHECK(change.m_surface.m_leaf == 1U);
+    }
+
+    t = change.m_hit.m_t;
+  }
+
+  (void)none;
+
+  return changes;
+}
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: abutting regions share one interface, the later one's face, from both sides",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  // Flush (a gap of 0) at the default tolerance, a gap of 3e-6 of the diagonal (welded at a tolerance of 1e-5 of it;
+  // a ray steps 1e-6 of it past a crossing), and one of 1e-4 welded at a tolerance of 1e-3.
+  const T diagonal = std::sqrt(T(6));
+
+  TapeOptions fine;
+  TapeOptions coarse;
+
+  fine.m_interfaceTolerance   = 1e-5;
+  coarse.m_interfaceTolerance = 1e-3;
+
+  for (const auto& [gap, options] : {std::make_pair(T(0), TapeOptions()),
+                                     std::make_pair(T(3e-6) * diagonal, fine),
+                                     std::make_pair(T(1e-4) * diagonal, coarse)}) {
+    INFO("gap " << gap);
+
+    const Tape tape(pool, cubePair<T>(gap), options);
+
+    const ExprIndex<T> index(cubePair<T>(gap));
+
+    const Vec3 inFirst(T(0.9), T(0.5), T(0.5));
+    const Vec3 inSecond(T(1.1) + gap, T(0.5), T(0.5));
+
+    // From the first cube: the second cube's face, with the second cube across it.
+    const SurfaceRef<T> fromFirst = tape.closestSurface(inFirst, 1U);
+
+    CHECK(fromFirst.m_leaf == 1U);
+    CHECK(fromFirst.m_ownerRegion == 1U);
+    CHECK(fromFirst.m_neighborRegion == 2U);
+    CHECK(index.getMaterialLabelName(fromFirst.m_neighborMaterial) == "PTFE");
+
+    // From the second cube: the same face, with the first cube (not the background) across it.
+    const SurfaceRef<T> fromSecond = tape.closestSurface(inSecond, 2U);
+
+    CHECK(fromSecond.m_leaf == 1U);
+    CHECK(fromSecond.m_ownerRegion == 2U);
+    CHECK(fromSecond.m_neighborRegion == 1U);
+    CHECK(index.getMaterialLabelName(fromSecond.m_neighborMaterial) == "copper");
+
+    // The gap belongs to the first cube: its function is negative there, the second's and the background's positive.
+    if (gap > T(0)) {
+      const Vec3 middle(T(1) + T(0.5) * gap, T(0.5), T(0.5));
+
+      CHECK(tape.region(middle) == 1U);
+      CHECK(tape.signedDistance(middle, 1U) < T(0));
+      CHECK(tape.signedDistance(middle, 2U) > T(0));
+      CHECK(tape.signedDistance(middle, 0U) > T(0));
+    }
+
+    // Both functions are zero on the second cube's face, and opposite on its side of it, to within the gap: there the
+    // first cube's function is its distance to the first cube, exactly, as away from any contact.
+    const Vec3 onFace(T(1) + gap, T(0.5), T(0.5));
+
+    CHECK_THAT(tape.signedDistance(onFace, 1U), withinAbsT<T>(T(0), looseMargin<T>()));
+    CHECK_THAT(tape.signedDistance(onFace, 2U), withinAbsT<T>(T(0), looseMargin<T>()));
+    CHECK_THAT(tape.signedDistance(inSecond, 1U), withinAbsT<T>(T(0.1) + gap, looseMargin<T>()));
+    CHECK_THAT(tape.signedDistance(inSecond, 2U), withinAbsT<T>(T(-0.1), looseMargin<T>()));
+
+    // regionDistances() agrees with signedDistance(p, region), the background included.
+    for (const Vec3& p : {inFirst, inSecond, onFace, Vec3(T(1) + T(0.5) * gap, T(0.5), T(0.5))}) {
+      tape.regionDistances(p, [&](const uint32_t a_region, const T a_value) {
+        CHECK_THAT(a_value, withinAbsT<T>(tape.signedDistance(p, a_region), tightMargin<T>()));
+      });
+    }
+
+    // A ray through both cubes changes region three times, either way: one crossing between them.
+    const std::vector<std::pair<uint32_t, uint32_t>> forward  = changesAlongX<T>(tape, false);
+    const std::vector<std::pair<uint32_t, uint32_t>> backward = changesAlongX<T>(tape, true);
+
+    REQUIRE(forward.size() == 3U);
+    CHECK(forward[1] == std::make_pair(1U, 2U));
+    REQUIRE(backward.size() == 3U);
+    CHECK(backward[1] == std::make_pair(2U, 1U));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: a gap wider than the interface tolerance, or any gap at a tolerance of 0, stays background",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  const T diagonal = std::sqrt(T(6));
+
+  TapeOptions fine;
+
+  fine.m_interfaceTolerance = 1e-5;
+
+  // A gap of 1e-4 of the diagonal at a tolerance of 1e-5 of it, and one of 1e-5 (wider than the step a ray takes past
+  // a crossing) at the default tolerance, 0.
+  for (const auto& [gap, options] :
+       {std::make_pair(T(1e-4) * diagonal, fine), std::make_pair(T(1e-5) * diagonal, TapeOptions())}) {
+    INFO("gap " << gap);
+
+    const Tape tape(pool, cubePair<T>(gap), options);
+
+    const Vec3 middle(T(1) + T(0.5) * gap, T(0.5), T(0.5));
+
+    CHECK(tape.region(middle) == 0U);
+    CHECK(tape.signedDistance(middle, 0U) < T(0));
+    CHECK(tape.signedDistance(middle, 1U) > T(0));
+
+    // From the second cube, the background is across its face.
+    CHECK(tape.closestSurface(Vec3(T(1.1) + gap, T(0.5), T(0.5)), 2U).m_neighborRegion == 0U);
+
+    // From the first cube, its own face, with the background across.
+    const SurfaceRef<T> own = tape.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U);
+
+    CHECK(own.m_leaf == 0U);
+    CHECK(own.m_neighborRegion == 0U);
+
+    // A ray crosses the gap: four changes of region.
+    CHECK(changesAlongX<T>(tape, false).size() == 4U);
+  }
+
+  // Exactly flush at the default tolerance, 0: an exact tie, which names the later cube's face, with it across, from either
+  // side.
+  {
+    const Tape flush(pool, cubePair<T>(T(0)));
+
+    const SurfaceRef<T> fromFirst  = flush.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U);
+    const SurfaceRef<T> fromSecond = flush.closestSurface(Vec3(T(1.1), T(0.5), T(0.5)), 2U);
+
+    CHECK(fromFirst.m_leaf == 1U);
+    CHECK(fromFirst.m_neighborRegion == 2U);
+    CHECK(fromSecond.m_leaf == 1U);
+    CHECK(fromSecond.m_neighborRegion == 1U);
+  }
+
+  // At a tolerance of 1e-5 of the diagonal, the wide gap is reported and the welded one is not; at the default
+  // tolerance, 0, both are reported.
+  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(1e-4) * diagonal), fine)).size() == 1U);
+  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(3e-6) * diagonal), fine)).empty());
+  CHECK(findNearGaps(Tape(pool, cubePair<T>(T(3e-6) * diagonal))).size() == 1U);
+}
+
+TEMPLATE_TEST_CASE("Tape: two nearly touching spheres in different regions are welded by a neck",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  // Spheres of radius 1 a gap g apart along x, with a tolerance eps of 1e-3 of the diagonal (box 4 + g by 2 by 2). Off
+  // the axis by r, each is about g/2 + r^2/2 away, so the weld (their sum below eps) reaches r = sqrt(eps - g).
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-3;
+
+  const T gap = T(1e-3);
+
+  const Tape tape(
+    pool, Overlay(SphereSDF<T>(Vec3::zeros(), T(1)), SphereSDF<T>(Vec3(T(2) + gap, T(0), T(0)), T(1))), options);
+
+  const T eps  = tape.getInterfaceTolerance();
+  const T neck = std::sqrt(eps - gap);
+
+  REQUIRE(eps > gap);
+
+  CHECK(tape.region(Vec3(T(1) + T(0.5) * gap, T(0), T(0))) == 1U);
+  CHECK(tape.region(Vec3(T(1) + T(0.5) * gap, T(0.5) * neck, T(0))) == 1U);
+  CHECK(tape.region(Vec3(T(1) + T(0.5) * gap, T(2) * neck, T(0))) == 0U);
+}
+
+TEMPLATE_TEST_CASE("Tape: faces side by side in one plane are not welded, and functions away from contacts are exact",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  // A channel bored along a block, flush with its ends (x = 0 and x = 4): the channel's caps lie in the plane of the
+  // block's end faces. A tolerance of 1e-3 of the diagonal makes the band wide enough to probe.
+  const BoxSDF<T>      block(Vec3::zeros(), Vec3(T(4), T(1), T(2)));
+  const CylinderSDF<T> channel(Vec3(T(0), T(0.5), T(1)), Vec3(T(4), T(0.5), T(1)), T(0.25));
+
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-3;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape tape(pool, Overlay(block, channel), options);
+
+  const T eps = tape.getInterfaceTolerance();
+
+  // Just outside the channel's cap, and outside the block's end face beside it: the background, not a weld.
+  for (const T y : {T(0.5), T(0.6), T(0.9)}) {
+    const Vec3 p(T(-0.25) * eps, y, T(1));
+
+    INFO("y " << y);
+
+    CHECK(tape.region(p) == 0U);
+    CHECK(tape.signedDistance(p, 0U) < T(0));
+  }
+
+  // A ray along the channel enters it from the background, at the cap.
+  const SurfaceHitT<T> entry =
+    tape.firstRegionChange(RayT<T>{Vec3(T(-1), T(0.5), T(1)), Vec3(T(1), T(0), T(0))}, T(0), T(8));
+
+  REQUIRE(entry.m_hit.hit());
+  CHECK(entry.m_surface.m_ownerRegion == 0U);
+  CHECK(entry.m_surface.m_neighborRegion == 2U);
+
+  // Away from the band within the tolerance of both solids, each region's function is the plain one, exactly.
+  for (const Vec3& p : {Vec3(T(1), T(0.1), T(0.3)),
+                        Vec3(T(2), T(0.5), T(1)),
+                        Vec3(T(-0.3), T(0.5), T(1)),
+                        Vec3(T(3), T(0.9), T(1.4)),
+                        Vec3(T(5), T(2), T(3))}) {
+    INFO("point " << p);
+
+    CHECK_THAT(tape.signedDistance(p, 1U),
+               withinAbsT<T>(Math::max(block.signedDistance(p), -channel.signedDistance(p)), tightMargin<T>()));
+    CHECK_THAT(tape.signedDistance(p, 2U), withinAbsT<T>(channel.signedDistance(p), tightMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: a weld is continuous at its edges, and a gap just wider than the tolerance stays open",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions options;
+
+  options.m_interfaceLength = 1e-2;
+
+  const T eps = T(1e-2);
+
+  // A welded gap of half the tolerance: along a line across it and its band, the first cube's function changes by
+  // no more than a few times the step (no jump at the band's edges).
+  {
+    const T    gap = T(0.5) * eps;
+    const Tape tape(pool, cubePair<T>(gap), options);
+
+    const int steps = 400;
+    const T   from  = T(1) - T(3) * eps;
+    const T   dx    = T(6) * eps / T(steps);
+
+    T previous = tape.signedDistance(Vec3(from, T(0.4), T(0.6)), 1U);
+
+    for (int i = 1; i <= steps; i++) {
+      const T value = tape.signedDistance(Vec3(from + T(i) * dx, T(0.4), T(0.6)), 1U);
+
+      INFO("x " << from + T(i) * dx);
+
+      CHECK(std::abs(value - previous) <= T(4) * dx);
+
+      previous = value;
+    }
+  }
+
+  // A gap a little wider than the tolerance is the outside across its whole width: no part of it is welded.
+  {
+    const T    gap = T(1.05) * eps;
+    const Tape tape(pool, cubePair<T>(gap), options);
+
+    for (int i = 1; i < 20; i++) {
+      const Vec3 p(T(1) + gap * T(i) / T(20), T(0.4), T(0.6));
+
+      INFO("x " << p[0]);
+
+      CHECK(tape.region(p) == 0U);
+    }
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: a tape without TapeFeature::Weld keeps its regions' solids as they are",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // A gap of 3e-6 of the diagonal, which a welding tape closes at a tolerance of 1e-5 of it.
+  const T gap = T(3e-6) * std::sqrt(T(6));
+
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-5;
+
+  const Tape<T> plain(pool, cubePair<T>(gap), options);
+
+  const Vec3 middle(T(1) + T(0.5) * gap, T(0.4142), T(0.5858));
+
+  CHECK(plain.getInterfaceTolerance() == T(0));
+  CHECK(plain.region(middle) == 0U);
+  CHECK(plain.signedDistance(middle, 1U) > T(0));
+  CHECK(plain.signedDistance(middle, 0U) < T(0));
+
+  // From the second cube, the outside is across its face; from the first, its own face.
+  CHECK(plain.closestSurface(Vec3(T(1.1) + gap, T(0.5), T(0.5)), 2U).m_neighborRegion == 0U);
+  CHECK(plain.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U).m_leaf == 0U);
+
+  const Tape<T, TapeFeature::Weld> welded(pool, cubePair<T>(gap), options);
+
+  CHECK(welded.region(middle) == 1U);
+}
+
+TEMPLATE_TEST_CASE("Tape: a welding tape's regions agree with or without masks, and a ray through a flush stack",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions options;
+
+  options.m_interfaceLength = 1e-3;
+
+  // Three unit blocks along x, the first two a welded gap apart, the last two flush; the same clipped by a box
+  // larger than them all (a mask above every region, which changes no value here).
+  const T gap = T(4e-4);
+
+  const Expr<T> stack = Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()),
+                                BoxSDF<T>(Vec3(T(1) + gap, T(0), T(0)), Vec3(T(2) + gap, T(1), T(1))),
+                                BoxSDF<T>(Vec3(T(2) + gap, T(0), T(0)), Vec3(T(3) + gap, T(1), T(1))));
+
+  const Expr<T> clipped = Intersection(stack, BoxSDF<T>(-T(10) * Vec3::ones(), T(10) * Vec3::ones()));
+
+  const Tape plain(pool, stack, options);
+  const Tape masked(pool, clipped, options);
+
+  for (int i = -8; i <= 8; i++) {
+    for (const T x0 : {T(1), T(2)}) {
+      const Vec3 p(x0 + T(0.5) * gap + T(i) * T(2e-4), T(0.4142), T(0.5858));
+
+      INFO("point " << p);
+
+      CHECK(plain.region(p) == masked.region(p));
+      CHECK(plain.signedDistance(p, plain.region(p)) <= T(0));
+
+      for (uint32_t k = 0; k < plain.getNumRegions(); k++) {
+        CHECK_THAT(plain.signedDistance(p, k), withinAbsT<T>(masked.signedDistance(p, k), looseMargin<T>()));
+      }
+
+      plain.regionDistances(p, [&](const uint32_t a_region, const T a_value) {
+        CHECK_THAT(a_value, withinAbsT<T>(plain.signedDistance(p, a_region), tightMargin<T>()));
+      });
+    }
+  }
+
+  // A ray along x changes region four times: into the first block, across the welded gap, across the flush faces, and
+  // out of the last; each crossing between blocks on the later block's face.
+  for (const Tape* tape : {&plain, &masked}) {
+    const RayT<T> ray{Vec3(T(-1), T(0.4142), T(0.5858)), Vec3(T(1), T(0), T(0))};
+
+    std::vector<std::pair<uint32_t, uint32_t>> changes;
+
+    T t = T(0);
+
+    for (int i = 0; i < 8; i++) {
+      const SurfaceHitT<T> change = tape->firstRegionChange(ray, t, T(8));
+
+      if (!change.m_hit.hit()) {
+        break;
+      }
+
+      changes.emplace_back(change.m_surface.m_ownerRegion, change.m_surface.m_neighborRegion);
+
+      if (change.m_surface.m_ownerRegion != 0U && change.m_surface.m_neighborRegion != 0U) {
+        CHECK(change.m_surface.m_leaf == change.m_surface.m_neighborRegion - 1U);
+      }
+
+      t = change.m_hit.m_t;
+    }
+
+    REQUIRE(changes.size() == 4U);
+    CHECK(changes[1] == std::make_pair(1U, 2U));
+    CHECK(changes[2] == std::make_pair(2U, 3U));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: where two regions' surfaces cross at an acute angle, the weld leaves a fillet, and none at "
+                   "a right or obtuse one",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  const T eps = T(1e-2);
+
+  TapeOptions options;
+
+  options.m_interfaceLength = static_cast<double>(eps);
+
+  // A slab below z = 0 (region 1), and a slab above a plane through the y axis tilted by an angle (region 2): outside
+  // both, on one side of the y axis, a wedge whose opening angle is the tilt (acute) or its supplement (obtuse).
+  const BoxSDF<T> lower(Vec3(T(-2), T(-1), T(-1)), Vec3(T(2), T(1), T(0)));
+  const BoxSDF<T> upper(Vec3(T(-2), T(-1), T(0)), Vec3(T(2), T(1), T(1)));
+
+  for (const T degrees : {T(10), T(90), T(150)}) {
+    INFO("tilt " << degrees);
+
+    const Expr<T> tilted = Rotate(Expr<T>(upper), degrees, 1);
+    const Tape    tape(pool, Overlay(Expr<T>(lower), tilted), options);
+
+    const EBGeometry::Tape<T> a(pool, Expr<T>(lower));
+    const EBGeometry::Tape<T> b(pool, tilted);
+
+    // How much the faces face each other: the cosine between the slab's top and the tilted face's normals.
+    const T c = std::max(T(0), std::cos(degrees * T(3.14159265358979) / T(180)));
+
+    uint32_t welded = 0;
+    T        reach  = T(0);
+
+    for (int i = -60; i <= 60; i++) {
+      for (int k = 1; k <= 30; k++) {
+        const Vec3 p(T(i) * T(0.25) * eps, T(0), T(k) * T(0.05) * eps);
+        const T    sa = a.signedDistance(p);
+        const T    sb = b.signedDistance(p);
+
+        if (!(sa > T(0) && sb > T(0))) {
+          continue;
+        }
+
+        // Welded where (1 + c)(sa + sb) < 2 eps c, away from the boundary of that set.
+        const T measure = (T(1) + c) * (sa + sb) - T(2) * eps * c;
+
+        if (measure < -T(0.2) * eps) {
+          CHECK(tape.region(p) == 1U);
+
+          welded++;
+          reach = std::max(reach, p.length());
+        }
+        else if (measure > T(0.2) * eps) {
+          CHECK(tape.region(p) == 0U);
+        }
+      }
+    }
+
+    if (degrees < T(90)) {
+      // A fillet along the crossing: it reaches about eps / (2 sin(tilt / 2)) along the wedge, here several eps.
+      CHECK(welded > 0U);
+      CHECK(reach > T(3) * eps);
+    }
+    else {
+      CHECK(welded == 0U);
+    }
+  }
 }

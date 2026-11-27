@@ -590,6 +590,18 @@ instantiateFunctionTemplates()
         (void)neighborhood.wholeRegion(1U);
       }
       (void)findSurfacePieces(regions, 4U);
+      (void)findNearGaps(regions, 1e-3, 4U);
+      (void)regions.getInterfaceTolerance();
+      {
+        const Tape<T, TapeFeature::Weld> welded(meshPool, Overlay(expr, expr));
+
+        (void)welded.region(Vec3T<T>::zeros());
+        (void)welded.signedDistance(Vec3T<T>::zeros(), 1U);
+        (void)welded.closestSurface(Vec3T<T>::zeros(), 1U);
+        (void)welded.firstRegionChange(RayT<T>{Vec3T<T>::zeros(), Vec3T<T>(T(1), T(0), T(0))}, T(0), T(1));
+        welded.regionDistances(Vec3T<T>::zeros(), [](uint32_t, T) {});
+        (void)findNearGaps(welded, 1e-3, 4U);
+      }
       {
         const ComponentOptions<T>    options{T(0.5)};
         const ConnectedComponents<T> components = connectedComponents(regions, options);

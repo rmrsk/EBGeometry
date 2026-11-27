@@ -185,6 +185,155 @@ findSurfacePieces(const TapeType& a_tape, const uint32_t a_resolution = 64)
 }
 
 /**
+ * @brief Two regions that a thin layer of the background separates (findNearGaps()).
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct NearGap
+{
+  /**
+   * @brief The two regions, m_region <= m_other; equal when one region comes close to itself (two of its operand's
+   * parts nearly touching).
+   */
+  uint32_t m_region = 0;
+
+  /**
+   * @brief The other region.
+   */
+  uint32_t m_other = 0;
+
+  /**
+   * @brief The narrowest gap found between them.
+   */
+  T m_gap = T(0);
+
+  /**
+   * @brief Where it was found: in the gap.
+   */
+  Vec3T<T> m_point = Vec3T<T>::zeros();
+};
+
+/**
+ * @brief The pairs of regions that a thin layer of the background separates: where they come closer than a_width
+ * without touching. Each pair once, with the narrowest gap found. A gap the tape welds shut (narrower than its
+ * interface tolerance, Tape::getInterfaceTolerance(), between surfaces that face each other) is region, not background,
+ * so it is not reported; a gap as narrow between surfaces that do not face each other may be.
+ * @details Host only. The rays of findSurfacePieces() (along x, y and z on a grid over the tape's box, a_resolution by
+ * a_resolution of each) are followed through every change of region (Tape::firstRegionChange()). A stretch of the
+ * background (region 0) between two regions, no longer than twice the width along the ray (one of the three axes meets
+ * a gap within about 55 degrees of its normal), is measured at its middle as the sum of the two regions' functions
+ * there: the gap's width across, for regions whose functions are distances. A gap no ray crosses (smaller than a cell
+ * of the grid) is missed. The cost is 3 a_resolution^2 rays.
+ * @tparam TapeType A Tape.
+ * @param[in] a_tape       The tape.
+ * @param[in] a_width      The widest gap reported, as a fraction of the diagonal of the tape's box.
+ * @param[in] a_resolution Rays per side of the grid along each axis.
+ * @return The gaps, sorted by region pair.
+ */
+template <class TapeType>
+[[nodiscard]] EBGEOMETRY_HOST
+std::vector<NearGap<ShapePrecision<TapeType>>>
+findNearGaps(const TapeType& a_tape, const double a_width = 1e-3, const uint32_t a_resolution = 64)
+{
+  using T = ShapePrecision<TapeType>;
+
+  std::vector<NearGap<T>> gaps;
+
+  const BoundingVolumes::AABBT<T> box = a_tape.computeBoundingVolume();
+
+  const Vec3T<T> low  = box.getLowCorner();
+  const Vec3T<T> high = box.getHighCorner();
+  const Vec3T<T> size = high - low;
+
+  if (!(size.length() > T(0)) || !(size.length() < Math::Limits<T>::max()) || a_resolution == 0U || !(a_width > 0.0)) {
+    return gaps;
+  }
+
+  const T width  = T(a_width) * size.length();
+  const T margin = T(0.01) * size.length();
+  const T jitter = T(0.4142135623730950488);
+
+  for (int axis = 0; axis < 3; axis++) {
+    const int u = (axis + 1) % 3;
+    const int v = (axis + 2) % 3;
+
+    for (uint32_t i = 0; i < a_resolution; i++) {
+      for (uint32_t j = 0; j < a_resolution; j++) {
+        Vec3T<T> origin = low;
+
+        origin[axis] = low[axis] - margin;
+        origin[u]    = low[u] + (T(i) + jitter) * size[u] / T(a_resolution);
+        origin[v]    = low[v] + (T(j) + T(1) - jitter) * size[v] / T(a_resolution);
+
+        Vec3T<T> direction = Vec3T<T>::zeros();
+
+        direction[axis] = T(1);
+
+        const RayT<T> ray{origin, direction};
+        const T       tMax = size[axis] + T(2) * margin;
+
+        // The region the ray left for the background, and where.
+        uint32_t left  = 0U;
+        T        leftT = T(0);
+
+        T t = T(0);
+
+        for (uint32_t crossing = 0; crossing < 4096U; crossing++) {
+          const SurfaceHitT<T> change = a_tape.firstRegionChange(ray, t, tMax);
+
+          if (!change.m_hit.hit()) {
+            break;
+          }
+
+          t = change.m_hit.m_t + (change.m_hit.m_exact ? T(0) : T(4) * RayOptions<T>().m_tolerance * size.length());
+
+          const uint32_t from = change.m_surface.m_ownerRegion;
+          const uint32_t to   = change.m_surface.m_neighborRegion;
+
+          if (from == 0U && to != 0U && left != 0U && change.m_hit.m_t - leftT <= T(2) * width) {
+            const Vec3T<T> middle = ray.m_origin + (T(0.5) * (leftT + change.m_hit.m_t)) * ray.m_direction;
+            const T gap = Math::max(T(0), a_tape.signedDistance(middle, left) + a_tape.signedDistance(middle, to));
+
+            if (gap <= width) {
+              const uint32_t a = Math::min(left, to);
+              const uint32_t b = Math::max(left, to);
+
+              NearGap<T>* known = nullptr;
+
+              for (NearGap<T>& other : gaps) {
+                if (other.m_region == a && other.m_other == b) {
+                  known = &other;
+
+                  break;
+                }
+              }
+
+              if (known == nullptr) {
+                gaps.push_back(NearGap<T>{a, b, gap, middle});
+              }
+              else if (gap < known->m_gap) {
+                known->m_gap   = gap;
+                known->m_point = middle;
+              }
+            }
+          }
+
+          left  = (to == 0U) ? from : 0U;
+          leftT = change.m_hit.m_t;
+        }
+      }
+    }
+  }
+
+  std::sort(gaps.begin(), gaps.end(), [](const NearGap<T>& a_first, const NearGap<T>& a_second) {
+    return (a_first.m_region != a_second.m_region) ? a_first.m_region < a_second.m_region
+                                                   : a_first.m_other < a_second.m_other;
+  });
+
+  return gaps;
+}
+
+/**
  * @brief One level a surface belongs to (SurfaceInventory::levelsOf()): the surface itself, its shape, or a node of the
  * expression above it, with the contiguous range of surfaces it covers.
  */

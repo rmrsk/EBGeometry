@@ -38,7 +38,7 @@ columns. The model's object is an ``Expr``, as the expression builder makes one,
    Pool pool(hostMemoryResource());
 
    const auto    model = Language::read<T>("solid.ebg", pool);
-   const Tape<T> tape(pool, model.object());
+   const Tape<T, TapeFeature::Weld> tape(pool, model.object(), model.tapeOptions());
 
 From here on, nothing knows the solid came from a file: the program opens a window on the tape, which renders on the
 GPU in a GPU build, and the tape runs queries there as any tape does (see :ref:`Chap:ExampleBasicCSG`).

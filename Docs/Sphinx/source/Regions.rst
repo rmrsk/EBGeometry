@@ -42,6 +42,30 @@ its place in the outer overlay's order and stay together as a *region group*. An
 unclear which region a point belongs to, such as a union of an overlay with another solid, or an offset or a
 blend of one, is rejected when the object is built.
 
+Regions that touch
+------------------
+
+Parts of a model often meet face to face: two blocks side by side, an electrode seated on an insulator. Parts
+drawn in different tools, or meshes exported from CAD, are rarely exactly flush. They overlap a little, or a
+hair-thin gap is left between them. A gap is a layer of the outside, too thin for any grid to resolve, but it
+still separates the two parts: a cut-cell code would see the outside between them, and the two faces would be
+two surfaces where the model means one.
+
+So two regions that come closer than a small *interface tolerance* are *welded*. The gap between them is
+filled by the earlier region, up to the later one's face, and that face is the one interface between the two,
+seen from either side: both regions' functions are zero on it, and a query from either region names the same
+surface, with the other region and its material across it. Overlapping and exactly flush parts get the same
+interface. Only faces that face each other across a gap are welded. Faces that lie side by side in one plane,
+such as the end of a channel flush with the end of the block it is bored through, are not.
+
+By default the tolerance is 0: only parts that overlap or are exactly flush are welded, and every gap stays
+open. Which gaps are flaws and which are geometry depends on the model (a narrow channel between two parts may
+be real), so a gap is closed only when the model or the program says how wide a gap may be closed: a length
+small enough to stay below what a grid resolves. Two parts that nearly touch at a point (two spheres, a cylinder
+lying on a plane) are then joined by a thin neck where they come within the tolerance. Gaps wider than the
+tolerance are left as they are, as geometry, but they can be found and reported, so that a model with parts
+meant to touch can be fixed, or given a tolerance that closes them.
+
 Materials
 ---------
 

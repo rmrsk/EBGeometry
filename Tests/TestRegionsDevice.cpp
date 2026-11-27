@@ -290,3 +290,127 @@ TEMPLATE_TEST_CASE("Tape: the region queries on a device match the host, and a d
   CHECK(interface);
   CHECK(boundary);
 }
+
+namespace {
+
+// What the device answers near a welded contact: the region, the three regions' functions, each cube's nearest
+// surface with the region across it, and the first change of region along +x.
+template <class T>
+struct WeldAnswer
+{
+  uint32_t m_region;
+  T        m_values[3];
+  uint32_t m_leaf[2];
+  uint32_t m_across[2];
+  uint32_t m_from;
+  uint32_t m_to;
+  uint32_t m_leafCrossed;
+};
+
+template <class T, class TapeType>
+struct WeldQuery
+{
+  TapeType m_tape;
+
+  EBGEOMETRY_HOST_DEVICE
+  WeldAnswer<T>
+  operator()(const Vec3T<T>& a_point) const noexcept
+  {
+    WeldAnswer<T> answer;
+
+    answer.m_region = m_tape.region(a_point);
+
+    for (uint32_t k = 0; k < 3; k++) {
+      answer.m_values[k] = m_tape.signedDistance(a_point, k);
+    }
+
+    for (uint32_t k = 0; k < 2; k++) {
+      const SurfaceRef<T> surface = m_tape.closestSurface(a_point, k + 1U);
+
+      answer.m_leaf[k]   = surface.m_leaf;
+      answer.m_across[k] = surface.m_neighborRegion;
+    }
+
+    const SurfaceHitT<T> change = m_tape.firstRegionChange(RayT<T>{a_point, Vec3T<T>(T(1), T(0), T(0))}, T(0), T(4));
+
+    answer.m_from        = change.m_surface.m_ownerRegion;
+    answer.m_to          = change.m_surface.m_neighborRegion;
+    answer.m_leafCrossed = change.m_surface.m_leaf;
+
+    return answer;
+  }
+};
+
+} // namespace
+
+TEMPLATE_TEST_CASE("Tape: regions welded across a gap answer the same on a device as on the host",
+                   "[Overlay][Tape][gpu]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  using namespace EBGeometryTestGPU;
+
+  if (!deviceAvailable()) {
+    SKIP("no GPU device available");
+  }
+
+  // Two unit cubes along x, a gap of 1e-4 of the diagonal apart, welded at a tolerance of 1e-3 of it.
+  const T gap = T(1e-4) * std::sqrt(T(6));
+
+  TapeOptions options;
+
+  options.m_interfaceTolerance = 1e-3;
+
+  Pool pool(hostMemoryResource());
+
+  const Tape tape(pool,
+                  Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()),
+                          BoxSDF<T>(Vec3(T(1) + gap, T(0), T(0)), Vec3(T(2) + gap, T(1), T(1)))),
+                  options);
+
+  pool.freeze();
+
+  const Pool device = Pool::mirror(pool, deviceTestResource());
+
+  // Points across the contact, the gap included, at a few heights.
+  std::vector<Vec3> points;
+
+  for (int i = -8; i <= 8; i++) {
+    for (int j = 0; j < 3; j++) {
+      points.emplace_back(T(1) + T(0.5) * gap + T(i) * T(0.25) * gap, T(0.3) + T(0.2) * T(j), T(0.45));
+    }
+  }
+
+  const auto onDevice = evaluateOnDevice<WeldAnswer<T>>(WeldQuery<T, Tape>{tape.rebasedView(device)}, points);
+  const auto onHost   = evaluateOnHost<WeldAnswer<T>>(WeldQuery<T, Tape>{tape}, points);
+
+  size_t differ = 0;
+
+  for (size_t i = 0; i < points.size(); i++) {
+    INFO("point " << points[i]);
+
+    const WeldAnswer<T>& d = onDevice[i];
+    const WeldAnswer<T>& h = onHost[i];
+
+    // The host: no point near the contact is in the outside, and the interface is the second cube's face.
+    CHECK(h.m_region != 0U);
+    CHECK(h.m_leaf[0] == 1U);
+    CHECK(h.m_across[0] == 2U);
+
+    // Where two choices are equally right (a point on a face), the device's rounding may pick the other.
+    differ += (d.m_region != h.m_region || d.m_leaf[0] != h.m_leaf[0] || d.m_leaf[1] != h.m_leaf[1] ||
+               d.m_across[0] != h.m_across[0] || d.m_across[1] != h.m_across[1] || d.m_from != h.m_from ||
+               d.m_to != h.m_to || d.m_leafCrossed != h.m_leafCrossed)
+                ? 1U
+                : 0U;
+
+    for (uint32_t k = 0; k < 3; k++) {
+      CHECK_THAT(d.m_values[k], withinAbsT<T>(h.m_values[k], looseMargin<T>()));
+    }
+  }
+
+  CHECK(differ <= 2U);
+}

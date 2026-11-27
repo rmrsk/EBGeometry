@@ -268,7 +268,7 @@ enum class NodeKind : uint8_t
   Divide,   ///< a / b.
   Call,     ///< m_text(args): the children are the arguments, m_keys their keywords ("" for a positional one).
   Method,   ///< a.m_text(args): the first child is a, the others the arguments, m_keys their keywords.
-  Overlay,  ///< overlay { region ... }: the children are Region nodes.
+  Overlay,  ///< overlay(key = value, ...) { region ... }: the children are Region nodes, m_options the settings.
   Region    ///< region m_text = child [material m_material], inside an overlay.
 };
 
@@ -308,9 +308,15 @@ struct Node
   std::vector<Node> m_children;
 
   /**
-   * @brief Each argument's keyword ("" for positional), for Call and Method (for Method, the receiver's is "").
+   * @brief Each argument's keyword ("" for positional), for Call and Method (for Method, the receiver's is ""); for
+   * Overlay, each setting's keyword.
    */
   std::vector<std::string> m_keys;
+
+  /**
+   * @brief An Overlay's settings, in the parentheses after the keyword (overlay(weld = 1e-6)), keyed by m_keys.
+   */
+  std::vector<Node> m_options;
 
   /**
    * @brief A region's material, empty for none.

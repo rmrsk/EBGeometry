@@ -32,8 +32,9 @@ namespace StudioKernels {
 using T = EBGEOMETRY_STUDIO_PRECISION;
 
 // What the viewer draws: the view of regions, its tape (the cost views of the object's queries) and the exploded view.
-using View     = EBGeometry::RegionView<EBGeometry::Tape<T>>;
-using Object   = EBGeometry::Tape<T>;
+// The tape welds regions closer than the model's interface tolerance, as a solver reading the model should.
+using Object   = EBGeometry::Tape<T, EBGeometry::TapeFeature::Weld>;
+using View     = EBGeometry::RegionView<Object>;
 using Exploded = EBGeometry::Render::ViewerDetail::ExplodedView<View>;
 
 // A frame's functor: every pixel of one query.

@@ -33,6 +33,7 @@ EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel5)
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -47,6 +48,14 @@ namespace {
 using T = EBGEOMETRY_STUDIO_PRECISION;
 
 using namespace EBGeometry;
+
+// The model's tape: it welds regions closer than the model's interface tolerance (TapeFeature::Weld). The same type as
+// StudioKernels::Object, which a split build's kernels are compiled for.
+using StudioTape = Tape<T, TapeFeature::Weld>;
+
+#if defined(EBGEOMETRY_STUDIO_SPLIT_KERNELS)
+static_assert(std::is_same_v<StudioTape, StudioKernels::Object>, "ebgstudio: its tape is the one its kernels are for");
+#endif
 
 const char* const usage = R"(usage: ebgstudio MODEL [options]             open the model in the viewer
        ebgstudio <command> MODEL [options]
@@ -404,6 +413,31 @@ printComponents(const Language::Model<T>& a_model, const std::string& a_domain, 
   }
 }
 
+// The pairs of the model's regions a thin layer of the outside separates (findNearGaps()): parts probably meant to
+// touch, wider apart than the tape welds.
+void
+printNearGaps(const Language::Model<T>& a_model, const StudioTape& a_tape, const uint32_t a_resolution)
+{
+  if (a_tape.getNumRegions() <= 2U) {
+    return;
+  }
+
+  const std::vector<NearGap<T>> gaps = findNearGaps(a_tape, 1e-3, a_resolution);
+
+  for (const NearGap<T>& gap : gaps) {
+    const Vec3T<T>& p = gap.m_point;
+
+    std::cerr << "regions '" << a_model.index().getRegion(gap.m_region).m_name << "' and '"
+              << a_model.index().getRegion(gap.m_other).m_name << "' nearly touch: gap " << gap.m_gap << " at (" << p[0]
+              << ", " << p[1] << ", " << p[2] << ")\n";
+  }
+
+  if (!gaps.empty()) {
+    std::cerr << "(a gap is closed only where the model asks: overlay(weld = <length>) welds the gaps narrower than "
+                 "the length, in the model's units)\n";
+  }
+}
+
 int
 check(const Options& a_options, Pool& a_pool)
 {
@@ -416,6 +450,10 @@ check(const Options& a_options, Pool& a_pool)
   if (a_options.m_inventory) {
     std::cout << Language::inventory(model);
   }
+
+  const StudioTape tape(a_pool, model.object(), model.tapeOptions());
+
+  printNearGaps(model, tape, 64U);
 
   int status = 0;
 
@@ -434,8 +472,6 @@ check(const Options& a_options, Pool& a_pool)
   }
 
   if (!domains.empty()) {
-    const Tape<T> tape(a_pool, model.object());
-
     // The components are searched for when asked, and only when the object's value is a distance.
     const T    resolution = T(a_options.m_components);
     const bool components = resolution > T(0) && tape.getDistanceQuality() != DistanceQuality::NotADistance;
@@ -715,8 +751,8 @@ render(const Options& a_options, Pool& a_pool)
 
   const auto model = Language::read<T>(a_options.m_model, a_pool, a_options.m_overrides);
 
-  const Tape<T>             tape(a_pool, model.object());
-  const RegionView<Tape<T>> regions(tape);
+  const StudioTape             tape(a_pool, model.object(), model.tapeOptions());
+  const RegionView<StudioTape> regions(tape);
 
   Render::Camera<T>   camera;
   Render::Settings<T> settings;
@@ -825,16 +861,16 @@ watched(const Options& a_options, std::vector<std::string> a_files)
 // A model read, with what the viewer shows of it: everything lives in the model's own pool.
 struct Loaded
 {
-  std::unique_ptr<Pool>                m_pool;
-  std::unique_ptr<Language::Model<T>>  m_model;
-  std::unique_ptr<Tape<T>>             m_tape;
-  std::unique_ptr<RegionView<Tape<T>>> m_regions;
-  RegionNames                          m_names;
-  Stamps                               m_stamps;
+  std::unique_ptr<Pool>                   m_pool;
+  std::unique_ptr<Language::Model<T>>     m_model;
+  std::unique_ptr<StudioTape>             m_tape;
+  std::unique_ptr<RegionView<StudioTape>> m_regions;
+  RegionNames                             m_names;
+  Stamps                                  m_stamps;
 
   // Each domain's own object, compiled, for the viewer's cost views of a domain shown alone.
-  std::vector<std::unique_ptr<Tape<T>>>                 m_domainTapes;
-  std::vector<Render::DomainShape<RegionView<Tape<T>>>> m_domains;
+  std::vector<std::unique_ptr<StudioTape>>                 m_domainTapes;
+  std::vector<Render::DomainShape<RegionView<StudioTape>>> m_domains;
 };
 
 // Read a model into a pool of its own; throws Language::Error. a_before: the stamps of the files to watch, taken before
@@ -851,8 +887,9 @@ load(const Options& a_options, const Stamps& a_before)
   loaded->m_pool = std::make_unique<Pool>(hostMemoryResource());
   loaded->m_model =
     std::make_unique<Language::Model<T>>(Language::read<T>(a_options.m_model, *loaded->m_pool, a_options.m_overrides));
-  loaded->m_tape    = std::make_unique<Tape<T>>(*loaded->m_pool, loaded->m_model->object());
-  loaded->m_regions = std::make_unique<RegionView<Tape<T>>>(*loaded->m_tape);
+  loaded->m_tape =
+    std::make_unique<StudioTape>(*loaded->m_pool, loaded->m_model->object(), loaded->m_model->tapeOptions());
+  loaded->m_regions = std::make_unique<RegionView<StudioTape>>(*loaded->m_tape);
   loaded->m_names   = loaded->m_model->names();
 
   for (uint32_t d = 0; d < loaded->m_model->getNumDomains(); d++) {
@@ -864,13 +901,15 @@ load(const Options& a_options, const Stamps& a_before)
       wholeRegion.push_back(own.neighborhood().wholeRegion(r));
     }
 
-    loaded->m_domainTapes.push_back(std::make_unique<Tape<T>>(*loaded->m_pool, own.object()));
-    loaded->m_domains.push_back({RegionView<Tape<T>>(*loaded->m_domainTapes.back()), wholeRegion});
+    loaded->m_domainTapes.push_back(std::make_unique<StudioTape>(*loaded->m_pool, own.object(), own.tapeOptions()));
+    loaded->m_domains.push_back({RegionView<StudioTape>(*loaded->m_domainTapes.back()), wholeRegion});
   }
 
   for (const Language::Diagnostic& warning : loaded->m_model->warnings()) {
     std::cerr << warning.str() << "\n";
   }
+
+  printNearGaps(*loaded->m_model, *loaded->m_tape, 32U);
 
   // The files stamped before the read, and every other file it read (a mesh first named in this version), as it is now.
   loaded->m_stamps = a_before;

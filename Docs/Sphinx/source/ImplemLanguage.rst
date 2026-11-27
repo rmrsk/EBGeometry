@@ -29,7 +29,11 @@ in a file:
 
    const auto model = Language::read<double>("cable/setup.ebg", pool, {{"r_core", "0.6"}});   // throws Language::Error
 
-   const Tape<double> tape(pool, model.object());     // the program chooses the tape's features and user primitives
+   const Tape<double, TapeFeature::Weld> tape(pool, model.object(), model.tapeOptions());   // the program chooses the features
+
+``model.tapeOptions()`` holds the interface tolerance the model sets (``overlay(weld = ...)``, see
+:ref:`Chap:LanguageModels`), so that a tape that welds (``TapeFeature::Weld``, see :ref:`Chap:ImplemRegions`)
+welds the model's regions as the model asks.
 
 A model with errors throws a `Language::Error <doxygen/html/classEBGeometry_1_1Language_1_1Error.html>`__
 holding every `Diagnostic <doxygen/html/structEBGeometry_1_1Language_1_1Diagnostic.html>`__, each with its
@@ -85,7 +89,7 @@ numbered anew, mapped to the model's through ``neighborhood()``.
 .. code-block:: c++
 
    const auto   own = model.domainObject("conduction");
-   const Tape<T> cable(pool, own.object());
+   const Tape<T, TapeFeature::Weld> cable(pool, own.object(), own.tapeOptions());
    const Domain heat(pool, cable, own.setup());
 
 `Properties <doxygen/html/classEBGeometry_1_1Language_1_1Properties.html>`__ are what a material, subdomain,

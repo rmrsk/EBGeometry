@@ -133,6 +133,21 @@ regions.
      region core       = cylinder((0, 0, -3), (0, 0, 3), 0.5) material copper
    }
 
+Regions closer than a small tolerance are welded into one interface (see :ref:`Chap:Regions`). By default the
+tolerance is 0: overlapping and exactly flush regions are welded, and every gap stays open. ``overlay(weld = ...)``
+sets it as a length, in the model's units, for the whole object: gaps between faces that face each other and are
+narrower than it are closed, so it is set above how far apart parts meant to touch are, and below any real gap
+between parts that must stay open. It is set once, on one overlay of the object. A program welds the model's
+regions only if it compiles the model into a tape that welds (``TapeFeature::Weld``, with ``model.tapeOptions()``,
+see :ref:`Chap:ImplemLanguage`); ebgstudio does.
+
+.. code-block:: text
+
+   object overlay(weld = 1e-6) {
+     region housing   = mesh("housing.stl") material aluminium
+     region electrode = mesh("electrode.stl") material copper
+   }
+
 An overlay can be the object, be moved (``translate``, ``rotate``, ``scale``, ``reflect``), clipped or drilled
 (as the first operand of ``intersection`` or ``difference``, whose other operands remove space from every
 region), labeled, or be a region of another overlay. Anywhere else, in a union or under an offset, say, which

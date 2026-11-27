@@ -903,6 +903,19 @@ public:
     return m_names;
   }
 
+  /**
+   * @brief The options to compile object() with, so that its tape welds regions within the same length as a tape of
+   * the whole model: the model's interface tolerance as a length (TapeOptions::m_interfaceLength), the one it gives or
+   * else the options' fraction of the whole object's box (0 by default, which welds only exact contacts).
+   * @return The options.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  const TapeOptions&
+  tapeOptions() const noexcept
+  {
+    return m_tapeOptions;
+  }
+
 private:
   template <class U>
   friend class Model;
@@ -912,10 +925,14 @@ private:
    * @param[in] a_neighborhood The regions kept.
    * @param[in] a_setup        The domain's setup for them.
    * @param[in] a_names        The names.
+   * @param[in] a_options      The options for a tape of the object.
    */
   EBGEOMETRY_HOST
-  DomainObject(RegionNeighborhood<T> a_neighborhood, DomainSetup a_setup, RegionNames a_names)
-    : m_neighborhood(std::move(a_neighborhood)), m_setup(std::move(a_setup)), m_names(std::move(a_names))
+  DomainObject(RegionNeighborhood<T> a_neighborhood, DomainSetup a_setup, RegionNames a_names, TapeOptions a_options)
+    : m_neighborhood(std::move(a_neighborhood)),
+      m_setup(std::move(a_setup)),
+      m_names(std::move(a_names)),
+      m_tapeOptions(std::move(a_options))
   {}
 
   /**
@@ -932,6 +949,11 @@ private:
    * @brief The names.
    */
   RegionNames m_names;
+
+  /**
+   * @brief The options for a tape of the object.
+   */
+  TapeOptions m_tapeOptions;
 };
 
 /**
@@ -956,6 +978,23 @@ public:
   object() const noexcept
   {
     return *m_object;
+  }
+
+  /**
+   * @brief The options to compile object() with: the interface tolerance the model gives (overlay(weld = ...)) as
+   * TapeOptions::m_interfaceLength, or the defaults when it gives none. A tape welds only if it lists
+   * TapeFeature::Weld: Tape<T, TapeFeature::Weld>(pool, model.object(), model.tapeOptions()).
+   * @return The options.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST
+  TapeOptions
+  tapeOptions() const
+  {
+    TapeOptions options;
+
+    options.m_interfaceLength = m_interfaceLength;
+
+    return options;
   }
 
   /**
@@ -1210,6 +1249,11 @@ private:
    * @brief The object.
    */
   std::optional<Expr<T>> m_object;
+
+  /**
+   * @brief The interface tolerance as a length, when the model gives one (overlay(weld = ...)).
+   */
+  std::optional<double> m_interfaceLength;
 
   /**
    * @brief Its index.

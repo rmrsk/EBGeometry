@@ -27,6 +27,7 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -74,6 +75,37 @@ struct TapeOptions
    * @brief How the BVHs of unions built with Accelerate::BVH are built.
    */
   BVH::Construction m_construction = BVH::Construction::SAH;
+
+  /**
+   * @brief How close two regions must come to share one interface, in a tape that welds (TapeFeature::Weld), as a
+   * fraction of the diagonal of the object's bounding box. Where a region's solid and a later region's solid overlap, are flush, or leave a gap narrower than
+   * this, the gap is closed (the earlier region fills it up to the later region's face) and the later region's face is
+   * the interface between them, seen from either side: in the region functions, region(), closestSurface() and
+   * firstRegionChange(). Default 0, which welds only exact contacts (overlapping or exactly flush regions). Must be
+   * at least 0 and less than 1. m_interfaceLength, when set, replaces it.
+   * @details Applies only to an object with an Overlay, and only where its regions are concerned: the value of the
+   * whole object (signedDistance() without a region) is its expression evaluated as written. For an object whose box
+   * is unbounded the tolerance is 0.
+   *
+   * The default closes no gap: which gaps are flaws and which are geometry depends on the model, not on its units or
+   * its size. A fraction of the box closes a real gap in a model whose features are much smaller than the whole,
+   * so a gap is welded only when the caller says how wide a gap may be closed. findNearGaps() reports the pairs of
+   * regions a thin gap separates, to choose it from. A tolerance should lie above the rounding of distances in the
+   * precision used (a few 1e-7 of the coordinates in single precision) and above how flush the parts' meshes are
+   * (meshes exported by different tools: about 1e-6 of their size), and below what an embedded-boundary grid
+   * resolves and the march tolerance (RayOptions::m_tolerance), so that the weld never decides more than a marched
+   * surface resolves.
+   */
+  double m_interfaceTolerance = 0.0;
+
+  /**
+   * @brief The interface tolerance as a length, in the object's units: when set, it replaces m_interfaceTolerance. 0
+   * welds only exact contacts. Must be at least 0.
+   * @details For a model whose parts leave a real gap that is small next to the whole object (which a fraction of the
+   * box could weld shut), and for a tape of part of an object (a domain's own object, whose box is smaller) that must
+   * weld exactly as the whole object's tape does: give it the whole tape's getInterfaceTolerance().
+   */
+  std::optional<double> m_interfaceLength;
 };
 
 /**
@@ -120,6 +152,19 @@ struct Tag
  * scaled mesh is still traced exactly.
  */
 struct ExactOffsets : Tag
+{
+};
+
+/**
+ * @brief Regions closer than the interface tolerance (TapeOptions::m_interfaceTolerance or m_interfaceLength) share
+ * one interface: the gap between two regions whose surfaces face each other is the earlier region's, up to the later
+ * region's face, in region(), the region functions, closestSurface() and firstRegionChange() (see weldedSolid()).
+ * Without it, a tape's regions are exactly their operands' solids, and getInterfaceTolerance() is 0.
+ * @details A feature because the weld's code, though it runs only within the tolerance of two surfaces, is reached
+ * from every region query: on a device it raises the register pressure, and so the spills, of every kernel that asks
+ * a tape about its regions, whether or not any point is ever near a weld.
+ */
+struct Weld : Tag
 {
 };
 
@@ -886,6 +931,11 @@ public:
     uint32_t m_largestPlainUnion = 0;
 
     /**
+     * @brief TapeOptions::m_interfaceTolerance as a length (see getInterfaceTolerance()).
+     */
+    T m_interfaceTolerance = T(0);
+
+    /**
      * @brief Where in m_programs the ray programs begin: sub-program i's is entry m_rayPrograms + i (an empty
      * range for one a ray never follows).
      */
@@ -1170,6 +1220,16 @@ public:
   getLargestPlainUnion() const noexcept;
 
   /**
+   * @brief How close two regions must come to share one interface, as a length, fixed when the tape was built:
+   * TapeOptions::m_interfaceLength when it was given, else TapeOptions::m_interfaceTolerance times the diagonal of the
+   * object's bounding box.
+   * @return The tolerance (0 for an object whose box is unbounded, or built with a tolerance of 0).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  getInterfaceTolerance() const noexcept;
+
+  /**
    * @brief A leaf's label, as SurfaceLabel() resolves it (ExprIndex::getSurfaceLabel()): the nearest label above the
    * leaf, the leaf's own included, but a label above a chain of maps relabels the object below them.
    * @details Labels are numbered from 0 in the order their names first appear in the expression, depth first,
@@ -1232,7 +1292,9 @@ public:
 
   /**
    * @brief The region a point is in: the last operand of the Overlays whose solid holds it
-   * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region.
+   * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region. In a
+   * tape that welds (TapeFeature::Weld), a gap between two regions narrower than the interface tolerance
+   * (getInterfaceTolerance()) is the earlier region's.
    * Callable on a device.
    * @param[in] a_point Point.
    * @return The region.
@@ -1245,9 +1307,11 @@ public:
   /**
    * @brief A region's implicit function: negative exactly inside the region, its zero
    * contour the region's surface, interfaces with other regions included. For region k it is max(S_k, -min of the
-   * later S_j), S_j being operand j's solid; for the background, minus signedDistance(). A distance bound, exact
-   * near a smooth piece of surface of exact operands; what a cut-cell code cuts for one region. Callable on a
-   * device.
+   * later S_j), S_j being operand j's solid; in a tape that welds (TapeFeature::Weld), with S_k welded to the later
+   * solids where the two face each other across a gap narrower than the interface tolerance (weldedSolid(): the gap is region k's, and both functions are zero on
+   * the later solid's face); for the background, minus signedDistance(), outside the welds. A distance bound, exact
+   * near a smooth piece of surface of exact operands, and away from the thin band of a weld; what a cut-cell code cuts
+   * for one region. Callable on a device.
    * @param[in] a_point  Point.
    * @param[in] a_region Region (below getNumRegions()).
    * @return The value.
@@ -1280,7 +1344,11 @@ public:
    * closestSurface() reports a surface, and with the regions on its two sides at that point: m_ownerRegion the
    * region asked about (inside), m_neighborRegion the region across. The sides belong to the point, not to the surface:
    * one surface can face different regions in different places. For the background, the whole object's surface.
-   * Callable on a device.
+   * Where a later region reaches into the region, the surface is the later one's face. In a tape that welds
+   * (TapeFeature::Weld), so is it where the two are flush or come within the interface tolerance, seen from either
+   * side; the region across is then the last other one whose solid holds the point, or, if none does, the last one
+   * whose solid reaches the surface's nearest point within the tolerance (a region flush with it or welded to it, from
+   * any depth). Callable on a device.
    * @param[in] a_point  Point, on or near the region's surface.
    * @param[in] a_region Region (below getNumRegions()).
    * @return The surface.
@@ -1330,7 +1398,9 @@ public:
    * m_surface the surface crossed (leaf, part, surface label), its m_ownerRegion the region left and m_neighborRegion
    * the region entered. The ray starts counting a hundredth of the march's tolerance at the object's scale past
    * a_tMin (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks
-   * again from the last crossing's t, and layers thinner than that are passed over. Callable on a device.
+   * again from the last crossing's t, and layers thinner than that are passed over. In a tape that welds
+   * (TapeFeature::Weld), leaving a region straight into a later one (flush, or across a gap welded shut by the
+   * interface tolerance) is one crossing, on the later region's face. Callable on a device.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval.
@@ -2134,6 +2204,120 @@ private:
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline uint32_t
   sharedMasks(uint32_t a_first, uint32_t a_second) const noexcept;
+
+  /**
+   * @brief The solid a region's function clips the region with: the smallest of the later regions' solids, each
+   * without the masks it shares with the region (see sharedMasks()).
+   * @param[in]  a_region  Region.
+   * @param[in]  a_point   Point.
+   * @param[out] a_nearest If given, the later region whose solid is the smallest (0 for the last region).
+   * @return The value (Limits<T>::max() for the last region).
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  laterSolid(uint32_t a_region, const Vec3T<T>& a_point, uint32_t* a_nearest = nullptr) const noexcept;
+
+  /**
+   * @brief Region k's function, for a region of an Overlay (1 to the number of regions less one): its solid welded to
+   * the later solids, minus them (see signedDistance(p, region), which calls it; the background's function calls it
+   * too, so that no function calls itself, which a device compiler cannot bound the stack of).
+   * @param[in] a_region Region.
+   * @param[in] a_point  Point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  regionFunction(uint32_t a_region, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief A region's solid welded to the later regions': grown into a gap between the two narrower than the interface
+   * tolerance, up to the later solid's face.
+   * @details Only within twice the tolerance eps of both surfaces (|own|, |later| < 2 eps) does the value change;
+   * everywhere else it is the region's own solid, exactly. There it is min(own, max((own + later - e) / 2, own - e)),
+   * with e = c max(0, 2 eps - |own| - |later|), where c = max(0, -n_own . n_later) is how much the two surfaces face
+   * each other (their normals, by central differences). Outside both solids the term is negative where
+   * (1 + c)(own + later) < 2 eps c: for surfaces that face each other (c = 1), exactly where the gap between them is
+   * narrower than eps, which the region fills up to the later solid's face, across the gap's whole width or not at all;
+   * beside faces that lie side by side in one plane (c = 0), such as the end of a channel flush with the end of the
+   * block it bores, nowhere. Near a welded contact the region's function then measures to the later solid's face on
+   * both sides of it. The taper makes e vanish at the band's edge, so the function is continuous; it changes the value
+   * by at most 2 eps, and keeps its sign outside welded gaps. In single precision, far from the origin (a hundred
+   * diagonals, say), the rounding of the values approaches a tolerance of 1e-5 of the box, and so does the estimate of c: a weld
+   * there is less sure.
+   * @param[in] a_region The region.
+   * @param[in] a_own    The region's solid at the point.
+   * @param[in] a_later  The later regions' solid at the point (laterSolid()).
+   * @param[in] a_laterRegion The later region whose solid that is (laterSolid()'s a_nearest), or 0 if not known.
+   * @param[in] a_point  The point.
+   * @return The welded solid.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline T
+  weldedSolid(uint32_t a_region, T a_own, T a_later, uint32_t a_laterRegion, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The region across a region's own surface found from the surface's nearest point (closestSurface(), when
+   * no other region holds the point): the last other region whose solid reaches that point within the tolerance, not
+   * cut by the mask that cuts the region there, or the background. Out of line, since it is reached only near another
+   * region.
+   * @param[in] a_region The region asked about.
+   * @param[in] a_own    The region's solid at the point.
+   * @param[in] a_cutBy  The mask that cuts the region there, or Subdomains::None.
+   * @param[in] a_point  The point.
+   * @return The region across.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  uint32_t
+  acrossAtSurface(uint32_t a_region, T a_own, uint32_t a_cutBy, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Whether a region's welded function is negative at a point its own solid misses by less than the tolerance
+   * (region()): out of line, since region() reaches it only near a weld.
+   * @param[in] a_region The region.
+   * @param[in] a_own    The region's solid at the point, at least 0.
+   * @param[in] a_later  The later regions' solid at the point, if a_laterRegion is not 0.
+   * @param[in] a_laterRegion The later region whose solid a_later is, or 0 to have them evaluated here.
+   * @param[in] a_point  The point.
+   * @return Whether the region holds the point.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  bool
+  weldHolds(uint32_t a_region, T a_own, T a_later, uint32_t a_laterRegion, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The background's function within the tolerance outside the object, where welds fill gaps: minus the
+   * smallest of the object's value and every region's function (signedDistance(p, 0)). Out of line, since it is
+   * reached only there.
+   * @param[in] a_whole The object's value at the point.
+   * @param[in] a_point The point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  T
+  weldedBackground(T a_whole, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief weldedSolid() inside the band, where it estimates the normals: out of line on the host and a device, so
+   * that the region loops that call weldedSolid() for every region keep only its two comparisons inline.
+   * @param[in] a_region The region.
+   * @param[in] a_own    The region's solid at the point.
+   * @param[in] a_later  The later regions' solid at the point.
+   * @param[in] a_laterRegion The later region whose solid that is, or 0 if not known (then the later solids are
+   * differenced whole).
+   * @param[in] a_point  The point.
+   * @return The welded solid.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  T
+  weldInBand(uint32_t a_region, T a_own, T a_later, uint32_t a_laterRegion, const Vec3T<T>& a_point) const noexcept;
 
   template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

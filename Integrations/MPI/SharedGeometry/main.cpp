@@ -38,7 +38,7 @@
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 
-using Tape = EBGeometry::Tape<T>;
+using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::Weld>;
 
 // The layout is broadcast as bytes.
 static_assert(std::is_trivially_copyable_v<Tape::Layout>);
@@ -213,7 +213,7 @@ run(int argc, char* argv[])
 
   if (rank == 0) {
     const auto model = EBGeometry::Language::read<T>(file, buildPool);
-    const Tape built(buildPool, model.object());
+    const Tape built(buildPool, model.object(), model.tapeOptions());
 
     buildPool.freeze();
 
