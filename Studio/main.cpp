@@ -422,12 +422,19 @@ printNearGaps(const Language::Model<T>& a_model, const StudioTape& a_tape, const
     return;
   }
 
-  for (const NearGap<T>& gap : findNearGaps(a_tape, 1e-3, a_resolution)) {
+  const std::vector<NearGap<T>> gaps = findNearGaps(a_tape, 1e-3, a_resolution);
+
+  for (const NearGap<T>& gap : gaps) {
     const Vec3T<T>& p = gap.m_point;
 
     std::cerr << "regions '" << a_model.index().getRegion(gap.m_region).m_name << "' and '"
               << a_model.index().getRegion(gap.m_other).m_name << "' nearly touch: gap " << gap.m_gap << " at (" << p[0]
               << ", " << p[1] << ", " << p[2] << ")\n";
+  }
+
+  if (!gaps.empty()) {
+    std::cerr << "(a gap is closed only where the model asks: overlay(weld = <length>) welds the gaps narrower than "
+                 "the length, in the model's units)\n";
   }
 }
 

@@ -906,7 +906,7 @@ public:
   /**
    * @brief The options to compile object() with, so that its tape welds regions within the same length as a tape of
    * the whole model: the model's interface tolerance as a length (TapeOptions::m_interfaceLength), the one it gives or
-   * the default fraction of the whole object's box.
+   * else the options' fraction of the whole object's box (0 by default, which welds only exact contacts).
    * @return The options.
    */
   [[nodiscard]] EBGEOMETRY_HOST
