@@ -160,6 +160,25 @@ struct RegionSettings
   uint32_t m_numSelected = 0U;
 
   /**
+   * @brief Faces of one mesh selected one by one (a viewer picking faces for a mesh's parts), selected as the entry
+   * after the last of m_selected (m_numSelected) when it is below MaxSelected (with every entry of m_selected used,
+   * the faces are not shown as selected); empty by default. Its pool (or, on a
+   * device, the pool's mirror) must outlive a render that reads it.
+   */
+  FaceMask m_faceMask;
+
+  /**
+   * @brief Whether anything is selected: an entry of m_selected or a face of m_faceMask.
+   * @return True if it is.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  inline bool
+  hasSelection() const noexcept
+  {
+    return m_numSelected != 0U || m_faceMask.size() != 0U;
+  }
+
+  /**
    * @brief Whether only the selected surfaces are shown, all of them, those other surfaces hid included, each side
    * keyed apart: Selected + entry where the view enters the region seen, Selected + MaxSelected + entry where it
    * leaves it (a surface's back, seen through an open end). A viewer renders so to outline each selected surface along
@@ -171,7 +190,7 @@ struct RegionSettings
    * @brief The entry of the selection a surface is selected by.
    * @tparam T Floating-point precision.
    * @param[in] a_surface The surface, with its sides and their materials set.
-   * @return The first entry of m_selected that matches it, or None.
+   * @return The first entry of m_selected that matches it, m_numSelected for a face of m_faceMask, or None.
    */
   template <typename T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
@@ -182,6 +201,10 @@ struct RegionSettings
       if (m_selected[i].matches(a_surface)) {
         return i;
       }
+    }
+
+    if (m_numSelected < MaxSelected && m_faceMask.contains(a_surface)) {
+      return m_numSelected;
     }
 
     return None;

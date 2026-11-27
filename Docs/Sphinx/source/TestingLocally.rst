@@ -344,6 +344,11 @@ Test coverage
        a non-finite coordinate throwing ``ParseError``; face ``i`` and vertex ``i`` of a clean soup
        being face ``i`` and vertex ``i`` of its DCEL mesh; ``convertToDCEL`` of an unclean soup
        leaving the soup as it was; and ``convertToTriangles`` tagging each triangle with its face.
+   * - ``TestFaceParts``
+     - Parts files of faces picked by name: read with single ids, ranges and parts continued on further lines;
+       written and read back the same; rejected at their line for a bad header, a bad id or range, a face out of
+       range or in two parts, and a mesh whose faces changed (its fingerprint, which follows the face numbering and
+       not the precision or the coordinates); and laid over a file's own groups.
    * - ``TestParser``
      - Cross-format parser behavior: binary STL (with per-facet color attributes), PLY and VTK
        fixtures reading the same mesh as their ASCII counterparts; missing, empty, truncated and

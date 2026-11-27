@@ -116,6 +116,27 @@ displayAvailable() noexcept
  * closes the window with closeWindow() when it is done.
  * @tparam T Floating-point precision.
  */
+/**
+ * @brief What a render on a device reads of the selection from pools of the viewer's own: the surface groups as edited
+ * and the faces picked one by one, each a view of a mirrored pool.
+ * @details Internal helper; not part of the public API.
+ */
+struct DeviceSelection
+{
+  /**
+   * @brief The surface groups.
+   */
+  SurfaceGroups m_groups;
+
+  /**
+   * @brief The faces picked.
+   */
+  FaceMask m_faceMask;
+};
+
+template <class T>
+struct MeshFaces;
+
 template <class T>
 struct Hooks
 {
@@ -150,6 +171,18 @@ struct Hooks
    * @brief Ctrl+Y: redo the last write undone; answers whether there was one.
    */
   std::function<bool()> m_redo;
+
+  /**
+   * @brief A mesh's faces, for picking them one by one (Ctrl + F), by the leaf the mesh is (SurfaceRef::m_leaf); null
+   * when the leaf is no mesh the program can read. Without the hook, faces cannot be picked.
+   */
+  std::function<std::shared_ptr<const MeshFaces<T>>(uint32_t)> m_meshFaces;
+
+  /**
+   * @brief Told the faces picked on a mesh (by its leaf) and the part name typed for them: answers "" when the program
+   * wrote them as that part (in the mesh's parts file), or why it did not.
+   */
+  std::function<std::string(uint32_t, const std::vector<uint32_t>&, const std::string&)> m_faceParts;
 
   /**
    * @brief The name a picked level is known by in the program (a model's value making the node, see
@@ -239,6 +272,243 @@ steppedNearClip(const T a_nearClip, const T a_distance, const T a_fraction, cons
   const T moved = a_nearClip + T(a_steps) * step;
 
   return (moved > T(1e-3) * step) ? moved : T(0);
+}
+
+/**
+ * @brief A mesh's faces as picking them one by one needs them: each face's unit normal and center, and its neighbors
+ * across its edges.
+ * @details Internal helper; not part of the public API. Face ids are the mesh reader's (closestPart()). Neighbors are
+ * stored compressed: face f's are m_neighbors[m_firstNeighbor[f]] up to m_neighbors[m_firstNeighbor[f + 1]].
+ * @tparam T Floating-point precision.
+ */
+template <class T>
+struct MeshFaces
+{
+  /**
+   * @brief Each face's unit normal (zero for a face with no area).
+   */
+  std::vector<Vec3T<T>> m_normal;
+
+  /**
+   * @brief Each face's center (the mean of its vertices).
+   */
+  std::vector<Vec3T<T>> m_center;
+
+  /**
+   * @brief Where each face's neighbors start in m_neighbors; one entry more than there are faces.
+   */
+  std::vector<uint32_t> m_firstNeighbor;
+
+  /**
+   * @brief The faces sharing an edge with each face, face after face.
+   */
+  std::vector<uint32_t> m_neighbors;
+
+  /**
+   * @brief How many faces there are.
+   * @return The count.
+   */
+  [[nodiscard]] uint32_t
+  size() const noexcept
+  {
+    return static_cast<uint32_t>(m_normal.size());
+  }
+};
+
+/**
+ * @brief A mesh's faces for picking them, from the mesh as the reader returns it (Parser::readIntoPolygonSoup()).
+ * @details Internal helper; not part of the public API. Two faces are neighbors when they share an edge: two vertices
+ * consecutive in both. A normal is Newell's, so that a polygon's is its plane's.
+ * @tparam T Floating-point precision.
+ * @param[in] a_soup The mesh.
+ * @return The faces.
+ */
+template <class T>
+inline MeshFaces<T>
+meshFacesOf(const PolygonSoup<T>& a_soup)
+{
+  const auto&    vertices = a_soup.getVertexCoordinates();
+  const auto&    facets   = a_soup.getFacets();
+  const uint32_t n        = static_cast<uint32_t>(facets.size());
+
+  MeshFaces<T> faces;
+
+  faces.m_normal.resize(n, Vec3T<T>::zeros());
+  faces.m_center.resize(n, Vec3T<T>::zeros());
+
+  // Each edge, its vertices in increasing order, with the face it bounds; sorted, a shared edge is two entries in a row.
+  struct EdgeOf
+  {
+    size_t   m_low;
+    size_t   m_high;
+    uint32_t m_face;
+  };
+
+  std::vector<EdgeOf> edges;
+
+  for (uint32_t f = 0; f < n; f++) {
+    const auto&  facet = facets[f];
+    const size_t k     = facet.size();
+
+    Vec3T<T> normal = Vec3T<T>::zeros();
+    Vec3T<T> center = Vec3T<T>::zeros();
+
+    for (size_t i = 0; i < k; i++) {
+      const Vec3T<T>& a = vertices[facet[i]];
+      const Vec3T<T>& b = vertices[facet[(i + 1) % k]];
+
+      normal += Vec3T<T>((a[1] - b[1]) * (a[2] + b[2]), (a[2] - b[2]) * (a[0] + b[0]), (a[0] - b[0]) * (a[1] + b[1]));
+      center += a;
+
+      edges.push_back(EdgeOf{Math::min(facet[i], facet[(i + 1) % k]), Math::max(facet[i], facet[(i + 1) % k]), f});
+    }
+
+    const T length = normal.length();
+
+    faces.m_normal[f] = (length > T(0)) ? normal / length : Vec3T<T>::zeros();
+    faces.m_center[f] = (k > 0) ? center / T(k) : center;
+  }
+
+  std::sort(edges.begin(), edges.end(), [](const EdgeOf& a_first, const EdgeOf& a_second) {
+    return (a_first.m_low != a_second.m_low)     ? a_first.m_low < a_second.m_low
+           : (a_first.m_high != a_second.m_high) ? a_first.m_high < a_second.m_high
+                                                 : a_first.m_face < a_second.m_face;
+  });
+
+  // Every pair of faces on one edge are neighbors (two on a manifold edge; more on a non-manifold one).
+  std::vector<std::pair<uint32_t, uint32_t>> pairs;
+
+  for (size_t i = 0; i < edges.size();) {
+    size_t j = i + 1;
+
+    while (j < edges.size() && edges[j].m_low == edges[i].m_low && edges[j].m_high == edges[i].m_high) {
+      j++;
+    }
+
+    for (size_t a = i; a < j; a++) {
+      for (size_t b = i; b < j; b++) {
+        if (edges[a].m_face != edges[b].m_face) {
+          pairs.emplace_back(edges[a].m_face, edges[b].m_face);
+        }
+      }
+    }
+
+    i = j;
+  }
+
+  std::sort(pairs.begin(), pairs.end());
+  pairs.erase(std::unique(pairs.begin(), pairs.end()), pairs.end());
+
+  faces.m_firstNeighbor.assign(n + 1U, 0U);
+
+  for (const auto& pair : pairs) {
+    faces.m_firstNeighbor[pair.first + 1U]++;
+  }
+
+  for (uint32_t f = 0; f < n; f++) {
+    faces.m_firstNeighbor[f + 1U] += faces.m_firstNeighbor[f];
+  }
+
+  faces.m_neighbors.reserve(pairs.size());
+
+  for (const auto& pair : pairs) {
+    faces.m_neighbors.push_back(pair.second);
+  }
+
+  return faces;
+}
+
+/**
+ * @brief The faces a fill from one face reaches: across every edge where the two faces' normals differ by less than
+ * a crease angle.
+ * @details Internal helper; not part of the public API. A face with no area is crossed whatever the angle, so that a
+ * sliver does not stop the fill. The faces come in the order the fill reaches them.
+ * @tparam T Floating-point precision.
+ * @param[in] a_faces The mesh's faces.
+ * @param[in] a_seed  The face the fill starts at.
+ * @param[in] a_angle The crease angle, in degrees.
+ * @return The faces reached, a_seed first.
+ */
+template <class T>
+inline std::vector<uint32_t>
+creaseFill(const MeshFaces<T>& a_faces, const uint32_t a_seed, const T a_angle)
+{
+  std::vector<uint32_t> reached;
+
+  if (a_seed >= a_faces.size()) {
+    return reached;
+  }
+
+  const T              cosine = std::cos(a_angle * T(3.14159265358979323846) / T(180));
+  std::vector<uint8_t> seen(a_faces.size(), 0U);
+
+  reached.push_back(a_seed);
+  seen[a_seed] = 1U;
+
+  for (size_t next = 0; next < reached.size(); next++) {
+    const uint32_t  face   = reached[next];
+    const Vec3T<T>& normal = a_faces.m_normal[face];
+
+    for (uint32_t k = a_faces.m_firstNeighbor[face]; k < a_faces.m_firstNeighbor[face + 1U]; k++) {
+      const uint32_t  other = a_faces.m_neighbors[k];
+      const Vec3T<T>& n     = a_faces.m_normal[other];
+
+      const bool flat = normal == Vec3T<T>::zeros() || n == Vec3T<T>::zeros() || dot(normal, n) >= cosine;
+
+      if (seen[other] == 0U && flat) {
+        seen[other] = 1U;
+
+        reached.push_back(other);
+      }
+    }
+  }
+
+  return reached;
+}
+
+/**
+ * @brief The faces a brush covers: those whose center is within a radius of a point, reached from a face under it
+ * across neighbors, so that a brush on one side of a thin wall leaves the other side.
+ * @details Internal helper; not part of the public API. The face under the brush is covered whatever its center's
+ * distance (a face larger than the brush is still painted where it is clicked).
+ * @tparam T Floating-point precision.
+ * @param[in] a_faces  The mesh's faces.
+ * @param[in] a_seed   The face under the brush.
+ * @param[in] a_point  The brush's center (the point under the cursor).
+ * @param[in] a_radius The brush's radius.
+ * @return The faces covered, a_seed first.
+ */
+template <class T>
+inline std::vector<uint32_t>
+brushFaces(const MeshFaces<T>& a_faces, const uint32_t a_seed, const Vec3T<T>& a_point, const T a_radius)
+{
+  std::vector<uint32_t> covered;
+
+  if (a_seed >= a_faces.size()) {
+    return covered;
+  }
+
+  const T              radius2 = a_radius * a_radius;
+  std::vector<uint8_t> seen(a_faces.size(), 0U);
+
+  covered.push_back(a_seed);
+  seen[a_seed] = 1U;
+
+  for (size_t next = 0; next < covered.size(); next++) {
+    const uint32_t face = covered[next];
+
+    for (uint32_t k = a_faces.m_firstNeighbor[face]; k < a_faces.m_firstNeighbor[face + 1U]; k++) {
+      const uint32_t other = a_faces.m_neighbors[k];
+
+      if (seen[other] == 0U && (a_faces.m_center[other] - a_point).length2() <= radius2) {
+        seen[other] = 1U;
+
+        covered.push_back(other);
+      }
+    }
+  }
+
+  return covered;
 }
 
 /**
@@ -546,6 +816,9 @@ keys(const bool a_device, const bool a_regions = false)
                             {"Shift + Enter", "Add the whole picked surfaces"},
                             {"Ctrl + Enter", "Add the interfaces between the picked pieces' regions"},
                             {"Backspace", "Remove the picked pieces from the current surface group"},
+                            {"Ctrl + F",
+                             "Pick a mesh's faces for its parts (ebgstudio): a fill to a crease angle, a brush, off; "
+                             "] and [ change them, Enter names the faces picked as a part"},
                             {"J", "Next surface group (past the last, a new one)"},
                             {"Delete", "Delete the current surface group"}}});
   }
@@ -1229,7 +1502,7 @@ run(const S&                           a_shape,
   DomainSetup                        edited = ViewerDetail::setupOf(a_settings.m_regions.m_surfaceGroups);
   DomainSetup                        published;
   bool                               publishedOnce = false;
-  SurfaceGroups                      deviceGroups;
+  ViewerDetail::DeviceSelection      deviceGroups;
   std::vector<std::unique_ptr<Pool>> groupPools;
 
   // The surface group whose name is being typed (SurfaceGroups::None for none), and the name so far: while it is, keys type
@@ -1626,11 +1899,14 @@ run(const S&                           a_shape,
         }
       }
 
-      settings.m_highlightPrimitive = other                          ? RegionSettings::Highlighted
-                                      : (regions.m_numSelected > 0U) ? RegionSettings::Selected
-                                      : picked                       ? pick.m_primitive
-                                                                     : Settings<T>::NoPrimitive;
-      settings.m_highlightCount     = (!other && regions.m_numSelected > 0U) ? regions.m_numSelected : 1U;
+      // Faces picked one by one are the entry after the selection's last.
+      const uint32_t count = regions.m_numSelected + ((regions.m_faceMask.size() != 0U) ? 1U : 0U);
+
+      settings.m_highlightPrimitive = other          ? RegionSettings::Highlighted
+                                      : (count > 0U) ? RegionSettings::Selected
+                                      : picked       ? pick.m_primitive
+                                                     : Settings<T>::NoPrimitive;
+      settings.m_highlightCount     = (!other && count > 0U) ? count : 1U;
     }
   };
 
@@ -1937,6 +2213,124 @@ run(const S&                           a_shape,
 
       return false;
     }
+  };
+
+  // Picking a mesh's faces one by one, for its parts (Ctrl + F, with a program's hooks that read meshes): off, a fill
+  // to a crease angle from the face clicked, or a brush. The faces picked are of one mesh (its leaf), a flag each; they
+  // are shown as the entry after the selection's last, through a mask built in a small pool of its own (and its mirror,
+  // for a render on a device). A change only marks the mask stale; it is built again when a frame's settings are made
+  // with no render running in the background (see publishFaces()), so once per frame however many mouse moves a brush
+  // stroke has, and the pools of the mask it replaces, which no render reads any more, are freed.
+  enum class FaceTool
+  {
+    Off,
+    Fill,
+    Brush
+  };
+
+  FaceTool                                          faceTool    = FaceTool::Off;
+  uint32_t                                          faceLeaf    = SurfaceRef<T>::None;
+  uint32_t                                          faceSurface = SurfaceRef<T>::None;
+  std::shared_ptr<const ViewerDetail::MeshFaces<T>> meshFaces;
+  std::vector<uint8_t>                              facePicked;
+  T                                                 creaseAngle   = T(30);
+  T                                                 brushFraction = T(0.02);
+  bool                                              brushing      = false;
+  bool                                              namingFaces   = false;
+  bool                                              facesStale    = false;
+  std::vector<std::unique_ptr<Pool>>                facePools;
+
+  // The faces picked, in increasing order.
+  const auto pickedFaces = [&]() {
+    std::vector<uint32_t> faces;
+
+    for (uint32_t f = 0; f < facePicked.size(); f++) {
+      if (facePicked[f] != 0U) {
+        faces.push_back(f);
+      }
+    }
+
+    return faces;
+  };
+
+  // The faces picked changed: the mask is built again with the next frame.
+  const auto publishFaces = [&]() { facesStale = true; };
+
+  // Drop the faces picked (and the mesh they are on).
+  const auto clearFaces = [&]() {
+    faceLeaf    = SurfaceRef<T>::None;
+    faceSurface = SurfaceRef<T>::None;
+
+    meshFaces.reset();
+    facePicked.clear();
+
+    publishFaces();
+  };
+
+  // The brush's radius: a fraction of the height the view spans at the camera's target.
+  const auto brushRadius = [&]() {
+    return brushFraction * T(2) * camera.m_distance * std::tan(T(0.5) * camera.m_fieldOfView * pi<T> / T(180));
+  };
+
+  // Pick faces at a hit with the face tool: the fill from the face there, or the faces under the brush; a_add keeps
+  // the faces picked before (else they are dropped first), a_remove takes the faces out instead. False when there is
+  // no surface there; a mesh the hooks cannot read is said so in the terminal.
+  const auto pickFacesAt = [&](const HitT<T>& a_hit, const bool a_add, const bool a_remove) {
+    if constexpr (hasRegionVisibility<S>) {
+      const SurfaceRef<T> piece = a_hit.hit() ? shape.pieceAt(a_hit.m_point, a_hit.m_normal) : SurfaceRef<T>();
+
+      if (piece.m_surface == SurfaceRef<T>::None) {
+        return false;
+      }
+
+      if (piece.m_leaf != faceLeaf) {
+        std::shared_ptr<const ViewerDetail::MeshFaces<T>> faces = a_hooks->m_meshFaces(piece.m_leaf);
+
+        if (faces == nullptr || faces->size() == 0U) {
+          std::printf("EBGeometry viewer: faces are picked on a mesh read from a file; this surface is none\n");
+          std::fflush(stdout);
+
+          return true;
+        }
+
+        meshFaces   = faces;
+        faceLeaf    = piece.m_leaf;
+        faceSurface = piece.m_surface;
+
+        facePicked.assign(meshFaces->size(), 0U);
+      }
+      else if (!a_add && !a_remove) {
+        facePicked.assign(meshFaces->size(), 0U);
+      }
+
+      const std::vector<uint32_t> faces =
+        (faceTool == FaceTool::Fill) ? ViewerDetail::creaseFill(*meshFaces, piece.m_part, creaseAngle)
+                                     : ViewerDetail::brushFaces(*meshFaces, piece.m_part, a_hit.m_point, brushRadius());
+
+      for (const uint32_t face : faces) {
+        facePicked[face] = a_remove ? 0U : 1U;
+      }
+
+      publishFaces();
+
+      return true;
+    }
+    else {
+      (void)a_hit;
+      (void)a_add;
+      (void)a_remove;
+
+      return false;
+    }
+  };
+
+  // The face tool in words, for the title.
+  const auto faceToolText = [&]() {
+    const size_t count = static_cast<size_t>(std::count(facePicked.begin(), facePicked.end(), uint8_t(1)));
+
+    return std::string(faceTool == FaceTool::Fill ? "Faces: fill to " + fixed(double(creaseAngle), 0) + " degrees"
+                                                  : "Faces: brush of " + fixed(double(100 * brushFraction), 1) + "%") +
+           " (] [ change it), " + std::to_string(count) + " picked; Enter names them as a part";
   };
 
   // Pick by another mode: what is picked is picked again from the same pieces (once each).
@@ -2676,7 +3070,7 @@ run(const S&                           a_shape,
     if (GPU::enabled && a_deviceShape != nullptr && GPU::deviceAvailable()) {
       auto device = std::make_unique<Pool>(Pool::mirror(*host, GPU::memoryResource()));
 
-      deviceGroups = setup.rebasedView(*device);
+      deviceGroups.m_groups = setup.rebasedView(*device);
 
       groupPools.push_back(std::move(device));
     }
@@ -2687,10 +3081,48 @@ run(const S&                           a_shape,
     publishedOnce = true;
   };
 
+  // Show the faces picked, when they changed and no render runs in the background: a mask in a new pool, mirrored for
+  // a device, replacing the last one, whose pools are freed (the window's own renders are done with them). Settings made
+  // while a background render runs (a pick, a saved image) keep the last mask; the next frame builds the new one.
+  const auto buildFaceMask = [&]() {
+    if constexpr (hasRegionVisibility<S>) {
+      if (!facesStale || job != nullptr) {
+        return;
+      }
+
+      facesStale = false;
+
+      facePools.clear();
+
+      auto           host = std::make_unique<Pool>(hostMemoryResource());
+      const FaceMask mask = facePicked.empty()
+                              ? FaceMask()
+                              : FaceMask(*host, faceSurface, static_cast<uint32_t>(facePicked.size()), pickedFaces());
+
+      host->freeze();
+
+      settings.m_regions.m_faceMask = mask;
+      deviceGroups.m_faceMask       = FaceMask();
+
+      if (mask.size() != 0U && GPU::enabled && a_deviceShape != nullptr && GPU::deviceAvailable()) {
+        auto device = std::make_unique<Pool>(Pool::mirror(*host, GPU::memoryResource()));
+
+        deviceGroups.m_faceMask = mask.rebasedView(*device);
+
+        facePools.push_back(std::move(device));
+      }
+
+      facePools.push_back(std::move(host));
+
+      showHighlight();
+    }
+  };
+
   // The settings of a frame at a refinement stage: 0 the preview, 1 full resolution without shadows, 2
   // the full settings.
   const auto stageSettings = [&](const int a_stage) {
     publishGroups();
+    buildFaceMask();
 
     Settings<T> frame = settings;
 
@@ -2802,7 +3234,7 @@ run(const S&                           a_shape,
   // the settings change under it.
   const auto render = [](const S&                                              a_host,
                          const S&                                              a_device,
-                         const SurfaceGroups&                                  a_deviceScheme,
+                         const ViewerDetail::DeviceSelection&                  a_deviceScheme,
                          const Settings<T>&                                    a_frame,
                          const Camera<T>                                       a_view,
                          const bool                                            a_onDevice,
@@ -2815,7 +3247,8 @@ run(const S&                           a_shape,
     Settings<T> frame = a_frame;
 
     if (a_onDevice) {
-      frame.m_regions.m_surfaceGroups = a_deviceScheme;
+      frame.m_regions.m_surfaceGroups = a_deviceScheme.m_groups;
+      frame.m_regions.m_faceMask      = a_deviceScheme.m_faceMask;
     }
 
     const auto draw = [&](const auto& a_hostShape, const auto& a_deviceShape, const Settings<T>& a_settings) {
@@ -4135,7 +4568,10 @@ run(const S&                           a_shape,
 
     const std::string note = (a_hooks != nullptr && a_hooks->m_note) ? a_hooks->m_note() : std::string();
 
-    SDL_SetWindowTitle(window, (status + (note.empty() ? "" : " | " + note)).c_str());
+    SDL_SetWindowTitle(window,
+                       (status + (note.empty() ? "" : " | " + note) +
+                        (faceTool != FaceTool::Off ? " | " + faceToolText() : std::string()))
+                         .c_str());
 
     shownStats   = a_stats;
     shownSeconds = a_seconds;
@@ -4173,6 +4609,22 @@ run(const S&                           a_shape,
     SDL_SetWindowTitle(window, (question + ": " + answer + "_  (Enter keeps it, Esc cancels)").c_str());
   };
 
+  // The brush at a point of the window: the faces under it painted (with Alt, taken out).
+  const auto paintAt = [&](const int a_x, const int a_y) {
+    int windowWidth  = 0;
+    int windowHeight = 0;
+
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+    const Settings<T> frame  = stageSettings(2);
+    const T           column = T(a_x) * T(frame.m_width) / T(Math::max(windowWidth, 1));
+    const T           row    = T(a_y) * T(frame.m_height) / T(Math::max(windowHeight, 1));
+
+    if (pickFacesAt(toReal(frame, pickShown(frame, column, row)), true, (SDL_GetModState() & KMOD_ALT) != 0)) {
+      changed = true;
+    }
+  };
+
   while (running) {
     SDL_Event event;
 
@@ -4183,6 +4635,9 @@ run(const S&                           a_shape,
       a_hooks->m_camera    = camera;
       a_hooks->m_settings  = settings;
       a_hooks->m_explode   = explode;
+
+      // The faces picked are not kept across a reload: their pools end with the window's call.
+      a_hooks->m_settings.m_regions.m_faceMask = FaceMask();
 
       break;
     }
@@ -4242,6 +4697,18 @@ run(const S&                           a_shape,
           pressY   = event.button.y;
           moved    = false;
         }
+        else if (event.button.button == SDL_BUTTON_LEFT && faceTool == FaceTool::Brush && !slicing &&
+                 (SDL_GetModState() & KMOD_CTRL) == 0) {
+          // The brush paints the faces under it as it moves (with Alt, takes them out); Ctrl and a drag still pans.
+          brushing = true;
+          dragging = false;
+          panning  = false;
+          pressX   = event.button.x;
+          pressY   = event.button.y;
+          moved    = false;
+
+          paintAt(event.button.x, event.button.y);
+        }
         else if (event.button.button == SDL_BUTTON_LEFT) {
           // In the slice view a drag pans: an orbit would turn the plane away.
           panning  = slicing || (SDL_GetModState() & KMOD_CTRL) != 0;
@@ -4263,6 +4730,12 @@ run(const S&                           a_shape,
         // A click anywhere keeps the name being typed.
         if (renaming != SurfaceGroups::None) {
           finishRename(true);
+        }
+
+        if (event.button.button == SDL_BUTTON_LEFT && brushing) {
+          brushing = false;
+
+          break;
         }
 
         if (event.button.button == SDL_BUTTON_LEFT) {
@@ -4734,6 +5207,18 @@ run(const S&                           a_shape,
               break;
             }
 
+            // Picking faces: a click fills from the face clicked (with Ctrl, adding to the faces picked; with Alt,
+            // taking the fill out).
+            if (faceTool != FaceTool::Off) {
+              (void)pickFacesAt(hit, together, (SDL_GetModState() & KMOD_ALT) != 0);
+
+              dragging = false;
+              panning  = false;
+              changed  = true;
+
+              break;
+            }
+
             // In a view of regions, a click on a surface picks what the pick mode picks there: the part clicked, or
             // the region; with Ctrl, adds it to what is picked, or takes it out. A double-click also centers the
             // camera on the point.
@@ -4847,7 +5332,10 @@ run(const S&                           a_shape,
       case SDL_MOUSEMOTION: {
         moved = moved || std::abs(event.motion.x - pressX) > 3 || std::abs(event.motion.y - pressY) > 3;
 
-        if (lighting) {
+        if (brushing) {
+          paintAt(event.motion.x, event.motion.y);
+        }
+        else if (lighting) {
           rightMoved = rightMoved || std::abs(event.motion.x - rightX) > 3 || std::abs(event.motion.y - rightY) > 3;
 
           turnLight(T(0.4) * T(event.motion.xrel), -T(0.4) * T(event.motion.yrel));
@@ -5109,7 +5597,28 @@ run(const S&                           a_shape,
         if (!question.empty()) {
           const SDL_Keycode key = event.key.keysym.sym;
 
-          if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
+          if ((key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) && namingFaces) {
+            // The part's name for the faces picked: written by the program (whose files' change reloads the model),
+            // or why not, in the terminal.
+            const std::string given = (key == SDLK_ESCAPE) ? std::string() : answer;
+
+            namingFaces = false;
+
+            question.clear();
+            answer.clear();
+
+            if (!given.empty()) {
+              const std::string why = a_hooks->m_faceParts(faceLeaf, pickedFaces(), given);
+
+              std::printf("EBGeometry viewer: %s\n",
+                          why.empty() ? ("the picked faces are part " + given + " now").c_str() : why.c_str());
+              std::fflush(stdout);
+            }
+
+            SDL_StopTextInput();
+            SDL_SetWindowTitle(window, status.c_str());
+          }
+          else if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
             question = a_hooks->m_named(key == SDLK_ESCAPE ? std::string() : answer);
 
             answer.clear();
@@ -5218,6 +5727,37 @@ run(const S&                           a_shape,
           break;
         }
         case SDLK_f: {
+          // Ctrl + F: picking faces, off, a fill, a brush, in turn; only with a program's hooks that read meshes.
+          if ((event.key.keysym.mod & KMOD_CTRL) != 0) {
+            if (!hasRegionVisibility<S> || a_hooks == nullptr || !a_hooks->m_meshFaces || !a_hooks->m_faceParts) {
+              std::printf("EBGeometry viewer: faces are picked in a program that reads the meshes (ebgstudio)\n");
+              std::fflush(stdout);
+
+              changed = pending;
+
+              break;
+            }
+
+            faceTool = (faceTool == FaceTool::Off)    ? FaceTool::Fill
+                       : (faceTool == FaceTool::Fill) ? FaceTool::Brush
+                                                      : FaceTool::Off;
+
+            if (faceTool == FaceTool::Off) {
+              clearFaces();
+            }
+            else {
+              // The faces picked are the selection's only entry while picking faces.
+              if (faceTool == FaceTool::Fill) {
+                clearSelection();
+              }
+
+              std::printf("EBGeometry viewer: %s\n", faceToolText().c_str());
+              std::fflush(stdout);
+            }
+
+            break;
+          }
+
           settings.m_floor = !settings.m_floor;
 
           break;
@@ -5724,6 +6264,25 @@ run(const S&                           a_shape,
         }
         case SDLK_LEFTBRACKET:
         case SDLK_RIGHTBRACKET: {
+          // Picking faces: ] and [ widen or narrow the fill's crease angle (by 5 degrees, 1 to 90) or the brush.
+          if (faceTool != FaceTool::Off) {
+            const bool wider = sym == SDLK_RIGHTBRACKET;
+
+            if (faceTool == FaceTool::Fill) {
+              creaseAngle = Math::clamp(creaseAngle + (wider ? T(5) : T(-5)), T(1), T(90));
+            }
+            else {
+              brushFraction = Math::clamp(brushFraction * (wider ? T(1.25) : T(0.8)), T(0.001), T(0.5));
+            }
+
+            std::printf("EBGeometry viewer: %s\n", faceToolText().c_str());
+            std::fflush(stdout);
+
+            changed = pending;
+
+            break;
+          }
+
           // ] steps the last pick out to the level above, [ back in.
           if (!stepLevel(sym == SDLK_RIGHTBRACKET)) {
             changed = pending;
@@ -5747,6 +6306,25 @@ run(const S&                           a_shape,
         case SDLK_RETURN:
         case SDLK_KP_ENTER:
         case SDLK_BACKSPACE: {
+          // Picking faces: Enter asks the name of the part the faces picked become.
+          if (faceTool != FaceTool::Off && event.key.keysym.sym != SDLK_BACKSPACE) {
+            const size_t count = pickedFaces().size();
+
+            if (count > 0U) {
+              namingFaces = true;
+              question    = "Name the part of the " + std::to_string(count) + " faces picked";
+
+              answer.clear();
+
+              SDL_StartTextInput();
+              askedTitle();
+            }
+
+            changed = pending;
+
+            break;
+          }
+
           // The panel's buttons for the picked piece, as keys.
           const PanelAction action = (event.key.keysym.sym == SDLK_BACKSPACE)     ? PanelAction::RemovePiece
                                      : ((event.key.keysym.mod & KMOD_CTRL) != 0)  ? PanelAction::AddInterface

@@ -960,8 +960,30 @@ view(const Options& a_options)
     return writer.edited(a_names, a_setup);
   };
   hooks.m_named = [&writer](const std::string& a_name) { return writer.named(a_name); };
-  hooks.m_undo  = [&writer]() { return writer.undo(); };
-  hooks.m_redo  = [&writer]() { return writer.redo(); };
+
+  // Faces picked on a mesh (Ctrl + F): the mesh read again from its file for its faces' neighbors, and the faces
+  // written as a part into its parts file.
+  hooks.m_meshFaces = [&current](const uint32_t a_leaf) -> std::shared_ptr<const Render::ViewerDetail::MeshFaces<T>> {
+    const Language::ShapeSite* site = current->m_model->siteOfLeaf(a_leaf);
+
+    if (site == nullptr || site->m_meshFile.empty()) {
+      return nullptr;
+    }
+
+    try {
+      return std::make_shared<const Render::ViewerDetail::MeshFaces<T>>(
+        Render::ViewerDetail::meshFacesOf(Parser::readIntoPolygonSoup<T>(site->m_meshFile)));
+    } catch (const std::exception& e) {
+      std::cout << "ebgstudio: " << e.what() << std::endl;
+
+      return nullptr;
+    }
+  };
+  hooks.m_faceParts = [&writer](const uint32_t               a_leaf,
+                                const std::vector<uint32_t>& a_faces,
+                                const std::string& a_name) { return writer.faceParts(a_leaf, a_faces, a_name); };
+  hooks.m_undo      = [&writer]() { return writer.undo(); };
+  hooks.m_redo      = [&writer]() { return writer.redo(); };
 
   // A picked level is shown with the name of the value making it.
   hooks.m_levelName = [&current](const uint32_t a_node) {

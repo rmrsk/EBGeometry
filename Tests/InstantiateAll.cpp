@@ -256,6 +256,9 @@ instantiateFunctionTemplates()
 
   (void)Parser::readIntoPolygonSoup<T>(file);
   (void)Parser::readIntoPolygonSoup<T>(files);
+  (void)Parser::meshFingerprint(Parser::readIntoPolygonSoup<T>(file));
+  (void)Parser::readFaceParts(file, Parser::readIntoPolygonSoup<T>(file));
+  Parser::writeFaceParts(file, FaceGroups{}, Parser::readIntoPolygonSoup<T>(file), file);
   (void)Parser::readIntoMeshSDF<T>(file, meshPool);
   (void)Parser::readIntoMeshSDF<T>(files, meshPool);
   (void)Parser::readIntoMeshSDF<T>(

@@ -758,3 +758,79 @@ object overlay {
   CHECK(mech.getSelector(0).m_surface == 1U);
   CHECK(mech.getSelector(0).m_numSurfaces == 2U);
 }
+
+TEST_CASE("Writer: faces picked on a mesh are written as a part into its parts file, made and named when new",
+          "[Studio]")
+{
+  namespace fs = std::filesystem;
+
+  const fs::path folder = fs::temp_directory_path() / "ebgstudio-writer-faces";
+
+  fs::remove_all(folder);
+  fs::create_directories(folder / "meshes");
+  fs::copy_file(fs::path(EBGEOMETRY_TEST_DATA_DIR) / "cube_groups.obj", folder / "meshes" / "cube.obj");
+
+  std::ofstream(folder / "model.ebg") << "ebg 0\nobject mesh(\"meshes/cube.obj\")\n";
+
+  Pool pool(hostMemoryResource());
+
+  // cube_groups.obj: face 0 bottom, 1 top, 2-4 walls, 5 in no group. Faces 2 and 5 become "inlet": the parts file is
+  // made next to the mesh, and the call names it.
+  {
+    const auto model = Language::read<T>((folder / "model.ebg").string(), pool);
+
+    Studio::Writer<T> writer((folder / "model.ebg").string());
+
+    writer.attach(model);
+
+    CHECK(writer.faceParts(0, {2, 5}, "inlet").empty());
+    CHECK(text((folder / "model.ebg").string()) ==
+          "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+    CHECK_THAT(text((folder / "meshes" / "cube.parts").string()), Catch::Matchers::EndsWith("\ninlet 2 5\n"));
+
+    // A name the language cannot read is refused, and nothing is written.
+    CHECK_THAT(writer.faceParts(0, {1}, "out let"), Catch::Matchers::ContainsSubstring("letters, digits"));
+  }
+
+  // Read again: the part is read back. Face 5 moved to "outlet", face 2 stays "inlet"; the call is not changed again.
+  {
+    const auto model = Language::read<T>((folder / "model.ebg").string(), pool);
+
+    CHECK_FALSE(model.index().findSurfaceLabel("inlet").isNone());
+
+    Studio::Writer<T> writer((folder / "model.ebg").string());
+
+    writer.attach(model);
+
+    CHECK(writer.faceParts(0, {5}, "outlet").empty());
+    CHECK(text((folder / "model.ebg").string()) ==
+          "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+
+    const std::string parts = text((folder / "meshes" / "cube.parts").string());
+
+    CHECK_THAT(parts, Catch::Matchers::ContainsSubstring("\ninlet 2\n"));
+    CHECK_THAT(parts, Catch::Matchers::EndsWith("\noutlet 5\n"));
+
+    // Moving every face of a part away drops the part.
+    CHECK(writer.faceParts(0, {2}, "outlet").empty());
+    const std::string moved = text((folder / "meshes" / "cube.parts").string());
+
+    CHECK(moved.find("inlet") == std::string::npos);
+    CHECK_THAT(moved, Catch::Matchers::EndsWith("\noutlet 2 5\n"));
+
+    // Undone: the parts as before.
+    CHECK(writer.undo());
+    CHECK(text((folder / "meshes" / "cube.parts").string()) == parts);
+  }
+
+  // A shape that is no mesh: nothing written.
+  std::ofstream(folder / "ball.ebg") << "ebg 0\nobject sphere((0, 0, 0), 1)\n";
+
+  const auto ball = Language::read<T>((folder / "ball.ebg").string(), pool);
+
+  Studio::Writer<T> writer((folder / "ball.ebg").string());
+
+  writer.attach(ball);
+
+  CHECK_THAT(writer.faceParts(0, {0}, "inlet"), Catch::Matchers::ContainsSubstring("parts of a mesh"));
+}

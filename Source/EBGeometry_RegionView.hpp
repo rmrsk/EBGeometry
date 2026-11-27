@@ -314,8 +314,7 @@ private:
         // entry. Either is never seen through: what is highlighted or picked stays solid.
         const bool lit = (m_settings.m_highlightGroup != None && group == m_settings.m_highlightGroup) ||
                          m_settings.isRegionHighlighted(from) || m_settings.isRegionHighlighted(to);
-        const uint32_t chosen =
-          (!lit && m_settings.m_numSelected != 0U) ? m_settings.selectionOf(change.m_surface) : None;
+        const uint32_t chosen = (!lit && m_settings.hasSelection()) ? m_settings.selectionOf(change.m_surface) : None;
 
         const bool through = !lit && chosen == None &&
                              (this->isSeenThrough(key) || m_settings.isRegionSeenThrough(seen) ||

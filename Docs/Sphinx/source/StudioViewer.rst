@@ -32,6 +32,26 @@ They can be written in the setup file, or made in the window by pointing at surf
 4. Add what is picked to the current surface group: Enter, or the panel's buttons, which also add the picked pieces'
    whole surfaces, or every surface between their two regions. Backspace removes them.
 
+Splitting a mesh into parts
+---------------------------
+
+A mesh read from one file with no groups (a CAD export as one STL) is one surface: a boundary condition on its inlet
+needs the inlet to be a part of its own. Ctrl + F picks a mesh's faces:
+
+1. Ctrl + F turns on the fill: a click picks the face clicked and every face reached from it across edges where the
+   surface bends less than a crease angle (30 degrees to begin with; ``]`` and ``[`` widen and narrow it by 5). A
+   CAD face, flat or smoothly curved and bounded by sharp edges, is one click. Ctrl + click adds a fill to the faces
+   picked, Alt + click takes one out.
+2. Ctrl + F again turns on the brush, for patches a fill cannot separate: a drag paints the faces under it, Alt and a
+   drag erases (``]`` and ``[`` make the brush larger or smaller). Ctrl + F a third time ends picking faces.
+3. Enter names the faces picked as a part: they are written into the mesh's parts file (made next to the mesh, and
+   named in its call with ``parts =``, when it has none), taken out of any other part there, and the model reloads
+   with the part labeled by its name. Ctrl + Z undoes it.
+
+The part is then a surface like any other: click it to add it to a surface group. The parts file records the mesh it
+was picked on; a new version of the mesh with other faces makes reading the model an error that names the parts
+file, and the faces are picked again.
+
 The panel counts the pieces of surface that are in no surface group, and ``[Next unassigned]`` turns the camera to the
 next of them: a domain is complete when there are none (``ebgstudio check --domain``).
 

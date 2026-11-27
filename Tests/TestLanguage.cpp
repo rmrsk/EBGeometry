@@ -1414,6 +1414,117 @@ TEMPLATE_TEST_CASE("Language: a setup file including its model and more; a mesh 
   CHECK(model.view().template vector<double>("color.steel") == Vec3T<double>(0.6, 0.6, 0.7));
 }
 
+TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its parts file, on top of its groups",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+  using V = Vec3T<T>;
+
+  namespace fs = std::filesystem;
+
+  Pool pool(hostMemoryResource());
+
+  const fs::path folder = fs::temp_directory_path() / ("ebgeometry-language-face-parts-" + std::to_string(sizeof(T)));
+
+  fs::remove_all(folder);
+  fs::create_directories(folder / "meshes");
+  fs::copy_file(dataFile("cube_groups.obj"), folder / "meshes" / "cube.obj");
+
+  const auto write = [&](const fs::path& a_file, const std::string& a_text) {
+    std::ofstream(a_file, std::ios::binary) << a_text;
+  };
+
+  // cube_groups.obj: face 0 bottom, 1 top, 2-4 walls (y = 0, x = 1, y = 1), 5 (x = 0) in no group. The wall at y = 0
+  // and the ungrouped face are picked as "inlet", in a parts file next to the mesh.
+  const auto       soup = Parser::readIntoPolygonSoup<T>((folder / "meshes" / "cube.obj").string());
+  std::ostringstream fingerprint;
+
+  fingerprint << std::hex << Parser::meshFingerprint(soup);
+
+  write(folder / "meshes" / "cube.parts",
+        "ebg-parts 1\nmesh \"cube.obj\" fingerprint " + fingerprint.str() + "\ninlet 2 5\n");
+
+  const std::vector<std::pair<V, std::string>> probes{{V(0.5, 0.5, -0.2), "bottom"},
+                                                      {V(0.5, -0.2, 0.5), "inlet"},
+                                                      {V(-0.2, 0.5, 0.5), "inlet"},
+                                                      {V(1.2, 0.5, 0.5), "walls"}};
+
+  // The parts path is relative to the file the call is in; the parts file is among the model's files.
+  write(folder / "model.ebg", "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+
+  {
+    const auto model = Language::read<T>((folder / "model.ebg").string(), pool);
+
+    REQUIRE(model.files().size() == 3U);
+    CHECK_THAT(model.files()[2], Catch::Matchers::EndsWith("cube.parts"));
+
+    const ExprIndex<T>& index = model.index();
+    const Tape<T>       tape(pool, model.object());
+
+    for (const auto& [point, label] : probes) {
+      INFO("point " << point);
+
+      CHECK(tape.closestSurface(point).m_surfaceLabel == index.findSurfaceLabel(label));
+    }
+  }
+
+  // Without the file's groups, the picked part is still labeled by its name; the others are not.
+  write(folder / "model.ebg",
+        "ebg 0\nobject mesh(\"meshes/cube.obj\", groups = false, parts = \"meshes/cube.parts\").label(\"cube\")\n");
+
+  {
+    const auto          model = Language::read<T>((folder / "model.ebg").string(), pool);
+    const ExprIndex<T>& index = model.index();
+    const Tape<T>       tape(pool, model.object());
+
+    CHECK(index.findSurfaceLabel("walls").isNone());
+    CHECK(tape.closestSurface(V(0.5, -0.2, 0.5)).m_surfaceLabel == index.findSurfaceLabel("inlet"));
+    CHECK(tape.closestSurface(V(1.2, 0.5, 0.5)).m_surfaceLabel == index.findSurfaceLabel("cube"));
+  }
+
+  // A picked part is a part like a group: .label(part = ...) relabels it.
+  write(folder / "model.ebg",
+        "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\").label(inlet = \"pipe_in\")\n");
+
+  {
+    const auto          model = Language::read<T>((folder / "model.ebg").string(), pool);
+    const ExprIndex<T>& index = model.index();
+    const Tape<T>       tape(pool, model.object());
+
+    CHECK(index.findSurfaceLabel("inlet").isNone());
+    CHECK(tape.closestSurface(V(0.5, -0.2, 0.5)).m_surfaceLabel == index.findSurfaceLabel("pipe_in"));
+  }
+
+  // The mesh changed since the parts were picked: an error at the call, naming the parts file.
+  std::string changed;
+  {
+    std::ifstream in(folder / "meshes" / "cube.obj");
+    std::string   line;
+
+    while (std::getline(in, line)) {
+      changed += (line == "f 4 1 5 8" ? std::string("f 4 1 5\nf 4 5 8") : line) + "\n";
+    }
+  }
+
+  write(folder / "meshes" / "cube.obj", changed);
+  write(folder / "model.ebg", "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+
+  try {
+    (void)Language::read<T>((folder / "model.ebg").string(), pool);
+
+    FAIL("parts picked on another mesh read");
+  } catch (const Language::Error& e) {
+    CHECK_THAT(e.diagnostics().front().m_message, Catch::Matchers::ContainsSubstring("cube.parts:2"));
+    CHECK_THAT(e.diagnostics().front().m_message, Catch::Matchers::ContainsSubstring("pick them again"));
+  }
+
+  // meshes() takes no parts file: one file of picked faces cannot serve every mesh a pattern matches.
+  write(folder / "model.ebg", "ebg 0\nobject union(meshes(\"meshes/*.obj\", parts = \"meshes/cube.parts\"))\n");
+
+  CHECK_THROWS_AS(Language::read<T>((folder / "model.ebg").string(), pool), Language::Error);
+}
+
 TEMPLATE_TEST_CASE("Language: errors are reported at their line and column, all of them, and none aborts",
                    "[Language]",
                    EBGEOMETRY_TEST_PRECISIONS)

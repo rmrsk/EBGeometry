@@ -1902,6 +1902,37 @@ TEMPLATE_TEST_CASE("Render: the viewer's near clip steps by a fraction of the ca
   CHECK(Render::ViewerDetail::steppedNearClip(T(0.2) + T(1e-5), distance, fraction, -1) == T(0));
 }
 
+TEMPLATE_TEST_CASE("Render: the viewer's face picking fills to a crease angle and brushes within a radius",
+                   "[Render]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+  using V = Vec3T<T>;
+
+  // A unit cube of six quads: each face has the four faces around it as neighbors, at right angles.
+  const auto cube  = Parser::readIntoPolygonSoup<T>(std::string(EBGEOMETRY_TEST_DATA_DIR) + "/cube_quads.obj");
+  const auto faces = Render::ViewerDetail::meshFacesOf(cube);
+
+  REQUIRE(faces.size() == 6U);
+
+  for (uint32_t f = 0; f < 6U; f++) {
+    CHECK(faces.m_firstNeighbor[f + 1U] - faces.m_firstNeighbor[f] == 4U);
+    CHECK_THAT(faces.m_normal[f].length(), Catch::Matchers::WithinAbs(1.0, double(tightMargin<T>())));
+  }
+
+  // Below a right angle the fill stays on the face clicked; above it, it covers the cube.
+  CHECK(Render::ViewerDetail::creaseFill(faces, 0U, T(30)) == std::vector<uint32_t>{0U});
+  CHECK(Render::ViewerDetail::creaseFill(faces, 0U, T(95)).size() == 6U);
+  CHECK(Render::ViewerDetail::creaseFill(faces, 6U, T(95)).empty());
+
+  // A brush at a corner covers the three faces around it (their centers are at distance sqrt(0.5) from it); a small
+  // one only the face under it.
+  const V corner = V(T(0), T(0), T(0));
+
+  CHECK(Render::ViewerDetail::brushFaces(faces, 0U, corner, T(0.75)).size() == 3U);
+  CHECK(Render::ViewerDetail::brushFaces(faces, 0U, corner, T(0.1)) == std::vector<uint32_t>{0U});
+}
+
 TEMPLATE_TEST_CASE("Render: the camera fits a box from a named view, straight along the up axis too",
                    "[Render]",
                    EBGEOMETRY_TEST_PRECISIONS)
