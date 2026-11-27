@@ -266,6 +266,9 @@ Comparing two commits
    Scripts/run-performance.sh compare origin/<base> --no-skip                 # also probes whose code is unchanged
    Scripts/run-performance.sh compare origin/<base> --no-cache                # build both sides afresh
 
+These compare with the current ``origin/<base>``. A receipt is recorded against the branch's merge-base instead
+(see `The performance receipt`_ below).
+
 Here ``<base>`` is the branch the pull request targets. The first two arguments that git resolves to
 commits are the baseline (by default, the branch pull requests merge into) and the
 candidate (default: the working tree, uncommitted changes included); anything else is a glob. Each side
@@ -426,7 +429,8 @@ pull request as its *receipt*:
 
 .. code-block:: bash
 
-   Scripts/run-performance.sh compare $(git merge-base HEAD origin/<base>) --record   # writes Performance/receipts/<branch>-<fingerprint>.md
+   base=$(git merge-base HEAD origin/<base>)
+   Scripts/run-performance.sh compare $base --record   # writes Performance/receipts/<branch>-<fingerprint>.md
    git add -A Performance/receipts && git commit -m "Performance receipt"
 
 The comparison is made against the commit the branch starts from, its merge-base with ``origin/<base>``, not
