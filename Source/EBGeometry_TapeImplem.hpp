@@ -3698,10 +3698,20 @@ Tape<T, UserPrimitives...>::laterSolid(const uint32_t  a_region,
 {
   const uint32_t n = this->numRegionOperands();
 
-  T        later   = Math::Limits<T>::max();
+  T later = Math::Limits<T>::max();
+
+  if (a_nearest == nullptr) {
+    for (uint32_t j = a_region + 1U; j <= n; j++) {
+      later = Math::min(later, this->regionSolid(j, this->sharedMasks(a_region, j), a_point));
+    }
+
+    return later;
+  }
+
+  // From the top down, as region() and regionDistances() go, so that of two equal solids all three name the later.
   uint32_t nearest = 0U;
 
-  for (uint32_t j = a_region + 1U; j <= n; j++) {
+  for (uint32_t j = n; j > a_region; j--) {
     const T value = this->regionSolid(j, this->sharedMasks(a_region, j), a_point);
 
     if (value < later) {
@@ -3710,9 +3720,7 @@ Tape<T, UserPrimitives...>::laterSolid(const uint32_t  a_region,
     }
   }
 
-  if (a_nearest != nullptr) {
-    *a_nearest = nearest;
-  }
+  *a_nearest = nearest;
 
   return later;
 }
@@ -3976,12 +3984,19 @@ Tape<T, UserPrimitives...>::regionFunction(const uint32_t a_region, const Vec3T<
 {
   // Region k is its solid with its masks, welded to the later solids (weldedSolid()), minus each later solid without
   // the masks the two share (see TapeDetail::RegionSolid): max(welded S_k, -min_{j>k} S_j).
-  uint32_t nearest = 0U;
+  if constexpr (hasFeature<TapeFeature::Weld>) {
+    uint32_t nearest = 0U;
 
-  const T later = this->laterSolid(a_region, a_point, &nearest);
+    const T later = this->laterSolid(a_region, a_point, &nearest);
 
-  return Math::max(this->weldedSolid(a_region, this->regionSolid(a_region, 0U, a_point), later, nearest, a_point),
-                   -later);
+    return Math::max(this->weldedSolid(a_region, this->regionSolid(a_region, 0U, a_point), later, nearest, a_point),
+                     -later);
+  }
+  else {
+    const T later = this->laterSolid(a_region, a_point);
+
+    return Math::max(this->regionSolid(a_region, 0U, a_point), -later);
+  }
 }
 
 template <class T, class... UserPrimitives>

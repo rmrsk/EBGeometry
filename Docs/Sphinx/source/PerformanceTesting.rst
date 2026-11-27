@@ -1073,6 +1073,8 @@ Family                                Build  Measures
 ``particles/regionDistances``                of each of 20,000 points in the matrix
 ``blocks/region``,                    host   the region, or the nearest surface with the region
 ``blocks/closestSurface``                    across, of each of 20,000 points near the gaps
+``blocks/regionChanges``              host   every region change along a ray through the stack, at
+                                             each point's height
 ``<input>/<operation>``               GPU    each of the above at 262,144 points on both sides
 ====================================  =====  =====================================================
 

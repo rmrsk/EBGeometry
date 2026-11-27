@@ -3606,3 +3606,80 @@ TEMPLATE_TEST_CASE("Tape: a tape without TapeFeature::Weld keeps its regions' so
 
   CHECK(welded.region(middle) == 1U);
 }
+
+TEMPLATE_TEST_CASE("Tape: a welding tape's regions agree with or without masks, and a ray through a flush stack",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions options;
+
+  options.m_interfaceLength = 1e-3;
+
+  // Three unit blocks along x, the first two a welded gap apart, the last two flush; the same clipped by a box
+  // larger than them all (a mask above every region, which changes no value here).
+  const T gap = T(4e-4);
+
+  const Expr<T> stack = Overlay(BoxSDF<T>(Vec3::zeros(), Vec3::ones()),
+                                BoxSDF<T>(Vec3(T(1) + gap, T(0), T(0)), Vec3(T(2) + gap, T(1), T(1))),
+                                BoxSDF<T>(Vec3(T(2) + gap, T(0), T(0)), Vec3(T(3) + gap, T(1), T(1))));
+
+  const Expr<T> clipped = Intersection(stack, BoxSDF<T>(-T(10) * Vec3::ones(), T(10) * Vec3::ones()));
+
+  const Tape plain(pool, stack, options);
+  const Tape masked(pool, clipped, options);
+
+  for (int i = -8; i <= 8; i++) {
+    for (const T x0 : {T(1), T(2)}) {
+      const Vec3 p(x0 + T(0.5) * gap + T(i) * T(2e-4), T(0.4142), T(0.5858));
+
+      INFO("point " << p);
+
+      CHECK(plain.region(p) == masked.region(p));
+      CHECK(plain.signedDistance(p, plain.region(p)) <= T(0));
+
+      for (uint32_t k = 0; k < plain.getNumRegions(); k++) {
+        CHECK_THAT(plain.signedDistance(p, k), withinAbsT<T>(masked.signedDistance(p, k), looseMargin<T>()));
+      }
+
+      plain.regionDistances(p, [&](const uint32_t a_region, const T a_value) {
+        CHECK_THAT(a_value, withinAbsT<T>(plain.signedDistance(p, a_region), tightMargin<T>()));
+      });
+    }
+  }
+
+  // A ray along x changes region four times: into the first block, across the welded gap, across the flush faces, and
+  // out of the last; each crossing between blocks on the later block's face.
+  for (const Tape* tape : {&plain, &masked}) {
+    const RayT<T> ray{Vec3(T(-1), T(0.4142), T(0.5858)), Vec3(T(1), T(0), T(0))};
+
+    std::vector<std::pair<uint32_t, uint32_t>> changes;
+
+    T t = T(0);
+
+    for (int i = 0; i < 8; i++) {
+      const SurfaceHitT<T> change = tape->firstRegionChange(ray, t, T(8));
+
+      if (!change.m_hit.hit()) {
+        break;
+      }
+
+      changes.emplace_back(change.m_surface.m_ownerRegion, change.m_surface.m_neighborRegion);
+
+      if (change.m_surface.m_ownerRegion != 0U && change.m_surface.m_neighborRegion != 0U) {
+        CHECK(change.m_surface.m_leaf == change.m_surface.m_neighborRegion - 1U);
+      }
+
+      t = change.m_hit.m_t;
+    }
+
+    REQUIRE(changes.size() == 4U);
+    CHECK(changes[1] == std::make_pair(1U, 2U));
+    CHECK(changes[2] == std::make_pair(2U, 3U));
+  }
+}

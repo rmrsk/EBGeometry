@@ -7,7 +7,8 @@
 // no point is near a weld; region() and regionDistances(), what the feature costs where it does nothing. The blocks: a
 // stack of blocks, each a region, a hair-thin gap (narrower than the tolerance) between neighbors, at points within a
 // few tolerances of the gaps, where every query reaches the weld; region() and closestSurface(), what a weld costs where
-// it acts. A host build runs the host cases; a CUDA or HIP build runs them as host/device pairs, which agree when their
+// it acts, and regionChanges, every region change along a ray through the stack at each point's height
+// (firstRegionChange()), as a view of an assembly's regions traces it. A host build runs the host cases; a CUDA or HIP build runs them as host/device pairs, which agree when their
 // values do. In a probe of its own, so that adding it changes no other probe's translation unit (see
 // Performance/Fused). See ../README.md and PerformanceTesting.rst.
 
@@ -48,7 +49,8 @@ enum class Operation
 {
   Region,
   RegionDistances,
-  ClosestSurface
+  ClosestSurface,
+  RegionChanges
 };
 
 // A query's answer: a region or a surface, and a value.
@@ -77,6 +79,29 @@ struct Query
       m_tape.regionDistances(a_point, [&](const uint32_t, const T a_value) { sum += a_value; });
 
       return Answer<T>{0U, sum};
+    }
+    else if constexpr (Op == Operation::RegionChanges) {
+      // A ray along x through the stack from in front of it, at the point's height: every region it changes between,
+      // as a view of regions traces it.
+      const EBGeometry::RayT<T> ray{Vec3<T>(T(-1), a_point[1], a_point[2]), Vec3<T>(T(1), T(0), T(0))};
+
+      T        t     = T(0);
+      T        sum   = T(0);
+      uint32_t count = 0U;
+
+      for (int i = 0; i < 64; i++) {
+        const EBGeometry::SurfaceHitT<T> change = m_tape.firstRegionChange(ray, t, T(1e3));
+
+        if (!change.m_hit.hit()) {
+          break;
+        }
+
+        sum += change.m_hit.m_t;
+        t = change.m_hit.m_t;
+        count++;
+      }
+
+      return Answer<T>{count, sum};
     }
     else {
       const uint32_t                  region  = m_tape.region(a_point);
@@ -193,6 +218,9 @@ operationName(const Operation a_op)
   case Operation::RegionDistances: {
     return "regionDistances";
   }
+  case Operation::RegionChanges: {
+    return "regionChanges";
+  }
   default: {
     return "closestSurface";
   }
@@ -268,6 +296,7 @@ addPrecision(Perf::Suite& a_suite)
   addCase<T, Operation::RegionDistances, false>(a_suite);
   addCase<T, Operation::Region, true>(a_suite);
   addCase<T, Operation::ClosestSurface, true>(a_suite);
+  addCase<T, Operation::RegionChanges, true>(a_suite);
 }
 
 } // namespace
