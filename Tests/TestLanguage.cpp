@@ -1437,7 +1437,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
 
   // cube_groups.obj: face 0 bottom, 1 top, 2-4 walls (y = 0, x = 1, y = 1), 5 (x = 0) in no group. The wall at y = 0
   // and the ungrouped face are picked as "inlet", in a parts file next to the mesh.
-  const auto       soup = Parser::readIntoPolygonSoup<T>((folder / "meshes" / "cube.obj").string());
+  const auto         soup = Parser::readIntoPolygonSoup<T>((folder / "meshes" / "cube.obj").string());
   std::ostringstream fingerprint;
 
   fingerprint << std::hex << Parser::meshFingerprint(soup);
@@ -1992,4 +1992,78 @@ TEMPLATE_TEST_CASE("Language: numbers are read with a decimal point under a deci
 
   // The sphere has radius 0.5, not 0 as the number would read in the program's locale.
   CHECK_THAT(tape.signedDistance(Vec3T<T>(T(0), T(0), T(0))), withinAbsT<T>(-0.5, tightMargin<T>()));
+}
+
+TEMPLATE_TEST_CASE("Language: overlay(weld = ...) sets the interface tolerance, which a domain's own object keeps",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Two blocks a gap of 1e-4 apart (welded at 1e-3) and a third far away, in a domain of the first only.
+  const std::string text = R"(ebg 0
+param gap = 1e-4
+object overlay(weld = 10 * gap) {
+  region left  = box((0, 0, 0), (1, 1, 1)) material steel
+  region right = box((1 + gap, 0, 0), (2, 1, 1)) material copper
+  region far   = box((8, 0, 0), (9, 1, 1)) material copper
+}
+material steel { conductivity = 45 }
+material copper { conductivity = 5.8e7 }
+domain heat {
+  subdomain metal = left
+  group all = remaining()
+}
+)";
+
+  const auto model = Language::parse<T>(text, "test.ebg", pool);
+
+  REQUIRE(model.tapeOptions().m_interfaceLength.has_value());
+  CHECK_THAT(*model.tapeOptions().m_interfaceLength, Catch::Matchers::WithinAbs(1e-3, 1e-12));
+
+  const Tape<T> tape(pool, model.object(), model.tapeOptions());
+
+  CHECK_THAT(tape.getInterfaceTolerance(), withinAbsT<T>(T(1e-3), tightMargin<T>()));
+  CHECK(tape.region(Vec3(T(1) + T(0.5e-4), T(0.5), T(0.5))) == 1U);
+
+  // The domain's own object is smaller, and welds within the same length.
+  const auto own = model.domainObject("heat");
+
+  CHECK(own.neighborhood().getNumRegions() < tape.getNumRegions());
+  REQUIRE(own.tapeOptions().m_interfaceLength.has_value());
+  CHECK(*own.tapeOptions().m_interfaceLength == *model.tapeOptions().m_interfaceLength);
+
+  // Printed, the setting stays as written.
+  CHECK_THAT(Language::print(model), Catch::Matchers::ContainsSubstring("object overlay(weld = 10 * gap) {\n"));
+
+  // Without the setting: the default fraction for the model, its length for the domain's object.
+  const std::string plain = std::string(text).replace(text.find("(weld = 10 * gap)"), 17, "");
+
+  const auto defaults = Language::parse<T>(plain, "test.ebg", pool);
+
+  CHECK(!defaults.tapeOptions().m_interfaceLength.has_value());
+
+  const Tape<T> whole(pool, defaults.object(), defaults.tapeOptions());
+  const auto    part = defaults.domainObject("heat");
+
+  REQUIRE(part.tapeOptions().m_interfaceLength.has_value());
+  CHECK_THAT(*part.tapeOptions().m_interfaceLength,
+             Catch::Matchers::WithinAbs(static_cast<double>(whole.getInterfaceTolerance()), 1e-6 * 1e-5));
+  CHECK_THAT(Tape<T>(pool, part.object(), part.tapeOptions()).getInterfaceTolerance(),
+             withinAbsT<T>(whole.getInterfaceTolerance(), 1e-9));
+
+  // What is refused.
+  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(gap = 1) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
+             Catch::Matchers::ContainsSubstring("no setting 'gap'"));
+  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(1e-6) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
+             Catch::Matchers::ContainsSubstring("settings are named"));
+  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(weld = -1) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
+             Catch::Matchers::ContainsSubstring("at least 0"));
+  CHECK_THAT(firstError<T>("ebg 0\ninner = overlay(weld = 1e-6) {\n  region a = sphere((0, 0, 0), 1)\n}\nobject "
+                           "overlay(weld = 1e-6) {\n  region b = inner\n}\n")
+               .m_message,
+             Catch::Matchers::ContainsSubstring("set once"));
 }

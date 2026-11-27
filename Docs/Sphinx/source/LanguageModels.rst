@@ -133,6 +133,18 @@ regions.
      region core       = cylinder((0, 0, -3), (0, 0, 3), 0.5) material copper
    }
 
+Regions closer than a small tolerance are welded into one interface (see :ref:`Chap:Regions`): by default a
+fraction of the object's size. ``overlay(weld = ...)`` sets it as a length, in the model's units, for the whole
+object: larger for parts that are only roughly flush, smaller (or 0, only exact contacts) where a real gap
+between parts is narrow and must stay open. It is set once, on one overlay of the object.
+
+.. code-block:: text
+
+   object overlay(weld = 1e-6) {
+     region housing   = mesh("housing.stl") material aluminium
+     region electrode = mesh("electrode.stl") material copper
+   }
+
 An overlay can be the object, be moved (``translate``, ``rotate``, ``scale``, ``reflect``), clipped or drilled
 (as the first operand of ``intersection`` or ``difference``, whose other operands remove space from every
 region), labeled, or be a region of another overlay. Anywhere else, in a union or under an offset, say, which

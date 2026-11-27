@@ -422,23 +422,6 @@ printNearGaps(const Language::Model<T>& a_model, const Tape<T>& a_tape, const ui
   }
 }
 
-// The options of a tape of part of a model (a domain's own object), welding regions within the same distance as the
-// whole model's tape: the tolerance is a fraction of the object's box, and the part's box is smaller.
-TapeOptions
-partOptions(const Tape<T>& a_whole, const Expr<T>& a_part)
-{
-  const BoundingVolumes::AABBT<T> box      = a_part.computeBoundingVolume();
-  const T                         diagonal = (box.getHighCorner() - box.getLowCorner()).length();
-
-  TapeOptions options;
-
-  if (diagonal > T(0) && diagonal < Math::Limits<T>::max()) {
-    options.m_interfaceTolerance = Math::min(0.5, static_cast<double>(a_whole.getInterfaceTolerance() / diagonal));
-  }
-
-  return options;
-}
-
 int
 check(const Options& a_options, Pool& a_pool)
 {
@@ -452,7 +435,7 @@ check(const Options& a_options, Pool& a_pool)
     std::cout << Language::inventory(model);
   }
 
-  printNearGaps(model, Tape<T>(a_pool, model.object()), 64U);
+  printNearGaps(model, Tape<T>(a_pool, model.object(), model.tapeOptions()), 64U);
 
   int status = 0;
 
@@ -471,7 +454,7 @@ check(const Options& a_options, Pool& a_pool)
   }
 
   if (!domains.empty()) {
-    const Tape<T> tape(a_pool, model.object());
+    const Tape<T> tape(a_pool, model.object(), model.tapeOptions());
 
     // The components are searched for when asked, and only when the object's value is a distance.
     const T    resolution = T(a_options.m_components);
@@ -752,7 +735,7 @@ render(const Options& a_options, Pool& a_pool)
 
   const auto model = Language::read<T>(a_options.m_model, a_pool, a_options.m_overrides);
 
-  const Tape<T>             tape(a_pool, model.object());
+  const Tape<T>             tape(a_pool, model.object(), model.tapeOptions());
   const RegionView<Tape<T>> regions(tape);
 
   Render::Camera<T>   camera;
@@ -888,7 +871,8 @@ load(const Options& a_options, const Stamps& a_before)
   loaded->m_pool = std::make_unique<Pool>(hostMemoryResource());
   loaded->m_model =
     std::make_unique<Language::Model<T>>(Language::read<T>(a_options.m_model, *loaded->m_pool, a_options.m_overrides));
-  loaded->m_tape    = std::make_unique<Tape<T>>(*loaded->m_pool, loaded->m_model->object());
+  loaded->m_tape =
+    std::make_unique<Tape<T>>(*loaded->m_pool, loaded->m_model->object(), loaded->m_model->tapeOptions());
   loaded->m_regions = std::make_unique<RegionView<Tape<T>>>(*loaded->m_tape);
   loaded->m_names   = loaded->m_model->names();
 
@@ -901,8 +885,7 @@ load(const Options& a_options, const Stamps& a_before)
       wholeRegion.push_back(own.neighborhood().wholeRegion(r));
     }
 
-    loaded->m_domainTapes.push_back(
-      std::make_unique<Tape<T>>(*loaded->m_pool, own.object(), partOptions(*loaded->m_tape, own.object())));
+    loaded->m_domainTapes.push_back(std::make_unique<Tape<T>>(*loaded->m_pool, own.object(), own.tapeOptions()));
     loaded->m_domains.push_back({RegionView<Tape<T>>(*loaded->m_domainTapes.back()), wholeRegion});
   }
 

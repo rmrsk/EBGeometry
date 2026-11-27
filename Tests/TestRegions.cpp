@@ -3146,6 +3146,15 @@ TEMPLATE_TEST_CASE("Tape: the interface tolerance is a fraction of the box's dia
 
   CHECK(Tape(pool, pair, options).getInterfaceTolerance() == T(0));
 
+  // A length, given: it replaces the fraction, whatever the box.
+  options.m_interfaceLength = 2.5e-4;
+
+  CHECK_THAT(Tape(pool, pair, options).getInterfaceTolerance(), withinAbsT<T>(T(2.5e-4), tightMargin<T>()));
+
+  options.m_interfaceLength = 0.0;
+
+  CHECK(Tape(pool, pair, options).getInterfaceTolerance() == T(0));
+
   // A half-space has no bounded box.
   CHECK(Tape(pool, Overlay(PlaneSDF<T>(Vec3::zeros(), Vec3(T(0), T(0), T(1))), SphereSDF<T>(Vec3::zeros(), T(1))))
           .getInterfaceTolerance() == T(0));
@@ -3162,6 +3171,16 @@ TEMPLATE_TEST_CASE("Tape: the interface tolerance is a fraction of the box's dia
       (void)Tape(local, pair, bad);
     },
     refused));
+  REQUIRE(abortsWith(
+    [&] {
+      Pool        local(hostMemoryResource());
+      TapeOptions bad;
+
+      bad.m_interfaceLength = -1.0;
+
+      (void)Tape(local, pair, bad);
+    },
+    "Tape: TapeOptions::m_interfaceLength is"));
 }
 
 TEMPLATE_TEST_CASE("findNearGaps: regions a thin layer of the background separates, each pair once, with its gap",

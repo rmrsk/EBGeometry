@@ -446,7 +446,7 @@ run(int argc, char* argv[])
   EBGeometry::Pool pool(EBGeometry::hostMemoryResource());
 
   const auto model = EBGeometry::Language::read<T>(file, pool);
-  const Tape tape(pool, model.object());
+  const Tape tape(pool, model.object(), model.tapeOptions());
 
   // Regions beyond the outside and the object: a model with an overlay.
   const bool regions = tape.getNumRegions() > 2;

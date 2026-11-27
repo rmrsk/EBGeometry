@@ -964,7 +964,20 @@ Model<T>::domainObject(std::string_view a_domain) const
     return neighborhood.wholeSurface(a_surface);
   });
 
-  return DomainObject<T>(std::move(neighborhood), std::move(setup), std::move(names));
+  // The whole model's interface tolerance as a length: the domain's object has a smaller box, of which the default
+  // fraction would be a shorter length.
+  TapeOptions options = this->tapeOptions();
+
+  if (!options.m_interfaceLength.has_value()) {
+    const BoundingVolumes::AABBT<T> box      = m_object->computeBoundingVolume();
+    const T                         diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+
+    options.m_interfaceLength = (diagonal > T(0) && diagonal < Math::Limits<T>::max())
+                                  ? options.m_interfaceTolerance * static_cast<double>(diagonal)
+                                  : 0.0;
+  }
+
+  return DomainObject<T>(std::move(neighborhood), std::move(setup), std::move(names), options);
 }
 
 template <class T>
@@ -1338,6 +1351,11 @@ private:
    * @brief Where each material is first used by a region.
    */
   std::map<std::string, Span> m_materialUses;
+
+  /**
+   * @brief Where the object's interface tolerance is set (overlay(weld = ...)), if it is.
+   */
+  std::optional<Span> m_weldSpan;
 
   /**
    * @brief The domains with errors: what refers to them reports nothing more.
@@ -3904,6 +3922,29 @@ private:
     std::vector<std::pair<std::string, Span>> names;
     std::vector<V>                            shapes;
 
+    // Its settings: weld, the interface tolerance as a length, for the whole object.
+    for (size_t i = 0; i < a_node.m_options.size(); i++) {
+      const Node& option = a_node.m_options[i];
+
+      if (a_node.m_keys[i] != "weld") {
+        throw Error(option.m_span, "an overlay has no setting '" + a_node.m_keys[i] + "' (it has weld)");
+      }
+
+      const V value = this->eval(option);
+
+      if (value.m_type != VT::Number || !(value.m_number >= 0.0) || !(value.m_number < 1e300)) {
+        throw Error(option.m_span, "weld is a length of at least 0 (the gap regions are welded across)");
+      }
+
+      if (m_weldSpan.has_value()) {
+        throw Error(option.m_span,
+                    "weld is set once for the whole object, and is already set at " + place(*m_weldSpan));
+      }
+
+      m_weldSpan                = option.m_span;
+      m_model.m_interfaceLength = value.m_number;
+    }
+
     for (const Node& region : a_node.m_children) {
       V value = this->eval(region.m_children[0]);
 
@@ -5753,7 +5794,21 @@ private:
     case NK::Overlay: {
       const std::string inner = a_indent + "  ";
 
-      a_out += "overlay {";
+      a_out += "overlay";
+
+      if (!a_node.m_options.empty()) {
+        a_out += "(";
+
+        for (size_t i = 0; i < a_node.m_options.size(); i++) {
+          a_out += (i > 0 ? ", " : "") + a_node.m_keys[i] + " = ";
+
+          this->node(a_out, a_node.m_options[i], a_indent);
+        }
+
+        a_out += ")";
+      }
+
+      a_out += " {";
 
       this->trailing(a_out, a_node.m_span.m_line);
 

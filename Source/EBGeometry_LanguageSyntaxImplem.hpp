@@ -1320,7 +1320,7 @@ private:
   }
 
   /**
-   * @brief overlay { region name = expr [material name] ... }, after the keyword.
+   * @brief overlay[(key = value, ...)] { region name = expr [material name] ... }, after the keyword.
    * @param[in] a_first The keyword's span.
    * @return The node.
    */
@@ -1330,6 +1330,22 @@ private:
     Node node;
 
     node.m_kind = NodeKind::Overlay;
+
+    // Its settings, each by keyword.
+    if (isSymbol('(')) {
+      Node settings;
+
+      arguments(settings);
+
+      for (size_t i = 0; i < settings.m_children.size(); i++) {
+        if (settings.m_keys[i].empty()) {
+          fail(settings.m_children[i].m_span, "an overlay's settings are named, such as overlay(weld = 1e-6)");
+        }
+      }
+
+      node.m_options = std::move(settings.m_children);
+      node.m_keys    = std::move(settings.m_keys);
+    }
 
     expect('{', "after overlay");
 

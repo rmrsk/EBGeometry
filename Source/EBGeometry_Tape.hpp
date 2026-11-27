@@ -27,6 +27,7 @@
 // Std includes
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -80,7 +81,8 @@ struct TapeOptions
    * bounding box. Where a region's solid and a later region's solid overlap, are flush, or leave a gap narrower than
    * this, the gap is closed (the earlier region fills it up to the later region's face) and the later region's face is
    * the interface between them, seen from either side: in the region functions, region(), closestSurface() and
-   * firstRegionChange(). 0 welds only exact contacts. Default 1e-5. Must be at least 0.
+   * firstRegionChange(). 0 welds only exact contacts. Default 1e-5. Must be at least 0. m_interfaceLength, when
+   * set, replaces it.
    * @details Applies only to an object with an Overlay, and only where its regions are concerned: the value of the
    * whole object (signedDistance() without a region) is its expression evaluated as written. For an object whose box
    * is unbounded the tolerance is 0.
@@ -91,6 +93,15 @@ struct TapeOptions
    * a marched surface resolves.
    */
   double m_interfaceTolerance = 1e-5;
+
+  /**
+   * @brief The interface tolerance as a length, in the object's units: when set, it replaces m_interfaceTolerance. 0
+   * welds only exact contacts. Must be at least 0.
+   * @details For a model whose parts leave a real gap that is small next to the whole object (which a fraction of the
+   * box could weld shut), and for a tape of part of an object (a domain's own object, whose box is smaller) that must
+   * weld exactly as the whole object's tape does: give it the whole tape's getInterfaceTolerance().
+   */
+  std::optional<double> m_interfaceLength;
 };
 
 /**
@@ -1192,8 +1203,9 @@ public:
   getLargestPlainUnion() const noexcept;
 
   /**
-   * @brief How close two regions must come to share one interface, as a length: TapeOptions::m_interfaceTolerance
-   * times the diagonal of the object's bounding box, fixed when the tape was built.
+   * @brief How close two regions must come to share one interface, as a length, fixed when the tape was built:
+   * TapeOptions::m_interfaceLength when it was given, else TapeOptions::m_interfaceTolerance times the diagonal of the
+   * object's bounding box.
    * @return The tolerance (0 for an object whose box is unbounded, or built with a tolerance of 0).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

@@ -213,7 +213,7 @@ run(int argc, char* argv[])
 
   if (rank == 0) {
     const auto model = EBGeometry::Language::read<T>(file, buildPool);
-    const Tape built(buildPool, model.object());
+    const Tape built(buildPool, model.object(), model.tapeOptions());
 
     buildPool.freeze();
 

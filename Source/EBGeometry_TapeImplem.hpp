@@ -1713,8 +1713,16 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
                      "Tape: TapeOptions::m_interfaceTolerance is %g, but must be at least 0 and less than 1",
                      a_options.m_interfaceTolerance);
 
-  // The interface tolerance as a length: a fraction of the box's diagonal, or 0 for an unbounded object.
-  {
+  EBGEOMETRY_REQUIRE(!a_options.m_interfaceLength.has_value() ||
+                       (*a_options.m_interfaceLength >= 0.0 && *a_options.m_interfaceLength < 1e300),
+                     "Tape: TapeOptions::m_interfaceLength is %g, but must be at least 0",
+                     a_options.m_interfaceLength.value_or(0.0));
+
+  // The interface tolerance as a length: as given, or a fraction of the box's diagonal (0 for an unbounded object).
+  if (a_options.m_interfaceLength.has_value()) {
+    staging.m_interfaceTolerance = T(*a_options.m_interfaceLength);
+  }
+  else {
     const Vec3T<T> size     = staging.m_boundingVolume.getHighCorner() - staging.m_boundingVolume.getLowCorner();
     const T        diagonal = size.length();
 

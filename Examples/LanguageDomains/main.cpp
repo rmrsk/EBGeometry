@@ -77,7 +77,7 @@ main(int argc, char* argv[])
   // The program compiles the object, builds the cfd domain of the model for that tape, and fills the fluid's table from
   // the subdomains' properties: the subdomain's own over its regions' material's. Both live in the tape's pool: one
   // mirror, one lifetime.
-  const Tape tape(pool, model.object());
+  const Tape tape(pool, model.object(), model.tapeOptions());
 
   const auto&  cfd = model.domain("cfd");
   const Domain flow(pool, tape, cfd.setup());
@@ -124,7 +124,7 @@ main(int argc, char* argv[])
   // them, those whose bounding boxes meet theirs: the air around the cable, not the sensor, whose box lies apart. Its
   // regions are numbered anew; its setup is the domain's, translated, with the same subdomains and surface groups.
   const auto   conduction = model.domainObject("conduction");
-  const Tape   cable(pool, conduction.object());
+  const Tape   cable(pool, conduction.object(), conduction.tapeOptions());
   const Domain heat(pool, cable, conduction.setup());
 
   std::cout << "Domain conduction, on its own: " << conduction.neighborhood().getNumRegions() - 1U << " of "
@@ -148,7 +148,7 @@ main(int argc, char* argv[])
       wholeRegion.push_back(own.neighborhood().wholeRegion(r));
     }
 
-    domains.push_back({Regions(Tape(pool, own.object())), wholeRegion});
+    domains.push_back({Regions(Tape(pool, own.object(), own.tapeOptions())), wholeRegion});
   }
 
   // ── On the host ────────────────────────────────────────────────────────────────────────────────────

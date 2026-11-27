@@ -31,7 +31,7 @@ main(int argc, char* argv[])
 
   // The object is an Expr, as the expression builder makes one, and compiles into a tape like any other: from here on,
   // nothing knows the solid came from a file.
-  const EBGeometry::Tape<T> tape(pool, model.object());
+  const EBGeometry::Tape<T> tape(pool, model.object(), model.tapeOptions());
 
   // A window on the solid (built with VIEWER=SDL2). Given the pool, it renders on the GPU in a GPU build.
   EBGeometry::Render::view(tape, pool, argc, argv);
