@@ -38,7 +38,7 @@
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
 
-using Tape = EBGeometry::Tape<T>;
+using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::Weld>;
 
 // The layout is broadcast as bytes.
 static_assert(std::is_trivially_copyable_v<Tape::Layout>);

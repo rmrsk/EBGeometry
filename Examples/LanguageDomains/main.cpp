@@ -22,8 +22,8 @@
 
 using T       = EBGEOMETRY_PRECISION;
 using Vec3    = EBGeometry::Vec3T<T>;
-using Tape    = EBGeometry::Tape<T>;
-using Domain  = EBGeometry::Domain<T>;
+using Tape    = EBGeometry::Tape<T, EBGeometry::TapeFeature::Weld>; // welds regions as the model says
+using Domain  = EBGeometry::Domain<T, EBGeometry::TapeFeature::Weld>;
 using Regions = EBGeometry::RegionView<Tape>;
 
 namespace {

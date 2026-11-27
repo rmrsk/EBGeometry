@@ -77,8 +77,8 @@ struct TapeOptions
   BVH::Construction m_construction = BVH::Construction::SAH;
 
   /**
-   * @brief How close two regions must come to share one interface, as a fraction of the diagonal of the object's
-   * bounding box. Where a region's solid and a later region's solid overlap, are flush, or leave a gap narrower than
+   * @brief How close two regions must come to share one interface, in a tape that welds (TapeFeature::Weld), as a
+   * fraction of the diagonal of the object's bounding box. Where a region's solid and a later region's solid overlap, are flush, or leave a gap narrower than
    * this, the gap is closed (the earlier region fills it up to the later region's face) and the later region's face is
    * the interface between them, seen from either side: in the region functions, region(), closestSurface() and
    * firstRegionChange(). 0 welds only exact contacts. Default 1e-5. Must be at least 0. m_interfaceLength, when
@@ -148,6 +148,19 @@ struct Tag
  * scaled mesh is still traced exactly.
  */
 struct ExactOffsets : Tag
+{
+};
+
+/**
+ * @brief Regions closer than the interface tolerance (TapeOptions::m_interfaceTolerance or m_interfaceLength) share
+ * one interface: the gap between two regions whose surfaces face each other is the earlier region's, up to the later
+ * region's face, in region(), the region functions, closestSurface() and firstRegionChange() (see weldedSolid()).
+ * Without it, a tape's regions are exactly their operands' solids, and getInterfaceTolerance() is 0.
+ * @details A feature because the weld's code, though it runs only within the tolerance of two surfaces, is reached
+ * from every region query: on a device it raises the register pressure, and so the spills, of every kernel that asks
+ * a tape about its regions, whether or not any point is ever near a weld.
+ */
+struct Weld : Tag
 {
 };
 
@@ -2231,9 +2244,68 @@ private:
    * @return The welded solid.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
-  EBGEOMETRY_DEVICE_NOINLINE
   inline T
   weldedSolid(uint32_t a_region, T a_own, T a_later, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The region across a region's own surface found from the surface's nearest point (closestSurface(), when
+   * no other region holds the point): the last other region whose solid reaches that point within the tolerance, not
+   * cut by the mask that cuts the region there, or the background. Out of line, since it is reached only near another
+   * region.
+   * @param[in] a_region The region asked about.
+   * @param[in] a_own    The region's solid at the point.
+   * @param[in] a_cutBy  The mask that cuts the region there, or Subdomains::None.
+   * @param[in] a_point  The point.
+   * @return The region across.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  uint32_t
+  acrossAtSurface(uint32_t a_region, T a_own, uint32_t a_cutBy, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief Whether a region's welded function is negative at a point its own solid misses by less than the tolerance
+   * (region()): out of line, since region() reaches it only near a weld.
+   * @param[in] a_region The region.
+   * @param[in] a_own    The region's solid at the point, at least 0.
+   * @param[in] a_point  The point.
+   * @return Whether the region holds the point.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  bool
+  weldHolds(uint32_t a_region, T a_own, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief The background's function within the tolerance outside the object, where welds fill gaps: minus the
+   * smallest of the object's value and every region's function (signedDistance(p, 0)). Out of line, since it is
+   * reached only there.
+   * @param[in] a_whole The object's value at the point.
+   * @param[in] a_point The point.
+   * @return The value.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  T
+  weldedBackground(T a_whole, const Vec3T<T>& a_point) const noexcept;
+
+  /**
+   * @brief weldedSolid() inside the band, where it estimates the normals: out of line on the host and a device, so
+   * that the region loops that call weldedSolid() for every region keep only its two comparisons inline.
+   * @param[in] a_region The region.
+   * @param[in] a_own    The region's solid at the point.
+   * @param[in] a_later  The later regions' solid at the point.
+   * @param[in] a_point  The point.
+   * @return The welded solid.
+   */
+  [[nodiscard]] EBGEOMETRY_HOST_DEVICE
+  EBGEOMETRY_HOST_NOINLINE
+  EBGEOMETRY_DEVICE_NOINLINE
+  T
+  weldInBand(uint32_t a_region, T a_own, T a_later, const Vec3T<T>& a_point) const noexcept;
 
   template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE

@@ -1718,8 +1718,12 @@ Tape<T, UserPrimitives...>::Tape(Pool& a_pool, const Expr<T>& a_expr, const Tape
                      "Tape: TapeOptions::m_interfaceLength is %g, but must be at least 0",
                      a_options.m_interfaceLength.value_or(0.0));
 
-  // The interface tolerance as a length: as given, or a fraction of the box's diagonal (0 for an unbounded object).
-  if (a_options.m_interfaceLength.has_value()) {
+  // The interface tolerance as a length: as given, or a fraction of the box's diagonal (0 for an unbounded object, or
+  // a tape that does not weld).
+  if (!hasFeature<TapeFeature::Weld>) {
+    staging.m_interfaceTolerance = T(0);
+  }
+  else if (a_options.m_interfaceLength.has_value()) {
     staging.m_interfaceTolerance = T(*a_options.m_interfaceLength);
 
     EBGEOMETRY_REQUIRE(staging.m_interfaceTolerance < Math::Limits<T>::max(),
@@ -3703,20 +3707,128 @@ Tape<T, UserPrimitives...>::laterSolid(const uint32_t a_region, const Vec3T<T>& 
 
 template <class T, class... UserPrimitives>
 EBGEOMETRY_HOST_DEVICE
-EBGEOMETRY_DEVICE_NOINLINE
 inline T
 Tape<T, UserPrimitives...>::weldedSolid(const uint32_t  a_region,
                                         const T         a_own,
                                         const T         a_later,
                                         const Vec3T<T>& a_point) const noexcept
 {
-  const T tolerance = m_layout.m_interfaceTolerance;
-  const T band      = T(2) * tolerance;
+  if constexpr (hasFeature<TapeFeature::Weld>) {
+    const T band = T(2) * m_layout.m_interfaceTolerance;
 
-  // Outside the band within twice the tolerance of both surfaces: the region's own solid.
-  if (!(tolerance > T(0)) || !(std::abs(a_own) < band) || !(std::abs(a_later) < band)) {
+    // Outside the band within twice the tolerance of both surfaces (and with no tolerance, an empty band): the
+    // region's own solid.
+    if (!(std::abs(a_own) < band) || !(std::abs(a_later) < band)) {
+      return a_own;
+    }
+
+    return this->weldInBand(a_region, a_own, a_later, a_point);
+  }
+  else {
+    (void)a_region;
+    (void)a_later;
+    (void)a_point;
+
     return a_own;
   }
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+EBGEOMETRY_DEVICE_NOINLINE
+uint32_t
+Tape<T, UserPrimitives...>::acrossAtSurface(const uint32_t  a_region,
+                                            const T         a_own,
+                                            const uint32_t  a_cutBy,
+                                            const Vec3T<T>& a_point) const noexcept
+{
+  const void*    base = this->base();
+  const uint32_t n    = this->numRegionOperands();
+
+  // The surface's nearest point: the point moved along the solid's normal (by central differences) by its value.
+  const BoundingVolumes::AABBT<T> box      = m_layout.m_boundingVolume;
+  const T                         diagonal = (box.getHighCorner() - box.getLowCorner()).length();
+  const T                         scale    = (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal : T(1);
+  const T                         h        = Math::max(T(1e-3) * std::abs(a_own), T(1e-6) * scale);
+
+  Vec3T<T> normal = Vec3T<T>::zeros();
+
+  for (int dir = 0; dir < 3; dir++) {
+    Vec3T<T> step = Vec3T<T>::zeros();
+
+    step[dir] = h;
+
+    normal[dir] = this->regionSolid(a_region, 0U, a_point + step) - this->regionSolid(a_region, 0U, a_point - step);
+  }
+
+  const T        length  = normal.length();
+  const Vec3T<T> nearest = (length > T(0)) ? a_point - (a_own / length) * normal : a_point;
+
+  // Whether a region is cut by the mask that cuts the region asked about there.
+  const auto cut = [&](const uint32_t a_other) {
+    const uint32_t other = m_layout.m_regionPrograms.at(base, a_other);
+    const uint32_t count = m_layout.m_regionPrograms.at(base, other);
+
+    for (uint32_t i = 0; i < count; i++) {
+      if (m_layout.m_regionPrograms.at(base, other + 1U + i) == a_cutBy) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  for (uint32_t m = n; m > 0U; m--) {
+    if (m != a_region && (a_cutBy == Subdomains::None || !cut(m)) &&
+        this->regionSolid(m, 0U, nearest) <= m_layout.m_interfaceTolerance) {
+      return m;
+    }
+  }
+
+  return 0U;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+EBGEOMETRY_DEVICE_NOINLINE
+bool
+Tape<T, UserPrimitives...>::weldHolds(const uint32_t a_region, const T a_own, const Vec3T<T>& a_point) const noexcept
+{
+  const T later = this->laterSolid(a_region, a_point);
+
+  return Math::max(this->weldedSolid(a_region, a_own, later, a_point), -later) < T(0);
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+EBGEOMETRY_DEVICE_NOINLINE
+T
+Tape<T, UserPrimitives...>::weldedBackground(const T a_whole, const Vec3T<T>& a_point) const noexcept
+{
+  T inside = a_whole;
+
+  for (uint32_t k = this->numRegionOperands(); k > 0U; k--) {
+    inside = Math::min(inside, this->regionFunction(k, a_point));
+  }
+
+  return -inside;
+}
+
+template <class T, class... UserPrimitives>
+EBGEOMETRY_HOST_DEVICE
+EBGEOMETRY_HOST_NOINLINE
+EBGEOMETRY_DEVICE_NOINLINE
+T
+Tape<T, UserPrimitives...>::weldInBand(const uint32_t  a_region,
+                                       const T         a_own,
+                                       const T         a_later,
+                                       const Vec3T<T>& a_point) const noexcept
+{
+  const T tolerance = m_layout.m_interfaceTolerance;
+  const T band      = T(2) * tolerance;
 
   // How much the two surfaces face each other: minus the cosine between their normals, by central differences.
   const T h = T(0.25) * tolerance;
@@ -3762,20 +3874,9 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
 
   const uint32_t n = this->numRegionOperands();
 
-  // The last region whose solid, with all its masks, holds the point: later regions are on top.
-  if (!(m_layout.m_interfaceTolerance > T(0))) {
-    for (uint32_t k = n; k > 0U; k--) {
-      if (this->regionSolid(k, 0U, a_point) < T(0)) {
-        return k;
-      }
-    }
-
-    return 0U;
-  }
-
-  // With the regions welded: the last region whose function is negative there, its solid grown into a gap to a
-  // later one (weldedSolid()). Going down, the later regions hold no point checked, so the region whose function is
-  // negative is the one there, as signedDistance(p, region) says.
+  // The last region whose solid, with all its masks, holds the point (later regions are on top), its solid welded
+  // into a gap to a later one (weldedSolid()). Going down, the later regions hold no point checked, so the region whose
+  // function is negative is the one there, as signedDistance(p, region) says.
   for (uint32_t k = n; k > 0U; k--) {
     const T own = this->regionSolid(k, 0U, a_point);
 
@@ -3784,15 +3885,11 @@ Tape<T, UserPrimitives...>::region(const Vec3T<T>& a_point) const noexcept
     }
 
     // A point the region's own solid misses is in its weld only within the tolerance of it (where own + later is
-    // below the tolerance with the later solid not holding the point), so only there are the later solids asked.
-    if (!(own < m_layout.m_interfaceTolerance)) {
-      continue;
-    }
-
-    const T later = this->laterSolid(k, a_point);
-
-    if (Math::max(this->weldedSolid(k, own, later, a_point), -later) < T(0)) {
-      return k;
+    // below the tolerance with the later solid not holding the point), so only there is the weld asked.
+    if constexpr (hasFeature<TapeFeature::Weld>) {
+      if (own < m_layout.m_interfaceTolerance && this->weldHolds(k, own, a_point)) {
+        return k;
+      }
     }
   }
 
@@ -3816,18 +3913,13 @@ Tape<T, UserPrimitives...>::signedDistance(const Vec3T<T>& a_point, const uint32
     // Welded regions fill the gaps between them: within the tolerance outside the object, a point is in the background
     // only where no region's function is negative. Elsewhere the weld changes nothing (it fills only gaps narrower
     // than the tolerance), and the value is the object's.
-    if (!(m_layout.m_interfaceTolerance > T(0)) || n == 0U || whole < T(0) ||
-        !(whole < m_layout.m_interfaceTolerance)) {
-      return -whole;
+    if constexpr (hasFeature<TapeFeature::Weld>) {
+      if (m_layout.m_interfaceTolerance > T(0) && n > 0U && !(whole < T(0)) && whole < m_layout.m_interfaceTolerance) {
+        return this->weldedBackground(whole, a_point);
+      }
     }
 
-    T inside = whole;
-
-    for (uint32_t k = n; k > 0U; k--) {
-      inside = Math::min(inside, this->regionFunction(k, a_point));
-    }
-
-    return -inside;
+    return -whole;
   }
 
   if (n == 0U) {
@@ -3877,39 +3969,62 @@ Tape<T, UserPrimitives...>::regionDistances(const Vec3T<T>& a_point, Visit&& a_v
               this->sharedMasks(1U, k) == masks;
   }
 
-  // The smallest region function, for the background where regions are welded (see signedDistance(p, 0)).
-  T inside = Math::Limits<T>::max();
+  if constexpr (hasFeature<TapeFeature::Weld>) {
+    // The smallest region function, for the background where regions are welded (see signedDistance(p, 0)).
+    T inside = Math::Limits<T>::max();
 
-  if (uniform) {
-    T later = Math::Limits<T>::max();
+    if (uniform) {
+      T later = Math::Limits<T>::max();
 
-    for (uint32_t k = n; k > 0U; k--) {
-      const T masked   = this->regionSolid(k, 0U, a_point);
-      const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
-      const T value    = Math::max(this->weldedSolid(k, masked, later, a_point), -later);
+      for (uint32_t k = n; k > 0U; k--) {
+        const T masked   = this->regionSolid(k, 0U, a_point);
+        const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
+        const T value    = Math::max(this->weldedSolid(k, masked, later, a_point), -later);
 
-      CallableDetail::call(a_visit, k, value);
+        CallableDetail::call(a_visit, k, value);
 
-      inside = Math::min(inside, value);
-      later  = Math::min(later, unmasked);
+        inside = Math::min(inside, value);
+        later  = Math::min(later, unmasked);
+      }
     }
+    else {
+      for (uint32_t k = n; k > 0U; k--) {
+        const T value = this->regionFunction(k, a_point);
+
+        CallableDetail::call(a_visit, k, value);
+
+        inside = Math::min(inside, value);
+      }
+    }
+
+    const T whole  = this->wholeValue(a_point);
+    const T welded = (m_layout.m_interfaceTolerance > T(0) && !(whole < T(0)) && whole < m_layout.m_interfaceTolerance)
+                       ? Math::min(whole, inside)
+                       : whole;
+
+    CallableDetail::call(a_visit, 0U, -welded);
   }
   else {
-    for (uint32_t k = n; k > 0U; k--) {
-      const T value = this->regionFunction(k, a_point);
+    if (uniform) {
+      T later = Math::Limits<T>::max();
 
-      CallableDetail::call(a_visit, k, value);
+      for (uint32_t k = n; k > 0U; k--) {
+        const T masked   = this->regionSolid(k, 0U, a_point);
+        const T unmasked = (masks == 0U) ? masked : this->regionSolid(k, masks, a_point);
 
-      inside = Math::min(inside, value);
+        CallableDetail::call(a_visit, k, Math::max(masked, -later));
+
+        later = Math::min(later, unmasked);
+      }
     }
+    else {
+      for (uint32_t k = n; k > 0U; k--) {
+        CallableDetail::call(a_visit, k, this->signedDistance(a_point, k));
+      }
+    }
+
+    CallableDetail::call(a_visit, 0U, -this->wholeValue(a_point));
   }
-
-  const T whole  = this->wholeValue(a_point);
-  const T welded = (m_layout.m_interfaceTolerance > T(0) && !(whole < T(0)) && whole < m_layout.m_interfaceTolerance)
-                     ? Math::min(whole, inside)
-                     : whole;
-
-  CallableDetail::call(a_visit, 0U, -welded);
 }
 
 template <class T, class... UserPrimitives>
@@ -4176,18 +4291,20 @@ Tape<T, UserPrimitives...>::firstRegionChange(const RayT<T>&       a_ray,
     // Leaving a region's solid straight into a later region (flush, or across a gap narrower than the nudge or welded
     // shut): the interface is the later region's face, so the crossing is taken where the ray enters the later solid,
     // within the reach of the refinement above.
-    if (to != from && to > from && !first.m_entering) {
-      const uint32_t record = m_layout.m_regionPrograms.at(base, to);
-      const uint32_t solid =
-        m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
+    if constexpr (hasFeature<TapeFeature::Weld>) {
+      if (to != from && to > from && !first.m_entering) {
+        const uint32_t record = m_layout.m_regionPrograms.at(base, to);
+        const uint32_t solid =
+          m_layout.m_regionPrograms.at(base, record + 1U + m_layout.m_regionPrograms.at(base, record));
 
-      const T       reach = T(100) * a_options.m_tolerance * scale + m_layout.m_interfaceTolerance;
-      const HitT<T> entry =
-        this->traceProgram(solid, a_ray, Math::max(a_tMin, first.m_t - nudge), first.m_t + reach, a_options);
+        const T       reach = T(100) * a_options.m_tolerance * scale + m_layout.m_interfaceTolerance;
+        const HitT<T> entry =
+          this->traceProgram(solid, a_ray, Math::max(a_tMin, first.m_t - nudge), first.m_t + reach, a_options);
 
-      if (entry.hit() && entry.m_entering) {
-        first   = entry;
-        program = solid;
+        if (entry.hit() && entry.m_entering) {
+          first   = entry;
+          program = solid;
+        }
       }
     }
 
@@ -4369,8 +4486,15 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
   }
 
   // The later region's face where it reaches into the region (own + later < 0), or, with the regions welded, where
-  // the two come closer than the tolerance: the face of the later one, from either side.
-  const bool byLater = (met != 0U) && (own.m_value + later.m_value <= m_layout.m_interfaceTolerance);
+  // the two are flush or come closer than the tolerance: the face of the later one, from either side.
+  bool byLater = false;
+
+  if constexpr (hasFeature<TapeFeature::Weld>) {
+    byLater = (met != 0U) && (own.m_value + later.m_value <= m_layout.m_interfaceTolerance);
+  }
+  else {
+    byLater = (met != 0U) && (-later.m_value > own.m_value);
+  }
 
   SurfaceRef<T> surface = this->surfaceOf(this->leafOf(byLater ? later : own));
 
@@ -4416,51 +4540,36 @@ Tape<T, UserPrimitives...>::closestSurface(const Vec3T<T>& a_point, const uint32
   };
 
   // The nearest other region's solid, for the search below.
-  T nearestOther = Math::Limits<T>::max();
+  if constexpr (hasFeature<TapeFeature::Weld>) {
+    T nearestOther = Math::Limits<T>::max();
 
-  for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
-    if (m != a_region && (cutBy == Subdomains::None || !cut(m))) {
-      const T value = this->regionSolid(m, 0U, a_point);
+    for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
+      if (m != a_region && (cutBy == Subdomains::None || !cut(m))) {
+        const T value = this->regionSolid(m, 0U, a_point);
 
-      nearestOther = Math::min(nearestOther, value);
+        nearestOther = Math::min(nearestOther, value);
 
-      if (value < T(0)) {
-        across = m;
+        if (value < T(0)) {
+          across = m;
 
-        break;
+          break;
+        }
       }
     }
-  }
 
-  // Across the region's own surface with no other region holding the point: the point may lie deeper than another
-  // region reaches into this one (a region flush with it, or welded to it across a gap). The last region whose solid
-  // reaches the surface's nearest point, within the tolerance, is across; the background only if none does. The
-  // nearest point is the point moved along the solid's normal (by central differences) by its value.
-  // A region reaches the surface's nearest point, |own| away, within the tolerance only if its solid is within |own|
-  // plus the tolerance of the point: only then is the nearest point sought.
-  if (!byLater && across == 0U && n > 1U && nearestOther <= m_layout.m_interfaceTolerance + std::abs(own.m_value)) {
-    const BoundingVolumes::AABBT<T> box      = m_layout.m_boundingVolume;
-    const T                         diagonal = (box.getHighCorner() - box.getLowCorner()).length();
-    const T                         scale    = (diagonal > T(0) && diagonal < Math::Limits<T>::max()) ? diagonal : T(1);
-    const T                         h        = Math::max(T(1e-3) * std::abs(own.m_value), T(1e-6) * scale);
-
-    Vec3T<T> normal = Vec3T<T>::zeros();
-
-    for (int dir = 0; dir < 3; dir++) {
-      Vec3T<T> step = Vec3T<T>::zeros();
-
-      step[dir] = h;
-
-      normal[dir] = this->regionSolid(a_region, 0U, a_point + step) - this->regionSolid(a_region, 0U, a_point - step);
+    // Across the region's own surface with no other region holding the point: the point may lie deeper than another
+    // region reaches into this one (a region flush with it, or welded to it across a gap). The last region whose solid
+    // reaches the surface's nearest point, within the tolerance, is across; the background only if none does. The
+    // nearest point is the point moved along the solid's normal (by central differences) by its value.
+    // A region reaches the surface's nearest point, |own| away, within the tolerance only if its solid is within |own|
+    // plus the tolerance of the point: only then is the nearest point sought.
+    if (!byLater && across == 0U && n > 1U && nearestOther <= m_layout.m_interfaceTolerance + std::abs(own.m_value)) {
+      across = this->acrossAtSurface(a_region, own.m_value, cutBy, a_point);
     }
-
-    const T length = normal.length();
-
-    const Vec3T<T> nearest = (length > T(0)) ? a_point - (own.m_value / length) * normal : a_point;
-
-    for (uint32_t m = n; m > 0U; m--) {
-      if (m != a_region && (cutBy == Subdomains::None || !cut(m)) &&
-          this->regionSolid(m, 0U, nearest) <= m_layout.m_interfaceTolerance) {
+  }
+  else {
+    for (uint32_t m = n; m > (byLater ? met : 0U); m--) {
+      if (m != a_region && (cutBy == Subdomains::None || !cut(m)) && this->regionSolid(m, 0U, a_point) < T(0)) {
         across = m;
 
         break;

@@ -53,8 +53,9 @@ device:
    tape.signedDistance(p, 2);     // the jacket's function
    tape.regionDistances(p, [&](uint32_t k, T value) { /* every region's function, in one pass */ });
 
-* ``region(p)`` is the last overlay operand whose solid holds the point, or 0. Regions closer than the
-  interface tolerance are welded (see :ref:`Chap:Regions`), and the gap between them is the earlier one's.
+* ``region(p)`` is the last overlay operand whose solid holds the point, or 0. In a tape that welds (below),
+  regions closer than the interface tolerance are welded (see :ref:`Chap:Regions`), and the gap between them is
+  the earlier one's.
 * ``signedDistance(p, k)`` is region k's function: negative exactly inside it, zero on its whole surface,
   a distance bound that is exact near a smooth piece of surface. ``signedDistance(p)`` remains the whole
   object's.
@@ -84,7 +85,10 @@ device:
 ``firstSurface(ray, tMin, tMax, subdomains, subdomain)`` finds where a ray enters or leaves a set of regions
 (a subdomain of a ``Subdomains`` table, below), passing through the surfaces between them.
 
-The interface tolerance is set when the tape is built
+Regions are welded by a tape that lists the feature ``TapeFeature::Weld``,
+``Tape<T, TapeFeature::Weld>`` (a feature is code a tape compiles only when its type asks for it, see
+:ref:`Sec:TapeFeatures`). A plain ``Tape<T>`` keeps its regions' solids exactly as its operands give them, and asks
+about them a little faster on a device. The interface tolerance is set when the tape is built
 (`TapeOptions <doxygen/html/structEBGeometry_1_1TapeOptions.html>`__): as a fraction of the diagonal of the
 object's box, ``m_interfaceTolerance`` (1e-5 by default; 0 welds only exact contacts), or as a length,
 ``m_interfaceLength``, which replaces the fraction when it is set. Give a length for parts that are only roughly
@@ -95,7 +99,7 @@ flush, or for a real gap that is small next to the whole object and must stay op
    TapeOptions options;
    options.m_interfaceLength = 1e-6;              // weld gaps narrower than a micron (in a model in meters)
 
-   const Tape<T> tape(pool, model, options);
+   const Tape<T, TapeFeature::Weld> tape(pool, model, options);
    tape.getInterfaceTolerance();                  // the tolerance as a length
 
 Describing a domain

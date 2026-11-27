@@ -33,6 +33,7 @@ EBGEOMETRY_STUDIO_KERNEL_DIRECTIVE(extern, StudioKernels::Kernel5)
 #include <sstream>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -47,6 +48,14 @@ namespace {
 using T = EBGEOMETRY_STUDIO_PRECISION;
 
 using namespace EBGeometry;
+
+// The model's tape: it welds regions closer than the model's interface tolerance (TapeFeature::Weld). The same type as
+// StudioKernels::Object, which a split build's kernels are compiled for.
+using StudioTape = Tape<T, TapeFeature::Weld>;
+
+#if defined(EBGEOMETRY_STUDIO_SPLIT_KERNELS)
+static_assert(std::is_same_v<StudioTape, StudioKernels::Object>, "ebgstudio: its tape is the one its kernels are for");
+#endif
 
 const char* const usage = R"(usage: ebgstudio MODEL [options]             open the model in the viewer
        ebgstudio <command> MODEL [options]
@@ -407,7 +416,7 @@ printComponents(const Language::Model<T>& a_model, const std::string& a_domain, 
 // The pairs of the model's regions a thin layer of the outside separates (findNearGaps()): parts probably meant to
 // touch, wider apart than the tape welds.
 void
-printNearGaps(const Language::Model<T>& a_model, const Tape<T>& a_tape, const uint32_t a_resolution)
+printNearGaps(const Language::Model<T>& a_model, const StudioTape& a_tape, const uint32_t a_resolution)
 {
   if (a_tape.getNumRegions() <= 2U) {
     return;
@@ -435,7 +444,7 @@ check(const Options& a_options, Pool& a_pool)
     std::cout << Language::inventory(model);
   }
 
-  const Tape<T> tape(a_pool, model.object(), model.tapeOptions());
+  const StudioTape tape(a_pool, model.object(), model.tapeOptions());
 
   printNearGaps(model, tape, 64U);
 
@@ -735,8 +744,8 @@ render(const Options& a_options, Pool& a_pool)
 
   const auto model = Language::read<T>(a_options.m_model, a_pool, a_options.m_overrides);
 
-  const Tape<T>             tape(a_pool, model.object(), model.tapeOptions());
-  const RegionView<Tape<T>> regions(tape);
+  const StudioTape             tape(a_pool, model.object(), model.tapeOptions());
+  const RegionView<StudioTape> regions(tape);
 
   Render::Camera<T>   camera;
   Render::Settings<T> settings;
@@ -845,16 +854,16 @@ watched(const Options& a_options, std::vector<std::string> a_files)
 // A model read, with what the viewer shows of it: everything lives in the model's own pool.
 struct Loaded
 {
-  std::unique_ptr<Pool>                m_pool;
-  std::unique_ptr<Language::Model<T>>  m_model;
-  std::unique_ptr<Tape<T>>             m_tape;
-  std::unique_ptr<RegionView<Tape<T>>> m_regions;
-  RegionNames                          m_names;
-  Stamps                               m_stamps;
+  std::unique_ptr<Pool>                   m_pool;
+  std::unique_ptr<Language::Model<T>>     m_model;
+  std::unique_ptr<StudioTape>             m_tape;
+  std::unique_ptr<RegionView<StudioTape>> m_regions;
+  RegionNames                             m_names;
+  Stamps                                  m_stamps;
 
   // Each domain's own object, compiled, for the viewer's cost views of a domain shown alone.
-  std::vector<std::unique_ptr<Tape<T>>>                 m_domainTapes;
-  std::vector<Render::DomainShape<RegionView<Tape<T>>>> m_domains;
+  std::vector<std::unique_ptr<StudioTape>>                 m_domainTapes;
+  std::vector<Render::DomainShape<RegionView<StudioTape>>> m_domains;
 };
 
 // Read a model into a pool of its own; throws Language::Error. a_before: the stamps of the files to watch, taken before
@@ -872,8 +881,8 @@ load(const Options& a_options, const Stamps& a_before)
   loaded->m_model =
     std::make_unique<Language::Model<T>>(Language::read<T>(a_options.m_model, *loaded->m_pool, a_options.m_overrides));
   loaded->m_tape =
-    std::make_unique<Tape<T>>(*loaded->m_pool, loaded->m_model->object(), loaded->m_model->tapeOptions());
-  loaded->m_regions = std::make_unique<RegionView<Tape<T>>>(*loaded->m_tape);
+    std::make_unique<StudioTape>(*loaded->m_pool, loaded->m_model->object(), loaded->m_model->tapeOptions());
+  loaded->m_regions = std::make_unique<RegionView<StudioTape>>(*loaded->m_tape);
   loaded->m_names   = loaded->m_model->names();
 
   for (uint32_t d = 0; d < loaded->m_model->getNumDomains(); d++) {
@@ -885,8 +894,8 @@ load(const Options& a_options, const Stamps& a_before)
       wholeRegion.push_back(own.neighborhood().wholeRegion(r));
     }
 
-    loaded->m_domainTapes.push_back(std::make_unique<Tape<T>>(*loaded->m_pool, own.object(), own.tapeOptions()));
-    loaded->m_domains.push_back({RegionView<Tape<T>>(*loaded->m_domainTapes.back()), wholeRegion});
+    loaded->m_domainTapes.push_back(std::make_unique<StudioTape>(*loaded->m_pool, own.object(), own.tapeOptions()));
+    loaded->m_domains.push_back({RegionView<StudioTape>(*loaded->m_domainTapes.back()), wholeRegion});
   }
 
   for (const Language::Diagnostic& warning : loaded->m_model->warnings()) {

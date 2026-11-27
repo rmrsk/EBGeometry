@@ -68,7 +68,7 @@ An OpenMP particle loop
    Pool pool(hostMemoryResource());
 
    const auto    model = Language::read<double>("geometry.ebg", pool);
-   const Tape<double> wall(pool, model.object(), model.tapeOptions());
+   const Tape<double> wall(pool, model.object());
 
    pool.freeze();   // nothing is built into it from here on
 

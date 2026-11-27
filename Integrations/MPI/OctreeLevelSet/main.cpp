@@ -42,7 +42,7 @@
 
 using T    = EBGEOMETRY_PRECISION;
 using Vec3 = EBGeometry::Vec3T<T>;
-using Tape = EBGeometry::Tape<T>;
+using Tape = EBGeometry::Tape<T, EBGeometry::TapeFeature::Weld>;
 
 // The octree: rootsPerSide^3 root cells, each refined at most maxLevel times (--max-level, default defaultMaxLevel, at
 // most maxMaxLevel). Each cell is judged by one function: the object's signed distance, or, in a model with regions,

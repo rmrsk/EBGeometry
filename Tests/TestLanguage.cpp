@@ -2024,7 +2024,7 @@ domain heat {
   REQUIRE(model.tapeOptions().m_interfaceLength.has_value());
   CHECK_THAT(*model.tapeOptions().m_interfaceLength, Catch::Matchers::WithinAbs(1e-3, 1e-12));
 
-  const Tape<T> tape(pool, model.object(), model.tapeOptions());
+  const Tape<T, TapeFeature::Weld> tape(pool, model.object(), model.tapeOptions());
 
   CHECK_THAT(tape.getInterfaceTolerance(), withinAbsT<T>(T(1e-3), tightMargin<T>()));
   CHECK(tape.region(Vec3(T(1) + T(0.5e-4), T(0.5), T(0.5))) == 1U);
@@ -2046,13 +2046,13 @@ domain heat {
 
   CHECK(!defaults.tapeOptions().m_interfaceLength.has_value());
 
-  const Tape<T> whole(pool, defaults.object(), defaults.tapeOptions());
-  const auto    part = defaults.domainObject("heat");
+  const Tape<T, TapeFeature::Weld> whole(pool, defaults.object(), defaults.tapeOptions());
+  const auto                       part = defaults.domainObject("heat");
 
   REQUIRE(part.tapeOptions().m_interfaceLength.has_value());
   CHECK_THAT(*part.tapeOptions().m_interfaceLength,
              Catch::Matchers::WithinAbs(static_cast<double>(whole.getInterfaceTolerance()), 1e-6 * 1e-5));
-  CHECK_THAT(Tape<T>(pool, part.object(), part.tapeOptions()).getInterfaceTolerance(),
+  CHECK_THAT((Tape<T, TapeFeature::Weld>(pool, part.object(), part.tapeOptions()).getInterfaceTolerance()),
              withinAbsT<T>(whole.getInterfaceTolerance(), 1e-9));
 
   // What is refused.

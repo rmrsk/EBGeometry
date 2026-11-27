@@ -982,7 +982,8 @@ public:
 
   /**
    * @brief The options to compile object() with: the interface tolerance the model gives (overlay(weld = ...)) as
-   * TapeOptions::m_interfaceLength, or the defaults when it gives none.
+   * TapeOptions::m_interfaceLength, or the defaults when it gives none. A tape welds only if it lists
+   * TapeFeature::Weld: Tape<T, TapeFeature::Weld>(pool, model.object(), model.tapeOptions()).
    * @return The options.
    */
   [[nodiscard]] EBGEOMETRY_HOST

@@ -349,7 +349,7 @@ TEMPLATE_TEST_CASE("Tape: regions welded across a gap answer the same on a devic
 {
   using T    = TestType;
   using Vec3 = Vec3T<T>;
-  using Tape = Tape<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
 
   using namespace EBGeometryTestGPU;
 
