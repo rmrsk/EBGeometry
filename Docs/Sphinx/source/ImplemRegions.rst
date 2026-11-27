@@ -269,7 +269,7 @@ expression's index (`EBGeometry_SurfacePieces.hpp <doxygen/html/EBGeometry__Surf
   by crossing it with rays on a grid; a piece too small for the grid is missed there, but not by
   ``possiblePieces()``.
 * ``findNearGaps(tape, width)`` finds the pairs of regions that a thin layer of the outside separates, wider
-  than the interface tolerance (narrower ones are welded) and narrower than ``width`` (a fraction of the box's
+  than the interface tolerance (narrower ones between faces that face each other are welded) and narrower than ``width`` (a fraction of the box's
   diagonal, 1e-3 by default), with the narrowest gap of each pair and where it is: parts that were probably
   meant to touch.
 

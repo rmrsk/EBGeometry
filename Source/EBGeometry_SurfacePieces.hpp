@@ -215,8 +215,9 @@ struct NearGap
 
 /**
  * @brief The pairs of regions that a thin layer of the background separates: where they come closer than a_width
- * without touching. Each pair once, with the narrowest gap found. Gaps narrower than the tape's interface tolerance
- * (Tape::getInterfaceTolerance()) are closed, so never reported.
+ * without touching. Each pair once, with the narrowest gap found. A gap the tape welds shut (narrower than its
+ * interface tolerance, Tape::getInterfaceTolerance(), between surfaces that face each other) is region, not background,
+ * so it is not reported; a gap as narrow between surfaces that do not face each other may be.
  * @details Host only. The rays of findSurfacePieces() (along x, y and z on a grid over the tape's box, a_resolution by
  * a_resolution of each) are followed through every change of region (Tape::firstRegionChange()). A stretch of the
  * background (region 0) between two regions, no longer than twice the width along the ray (one of the three axes meets

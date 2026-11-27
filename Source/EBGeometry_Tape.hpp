@@ -2212,14 +2212,18 @@ private:
   /**
    * @brief A region's solid welded to the later regions': grown into a gap between the two narrower than the interface
    * tolerance, up to the later solid's face.
-   * @details Only outside both solids and within the tolerance eps of both (0 <= own < eps, 0 <= later < eps) does the
-   * value change; everywhere else it is the region's own solid, exactly. There it is
-   * min(own, max((own + later - e) / 2, own - e)), with e = eps c, where c = max(0, -n_own . n_later) is how much the
-   * two surfaces face each other (their normals, by central differences): the term is negative where own + later < e,
-   * which fills the gap between surfaces that face each other (c near 1), and nothing beside faces that lie side by
-   * side in one plane (c near 0), such as the end of a channel flush with the end of the block it bores. The change
-   * is at most eps, and the value stays negative in the gap and at least 0 at the band's edges, so the function keeps
-   * its sign everywhere and its value away from the band.
+   * @details Only within twice the tolerance eps of both surfaces (|own|, |later| < 2 eps) does the value change;
+   * everywhere else it is the region's own solid, exactly. There it is min(own, max((own + later - e) / 2, own - e)),
+   * with e = c max(0, 2 eps - |own| - |later|), where c = max(0, -n_own . n_later) is how much the two surfaces face
+   * each other (their normals, by central differences). Outside both solids the term is negative where
+   * (1 + c)(own + later) < 2 eps c: for surfaces that face each other (c = 1), exactly where the gap between them is
+   * narrower than eps, which the region fills up to the later solid's face, across the gap's whole width or not at all;
+   * beside faces that lie side by side in one plane (c = 0), such as the end of a channel flush with the end of the
+   * block it bores, nowhere. Near a welded contact the region's function then measures to the later solid's face on
+   * both sides of it. The taper makes e vanish at the band's edge, so the function is continuous; it changes the value
+   * by at most 2 eps, and keeps its sign outside welded gaps. In single precision, far from the origin (a hundred
+   * diagonals, say), the rounding of the values approaches the default tolerance, and so does the estimate of c: a weld
+   * there is less sure.
    * @param[in] a_region The region.
    * @param[in] a_own    The region's solid at the point.
    * @param[in] a_later  The later regions' solid at the point (laterSolid()).

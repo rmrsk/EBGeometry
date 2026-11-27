@@ -3390,8 +3390,28 @@ TEMPLATE_TEST_CASE("Tape: a gap wider than the interface tolerance, or any gap a
     // From the second cube, the background is across its face.
     CHECK(tape.closestSurface(Vec3(T(1.1) + gap, T(0.5), T(0.5)), 2U).m_neighborRegion == 0U);
 
+    // From the first cube, its own face, with the background across.
+    const SurfaceRef<T> own = tape.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U);
+
+    CHECK(own.m_leaf == 0U);
+    CHECK(own.m_neighborRegion == 0U);
+
     // A ray crosses the gap: four changes of region.
     CHECK(changesAlongX(tape, false).size() == 4U);
+  }
+
+  // Exactly flush at a tolerance of 0: an exact tie, which names the later cube's face, with it across, from either
+  // side.
+  {
+    const Tape flush(pool, cubePair<T>(T(0)), exact);
+
+    const SurfaceRef<T> fromFirst  = flush.closestSurface(Vec3(T(0.9), T(0.5), T(0.5)), 1U);
+    const SurfaceRef<T> fromSecond = flush.closestSurface(Vec3(T(1.1), T(0.5), T(0.5)), 2U);
+
+    CHECK(fromFirst.m_leaf == 1U);
+    CHECK(fromFirst.m_neighborRegion == 2U);
+    CHECK(fromSecond.m_leaf == 1U);
+    CHECK(fromSecond.m_neighborRegion == 1U);
   }
 
   // The wide gap is reported, the welded one is not.
@@ -3482,5 +3502,59 @@ TEMPLATE_TEST_CASE("Tape: faces side by side in one plane are not welded, and fu
     CHECK_THAT(tape.signedDistance(p, 1U),
                withinAbsT<T>(Math::max(block.signedDistance(p), -channel.signedDistance(p)), tightMargin<T>()));
     CHECK_THAT(tape.signedDistance(p, 2U), withinAbsT<T>(channel.signedDistance(p), tightMargin<T>()));
+  }
+}
+
+TEMPLATE_TEST_CASE("Tape: a weld is continuous at its edges, and a gap just wider than the tolerance stays open",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = Tape<T>;
+
+  Pool pool(hostMemoryResource());
+
+  TapeOptions options;
+
+  options.m_interfaceLength = 1e-2;
+
+  const T eps = T(1e-2);
+
+  // A welded gap of half the tolerance: along a line across it and its band, the first cube's function changes by
+  // no more than a few times the step (no jump at the band's edges).
+  {
+    const T    gap = T(0.5) * eps;
+    const Tape tape(pool, cubePair<T>(gap), options);
+
+    const int steps = 400;
+    const T   from  = T(1) - T(3) * eps;
+    const T   dx    = T(6) * eps / T(steps);
+
+    T previous = tape.signedDistance(Vec3(from, T(0.4), T(0.6)), 1U);
+
+    for (int i = 1; i <= steps; i++) {
+      const T value = tape.signedDistance(Vec3(from + T(i) * dx, T(0.4), T(0.6)), 1U);
+
+      INFO("x " << from + T(i) * dx);
+
+      CHECK(std::abs(value - previous) <= T(4) * dx);
+
+      previous = value;
+    }
+  }
+
+  // A gap a little wider than the tolerance is the outside across its whole width: no part of it is welded.
+  {
+    const T    gap = T(1.05) * eps;
+    const Tape tape(pool, cubePair<T>(gap), options);
+
+    for (int i = 1; i < 20; i++) {
+      const Vec3 p(T(1) + gap * T(i) / T(20), T(0.4), T(0.6));
+
+      INFO("x " << p[0]);
+
+      CHECK(tape.region(p) == 0U);
+    }
   }
 }

@@ -435,7 +435,9 @@ check(const Options& a_options, Pool& a_pool)
     std::cout << Language::inventory(model);
   }
 
-  printNearGaps(model, Tape<T>(a_pool, model.object(), model.tapeOptions()), 64U);
+  const Tape<T> tape(a_pool, model.object(), model.tapeOptions());
+
+  printNearGaps(model, tape, 64U);
 
   int status = 0;
 
@@ -454,8 +456,6 @@ check(const Options& a_options, Pool& a_pool)
   }
 
   if (!domains.empty()) {
-    const Tape<T> tape(a_pool, model.object(), model.tapeOptions());
-
     // The components are searched for when asked, and only when the object's value is a distance.
     const T    resolution = T(a_options.m_components);
     const bool components = resolution > T(0) && tape.getDistanceQuality() != DistanceQuality::NotADistance;
