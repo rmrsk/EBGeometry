@@ -3683,3 +3683,76 @@ TEMPLATE_TEST_CASE("Tape: a welding tape's regions agree with or without masks, 
     CHECK(changes[2] == std::make_pair(2U, 3U));
   }
 }
+
+TEMPLATE_TEST_CASE("Tape: where two regions' surfaces cross at an acute angle, the weld leaves a fillet, and none at "
+                   "a right or obtuse one",
+                   "[Overlay][Tape]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+  using Tape = EBGeometry::Tape<T, TapeFeature::Weld>;
+
+  Pool pool(hostMemoryResource());
+
+  const T eps = T(1e-2);
+
+  TapeOptions options;
+
+  options.m_interfaceLength = static_cast<double>(eps);
+
+  // A slab below z = 0 (region 1), and a slab above a plane through the y axis tilted by an angle (region 2): outside
+  // both, on one side of the y axis, a wedge whose opening angle is the tilt (acute) or its supplement (obtuse).
+  const BoxSDF<T> lower(Vec3(T(-2), T(-1), T(-1)), Vec3(T(2), T(1), T(0)));
+  const BoxSDF<T> upper(Vec3(T(-2), T(-1), T(0)), Vec3(T(2), T(1), T(1)));
+
+  for (const T degrees : {T(10), T(90), T(150)}) {
+    INFO("tilt " << degrees);
+
+    const Expr<T> tilted = Rotate(Expr<T>(upper), degrees, 1);
+    const Tape    tape(pool, Overlay(Expr<T>(lower), tilted), options);
+
+    const EBGeometry::Tape<T> a(pool, Expr<T>(lower));
+    const EBGeometry::Tape<T> b(pool, tilted);
+
+    // How much the faces face each other: the cosine between the slab's top and the tilted face's normals.
+    const T c = std::max(T(0), std::cos(degrees * T(3.14159265358979) / T(180)));
+
+    uint32_t welded = 0;
+    T        reach  = T(0);
+
+    for (int i = -60; i <= 60; i++) {
+      for (int k = 1; k <= 30; k++) {
+        const Vec3 p(T(i) * T(0.25) * eps, T(0), T(k) * T(0.05) * eps);
+        const T    sa = a.signedDistance(p);
+        const T    sb = b.signedDistance(p);
+
+        if (!(sa > T(0) && sb > T(0))) {
+          continue;
+        }
+
+        // Welded where (1 + c)(sa + sb) < 2 eps c, away from the boundary of that set.
+        const T measure = (T(1) + c) * (sa + sb) - T(2) * eps * c;
+
+        if (measure < -T(0.2) * eps) {
+          CHECK(tape.region(p) == 1U);
+
+          welded++;
+          reach = std::max(reach, p.length());
+        }
+        else if (measure > T(0.2) * eps) {
+          CHECK(tape.region(p) == 0U);
+        }
+      }
+    }
+
+    if (degrees < T(90)) {
+      // A fillet along the crossing: it reaches about eps / (2 sin(tilt / 2)) along the wedge, here several eps.
+      CHECK(welded > 0U);
+      CHECK(reach > T(3) * eps);
+    }
+    else {
+      CHECK(welded == 0U);
+    }
+  }
+}
