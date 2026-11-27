@@ -307,7 +307,7 @@ Test coverage
        sampled surface; ``LatticeSDF`` on each surface and 1-Lipschitz; every exact one a true signed distance
        function; the ray forms' spans against the values along random rays; the constructors' checks; and the
        device distances and crossings against the host.
-   * - ``TestDCEL``
+   * - ``TestDCEL``, ``TestDCELDevice``
      - DCEL topology of a hardcoded tetrahedron (face/vertex/edge counts,
        half-edge pairing, unit normals, ``sanityCheck``); signed-distance
        correctness for ``FlatMeshSDF``; agreement between
@@ -324,7 +324,7 @@ Test coverage
        for byte in a host pool on ten test meshes, a stretched cube's areas and normals, the host's
        values to within a margin after a device kernel moved the vertices (``[gpu]``), and the
        schedule's and the reconcile's aborts (frozen or wrong pool, broken topology, another mesh,
-       coincident positions).
+       coincident positions). ``TestDCELDevice`` holds the device query surface and ``DCEL::reconcile()``.
    * - ``TestSFC``
      - ``Morton``, ``Nested``, and ``Hilbert`` space-filling curves:
        encode/decode roundtrip across the full valid coordinate range,
@@ -361,56 +361,66 @@ Test coverage
        being dropped with a warning; the readers taking ``BVH::ConstructionOptions``
        building what the constructors build; and mesh distance functions and BVH unions refusing to
        build from no faces.
+   * - ``TestMeshSDF``
+     - The mesh distance functions, on a regular dodecahedron (20 vertices, 36 triangulated faces) read
+       from disk in all four supported formats and on meshes built in code: identical topology/geometry
+       across formats; ``MeshSDF`` and ``TriMeshSDF`` agreement with ``FlatMeshSDF`` for every
+       ``BVH::Construction`` strategy; each method's ``BVH::ConstructionOptions`` leaf-size setting honored
+       by both mesh SDFs (the defaults reproducing the constructors without options, and a zero setting
+       rejected); signs on two concave meshes (an L-shaped prism and a box with a narrow notch, whose concave
+       edges need both adjacent faces' normals) against an analytic inside test; ``getClosestFace`` on all
+       three mesh SDFs naming a closest face (also on polygon faces); closest points and gradients against
+       the unit cube's closed form and finite differences; a ``MeshSDF`` seeing its mesh flipped, or moved
+       and refitted, after the build; the readers' mesh SDFs matching those built directly; moves, views and
+       deep copies answering as the original; a BVH union nesting each mesh's BVH; and the constructors
+       rejecting a mismatched pool or a zero leaf size.
    * - ``TestBVH``, ``TestBVHDevice``
-     - A regular dodecahedron (20 vertices, 36 triangulated faces), read from disk in all four
-       supported formats, used to verify: identical topology/geometry across formats;
-       ``BVH::TreeBVH``/``BVH::PackedBVH`` ``signedDistance`` agreement with a
-       brute-force scan across every partitioning strategy (top-down with the default and SAH
-       partitioners, bottom-up with Morton, Nested, and Hilbert space-filling curves);
-       ``BVH::PackedBVH::build`` building the same tree as the named build for every
-       ``BVH::Construction`` value, and rejecting a zero leaf setting; ``MeshSDF``
-       and ``TriMeshSDF`` agreement with ``FlatMeshSDF`` for every
-       ``BVH::Construction`` strategy; each method's ``BVH::ConstructionOptions``
-       leaf-size setting honoured by both mesh SDFs (the defaults reproducing the constructors
-       without options, and a zero setting rejected); signs on two concave meshes (an L-shaped prism
-       and a box with a narrow notch, whose concave edges need both adjacent faces' normals) against
-       an analytic inside test; ``getClosestFace`` on all three mesh SDFs naming a closest face (also
-       on polygon faces, and on a device against the host); a ``MeshSDF`` seeing its mesh
-       flipped, or moved and refitted, after the build; ``BVH::PackedBVH::traverse`` (a
-       nearest-point search with a visit callback and ``FarthestFirst`` against brute force at K = 2,
-       4 and 8 and on a device against the host; with no bound every primitive once and ``AsStored``
-       in stored order; an empty BVH calling nothing; ``BVH::RayQuery`` entry distances against the
-       unit cube's slab answers, including rays in a face's plane, along an edge and with -0
-       components, single-box and K-wide paths agreeing; rays that meet a box only along an edge
-       entering it, on the host and on a device, which they would not without the slab test's
-       widening; the nearest box a ray enters against brute
-       force at K = 2, 4 and 8, and on a device; a missed box never entered under an infinite bound;
-       the visit orders and both comparator forms; a visit callback accounting for whole subtrees
-       and stopping the walk; a user query type with a composite key); ``BVH::TreeBVH::traverse`` passing an exception
-       from a callback on to the caller; and every ``BVH::PackedBVH`` box stored once (a
-       32-byte node at K = 4; any node's box, found through its box slot, equal to the union of its
-       primitives or children; a refit through a copy seen by the original; deep and adopted copies
-       keeping every box; the adopting constructor rejecting a box count that does not match the
-       nodes); ``BVH::TreeBVH::refit``/``BVH::PackedBVH::refit`` keeping bounding
-       volumes correct after a moving geometry (idempotent on an unchanged cloud, queries still
-       matching a brute-force scan after displacement); ``BVH::refit`` through a
-       ``BVH::RefitSchedule`` making every box exactly the union of what it encloses, on a host
-       pool and level by level on a device after the caller's own kernel moved the points (the same
-       boxes as the host's sweep), and refusing a frozen pool, a schedule for another BVH (of the same
-       size in the same pool too) and one from another pool; and every ``BVH::TreeBVH`` node's
-       box exactly the union of what it encloses, after both builds and after a refit. Also the
-       build-time checks: an adopted tree too deep for the host or device traversal stack at ``K`` = 2,
-       4 and 16, every build of points crowding ever closer together within the device depth, every kind
-       of malformed node array (a leaf with no primitives among them), and a
-       partitioner that returns an empty partition, all rejected; a tree at the host depth limit,
-       visited deepest first, filling the traversal stack to its last entry; ``traverse()`` visiting
-       leaves in the order of a recursive depth-first search; a level
-       resumed with exact distances never pruning a closer primitive; a NaN query coordinate reaching
-       every primitive in an unbounded search at every ``K``, SIMD path or scalar; only interior
-       nodes getting a SIMD child-box row; every builder on a cluster of points with a subnormal
-       extent; the bottom-up build at exact powers of ``K``, and its target leaf size choosing the
-       fewest power-of-``K`` leaves; a ``BVH::TreeBVH`` root that no ``shared_ptr`` owns,
-       built both ways and traversed; and an empty BVH, whose ``getBoundingVolume()`` aborts.
+     - ``BVH::PackedBVH::traverse`` (a nearest-point search with a visit callback and ``FarthestFirst``
+       against brute force at K = 2, 4 and 8 and on a device against the host; with no bound every primitive
+       once and ``AsStored`` in stored order; every compiled SIMD child-distance path agreeing; a NaN query
+       coordinate reaching every primitive in an unbounded search at every ``K``, SIMD path or scalar;
+       ``BVH::RayQuery`` entry distances against the unit cube's slab answers, including rays in a face's
+       plane, along an edge and with -0 components, single-box and K-wide paths agreeing; rays that meet a
+       box only along an edge entering it, on the host and on a device, which they would not without the
+       slab test's widening; the nearest box a ray enters against brute force at K = 2, 4 and 8, and on a
+       device; a missed box never entered under an infinite bound; the visit orders and both comparator
+       forms; a visit callback accounting for whole subtrees and stopping the walk; a user query type with a
+       composite key); ``traverse()`` visiting leaves in the order of a recursive depth-first search; a level
+       resumed with exact distances never pruning a closer primitive; ``BVH::TreeBVH::traverse`` visiting
+       every primitive once and passing an exception from a callback on to the caller; and a
+       ``BVH::TreeBVH`` root that no ``shared_ptr`` owns, built both ways and traversed.
+       ``TestBVHDevice`` holds the device cases of all the BVH files (closest faces, traversals, rays and
+       refits on a device against the host).
+   * - ``TestBVHBuild``
+     - ``BVH::TreeBVH``/``BVH::PackedBVH`` ``signedDistance`` agreement with a brute-force scan across every
+       partitioning strategy (top-down with the default, SAH and midpoint partitioners, bottom-up with
+       Morton, Nested, and Hilbert space-filling curves); ``BVH::PackedBVH::build`` building the same tree as
+       the named build for every ``BVH::Construction`` value, and rejecting a zero leaf setting; the direct
+       builds (``buildBottomUp``, ``buildTopDown``, ``buildClusterSAH``) against brute force and against the
+       builds through ``BVH::TreeBVH``, also over a ``uint32_t`` index into a caller's array, on
+       degenerate-axis inputs and with every primitive in exactly one leaf; a partitioner that returns an
+       empty partition rejected; every builder on a cluster of points with a subnormal extent; the bottom-up
+       build at exact powers of ``K``, and its target leaf size choosing the fewest power-of-``K`` leaves;
+       every ``BVH::TreeBVH`` node's box exactly the union of what it encloses, after both builds and after
+       a refit; a large per-leaf build staying linear; and the default ``K`` and ``W``.
+   * - ``TestBVHLayout``
+     - Every ``BVH::PackedBVH`` box stored once (a 32-byte node at K = 4; any node's box, found through its
+       box slot, equal to the union of its primitives or children; a refit through a copy seen by the
+       original; deep and adopted copies keeping every box; the adopting constructor rejecting a box count
+       that does not match the nodes); only interior nodes getting a SIMD child-box row; primitives stored
+       inline; copies aliasing the pool and ``deepCopy()`` and ``rebasedView()`` making independent ones;
+       the build-time checks: an adopted tree too deep for the host or device traversal stack at ``K`` = 2,
+       4 and 16, every build of points crowding ever closer together within the device depth, and every kind
+       of malformed node array (a leaf with no primitives among them), all rejected; a tree at the host
+       depth limit, visited deepest first, filling the traversal stack to its last entry; and an empty BVH,
+       whose ``getBoundingVolume()`` aborts.
+   * - ``TestBVHRefit``
+     - ``BVH::TreeBVH::refit``/``BVH::PackedBVH::refit`` keeping bounding volumes correct after a moving
+       geometry (idempotent on an unchanged cloud, queries still matching a brute-force scan after
+       displacement); ``BVH::refit`` through a ``BVH::RefitSchedule`` making every box exactly the union of
+       what it encloses on a host pool (level by level on a device in ``TestBVHDevice``), and refusing a
+       frozen pool, a schedule for another BVH (of the same size in the same pool too) and one from another
+       pool.
    * - ``TestCSG``, ``TestCSGDevice``
      - ``SmoothMin``/``SmoothMax``/``ExpMin``/``ExpMax`` blending
        primitives, including far from the blend region;
@@ -505,6 +515,11 @@ Test coverage
        object has and may have, and surface groups' coverage of them; ``RegionView``'s highlights, hidden surface groups and
        section regions; ``checkLabels()`` proving labels, regions and materials lost (covered, cut away, buried
        under later regions, outside a mask), and leaving unproved what it cannot prove.
+   * - ``TestRegionViews``
+     - Viewing regions: ``RegionView``'s surfaces along a ray (internal ones and hidden regions included) and its
+       whole object; the renderer's cut faces, surfaces seen through and translucent layers of a view of regions,
+       and what its region settings show; and ``regionNeighborhood()`` keeping the regions given and those whose
+       boxes meet theirs, with their signs, surfaces and setups.
    * - ``TestConnectedComponents``
      - ``connectedComponents()`` against models whose components are known: a hollow shell's cavity (an enclosed
        component of the outside, its volume, box, seed and neighbors, ``componentAt()``, the default box), two
@@ -581,17 +596,20 @@ Test coverage
        camera reported inside; coloring by primitive telling two leaves apart; the section plane
        removing one side and showing the cut face; a ray-traced mesh cube cut by the plane drawn as the
        closed-form box is; a canceled render stopping before any row;
-       faces lying on the bounding box seen from outside; a table color replacing the palette's for its
-       primitive only; coloring by normal; the light, ambient, highlight and background settings (an
-       unlit surface black, a background of the color set); the fill light lighting what the light leaves
-       dark and not the floor; the shoulder rolling bright surfaces off towards white; the section plane's lines of
-       equal distance standing out on every look; the floor's checkerboard off and resized;
-       an orthographic camera showing a sphere as a disc of its radius; the near clip, and the viewer's steps of it;
+       faces lying on the bounding box seen from outside; an orthographic camera showing a sphere as a disc of its radius; the near clip, and the viewer's steps of it;
        ``Camera::fit`` from named views, straight along the up axis too; ``toCode()`` writing the changed fields; the
        section plane's contour, sheet and lines of equal distance, within the box only; ``writeImage()``
        writing a binary PPM;
        ``view()`` returning at once with ``--no-view``, the pool left unfrozen; and the rejected
        settings and cameras.
+   * - ``TestRenderShading``
+     - The renderer's shading: a table color replacing the palette's for its primitive only; coloring by
+       normal; the light, ambient, highlight and background settings (an unlit surface black, a background of
+       the color set); the fill light lighting what the light leaves dark and not the floor; the shoulder
+       rolling bright surfaces off towards white; the floor's checkerboard off and resized, a shadow-only
+       floor, a grid floor and a mirror floor; a gradient backdrop and a vignette; a larger light softening
+       the shadow; and every look's name, backdrop and floor, with the section plane's lines of equal distance
+       standing out on each.
    * - ``TestRenderDevice``
      - Device renders of a tape against the host's: shaded, with an orthographic camera, a near clip
        and colors set, in the depth and x-ray views and with a hidden primitive; the cost view; and a
