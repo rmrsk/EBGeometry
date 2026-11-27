@@ -1288,8 +1288,9 @@ public:
 
   /**
    * @brief The region a point is in: the last operand of the Overlays whose solid holds it
-   * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region. A gap
-   * between two regions narrower than the interface tolerance (getInterfaceTolerance()) is the earlier region's.
+   * (later operands are on top), or the background (0). Exact in sign: every point is in exactly one region. In a
+   * tape that welds (TapeFeature::Weld), a gap between two regions narrower than the interface tolerance
+   * (getInterfaceTolerance()) is the earlier region's.
    * Callable on a device.
    * @param[in] a_point Point.
    * @return The region.
@@ -1302,8 +1303,8 @@ public:
   /**
    * @brief A region's implicit function: negative exactly inside the region, its zero
    * contour the region's surface, interfaces with other regions included. For region k it is max(S_k, -min of the
-   * later S_j), S_j being operand j's solid, with S_k welded to the later solids where the two face each other across
-   * a gap narrower than the interface tolerance (weldedSolid(): the gap is region k's, and both functions are zero on
+   * later S_j), S_j being operand j's solid; in a tape that welds (TapeFeature::Weld), with S_k welded to the later
+   * solids where the two face each other across a gap narrower than the interface tolerance (weldedSolid(): the gap is region k's, and both functions are zero on
    * the later solid's face); for the background, minus signedDistance(), outside the welds. A distance bound, exact
    * near a smooth piece of surface of exact operands, and away from the thin band of a weld; what a cut-cell code cuts
    * for one region. Callable on a device.
@@ -1339,10 +1340,11 @@ public:
    * closestSurface() reports a surface, and with the regions on its two sides at that point: m_ownerRegion the
    * region asked about (inside), m_neighborRegion the region across. The sides belong to the point, not to the surface:
    * one surface can face different regions in different places. For the background, the whole object's surface.
-   * Where the region and a later one overlap, are flush, or come within the interface tolerance, the surface is the
-   * later one's face, seen from either side; the region across is the last other one whose solid holds the point, or,
-   * if none does, the last one whose solid reaches the surface's nearest point within the tolerance (a region flush
-   * with it or welded to it, from any depth). Callable on a device.
+   * Where a later region reaches into the region, the surface is the later one's face. In a tape that welds
+   * (TapeFeature::Weld), so is it where the two are flush or come within the interface tolerance, seen from either
+   * side; the region across is then the last other one whose solid holds the point, or, if none does, the last one
+   * whose solid reaches the surface's nearest point within the tolerance (a region flush with it or welded to it, from
+   * any depth). Callable on a device.
    * @param[in] a_point  Point, on or near the region's surface.
    * @param[in] a_region Region (below getNumRegions()).
    * @return The surface.
@@ -1392,9 +1394,9 @@ public:
    * m_surface the surface crossed (leaf, part, surface label), its m_ownerRegion the region left and m_neighborRegion
    * the region entered. The ray starts counting a hundredth of the march's tolerance at the object's scale past
    * a_tMin (RayOptions::m_tolerance times m_scale, or the box's diagonal), so a ray crossing several layers asks
-   * again from the last crossing's t, and layers thinner than that are passed over. Leaving a region straight into a
-   * later one (flush, or across a gap welded shut by the interface tolerance) is one crossing, on the later region's
-   * face. Callable on a device.
+   * again from the last crossing's t, and layers thinner than that are passed over. In a tape that welds
+   * (TapeFeature::Weld), leaving a region straight into a later one (flush, or across a gap welded shut by the
+   * interface tolerance) is one crossing, on the later region's face. Callable on a device.
    * @param[in] a_ray     The ray, with a unit direction.
    * @param[in] a_tMin    Start of the interval.
    * @param[in] a_tMax    End of the interval.
