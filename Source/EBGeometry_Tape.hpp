@@ -2204,13 +2204,14 @@ private:
   /**
    * @brief The solid a region's function clips the region with: the smallest of the later regions' solids, each
    * without the masks it shares with the region (see sharedMasks()).
-   * @param[in] a_region Region.
-   * @param[in] a_point  Point.
+   * @param[in]  a_region  Region.
+   * @param[in]  a_point   Point.
+   * @param[out] a_nearest If given, the later region whose solid is the smallest (0 for the last region).
    * @return The value (Limits<T>::max() for the last region).
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
-  laterSolid(uint32_t a_region, const Vec3T<T>& a_point) const noexcept;
+  laterSolid(uint32_t a_region, const Vec3T<T>& a_point, uint32_t* a_nearest = nullptr) const noexcept;
 
   /**
    * @brief Region k's function, for a region of an Overlay (1 to the number of regions less one): its solid welded to
@@ -2242,12 +2243,13 @@ private:
    * @param[in] a_region The region.
    * @param[in] a_own    The region's solid at the point.
    * @param[in] a_later  The later regions' solid at the point (laterSolid()).
+   * @param[in] a_laterRegion The later region whose solid that is (laterSolid()'s a_nearest), or 0 if not known.
    * @param[in] a_point  The point.
    * @return The welded solid.
    */
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
   inline T
-  weldedSolid(uint32_t a_region, T a_own, T a_later, const Vec3T<T>& a_point) const noexcept;
+  weldedSolid(uint32_t a_region, T a_own, T a_later, uint32_t a_laterRegion, const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief The region across a region's own surface found from the surface's nearest point (closestSurface(), when
@@ -2271,6 +2273,8 @@ private:
    * (region()): out of line, since region() reaches it only near a weld.
    * @param[in] a_region The region.
    * @param[in] a_own    The region's solid at the point, at least 0.
+   * @param[in] a_later  The later regions' solid at the point, if a_laterRegion is not 0.
+   * @param[in] a_laterRegion The later region whose solid a_later is, or 0 to have them evaluated here.
    * @param[in] a_point  The point.
    * @return Whether the region holds the point.
    */
@@ -2278,7 +2282,7 @@ private:
   EBGEOMETRY_HOST_NOINLINE
   EBGEOMETRY_DEVICE_NOINLINE
   bool
-  weldHolds(uint32_t a_region, T a_own, const Vec3T<T>& a_point) const noexcept;
+  weldHolds(uint32_t a_region, T a_own, T a_later, uint32_t a_laterRegion, const Vec3T<T>& a_point) const noexcept;
 
   /**
    * @brief The background's function within the tolerance outside the object, where welds fill gaps: minus the
@@ -2300,6 +2304,8 @@ private:
    * @param[in] a_region The region.
    * @param[in] a_own    The region's solid at the point.
    * @param[in] a_later  The later regions' solid at the point.
+   * @param[in] a_laterRegion The later region whose solid that is, or 0 if not known (then the later solids are
+   * differenced whole).
    * @param[in] a_point  The point.
    * @return The welded solid.
    */
@@ -2307,7 +2313,7 @@ private:
   EBGEOMETRY_HOST_NOINLINE
   EBGEOMETRY_DEVICE_NOINLINE
   T
-  weldInBand(uint32_t a_region, T a_own, T a_later, const Vec3T<T>& a_point) const noexcept;
+  weldInBand(uint32_t a_region, T a_own, T a_later, uint32_t a_laterRegion, const Vec3T<T>& a_point) const noexcept;
 
   template <unsigned D, class V = T>
   [[nodiscard]] EBGEOMETRY_HOST_DEVICE
