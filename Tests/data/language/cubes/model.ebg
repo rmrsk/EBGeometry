@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # Two unit cubes read from one mesh file: the first labeled by its face groups (one renamed), the second plain and
 # moved by a param.

@@ -9,7 +9,7 @@ are written, with a steel block cooled by water through a channel, ``channel.ebg
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    block   = box((0, 0, 0), (4, 1, 2))
    channel = cylinder((0, 0.5, 1), (4, 0.5, 1), 0.25).label(cap1 = "inlet", cap2 = "outlet")
@@ -162,7 +162,7 @@ The block's heat, in a setup that includes the flow, coupled to it through the c
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    include("channel.ebg")
 

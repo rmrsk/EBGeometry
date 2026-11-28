@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # The flow of the water through the channel: a setup of its own (ebgstudio Models/cooling_block/flow.ebg).
 include("model.ebg")

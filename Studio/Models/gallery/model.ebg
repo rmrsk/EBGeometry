@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # Every shape and operation of the language, once each, in rows: each is made around the origin, then moved to its
 # place on a grid. Copy any line as a start.

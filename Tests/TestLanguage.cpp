@@ -166,7 +166,7 @@ TEMPLATE_TEST_CASE("Language: every shape and operation gives the expression the
   };
 
   for (const auto& [text, expected] : cases) {
-    compare("ebg 0\nobject " + text + "\n", expected);
+    compare("ebg 1\nobject " + text + "\n", expected);
   }
 
   for (const auto& [text, expected] : operations) {
@@ -177,7 +177,7 @@ TEMPLATE_TEST_CASE("Language: every shape and operation gives the expression the
     const std::string defineA = ab.substr(0, ab.find('\n') + 1);
     const std::string defineB = ab.substr(ab.find('\n') + 1);
 
-    compare("ebg 0\n" + (usesA ? defineA : "") + (usesB ? defineB : "") + "object " + text + "\n", expected);
+    compare("ebg 1\n" + (usesA ? defineA : "") + (usesB ? defineB : "") + "object " + text + "\n", expected);
   }
 }
 
@@ -187,7 +187,7 @@ TEMPLATE_TEST_CASE("Language: arithmetic, vectors, params and overrides", "[Lang
 
   Pool pool(hostMemoryResource());
 
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 param r = 0.5
 param c = (1, 2, 3)
 d = 2 * r - -r / 2 + (3 - 1) * 0.25   # 1.75
@@ -235,7 +235,7 @@ TEMPLATE_TEST_CASE("Language: regions, materials and labels are named in the obj
 
   Pool pool(hostMemoryResource());
 
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 air_box = box((-3, -2, -3), (5, 2, 3)).label(xmin = "inlet", xmax = "outlet", ymin = "far", ymax = "far")
 cable = overlay {
   region jacket = tube((0, 0, -3), (0, 0, 3), 0.5, 0.8) material PTFE
@@ -314,7 +314,7 @@ TEMPLATE_TEST_CASE("Language: domains, their subdomains with properties, surface
 
   Pool pool(hostMemoryResource());
 
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 air_box = box((-3, -2, -3), (5, 2, 3)).label(xmin = "inlet", xmax = "outlet")
 object overlay {
   region air    = air_box material air
@@ -435,7 +435,7 @@ TEMPLATE_TEST_CASE("Language: what review and fuzzing found reads as it should",
   Pool pool(hostMemoryResource());
 
   // An overlay of several regions inside parentheses: its regions are still lines.
-  const auto clipped = Language::parse<T>(R"(ebg 0
+  const auto clipped = Language::parse<T>(R"(ebg 1
 object intersection(overlay {
   region a = sphere((0, 0, 0), 1)
   region b = sphere((0.5, 0, 0), 0.5)
@@ -447,7 +447,7 @@ object intersection(overlay {
   CHECK(clipped.index().getNumRegions() == 3U);
 
   // Spans end at what they hold, not at a line end skipped inside parentheses.
-  const auto spans = Language::parse<T>("ebg 0\nr = 1\nobject sphere((0, 0, 0),\n  r\n)\n", "test.ebg", pool);
+  const auto spans = Language::parse<T>("ebg 1\nr = 1\nobject sphere((0, 0, 0),\n  r\n)\n", "test.ebg", pool);
 
   const Language::Syntax::Node& radius = spans.sources()[0].m_statements[1].m_expr.m_children[1];
 
@@ -455,16 +455,16 @@ object intersection(overlay {
 
   // Numbers too large to be what they count.
   CHECK_THAT(firstError<T>("ebg 4294967296\n").m_message, Catch::Matchers::ContainsSubstring("is unknown"));
-  CHECK_THAT(firstError<T>("ebg 0\nobject polygon_prism((0, 0, 0), (0, 0, 1), 1, 4294967299, (1, 0, 0))\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nobject polygon_prism((0, 0, 0), (0, 0, 1), 1, 4294967299, (1, 0, 0))\n").m_message,
              Catch::Matchers::ContainsSubstring("a whole number from 0 to 1000000"));
-  CHECK_THAT(firstError<T>("ebg 0\nobject sphere((0, 0, 0), 1e300 * 1e300)\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nobject sphere((0, 0, 0), 1e300 * 1e300)\n").m_message,
              Catch::Matchers::ContainsSubstring("the result of '*' is too large"));
-  CHECK_THAT(firstError<T>("ebg 0\nmaterial m { k = (0, 1e300, 0) * 1e300 }\nobject sphere((0, 0, 0), 1)\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nmaterial m { k = (0, 1e300, 0) * 1e300 }\nobject sphere((0, 0, 0), 1)\n").m_message,
              Catch::Matchers::ContainsSubstring("the result of '*' is too large"));
 
-  for (const char* text : {"ebg 0\nobject sphere((0, 0, 0), 1e39)\n",
-                           "ebg 0\nobject sphere((0, 1e39, 0), 1)\n",
-                           "ebg 0\nobject rotate(sphere((0, 0, 0), 1), 30, (1e39, 0, 0))\n"}) {
+  for (const char* text : {"ebg 1\nobject sphere((0, 0, 0), 1e39)\n",
+                           "ebg 1\nobject sphere((0, 1e39, 0), 1)\n",
+                           "ebg 1\nobject rotate(sphere((0, 0, 0), 1), 30, (1e39, 0, 0))\n"}) {
     CAPTURE(text);
 
     if (std::is_same<T, float>::value) {
@@ -478,7 +478,7 @@ object intersection(overlay {
 
   // Line ends where the reference continues a statement: after '=' and a leading '-', before a method of a label
   // statement, and between a keyword and its '=' inside parentheses.
-  const auto continued = Language::parse<T>("ebg 0\nr =\n  -\n  1\nball = sphere((0, 0, 0), -r)\nball\n  "
+  const auto continued = Language::parse<T>("ebg 1\nr =\n  -\n  1\nball = sphere((0, 0, 0), -r)\nball\n  "
                                             ".label(\"skin\")\nobject smooth_union(ball, sphere((1, 0, 0), 1), smooth\n"
                                             "  = 0.1)\n",
                                             "test.ebg",
@@ -487,25 +487,25 @@ object intersection(overlay {
   CHECK(continued.index().getSurfaceLabelName(continued.index().getSurfaceLabel(0)) == "skin");
 
   // What the grammar does not allow, and a number no double holds.
-  CHECK_THAT(firstError<T>("ebg 0 r = 1\n").m_message, Catch::Matchers::ContainsSubstring("the version only"));
-  CHECK_THAT(firstError<T>("ebg 0\nr = 1e999\n").m_message, Catch::Matchers::ContainsSubstring("too large"));
-  CHECK_NOTHROW(Language::parse<T>("ebg 0\nr = 1e-400\nobject sphere((0, 0, 0), 1 + r)\n", "test.ebg", pool));
-  CHECK_THAT(firstError<T>("ebg 0\nr = --1\n").m_message, Catch::Matchers::ContainsSubstring("two '-' in a row"));
-  CHECK_THAT(firstError<T>("ebg 0\nobject sphere((0, 0, 0), 1,)\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1 r = 1\n").m_message, Catch::Matchers::ContainsSubstring("the version only"));
+  CHECK_THAT(firstError<T>("ebg 1\nr = 1e999\n").m_message, Catch::Matchers::ContainsSubstring("too large"));
+  CHECK_NOTHROW(Language::parse<T>("ebg 1\nr = 1e-400\nobject sphere((0, 0, 0), 1 + r)\n", "test.ebg", pool));
+  CHECK_THAT(firstError<T>("ebg 1\nr = --1\n").m_message, Catch::Matchers::ContainsSubstring("two '-' in a row"));
+  CHECK_THAT(firstError<T>("ebg 1\nobject sphere((0, 0, 0), 1,)\n").m_message,
              Catch::Matchers::ContainsSubstring("expected an argument after ','"));
 
   // A byte-order mark is skipped; a byte outside ASCII elsewhere is named by its value.
   CHECK(firstError<T>("\xEF\xBB\xBF"
-                      "ebg 0\nobject sphere((0, 0, 0), 1)\n")
+                      "ebg 1\nobject sphere((0, 0, 0), 1)\n")
           .m_message.empty());
-  CHECK_THAT(firstError<T>("ebg 0\nr\xC3\xA9 = 1\n").m_message, Catch::Matchers::ContainsSubstring("byte 0xC3"));
-  CHECK_THAT(firstError<T>(std::string("ebg 0\nr = 1\0\n", 13)).m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nr\xC3\xA9 = 1\n").m_message, Catch::Matchers::ContainsSubstring("byte 0xC3"));
+  CHECK_THAT(firstError<T>(std::string("ebg 1\nr = 1\0\n", 13)).m_message,
              Catch::Matchers::ContainsSubstring("control character 0x00"));
-  CHECK_THAT(firstError<T>("ebg 0\nr = 1\x01\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nr = 1\x01\n").m_message,
              Catch::Matchers::ContainsSubstring("control character 0x01"));
 
   // Every error is found when the statements are indented, and after an error inside parentheses.
-  for (const char* text : {"ebg 0\n  a = 1 1\n  b = 2 2\n  c = 3 3\n", "ebg 0\na = (1,\n2 2)\nb = 2 2\nc = 3 3\n"}) {
+  for (const char* text : {"ebg 1\n  a = 1 1\n  b = 2 2\n  c = 3 3\n", "ebg 1\na = (1,\n2 2)\nb = 2 2\nc = 3 3\n"}) {
     INFO(text);
 
     size_t errors = 0;
@@ -527,7 +527,7 @@ object intersection(overlay {
 
   // Every comment is kept, those inside what is printed on one line after it.
   const std::string commented =
-    "ebg 0  # a\ns = sphere((0, 0, 0),  # b\n  1)\nmaterial m {\n  # c\n  d = 1  # e\n}\nobject "
+    "ebg 1  # a\ns = sphere((0, 0, 0),  # b\n  1)\nmaterial m {\n  # c\n  d = 1  # e\n}\nobject "
     "overlay {\n  region r = s material m\n}\n# f\n";
 
   const std::string printed = Language::print(Language::parse<T>(commented, "test.ebg", pool));
@@ -545,7 +545,7 @@ TEMPLATE_TEST_CASE("Language: the view block warns about a key a viewer passes o
 
   Pool pool(hostMemoryResource());
 
-  const std::string model = "ebg 0\nmaterial red\nmaterial blu\nobject overlay {\n  region r1 = sphere((0, 0, 0), 1) "
+  const std::string model = "ebg 1\nmaterial red\nmaterial blu\nobject overlay {\n  region r1 = sphere((0, 0, 0), 1) "
                             "material red\n  region r2 = sphere((2, 0, 0), 1) material blu\n}\n";
 
   // Every key a viewer reads, and a color for each kind of name: no warning.
@@ -598,7 +598,7 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   // A shape built deeper through named values than an index or a tape can recurse: an error, not a crash.
   {
-    std::string text = "ebg 0\ns0 = sphere((0, 0, 0), 1)\n";
+    std::string text = "ebg 1\ns0 = sphere((0, 0, 0), 1)\n";
 
     for (int i = 1; i <= 5000; i++) {
       text += "s" + std::to_string(i) + " = union(s" + std::to_string(i - 1) + ", sphere((0, 0, 0), 1))\n";
@@ -611,7 +611,7 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   // Calls nested deeper than a tape allows, through named values: reported at the call, when the model is read.
   {
-    std::string text = "ebg 0\nb0 = sphere((0, 0, 0), 1)\n";
+    std::string text = "ebg 1\nb0 = sphere((0, 0, 0), 1)\n";
 
     for (unsigned i = 1; i <= Tape<T>::MaxCallDepth + 1; i++) {
       text += "b" + std::to_string(i) + " = blur(b" + std::to_string(i - 1) + ", 0.01)\n";
@@ -627,12 +627,12 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   // A label statement's arguments are read where the shape is defined, and its error says so.
   CHECK_THAT(
-    firstError<T>("ebg 0\nair = box((0, 0, 0), (1, 1, 1))\nname = \"in\"\nair.label(xmin = name)\nobject air\n")
+    firstError<T>("ebg 1\nair = box((0, 0, 0), (1, 1, 1))\nname = \"in\"\nair.label(xmin = name)\nobject air\n")
       .m_message,
     Catch::Matchers::ContainsSubstring("arguments are read where 'air' is defined"));
 
   // Selectors: an interface of a region with itself selects nothing (a warning); remaining() is one group's.
-  const std::string regions = "ebg 0\nobject overlay {\n  region a = box((-1, -1, -1), (1, 1, 1))\n  region b = "
+  const std::string regions = "ebg 1\nobject overlay {\n  region a = box((-1, -1, -1), (1, 1, 1))\n  region b = "
                               "sphere((0, 0, 0), 0.5)\n}\n";
 
   const auto empty =
@@ -646,7 +646,7 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
     Catch::Matchers::ContainsSubstring("remaining() is already in a group of domain 'd'"));
 
   const auto between =
-    Language::parse<T>("ebg 0\nobject overlay {\n  region a = box((-1, -1, -1), (1, 1, 1)).label(\"skin\")\n"
+    Language::parse<T>("ebg 1\nobject overlay {\n  region a = box((-1, -1, -1), (1, 1, 1)).label(\"skin\")\n"
                        "  region b = sphere((0, 0, 0), 0.5)\n}\ndomain d {\n  subdomain s = a\n"
                        "  group g = label(\"skin\", between = (a, a))\n}\n",
                        "test.ebg",
@@ -656,14 +656,14 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
   CHECK_THAT(between.warnings()[0].m_message, Catch::Matchers::ContainsSubstring("selects nothing"));
 
   // A polygon has at most 4096 sides, each a named part.
-  CHECK_THAT(firstError<T>("ebg 0\nobject polygon_prism((0, 0, 0), (0, 0, 1), 1, 4097, (1, 0, 0))\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nobject polygon_prism((0, 0, 0), (0, 0, 1), 1, 4097, (1, 0, 0))\n").m_message,
              Catch::Matchers::ContainsSubstring("from 3 to 4096 sides"));
 
   // One shape labeled in two values: its site lists the labels it is used with, the same part's two labels
   // included; a labeled value never used labels nothing.
   const auto sites = [&](const std::string& a_values, const std::string& a_object) {
     return Language::parse<T>(
-             "ebg 0\na = box((0, 0, 0), (1, 1, 1))\n" + a_values + "object " + a_object + "\n", "test.ebg", pool)
+             "ebg 1\na = box((0, 0, 0), (1, 1, 1))\n" + a_values + "object " + a_object + "\n", "test.ebg", pool)
       .shapes();
   };
   const auto partOf = [](const Language::ShapeSite& a_site, const std::string& a_part) {
@@ -688,7 +688,7 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   // A property too large for the precision it is read in.
   const auto large =
-    Language::parse<T>("ebg 0\nmaterial m { v = (0, 1e300, 0) }\nobject overlay {\n  region r = sphere((0, 0, 0), 1) "
+    Language::parse<T>("ebg 1\nmaterial m { v = (0, 1e300, 0) }\nobject overlay {\n  region r = sphere((0, 0, 0), 1) "
                        "material m\n}\n",
                        "test.ebg",
                        pool);
@@ -715,28 +715,28 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   // A file is read once, however often and by whatever path it is included: a second include is skipped, not a second
   // (or exponential) read, and its names are defined once.
-  write(folder / "values.ebg", "ebg 0\nr = 1\n");
+  write(folder / "values.ebg", "ebg 1\nr = 1\n");
   write(folder / "twice.ebg",
-        "ebg 0\ninclude(\"values.ebg\")\ninclude(\"./values.ebg\")\nobject sphere((0, 0, 0), r)\n");
+        "ebg 1\ninclude(\"values.ebg\")\ninclude(\"./values.ebg\")\nobject sphere((0, 0, 0), r)\n");
 
   CHECK_NOTHROW(Language::read<T>((folder / "twice.ebg").string(), pool));
 
   // Setups sharing one geometry, combined: each includes the geometry and the materials, and a third includes both
   // setups and couples their domains.
   write(folder / "geometry.ebg",
-        "ebg 0\nobject overlay {\n  region solid = box((0, 0, 0), (2, 1, 1)) material steel\n  region water = "
+        "ebg 1\nobject overlay {\n  region solid = box((0, 0, 0), (2, 1, 1)) material steel\n  region water = "
         "cylinder((0, 0.5, 0.5), (2, 0.5, 0.5), 0.2) material water\n}\n");
-  write(folder / "materials.ebg", "ebg 0\nmaterial steel { density = 7850 }\nmaterial water { density = 1000 }\n");
+  write(folder / "materials.ebg", "ebg 1\nmaterial steel { density = 7850 }\nmaterial water { density = 1000 }\n");
   write(
     folder / "flow.ebg",
-    "ebg 0\ninclude(\"geometry.ebg\")\ninclude(\"materials.ebg\")\ndomain flow {\n  subdomain fluid = water\n  group "
+    "ebg 1\ninclude(\"geometry.ebg\")\ninclude(\"materials.ebg\")\ndomain flow {\n  subdomain fluid = water\n  group "
     "wall = interface(water, solid)\n  group ends = remaining()\n}\n");
   write(
     folder / "heat.ebg",
-    "ebg 0\ninclude(\"geometry.ebg\")\ninclude(\"materials.ebg\")\ndomain heat {\n  subdomain metal = solid\n  group "
+    "ebg 1\ninclude(\"geometry.ebg\")\ninclude(\"materials.ebg\")\ndomain heat {\n  subdomain metal = solid\n  group "
     "cooled = interface(solid, water)\n  group rest = remaining()\n}\n");
   write(folder / "coupled.ebg",
-        "ebg 0\ninclude(\"flow.ebg\")\ninclude(\"heat.ebg\")\ncouple wall = surface(heat.cooled, flow.wall)\n");
+        "ebg 1\ninclude(\"flow.ebg\")\ninclude(\"heat.ebg\")\ncouple wall = surface(heat.cooled, flow.wall)\n");
 
   const auto coupled = Language::read<T>((folder / "coupled.ebg").string(), pool);
 
@@ -746,8 +746,8 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
   CHECK(coupled.index().getNumRegions() == 3U);
 
   // A file including itself, through another, is still an error.
-  write(folder / "loop_a.ebg", "ebg 0\ninclude(\"loop_b.ebg\")\nobject sphere((0, 0, 0), 1)\n");
-  write(folder / "loop_b.ebg", "ebg 0\ninclude(\"loop_a.ebg\")\n");
+  write(folder / "loop_a.ebg", "ebg 1\ninclude(\"loop_b.ebg\")\nobject sphere((0, 0, 0), 1)\n");
+  write(folder / "loop_b.ebg", "ebg 1\ninclude(\"loop_a.ebg\")\n");
 
   try {
     (void)Language::read<T>((folder / "loop_a.ebg").string(), pool);
@@ -759,9 +759,9 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
 
   // A mesh used by two calls: each call is its leaf's site. Flattened, an included file's mesh path still reads.
   write(folder / "parts" / "cubes.ebg",
-        "ebg 0\nfirst = mesh(\"cube.obj\", groups = false)\nsecond = mesh(\"./cube.obj\", groups = false)\n");
+        "ebg 1\nfirst = mesh(\"cube.obj\", groups = false)\nsecond = mesh(\"./cube.obj\", groups = false)\n");
   write(folder / "main.ebg",
-        "ebg 0\ninclude(\"parts/cubes.ebg\")\nobject overlay {\n  region a = first\n  region b = "
+        "ebg 1\ninclude(\"parts/cubes.ebg\")\nobject overlay {\n  region a = first\n  region b = "
         "second.translate((3, 0, 0))\n}\n");
 
   const auto meshes = Language::read<T>((folder / "main.ebg").string(), pool);
@@ -781,8 +781,8 @@ TEMPLATE_TEST_CASE("Language: deep models, files read twice, meshes used twice a
   write(folder / "bad.obj",
         "v 0 0 0\nv 1 0 0\nv 0 1 0\nv 0 0 1\nv 0 -1 0\nv 0 0 -1\n"
         "f 1 3 2\nf 1 2 4\nf 1 4 3\nf 2 3 4\nf 1 2 5\nf 1 6 2\nf 1 5 6\nf 2 6 5\n");
-  write(folder / "defect.ebg", "ebg 0\nobject mesh(\"bad.obj\")\n");
-  write(folder / "strict.ebg", "ebg 0\nobject mesh(\"bad.obj\", on_defect = \"throw\")\n");
+  write(folder / "defect.ebg", "ebg 1\nobject mesh(\"bad.obj\")\n");
+  write(folder / "strict.ebg", "ebg 1\nobject mesh(\"bad.obj\", on_defect = \"throw\")\n");
 
   CHECK_NOTHROW(Language::read<T>((folder / "defect.ebg").string(), pool));
 
@@ -829,7 +829,7 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
 
   // A list in a region line is a group of regions, one per file, named after it, in natural order.
   write(folder / "overlay.ebg",
-        "ebg 0\nparts = meshes(\"parts/cube-*.obj\", groups = false)\nobject overlay {\n  region air = "
+        "ebg 1\nparts = meshes(\"parts/cube-*.obj\", groups = false)\nobject overlay {\n  region air = "
         "box((-5, -5, -5), (5, 5, 5))\n  region asm = parts material steel\n}\nmaterial steel { density = 7850 }\n");
 
   const auto  overlay = Language::read<T>((folder / "overlay.ebg").string(), pool);
@@ -845,7 +845,7 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
 
   // An operation of several shapes takes a list's elements as operands; one of one shape applies to each element.
   write(folder / "union.ebg",
-        "ebg 0\nparts = meshes(\"parts/cube-?.obj\", groups = false).translate((10, 0, 0))\nobject bvh_union(parts, "
+        "ebg 1\nparts = meshes(\"parts/cube-?.obj\", groups = false).translate((10, 0, 0))\nobject bvh_union(parts, "
         "sphere((0, 0, 0), 1))\n");
 
   const auto     unioned = Language::read<T>((folder / "union.ebg").string(), pool);
@@ -860,8 +860,8 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
 
   // Flattened from a file in another folder, the pattern still names the files.
   fs::create_directories(folder / "sub");
-  write(folder / "sub" / "lists.ebg", "ebg 0\nparts = meshes(\"../parts/cube-*.obj\", groups = false)\n");
-  write(folder / "flat.ebg", "ebg 0\ninclude(\"sub/lists.ebg\")\nobject bvh_union(parts)\n");
+  write(folder / "sub" / "lists.ebg", "ebg 1\nparts = meshes(\"../parts/cube-*.obj\", groups = false)\n");
+  write(folder / "flat.ebg", "ebg 1\ninclude(\"sub/lists.ebg\")\nobject bvh_union(parts)\n");
 
   const std::string flattened = Language::print(Language::read<T>((folder / "flat.ebg").string(), pool), true);
 
@@ -880,21 +880,21 @@ TEMPLATE_TEST_CASE("Language: meshes() reads every file a pattern matches as a l
     return std::string("no error");
   };
 
-  CHECK_THAT(firstError("ebg 0\nobject bvh_union(meshes(\"parts/none-*.obj\"))\n"),
+  CHECK_THAT(firstError("ebg 1\nobject bvh_union(meshes(\"parts/none-*.obj\"))\n"),
              Catch::Matchers::ContainsSubstring("matches"));
-  CHECK_THAT(firstError("ebg 0\nobject bvh_union(meshes(\"p*/cube-1.obj\"))\n"),
+  CHECK_THAT(firstError("ebg 1\nobject bvh_union(meshes(\"p*/cube-1.obj\"))\n"),
              Catch::Matchers::ContainsSubstring("only the file name"));
-  CHECK_THAT(firstError("ebg 0\nobject meshes(\"parts/cube-*.obj\")\n"),
+  CHECK_THAT(firstError("ebg 1\nobject meshes(\"parts/cube-*.obj\")\n"),
              Catch::Matchers::ContainsSubstring("not a list"));
   CHECK_THAT(
-    firstError("ebg 0\nobject difference(box((0, 0, 0), (1, 1, 1)), sphere(meshes(\"parts/cube-*.obj\"), 1))\n"),
+    firstError("ebg 1\nobject difference(box((0, 0, 0), (1, 1, 1)), sphere(meshes(\"parts/cube-*.obj\"), 1))\n"),
     Catch::Matchers::ContainsSubstring("a vector"));
 
   // A stale link the pattern names is: a part would be missing.
   if (!linked) {
     fs::create_symlink(folder / "gone.obj", folder / "parts" / "cube-9.obj");
 
-    CHECK_THAT(firstError("ebg 0\nobject bvh_union(meshes(\"parts/cube-*.obj\"))\n"),
+    CHECK_THAT(firstError("ebg 1\nobject bvh_union(meshes(\"parts/cube-*.obj\"))\n"),
                Catch::Matchers::ContainsSubstring("cannot read"));
   }
 
@@ -910,7 +910,7 @@ TEMPLATE_TEST_CASE("Language: a label statement labels a named shape wherever it
   Pool pool(hostMemoryResource());
 
   // Labeled before its definition, after it, and in a second statement; the shape used before the last.
-  const auto model = Language::parse<T>(R"(ebg 0
+  const auto model = Language::parse<T>(R"(ebg 1
 air_box.label(xmin = "inlet")
 air_box = box((-1, -1, -1), (1, 1, 1))
 moved = air_box.translate((0, 0, 0))
@@ -935,15 +935,15 @@ object moved
 
   // What it cannot label.
   const std::vector<std::pair<std::string, std::string>> errors{
-    {"ebg 0\nb = box((0, 0, 0), (1, 1, 1)).label(xmin = \"a\")\nb.label(xmin = \"c\")\nobject b\n",
+    {"ebg 1\nb = box((0, 0, 0), (1, 1, 1)).label(xmin = \"a\")\nb.label(xmin = \"c\")\nobject b\n",
      "part 'xmin' is already labeled \"a\" at test.ebg:2"},
-    {"ebg 0\nb = box((0, 0, 0), (1, 1, 1))\nb.label(\"a\")\nb.label(\"c\")\nobject b\n",
+    {"ebg 1\nb = box((0, 0, 0), (1, 1, 1))\nb.label(\"a\")\nb.label(\"c\")\nobject b\n",
      "the shape is already labeled \"a\" at test.ebg:3"},
-    {"ebg 0\nb = box((0, 0, 0), (1, 1, 1)).translate((1, 0, 0))\nb.label(xmin = \"a\")\nobject b\n",
+    {"ebg 1\nb = box((0, 0, 0), (1, 1, 1)).translate((1, 0, 0))\nb.label(xmin = \"a\")\nobject b\n",
      "'b' is not one shape made by a call, whose parts a label statement can name (it is a composition)"},
-    {"ebg 0\nr = 1\nr.label(\"a\")\nobject sphere((0, 0, 0), r)\n", "(it is a number)"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1)\nball.label(\"a\")\n", "no value 'ball' to label"},
-    {"ebg 0\nb = box((0, 0, 0), (1, 1, 1))\nb.translate((1, 0, 0))\nobject b\n",
+    {"ebg 1\nr = 1\nr.label(\"a\")\nobject sphere((0, 0, 0), r)\n", "(it is a number)"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1)\nball.label(\"a\")\n", "no value 'ball' to label"},
+    {"ebg 1\nb = box((0, 0, 0), (1, 1, 1))\nb.translate((1, 0, 0))\nobject b\n",
      "a statement that starts with a name is 'name = value', or 'name.label(...)'"}};
 
   for (const auto& [text, message] : errors) {
@@ -962,7 +962,7 @@ TEMPLATE_TEST_CASE("Language: completeness at a resolution warns of a subdomain 
   Pool pool(hostMemoryResource());
 
   // A hollow steel shell in a box of gas, its hollow a pocket of gas: the gas subdomain is in two components.
-  const auto pocket = Language::parse<T>(R"(ebg 0
+  const auto pocket = Language::parse<T>(R"(ebg 1
 object overlay {
   region air    = box((-2, -2, -2), (2, 2, 2)) material gas
   region shell  = difference(sphere((0, 0, 0), 1), sphere((0, 0, 0), 0.5)) material steel
@@ -1002,7 +1002,7 @@ domain solid {
   CHECK(Language::completeness(pocket, tape, "flow").m_findings.empty());
 
   // Without the pocket region, the hollow is a cavity of the outside, against the shell.
-  const auto hollow = Language::parse<T>(R"(ebg 0
+  const auto hollow = Language::parse<T>(R"(ebg 1
 object overlay {
   region air   = difference(box((-2, -2, -2), (2, 2, 2)), sphere((0, 0, 0), 1)) material gas
   region shell = difference(sphere((0, 0, 0), 1), sphere((0, 0, 0), 0.5)) material steel
@@ -1035,7 +1035,7 @@ domain flow {
   CHECK(Language::completeness(hollow, hollowTape, "flow", T(0.05)).m_findings.empty());
 
   // An unbounded object is not searched: a warning says so.
-  const auto halfSpace = Language::parse<T>(R"(ebg 0
+  const auto halfSpace = Language::parse<T>(R"(ebg 1
 object overlay {
   region ground = plane((0, 0, 0), (0, 1, 0)) material soil
 }
@@ -1079,7 +1079,7 @@ TEMPLATE_TEST_CASE(
 
   Pool pool(hostMemoryResource());
 
-  const std::string geometry = R"(ebg 0
+  const std::string geometry = R"(ebg 1
 object overlay {
   region air   = box((-2, -2, -2), (2, 2, 2)).label(xmin = "inlet") material air
   region solid = sphere((0, 0, 0), 1) material steel
@@ -1154,7 +1154,7 @@ TEMPLATE_TEST_CASE("Language: surfaces(name) selects every surface of a named sh
 
   // Leaves: the plate 0 and the dome 1 (frame), then the bolts twice: 2 and 3, 4 and 5. A bolt is one shape used four
   // times; its value makes four nodes, the bolts' two.
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 bolt  = cylinder((0, 0, 0), (0, 0, 1), 0.1)
 bolts = union(bolt.translate((1, 0, 0)), bolt.translate((2, 0, 0)))
 frame = union(box((-3, -1, -1), (3, 1, 0)).label("plate"), sphere((0, 0, 2), 0.5))
@@ -1237,7 +1237,7 @@ domain mech {
 
   // What is not a shape value of the text.
   const auto group = [](const std::string& a_selector) {
-    return "ebg 0\nball = sphere((0, 0, 0), 1)\nn = 3\nobject overlay {\n  region solid = ball\n}\ndomain d {\n  "
+    return "ebg 1\nball = sphere((0, 0, 0), 1)\nn = 3\nobject overlay {\n  region solid = ball\n}\ndomain d {\n  "
            "group g = " +
            a_selector + "\n}\n";
   };
@@ -1268,7 +1268,7 @@ TEMPLATE_TEST_CASE("Language: a domain and a coupling judge a shape by the parts
   // side against the block and its caps (the inlet and the outlet) against the outside. Each domain covers what the
   // channel touches, and the two agree on its wall: complete, and the coupling holds, though a cap labeled "inlet"
   // could lie against the block and the side against the outside.
-  const auto channel = Language::parse<T>(R"(ebg 0
+  const auto channel = Language::parse<T>(R"(ebg 1
 block = box((0, 0, 0), (4, 1, 2))
 channel = cylinder((0, 0.5, 1), (4, 0.5, 1), 0.25).label(cap1 = "inlet", cap2 = "outlet", side = "bore")
 object overlay {
@@ -1426,7 +1426,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
                                                       {V(1.2, 0.5, 0.5), "walls"}};
 
   // The parts path is relative to the file the call is in; the parts file is among the model's files.
-  write(folder / "model.ebg", "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+  write(folder / "model.ebg", "ebg 1\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
 
   {
     const auto model = Language::read<T>((folder / "model.ebg").string(), pool);
@@ -1446,7 +1446,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
 
   // Without the file's groups, the picked part is still labeled by its name; the others are not.
   write(folder / "model.ebg",
-        "ebg 0\nobject mesh(\"meshes/cube.obj\", groups = false, parts = \"meshes/cube.parts\").label(\"cube\")\n");
+        "ebg 1\nobject mesh(\"meshes/cube.obj\", groups = false, parts = \"meshes/cube.parts\").label(\"cube\")\n");
 
   {
     const auto          model = Language::read<T>((folder / "model.ebg").string(), pool);
@@ -1460,7 +1460,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
 
   // A picked part is a part like a group: .label(part = ...) relabels it.
   write(folder / "model.ebg",
-        "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\").label(inlet = \"pipe_in\")\n");
+        "ebg 1\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\").label(inlet = \"pipe_in\")\n");
 
   {
     const auto          model = Language::read<T>((folder / "model.ebg").string(), pool);
@@ -1483,7 +1483,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
   }
 
   write(folder / "meshes" / "cube.obj", changed);
-  write(folder / "model.ebg", "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+  write(folder / "model.ebg", "ebg 1\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
 
   try {
     (void)Language::read<T>((folder / "model.ebg").string(), pool);
@@ -1495,7 +1495,7 @@ TEMPLATE_TEST_CASE("Language: a mesh's parts picked by face are read from its pa
   }
 
   // meshes() takes no parts file: one file of picked faces cannot serve every mesh a pattern matches.
-  write(folder / "model.ebg", "ebg 0\nobject union(meshes(\"meshes/*.obj\", parts = \"meshes/cube.parts\"))\n");
+  write(folder / "model.ebg", "ebg 1\nobject union(meshes(\"meshes/*.obj\", parts = \"meshes/cube.parts\"))\n");
 
   CHECK_THROWS_AS(Language::read<T>((folder / "model.ebg").string(), pool), Language::Error);
 }
@@ -1516,75 +1516,75 @@ TEMPLATE_TEST_CASE("Language: errors are reported at their line and column, all 
 
   const std::vector<Case> cases{
     {"object sphere((0, 0, 0), 1)\n", 1, 1, "a file starts with its version line"},
-    {"ebg 1\n", 1, 5, "version 1 is unknown"},
-    {"ebg 0\nx = (1, 2\nobject x\n", 3, 1, "expected ',' between a vector's components"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1) $\n", 2, 29, "unexpected character '$'"},
-    {"ebg 0\nobject sphre((0, 0, 0), 1)\n", 2, 8, "no shape or operation 'sphre' (did you mean 'sphere'?)"},
-    {"ebg 0\nobject sphere((0, 0, 0))\n", 2, 8, "sphere needs 'radius'"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1, 2)\n", 2, 29, "too many arguments"},
-    {"ebg 0\nobject sphere((0, 0, 0), radius = 1, radius = 2)\n", 2, 47, "'radius' is given twice"},
-    {"ebg 0\nobject sphere((0, 0, 0), size = 1)\n", 2, 33, "sphere has no argument 'size'"},
-    {"ebg 0\nobject sphere(1, 1)\n", 2, 15, "'center' is a vector"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1 / 0)\n", 2, 30, "division by zero"},
+    {"ebg 2\n", 1, 5, "version 2 is unknown; this reader knows version 1"},
+    {"ebg 1\nx = (1, 2\nobject x\n", 3, 1, "expected ',' between a vector's components"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1) $\n", 2, 29, "unexpected character '$'"},
+    {"ebg 1\nobject sphre((0, 0, 0), 1)\n", 2, 8, "no shape or operation 'sphre' (did you mean 'sphere'?)"},
+    {"ebg 1\nobject sphere((0, 0, 0))\n", 2, 8, "sphere needs 'radius'"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1, 2)\n", 2, 29, "too many arguments"},
+    {"ebg 1\nobject sphere((0, 0, 0), radius = 1, radius = 2)\n", 2, 47, "'radius' is given twice"},
+    {"ebg 1\nobject sphere((0, 0, 0), size = 1)\n", 2, 33, "sphere has no argument 'size'"},
+    {"ebg 1\nobject sphere(1, 1)\n", 2, 15, "'center' is a vector"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1 / 0)\n", 2, 30, "division by zero"},
     // The library's own checks of a value: an error at the call, not an abort.
-    {"ebg 0\nobject sphere((0, 0, 0), -1)\n", 2, 8, "sphere: SphereSDF: the radius must be finite and positive (-1)"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1).repeat((1, 1, 1), (-1, 0, 0), (1, 1, 1))\n",
+    {"ebg 1\nobject sphere((0, 0, 0), -1)\n", 2, 8, "sphere: SphereSDF: the radius must be finite and positive (-1)"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1).repeat((1, 1, 1), (-1, 0, 0), (1, 1, 1))\n",
      2,
      8,
      "repeat: FiniteRepetition: the low repetition counts must be finite and not negative"},
-    {"ebg 0\nobject sphere((0, 0, 0), \"a\" + 1)\n", 2, 26, "cannot compute a string + a number"},
-    {"ebg 0\nobject sphere((0, 0, 0), r)\n", 2, 26, "no value 'r' defined before this line"},
-    {"ebg 0\nr = 1\nr = 2\nobject sphere((0, 0, 0), r)\n", 3, 1, "'r' is already defined at test.ebg:2"},
-    {"ebg 0\nobject box((0, 0, 0), (1, 1, 1)).label(xmn = \"a\")\n",
+    {"ebg 1\nobject sphere((0, 0, 0), \"a\" + 1)\n", 2, 26, "cannot compute a string + a number"},
+    {"ebg 1\nobject sphere((0, 0, 0), r)\n", 2, 26, "no value 'r' defined before this line"},
+    {"ebg 1\nr = 1\nr = 2\nobject sphere((0, 0, 0), r)\n", 3, 1, "'r' is already defined at test.ebg:2"},
+    {"ebg 1\nobject box((0, 0, 0), (1, 1, 1)).label(xmn = \"a\")\n",
      2,
      46,
      "box has no part 'xmn' (did you mean 'xmin'?)"},
-    {"ebg 0\nobject translate(box((0, 0, 0), (1, 1, 1)), (1, 0, 0)).label(xmin = \"a\")\n",
+    {"ebg 1\nobject translate(box((0, 0, 0), (1, 1, 1)), (1, 0, 0)).label(xmin = \"a\")\n",
      2,
      69,
      "only one shape's own parts can be named"},
-    {"ebg 0\no = overlay {\n  region a = sphere((0, 0, 0), 1)\n}\nobject union(o, sphere((3, 0, 0), 1))\n",
+    {"ebg 1\no = overlay {\n  region a = sphere((0, 0, 0), 1)\n}\nobject union(o, sphere((3, 0, 0), 1))\n",
      5,
      14,
      "an overlay (regions) cannot be an operand of union"},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n  region a = sphere((3, 0, 0), 1)\n}\n",
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n  region a = sphere((3, 0, 0), 1)\n}\n",
      4,
      10,
      "region 'a' is already named at test.ebg:3"},
-    {"ebg 0\no = overlay {\n  region a = sphere((0, 0, 0), 1)\n}\nobject overlay {\n  region b = o\n  region c = "
+    {"ebg 1\no = overlay {\n  region a = sphere((0, 0, 0), 1)\n}\nobject overlay {\n  region b = o\n  region c = "
      "translate(o, (3, 0, 0))\n}\n",
      7,
      14,
      "region 'a' (named at test.ebg:3) would be in the object twice"},
-    {"ebg 0\nx = 1\n", 0, 0, "the model has no object"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1)\nobject sphere((3, 0, 0), 1)\n", 3, 1, "a model has one object"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1)\ninclude(\"missing.ebg\")\n", 3, 9, "cannot open"},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = b\n}\n",
+    {"ebg 1\nx = 1\n", 0, 0, "the model has no object"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1)\nobject sphere((3, 0, 0), 1)\n", 3, 1, "a model has one object"},
+    {"ebg 1\nobject sphere((0, 0, 0), 1)\ninclude(\"missing.ebg\")\n", 3, 9, "cannot open"},
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = b\n}\n",
      6,
      17,
      "no region 'b'"},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  group g = label(\"x\")\n}\n",
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  group g = label(\"x\")\n}\n",
      6,
      19,
      "no surface label \"x\""},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = a\n  "
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = a\n  "
      "subdomain t = a\n}\n",
      7,
      17,
      "region 'a' is already in subdomain 's' of domain 'd'"},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = a\n  group s = "
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = a\n  group s = "
      "remaining()\n}\n",
      7,
      9,
      "'s' is already a subdomain or group of domain 'd'"},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = a\n}\ncouple c = "
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1)\n}\ndomain d {\n  subdomain s = a\n}\ncouple c = "
      "volume(d.s, e.s)\n",
      8,
      24,
      "no domain 'e'"},
-    {"ebg 0\nobject sphere((0, 0, 0), 1)\nmaterial m { a = 1, a = 2 }\n", 3, 21, "'a' is given twice"},
-    {"ebg 0\nobject sphere((0, 0, 0), (1, 2))\n", 2, 26, "a pair (a, b) is a selector's regions only"},
-    {"ebg 0\nobject overlay {\n  region a = sphere((0, 0, 0), 1).label(\"s\")\n}\ndomain d {\n  group g = label(\"s\", "
+    {"ebg 1\nobject sphere((0, 0, 0), 1)\nmaterial m { a = 1, a = 2 }\n", 3, 21, "'a' is given twice"},
+    {"ebg 1\nobject sphere((0, 0, 0), (1, 2))\n", 2, 26, "a pair (a, b) is a selector's regions only"},
+    {"ebg 1\nobject overlay {\n  region a = sphere((0, 0, 0), 1).label(\"s\")\n}\ndomain d {\n  group g = label(\"s\", "
      "near = (a, outside))\n}\n",
      6,
      31,
@@ -1607,13 +1607,13 @@ TEMPLATE_TEST_CASE("Language: errors are reported at their line and column, all 
     Pool pool(hostMemoryResource());
 
     const auto model = Language::parse<T>(
-      "ebg 0\nobject ball = sphere((0, 0, 0), 1)\nball.label(\"skin\")\ncopy = ball.translate((3, 0, 0))\n",
+      "ebg 1\nobject ball = sphere((0, 0, 0), 1)\nball.label(\"skin\")\ncopy = ball.translate((3, 0, 0))\n",
       "test.ebg",
       pool);
 
     CHECK(model.index().getSurfaceLabelName(model.index().getSurfaceLabel(0)) == "skin");
     CHECK_THAT(Language::print(model), Catch::Matchers::ContainsSubstring("object ball = sphere((0, 0, 0), 1)\n"));
-    CHECK_THAT(firstError<T>("ebg 0\nball = 1\nobject ball = sphere((0, 0, 0), 1)\n").m_message,
+    CHECK_THAT(firstError<T>("ebg 1\nball = 1\nobject ball = sphere((0, 0, 0), 1)\n").m_message,
                Catch::Matchers::ContainsSubstring("'ball' is already defined at test.ebg:2"));
   }
 
@@ -1622,7 +1622,7 @@ TEMPLATE_TEST_CASE("Language: errors are reported at their line and column, all 
     Pool pool(hostMemoryResource());
 
     const auto model =
-      Language::parse<T>("ebg 0\ns = sphere((0, 0, 0), 1)\nobject sphere((3, 0, 0), 1)\n", "test.ebg", pool);
+      Language::parse<T>("ebg 1\ns = sphere((0, 0, 0), 1)\nobject sphere((3, 0, 0), 1)\n", "test.ebg", pool);
 
     CHECK(model.warnings().empty());
     CHECK(model.index().getNumLeaves() == 1U);
@@ -1633,7 +1633,7 @@ TEMPLATE_TEST_CASE("Language: errors are reported at their line and column, all 
 
   try {
     (void)Language::parse<T>(
-      "ebg 0\na = sphre((0, 0, 0), 1)\nb = box((0, 0, 0))\nobject sphere((0, 0, 0), c)\n", "test.ebg", pool);
+      "ebg 1\na = sphre((0, 0, 0), 1)\nb = box((0, 0, 0))\nobject sphere((0, 0, 0), c)\n", "test.ebg", pool);
 
     FAIL("the model has errors");
   } catch (const Language::Error& e) {
@@ -1654,7 +1654,7 @@ TEMPLATE_TEST_CASE("Language: the printer writes the canonical form, which reads
 
   Pool pool(hostMemoryResource());
 
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 
 # A comment of its own.
 param   r=0.5      # after code
@@ -1678,7 +1678,7 @@ object overlay {
 
   const std::string printed = Language::print(model);
 
-  const std::string expected = R"(ebg 0
+  const std::string expected = R"(ebg 1
 
 # A comment of its own.
 param r = 0.5  # after code
@@ -1863,15 +1863,15 @@ TEST_CASE("Language: mangled models read or report errors, never crash or abort"
 
   // Deep nesting, long lines, and texts that are almost nothing.
   for (const std::string& text :
-       {std::string("ebg 0\nx = ") + std::string(100000, '(') + "1",
-        std::string("ebg 0\nx = ") + std::string(100000, '-') + "1\nobject sphere((0, 0, 0), x)\n",
-        std::string("ebg 0\nobject ") + std::string(20000, 'a'),
+       {std::string("ebg 1\nx = ") + std::string(100000, '(') + "1",
+        std::string("ebg 1\nx = ") + std::string(100000, '-') + "1\nobject sphere((0, 0, 0), x)\n",
+        std::string("ebg 1\nobject ") + std::string(20000, 'a'),
         std::string("ebg"),
         std::string(""),
         std::string("\n\n\n"),
-        std::string("ebg 0\n\""),
-        std::string("ebg 0\nobject overlay {"),
-        std::string("ebg 0\ndomain d {\n  group g = label(\"x\"")}) {
+        std::string("ebg 1\n\""),
+        std::string("ebg 1\nobject overlay {"),
+        std::string("ebg 1\ndomain d {\n  group g = label(\"x\"")}) {
     Pool pool(hostMemoryResource());
 
     CHECK_THROWS_AS(Language::parse<T>(text, "deep.ebg", pool), Language::Error);
@@ -1962,7 +1962,7 @@ TEMPLATE_TEST_CASE("Language: numbers are read with a decimal point under a deci
 
   Pool pool(hostMemoryResource());
 
-  const auto    model = Language::parse<T>("ebg 0\nobject sphere((0, 0, 0), 0.5)\n", "test.ebg", pool);
+  const auto    model = Language::parse<T>("ebg 1\nobject sphere((0, 0, 0), 0.5)\n", "test.ebg", pool);
   const Tape<T> tape(pool, model.object());
 
   // The sphere has radius 0.5, not 0 as the number would read in the program's locale.
@@ -1979,7 +1979,7 @@ TEMPLATE_TEST_CASE("Language: overlay(weld = ...) sets the interface tolerance, 
   Pool pool(hostMemoryResource());
 
   // Two blocks a gap of 1e-4 apart (welded at 1e-3) and a third far away, in a domain of the first only.
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 param gap = 1e-4
 object overlay(weld = 10 * gap) {
   region left  = box((0, 0, 0), (1, 1, 1)) material steel
@@ -2031,14 +2031,112 @@ domain heat {
              withinAbsT<T>(whole.getInterfaceTolerance(), 1e-9));
 
   // What is refused.
-  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(gap = 1) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nobject overlay(gap = 1) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
              Catch::Matchers::ContainsSubstring("no setting 'gap'"));
-  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(1e-6) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nobject overlay(1e-6) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
              Catch::Matchers::ContainsSubstring("settings are named"));
-  CHECK_THAT(firstError<T>("ebg 0\nobject overlay(weld = -1) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
+  CHECK_THAT(firstError<T>("ebg 1\nobject overlay(weld = -1) {\n  region a = sphere((0, 0, 0), 1)\n}\n").m_message,
              Catch::Matchers::ContainsSubstring("at least 0"));
-  CHECK_THAT(firstError<T>("ebg 0\ninner = overlay(weld = 1e-6) {\n  region a = sphere((0, 0, 0), 1)\n}\nobject "
+  CHECK_THAT(firstError<T>("ebg 1\ninner = overlay(weld = 1e-6) {\n  region a = sphere((0, 0, 0), 1)\n}\nobject "
                            "overlay(weld = 1e-6) {\n  region b = inner\n}\n")
                .m_message,
              Catch::Matchers::ContainsSubstring("set once"));
+}
+
+TEMPLATE_TEST_CASE("Language: overlay(bvh = true) gives the regions of a plain overlay, and only where a BVH over "
+                   "its regions could search them",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T    = TestType;
+  using Vec3 = Vec3T<T>;
+
+  Pool pool(hostMemoryResource());
+
+  // Three overlapping blocks and a group of two spheres, the later region on top where they overlap.
+  const std::string text = R"(ebg 1
+pair = overlay {
+  region ball_a = sphere((0.5, 0.5, 2), 0.4)
+  region ball_b = sphere((1.5, 0.5, 2), 0.4)
+}
+object overlay(bvh = true) {
+  region air   = box((-1, -1, -1), (3, 2, 3))
+  region left  = box((0, 0, 0), (1.2, 1, 1))
+  region right = box((1, 0, 0), (2, 1, 1))
+  region balls = pair.translate((0, 0, 0.1))
+}
+)";
+
+  const auto model = Language::parse<T>(text, "test.ebg", pool);
+
+  const std::string plainText = std::string(text).replace(text.find("(bvh = true)"), 12, "");
+  const auto        plain     = Language::parse<T>(plainText, "test.ebg", pool);
+
+  const Tape<T> tape(pool, model.object());
+  const Tape<T> reference(pool, plain.object());
+
+  REQUIRE(tape.getNumRegions() == reference.getNumRegions());
+  REQUIRE(model.index().getNumRegions() == 6U);
+
+  for (uint32_t i = 1; i < model.index().getNumRegions(); i++) {
+    CHECK(model.index().getRegion(i).m_name == plain.index().getRegion(i).m_name);
+  }
+
+  for (const Vec3& p : {Vec3(T(0.5), T(0.5), T(0.5)),
+                        Vec3(T(1.1), T(0.5), T(0.5)),
+                        Vec3(T(1.5), T(0.5), T(0.5)),
+                        Vec3(T(0.5), T(0.5), T(2.1)),
+                        Vec3(T(2.5), T(1.5), T(2.5)),
+                        Vec3(T(9), T(9), T(9))}) {
+    CHECK(tape.region(p) == reference.region(p));
+    CHECK(tape.signedDistance(p) == reference.signedDistance(p));
+  }
+
+  // Printed, the setting stays as written.
+  CHECK_THAT(Language::print(model), Catch::Matchers::ContainsSubstring("object overlay(bvh = true) {\n"));
+
+  // Moved, and with bvh = false anything an overlay allows.
+  const std::string sphere = "  region a = sphere((0, 0, 0), 1)\n";
+
+  CHECK_NOTHROW(Language::parse<T>(
+    "ebg 1\nobject overlay(bvh = true, weld = 1e-6) {\n" + sphere + "}.translate((1, 0, 0))\n", "test.ebg", pool));
+  CHECK_NOTHROW(Language::parse<T>("ebg 1\nobject intersection(overlay(bvh = false) {\n" + sphere +
+                                     "}, box((0, 0, 0), (1, 1, 1)))\n",
+                                   "test.ebg",
+                                   pool));
+
+  // What is refused.
+  const std::string bvh = "overlay(bvh = true) {\n" + sphere + "}";
+
+  CHECK_THAT(firstError<T>("ebg 1\nobject overlay(bvh = 1) {\n" + sphere + "}\n").m_message,
+             Catch::Matchers::ContainsSubstring("bvh is true or false"));
+  CHECK_THAT(firstError<T>("ebg 1\nobject overlay(bvh = true, bvh = false) {\n" + sphere + "}\n").m_message,
+             Catch::Matchers::ContainsSubstring("bvh is set once"));
+  CHECK_THAT(firstError<T>("ebg 1\nobject intersection(" + bvh + ", box((0, 0, 0), (1, 1, 1)))\n").m_message,
+             Catch::Matchers::ContainsSubstring("cannot be an operand of intersection"));
+  CHECK_THAT(firstError<T>("ebg 1\nobject difference(" + bvh + ", box((0, 0, 0), (1, 1, 1)))\n").m_message,
+             Catch::Matchers::ContainsSubstring("cannot be an operand of difference"));
+  CHECK_THAT(firstError<T>("ebg 1\nobject " + bvh + ".translate((1, 0, 0)).label(\"a\")\n").m_message,
+             Catch::Matchers::ContainsSubstring("cannot be labeled"));
+  CHECK_THAT(firstError<T>("ebg 1\ninner = " + bvh + "\nobject overlay {\n  region b = inner\n}\n").m_message,
+             Catch::Matchers::ContainsSubstring("cannot be a region of another overlay"));
+  CHECK_THAT(firstError<T>("ebg 1\ninner = overlay {\n" + sphere +
+                           "}\nobject overlay(bvh = true) {\n  region b = intersection(inner, box((0, 0, 0), (1, 1, "
+                           "1))).translate((1, 0, 0))\n}\n")
+               .m_message,
+             Catch::Matchers::ContainsSubstring("can be moved, but not clipped or drilled"));
+}
+
+TEMPLATE_TEST_CASE("Language: a file of version 0 reads as version 1, and prints as version 1",
+                   "[Language]",
+                   EBGEOMETRY_TEST_PRECISIONS)
+{
+  using T = TestType;
+
+  Pool pool(hostMemoryResource());
+
+  const auto model = Language::parse<T>("ebg 0\nobject sphere((0, 0, 0), 1)\n", "test.ebg", pool);
+
+  CHECK(model.sources().front().m_version == 1U);
+  CHECK(Language::print(model).rfind("ebg 1\n", 0) == 0U);
 }

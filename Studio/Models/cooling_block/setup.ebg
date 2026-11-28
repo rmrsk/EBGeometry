@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # Both setups, coupled: the whole model (ebgstudio Models/cooling_block/setup.ebg). The files both include are read
 # once.

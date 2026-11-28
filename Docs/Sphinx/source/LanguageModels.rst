@@ -14,9 +14,12 @@ object and its regions, labels, and the files a model is spread over. Domains ha
 Files and statements
 --------------------
 
-Every file starts with its version, ``ebg 0``. The language is unstable, with no promise of compatibility,
-until it is frozen as version 1; from then on, a change that breaks a file raises the version, and a reader
-refuses a version it does not know.
+Every file starts with its version, ``ebg 1``. Version 1 is stable: a file that a reader of version 1 accepts
+means the same in every later release. Additions that give a meaning to text an older reader refuses (a new
+shape, a new setting) keep the version, so a file using one needs a release that has it; a change that would make
+an accepted file mean something else, or be refused, raises the version, and a reader refuses a version it does
+not know. A file whose first line is ``ebg 0`` (the name of the draft that version 1 froze) is read as version 1;
+``ebgstudio print`` writes it with ``ebg 1``.
 
 A file is a list of statements, one per line; a statement continues on the next line inside parentheses,
 after an operator or a comma, and when the next line starts with ``.`` (a method continued). ``#`` starts a
@@ -146,6 +149,22 @@ see :ref:`Chap:ImplemLanguage`); ebgstudio does.
    object overlay(weld = 1e-6) {
      region housing   = mesh("housing.stl") material aluminium
      region electrode = mesh("electrode.stl") material copper
+   }
+
+An overlay's regions are searched one by one, which is slow for an assembly of hundreds of parts.
+``overlay(bvh = true)`` asks for its regions to be searched through a BVH over their boxes instead, with the same
+regions and the same answers. The library does not search an overlay through a BVH yet, so such an overlay is
+evaluated region by region for now, and a model that asks for it becomes faster, unchanged, in a release that has
+it. A BVH needs the regions to be what their boxes hold, so an overlay through a BVH can be the object or be moved,
+but not clipped, drilled, labeled or placed in another overlay, and an overlay in it (a region group, or a list in a
+region line) can be moved but not clipped or drilled. Like a BVH union, it counts toward the nesting of
+sub-programs (see :ref:`Chap:LanguageReference`).
+
+.. code-block:: text
+
+   object overlay(bvh = true) {
+     region air    = box((-20, -20, -5), (20, 20, 10)) material air
+     region gantry = meshes("gantry/part*.stl") material steel
    }
 
 An overlay can be the object, be moved (``translate``, ``rotate``, ``scale``, ``reflect``), clipped or drilled

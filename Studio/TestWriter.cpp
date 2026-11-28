@@ -86,7 +86,7 @@ TEST_CASE("Writer: a clicked surface without a label is named, and the group is 
   // The label after the cylinder's call, the group at the end of the domain, the rest as written.
   CHECK_THAT(text(folder + "/model.ebg"),
              Catch::Matchers::ContainsSubstring("wire = cylinder((0, 0, -1), (0, 0, 1), 0.2).label(\"wire\")\n"));
-  CHECK(text(folder + "/setup.ebg") == R"(ebg 0
+  CHECK(text(folder + "/setup.ebg") == R"(ebg 1
 
 include("model.ebg")
 
@@ -144,7 +144,7 @@ TEST_CASE("Writer: a renamed group keeps its properties; an unchanged one is kep
   CHECK(writer.edited(names, model.domain("flow").setup()).empty());
 
   // The renamed group is written anew where it was, with its comment and properties; the other is kept as written.
-  CHECK(text(folder + "/setup.ebg") == R"(ebg 0
+  CHECK(text(folder + "/setup.ebg") == R"(ebg 1
 
 include("model.ebg")
 
@@ -320,7 +320,7 @@ TEST_CASE("Writer: what cannot be named where it is made is not written", "[Stud
   const std::string folder = copyOfWire("refused");
 
   // Two spheres sharing a label, a box used twice, and the wire as before.
-  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+  std::ofstream(folder + "/model.ebg") << R"(ebg 1
 
 ball = sphere((3, 0, 0), 0.5).label("wall")
 other = sphere((-3, 0, 0), 0.5).label("wall")
@@ -331,7 +331,7 @@ object overlay {
   region core = union(ball, other, block, block.translate((0, 2, 0)))
 }
 )";
-  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+  std::ofstream(folder + "/setup.ebg") << "ebg 1\n\ninclude(\"model.ebg\")\n";
 
   Pool pool(hostMemoryResource());
 
@@ -376,7 +376,7 @@ TEST_CASE("Writer: a group naming a region group is kept as written, renamed or 
   const std::string folder = copyOfWire("region-group");
 
   // A cable of two regions, and a group naming the interface of the whole cable with the air.
-  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+  std::ofstream(folder + "/model.ebg") << R"(ebg 1
 
 cable = overlay {
   region jacket = cylinder((0, 0, -1), (0, 0, 1), 0.5) material ptfe
@@ -388,7 +388,7 @@ object overlay {
   region cable = cable
 }
 )";
-  std::ofstream(folder + "/setup.ebg") << R"(ebg 0
+  std::ofstream(folder + "/setup.ebg") << R"(ebg 1
 
 include("model.ebg")
 
@@ -415,7 +415,7 @@ domain flow {
 
   CHECK(writer.edited(names, model.domain("flow").setup()).empty());
 
-  CHECK(text(folder + "/setup.ebg") == R"(ebg 0
+  CHECK(text(folder + "/setup.ebg") == R"(ebg 1
 
 include("model.ebg")
 
@@ -514,11 +514,11 @@ TEST_CASE("Writer: a mesh is picked by its face group, or whole without one, and
     fs::create_directories(to);
 
     std::ofstream(to / "part.obj") << a_mesh;
-    std::ofstream(to / "model.ebg") << "ebg 0\n\nair  = box((-2, -2, -2), (2, 2, 2))\npart = mesh(\"part.obj\")\n\n"
+    std::ofstream(to / "model.ebg") << "ebg 1\n\nair  = box((-2, -2, -2), (2, 2, 2))\npart = mesh(\"part.obj\")\n\n"
                                        "object overlay {\n  region gas   = air material air\n  region solid = part "
                                        "material steel\n}\n";
     std::ofstream(to / "setup.ebg")
-      << "ebg 0\n\ninclude(\"model.ebg\")\nmaterial air { density = 1.2 }\nmaterial steel { density = 7850 }\n\n"
+      << "ebg 1\n\ninclude(\"model.ebg\")\nmaterial air { density = 1.2 }\nmaterial steel { density = 7850 }\n\n"
          "domain flow {\n  subdomain fluid = gas\n  group far = remaining()\n}\n";
 
     return to.string();
@@ -600,7 +600,7 @@ TEST_CASE("Writer: a picked level is written by the value making it, or hoisted 
   const std::string folder = copyOfWire("levels");
 
   // Leaves: the two posts (the frame), then the bolts' two, then their copy's two.
-  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+  std::ofstream(folder + "/model.ebg") << R"(ebg 1
 
 frame = union(box((-2, -2, -2), (-1, 2, 2)), box((1, -2, -2), (2, 2, 2)))
 bolts = union(sphere((0, 0, 1), 0.2), sphere((0, 0, -1), 0.2))
@@ -610,7 +610,7 @@ object overlay {
   region core = union(frame, union(bolts, bolts.translate((0, 1, 0))))
 }
 )";
-  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+  std::ofstream(folder + "/setup.ebg") << "ebg 1\n\ninclude(\"model.ebg\")\n";
 
   Pool pool(hostMemoryResource());
 
@@ -654,7 +654,7 @@ object overlay {
   CHECK_THAT(pickLevel(3, 2, ""), Catch::Matchers::ContainsSubstring("is used 2 times"));
 
   // Both copies: a union written inside the core's, hoisted into a value of the name given (kept apart from frame).
-  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+  std::ofstream(folder + "/setup.ebg") << "ebg 1\n\ninclude(\"model.ebg\")\n";
 
   const auto fresh = Language::read<T>(folder + "/setup.ebg", pool);
 
@@ -675,7 +675,7 @@ object overlay {
     CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote"));
   }
 
-  CHECK(text(folder + "/model.ebg") == R"(ebg 0
+  CHECK(text(folder + "/model.ebg") == R"(ebg 1
 
 frame = union(box((-2, -2, -2), (-1, 2, 2)), box((1, -2, -2), (2, 2, 2)))
 bolts = union(sphere((0, 0, 1), 0.2), sphere((0, 0, -1), 0.2))
@@ -703,7 +703,7 @@ TEST_CASE("Writer: a level hoisted from a call written over several lines, named
   const std::string folder = copyOfWire("chain");
 
   // Leaves: the gas's box 0, the chain's two boxes 1 and 2, the spheres 3 and 4.
-  std::ofstream(folder + "/model.ebg") << R"(ebg 0
+  std::ofstream(folder + "/model.ebg") << R"(ebg 1
 
 object overlay {
   region gas  = box((-4, -4, -4), (4, 4, 4))
@@ -713,7 +713,7 @@ object overlay {
                       bvh_union(sphere((3, 0, 0), 0.2), sphere((-3, 0, 0), 0.2)))
 }
 )";
-  std::ofstream(folder + "/setup.ebg") << "ebg 0\n\ninclude(\"model.ebg\")\n";
+  std::ofstream(folder + "/setup.ebg") << "ebg 1\n\ninclude(\"model.ebg\")\n";
 
   Pool pool(hostMemoryResource());
 
@@ -738,7 +738,7 @@ object overlay {
     CHECK_THAT(writer.note(), Catch::Matchers::StartsWith("wrote"));
   }
 
-  CHECK(text(folder + "/model.ebg") == R"(ebg 0
+  CHECK(text(folder + "/model.ebg") == R"(ebg 1
 
 box_2 = union(box((0, 0, 0), (1, 1, 1)),   # the base
                             box((0, 0, 1), (1, 1, 2)))
@@ -770,7 +770,7 @@ TEST_CASE("Writer: faces picked on a mesh are written as a part into its parts f
   fs::create_directories(folder / "meshes");
   fs::copy_file(fs::path(EBGEOMETRY_TEST_DATA_DIR) / "cube_groups.obj", folder / "meshes" / "cube.obj");
 
-  std::ofstream(folder / "model.ebg") << "ebg 0\nobject mesh(\"meshes/cube.obj\")\n";
+  std::ofstream(folder / "model.ebg") << "ebg 1\nobject mesh(\"meshes/cube.obj\")\n";
 
   Pool pool(hostMemoryResource());
 
@@ -785,7 +785,7 @@ TEST_CASE("Writer: faces picked on a mesh are written as a part into its parts f
 
     CHECK(writer.faceParts(0, {2, 5}, "inlet").empty());
     CHECK(text((folder / "model.ebg").string()) ==
-          "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+          "ebg 1\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
     CHECK_THAT(text((folder / "meshes" / "cube.parts").string()), Catch::Matchers::EndsWith("\ninlet 2 5\n"));
 
     // A name the language cannot read is refused, and nothing is written.
@@ -804,7 +804,7 @@ TEST_CASE("Writer: faces picked on a mesh are written as a part into its parts f
 
     CHECK(writer.faceParts(0, {5}, "outlet").empty());
     CHECK(text((folder / "model.ebg").string()) ==
-          "ebg 0\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
+          "ebg 1\nobject mesh(\"meshes/cube.obj\", parts = \"meshes/cube.parts\")\n");
 
     const std::string parts = text((folder / "meshes" / "cube.parts").string());
 
@@ -824,7 +824,7 @@ TEST_CASE("Writer: faces picked on a mesh are written as a part into its parts f
   }
 
   // A shape that is no mesh: nothing written.
-  std::ofstream(folder / "ball.ebg") << "ebg 0\nobject sphere((0, 0, 0), 1)\n";
+  std::ofstream(folder / "ball.ebg") << "ebg 1\nobject sphere((0, 0, 0), 1)\n";
 
   const auto ball = Language::read<T>((folder / "ball.ebg").string(), pool);
 

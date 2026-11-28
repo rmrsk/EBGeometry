@@ -858,7 +858,7 @@ private:
 
       const uint32_t end = text.has_value() ? static_cast<uint32_t>(text->size()) : 0U;
 
-      edits.push_back(Edit{target, end, end, text.has_value() ? block : "ebg 0\n" + block});
+      edits.push_back(Edit{target, end, end, text.has_value() ? block : "ebg 1\n" + block});
 
       return edits;
     }

@@ -499,9 +499,10 @@ struct File
   std::string m_text;
 
   /**
-   * @brief The version on its first line.
+   * @brief The language version the file is written in: 1. A file whose first line is 'ebg 0', the name of the
+   * draft that version 1 froze, is read as version 1.
    */
-  uint32_t m_version = 0;
+  uint32_t m_version = 1;
 
   /**
    * @brief The statements, in order.

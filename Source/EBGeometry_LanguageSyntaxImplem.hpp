@@ -285,7 +285,7 @@ public:
     skipNewlines();
 
     if (!isName("ebg")) {
-      a_errors.push_back(error(peek().m_span, "a file starts with its version line, 'ebg 0'"));
+      a_errors.push_back(error(peek().m_span, "a file starts with its version line, 'ebg 1'"));
 
       return;
     }
@@ -293,29 +293,31 @@ public:
     next();
 
     if (peek().m_token != Token::Number || peek().m_text.find_first_not_of("0123456789") != std::string::npos) {
-      a_errors.push_back(error(peek().m_span, "the version is a whole number: 'ebg 0'"));
+      a_errors.push_back(error(peek().m_span, "the version is a whole number: 'ebg 1'"));
 
       return;
     }
 
     if (peek().m_text.size() > 6) {
-      a_errors.push_back(error(peek().m_span, "version " + peek().m_text + " is unknown; this reader knows version 0"));
+      a_errors.push_back(error(peek().m_span, "version " + peek().m_text + " is unknown; this reader knows version 1"));
 
       return;
     }
 
-    a_file.m_version = static_cast<uint32_t>(next().m_number);
+    const uint32_t version = static_cast<uint32_t>(next().m_number);
 
-    if (a_file.m_version != 0) {
-      a_errors.push_back(
-        error(m_tokens[m_at - 1].m_span,
-              "version " + std::to_string(a_file.m_version) + " is unknown; this reader knows version 0"));
+    // Version 0 names the same language as version 1 (the draft that version 1 froze), so it reads as 1.
+    if (version > 1) {
+      a_errors.push_back(error(m_tokens[m_at - 1].m_span,
+                               "version " + std::to_string(version) + " is unknown; this reader knows version 1"));
 
       return;
     }
+
+    a_file.m_version = 1;
 
     if (peek().m_token != Token::Newline && peek().m_token != Token::End) {
-      a_errors.push_back(error(peek().m_span, "the version line holds the version only: 'ebg 0'"));
+      a_errors.push_back(error(peek().m_span, "the version line holds the version only: 'ebg 1'"));
 
       return;
     }
