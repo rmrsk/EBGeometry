@@ -739,7 +739,10 @@ with explicit permission), and may ask whether to act on follow-ups.
   when listed, `Tape<T, TapeFeature::ExactOffsets, MyShape>`. The rules (the `TapeFeature` comment in
   `EBGeometry_Tape.hpp`):
   without the feature the compiler emits what it did before (the general path, e.g. a `Marched` clause), so
-  the object is the same; every place the evaluator reaches the feature's code is inside `if constexpr
+  the object is the same; a feature may change which region a point near an interface belongs to
+  (`TapeFeature::Weld` gives a gap thinner than the interface tolerance to one of the two regions), never the
+  object's value or solid (`signedDistance()` is the same with or without it); every place the evaluator
+  reaches the feature's code is inside `if constexpr
   (hasFeature<F>)`, never only a run-time flag test; a plain `Tape<T>` must compile exactly the base's code
   (ptxas registers/stack of the float tape kernels including `firstHit`, host `nm -C -S`, no change in the
   receipt's tape cases); tests and probes use a tape that lists it, plus one test of a tape without it. A
