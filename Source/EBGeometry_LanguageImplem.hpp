@@ -2606,6 +2606,7 @@ private:
 
     return value;
   }
+
   /**
    * @brief A shape value with its overlay flags set.
    * @param[in] a_value     The value.
