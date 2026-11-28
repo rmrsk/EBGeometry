@@ -343,7 +343,7 @@ struct Shape
 
   /**
    * @brief Whether it holds regions and was clipped or drilled (the first operand of intersection or difference),
-   * maybe moved or labeled since.
+   * maybe moved or labeled since, or holds such an overlay at any depth.
    */
   bool m_clipped = false;
 
@@ -2611,7 +2611,7 @@ private:
    * @brief A shape value with its overlay flags set.
    * @param[in] a_value     The value.
    * @param[in] a_regionBVH Whether it is an overlay through a BVH, maybe moved.
-   * @param[in] a_clipped   Whether it holds regions and was clipped or drilled.
+   * @param[in] a_clipped   Whether it holds regions and was clipped or drilled, or holds such an overlay.
    * @return The value, with a copy of its shape.
    */
   static V
@@ -3994,6 +3994,9 @@ private:
     bool                bvh = false;
     std::optional<Span> bvhSpan;
 
+    // Whether a region is a clipped overlay or holds one: an overlay through a BVH around this one refuses it.
+    bool clipped = false;
+
     for (size_t i = 0; i < a_node.m_options.size(); i++) {
       const Node&        option = a_node.m_options[i];
       const std::string& key    = a_node.m_keys[i];
@@ -4016,6 +4019,7 @@ private:
         bvhSpan = option.m_span;
         bvh     = value.m_number != 0.0;
 
+        // The rest of the loop reads weld.
         continue;
       }
 
@@ -4048,16 +4052,18 @@ private:
       if (value.m_shape->m_regionBVH) {
         throw Error(value.m_span,
                     "region '" + region.m_text +
-                      "': an overlay through a BVH (overlay(bvh = true)) cannot be a region of another overlay: " +
-                      LanguageDetail::regionBVHUses);
+                      "': an overlay through a BVH (overlay(bvh = true)) cannot be a region of another overlay; it "
+                      "can be the object or be moved");
       }
 
       if (bvh && value.m_shape->m_clipped) {
         throw Error(value.m_span,
                     "region '" + region.m_text +
                       "': in an overlay through a BVH (overlay(bvh = true)), an overlay can be moved, but not clipped "
-                      "or drilled");
+                      "or drilled, nor hold one that is");
       }
+
+      clipped = clipped || value.m_shape->m_clipped;
 
       for (const auto& other : names) {
         if (other.first == region.m_text) {
@@ -4113,7 +4119,7 @@ private:
     }
 
     // Through a BVH, the overlay counts as a sub-program of the tape, as a BVH union does.
-    return flagged(deepened(std::move(value), regions, bvh, a_node.m_span), bvh, false);
+    return flagged(deepened(std::move(value), regions, bvh, a_node.m_span), bvh, clipped);
   }
 
   /**

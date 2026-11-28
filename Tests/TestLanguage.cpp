@@ -2125,6 +2125,12 @@ object overlay(bvh = true) {
                            "1))).translate((1, 0, 0))\n}\n")
                .m_message,
              Catch::Matchers::ContainsSubstring("can be moved, but not clipped or drilled"));
+  // A clipped overlay deeper down, in a plain overlay in it.
+  CHECK_THAT(firstError<T>("ebg 1\ninner = overlay {\n" + sphere +
+                           "}\nmiddle = overlay {\n  region c = difference(inner, box((0, 0, 0), (1, 1, 1)))\n}\n"
+                           "object overlay(bvh = true) {\n  region b = middle\n}\n")
+               .m_message,
+             Catch::Matchers::ContainsSubstring("nor hold one that is"));
 }
 
 TEMPLATE_TEST_CASE("Language: a file of version 0 reads as version 1, and prints as version 1",

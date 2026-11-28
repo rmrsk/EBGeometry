@@ -157,7 +157,7 @@ regions and the same answers. The library does not search an overlay through a B
 evaluated region by region for now, and a model that asks for it becomes faster, unchanged, in a release that has
 it. A BVH needs the regions to be what their boxes hold, so an overlay through a BVH can be the object or be moved,
 but not clipped, drilled, labeled or placed in another overlay, and an overlay in it (a region group, or a list in a
-region line) can be moved but not clipped or drilled. Like a BVH union, it counts toward the nesting of
+region line) can be moved but not clipped or drilled, nor hold one that is, at any depth. Like a BVH union, it counts toward the nesting of
 sub-programs (see :ref:`Chap:LanguageReference`).
 
 .. code-block:: text
