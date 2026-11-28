@@ -12,6 +12,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestFusedHelpers.hpp"
 #include "TestTapeUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>

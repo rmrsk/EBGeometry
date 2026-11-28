@@ -9,6 +9,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestTapeUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstdint>
 #include <string>
@@ -21,12 +22,6 @@ using namespace EBGeometry;
 using EBGeometry::TestUtils::labeledRow;
 
 namespace {
-
-std::string
-dodecahedron()
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
-}
 
 // Device functor: the deciding leaf at a point, and the leaf's own value at its local point.
 template <class T, class TapeType>

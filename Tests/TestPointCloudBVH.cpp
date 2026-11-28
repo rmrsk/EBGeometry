@@ -11,6 +11,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestPointCloudQueries.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -448,23 +449,11 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a rebased view answers queries on device and 
 
 namespace {
 
-// Memory a build through GPU::parallelFor() writes and the host reads: managed memory in a CUDA or HIP build,
-// where the build's steps run as kernels, and emulated device memory otherwise, where they run as host loops.
-MemoryResource&
-parallelBuildResource() noexcept
-{
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  return managedMemoryResource();
-#else
-  return emulatedDeviceMemoryResource();
-#endif
-}
-
 // Two BVHs are the same tree, array for array: every node (its children, primitive range, row and box slot) and its
 // box, every group's lanes, and every point's position, leaf tables and place in the leaf order.
 template <class Cloud>
 void
-requireSameTree(const Cloud& a_cloud, const Cloud& a_reference)
+requireSamePointTree(const Cloud& a_cloud, const Cloud& a_reference)
 {
   const auto bvh = a_cloud.getBVH();
   const auto ref = a_reference.getBVH();
@@ -597,7 +586,7 @@ checkSameTree(const std::vector<Vec3T<T>>& a_pos, const std::size_t a_leafSize)
   const Cloud cloud     = Cloud::build(pool, a_pos, a_leafSize);
 
   checkBuild(reference, a_pos);
-  requireSameTree(cloud, reference);
+  requireSamePointTree(cloud, reference);
 }
 
 // Positions kept apart, x, y and z in arrays of their own, in double precision whatever the cloud's.
@@ -725,7 +714,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH::build reads positions through a source, in an
   const PointCloudBVH<T> onHost =
     PointCloudBVH<T>::build(hostPool, FromSoA<T>{x.data(), y.data(), z.data()}, uint32_t(pos.size()));
 
-  requireSameTree(onHost, reference);
+  requireSamePointTree(onHost, reference);
 
   // Through GPU::parallelFor(), the source is read where the launches run, so its arrays must be there too: in a
   // pool of their own, since the BVH's reservations can move its own pool's block.
@@ -750,13 +739,13 @@ TEMPLATE_TEST_CASE("PointCloudBVH::build reads positions through a source, in an
 
   const PointCloudBVH<T> parallel = PointCloudBVH<T>::build(pool, source, uint32_t(pos.size()));
 
-  requireSameTree(parallel, reference);
+  requireSamePointTree(parallel, reference);
 
   // FromArray reads an array of Vec3T as it is.
   const PointCloudBVH<T> fromArray =
     PointCloudBVH<T>::build(hostPool, PointCloud::FromArray<T>{pos.data()}, uint32_t(pos.size()));
 
-  requireSameTree(fromArray, reference);
+  requireSamePointTree(fromArray, reference);
 }
 
 TEMPLATE_TEST_CASE("PointCloudBVH::rebuild builds the tree of new positions in place, on a frozen pool",
@@ -831,7 +820,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH::rebuild builds the tree of new positions in p
       Pool                   freshPool(hostMemoryResource());
       const PointCloudBVH<T> fresh(freshPool, points);
 
-      requireSameTree(cloud, fresh);
+      requireSamePointTree(cloud, fresh);
       CHECK(pool.usedBytes() == used);
     }
   }
@@ -887,7 +876,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH::build in device memory answers on device like
   const Pool         onHost   = Pool::mirror(pool, hostMemoryResource());
   const TestCloud<T> hostView = cloud.rebasedView(onHost);
 
-  requireSameTree(hostView, reference);
+  requireSamePointTree(hostView, reference);
 }
 
 TEST_CASE("PointCloudBVH and PointCloudHashGrid reject a cloud they cannot index", "[PointCloudBVH][death]")
@@ -1067,7 +1056,7 @@ TEMPLATE_TEST_CASE("PointCloudBVH: a cloud made against its Morton cuts is shall
   // Built through GPU::parallelFor(), it is the same tree.
   Pool parallelPool(parallelBuildResource());
 
-  requireSameTree(PointCloudBVH<T, 2, 4>::build(parallelPool, pos, 2), cloud);
+  requireSamePointTree(PointCloudBVH<T, 2, 4>::build(parallelPool, pos, 2), cloud);
 
   // Between the groups, and at a few of them.
   for (size_t c = 0; c < cells.size(); c += 5) {

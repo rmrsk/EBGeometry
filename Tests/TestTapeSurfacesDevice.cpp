@@ -60,7 +60,7 @@ TEMPLATE_TEST_CASE("Tape: closestSurface on a device matches the host", "[Tape][
 
   const Pool device = Pool::mirror(pool, deviceTestResource());
 
-  const auto points = queryPoints<T>(400);
+  const auto points = spreadPoints<T>(400);
 
   const auto onDevice = evaluateOnDevice<uint32_t>(SurfaceQuery<T, Tape<T, Ball>>{tape.rebasedView(device)}, points);
   const auto onHost   = evaluateOnHost<uint32_t>(SurfaceQuery<T, Tape<T, Ball>>{tape}, points);

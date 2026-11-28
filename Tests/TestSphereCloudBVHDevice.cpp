@@ -10,6 +10,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
 #include "TestSphereCloudBVHHelpers.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -142,7 +143,7 @@ TEMPLATE_TEST_CASE("SphereCloudBVH: a rebuild from moved spheres is the tree a n
     Pool                    freshPool(hostMemoryResource());
     const SphereCloudBVH<T> fresh(freshPool, moved, 16);
 
-    requireSameTree(cloud, fresh);
+    requireSameSphereTree(cloud, fresh);
     CHECK(pool.usedBytes() == used);
   }
 }
@@ -226,7 +227,7 @@ TEMPLATE_TEST_CASE("SphereCloudBVH::build in device memory gives the host's tree
   const Pool              onHost   = Pool::mirror(pool, hostMemoryResource());
   const SphereCloudBVH<T> hostView = cloud.rebasedView(onHost);
 
-  requireSameTree(hostView, reference);
+  requireSameSphereTree(hostView, reference);
 }
 
 TEMPLATE_TEST_CASE("SphereCloudBVH: rays on device match the host",

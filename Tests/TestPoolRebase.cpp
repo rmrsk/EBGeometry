@@ -9,6 +9,7 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -193,15 +194,9 @@ public:
 template <class T>
 using TestSDF = MeshSDF<T, 4>;
 
-std::string
-dodecahedron()
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
-}
-
 template <class T>
 std::vector<Vec3T<T>>
-probes()
+rebaseProbes()
 {
   return {Vec3T<T>(T(0), T(0), T(0)), Vec3T<T>(T(2), T(0.5), T(-0.25)), Vec3T<T>(T(-1.2), T(1.1), T(0.9))};
 }
@@ -230,7 +225,7 @@ TEMPLATE_TEST_CASE("PoolLocation: a view onto a managed mirror answers queries o
   REQUIRE(view.getRoot().location().m_control == nullptr);
   REQUIRE(view.getRoot().location().m_hostAccessible);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : rebaseProbes<T>()) {
     REQUIRE(view.signedDistance(p) == sdf.signedDistance(p));
   }
 }
@@ -254,7 +249,7 @@ TEMPLATE_TEST_CASE("PoolLocation: an object built directly in managed memory can
 
   REQUIRE(view.getRoot().location().m_control == nullptr);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : rebaseProbes<T>()) {
     REQUIRE(view.signedDistance(p) == sdf.signedDistance(p));
   }
 }
@@ -344,7 +339,7 @@ TEMPLATE_TEST_CASE("PoolHandle: a handle rebuilt from its layout and location an
   const TriMeshSDF<T, 4, 4> triAgain(tri.layout(), tri.location());
   const FlatMeshSDF<T>      flatAgain(flat.layout(), flat.location());
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : rebaseProbes<T>()) {
     REQUIRE(sdfAgain.signedDistance(p) == sdf.signedDistance(p));
     REQUIRE(triAgain.signedDistance(p) == tri.signedDistance(p));
     REQUIRE(flatAgain.signedDistance(p) == flat.signedDistance(p));
@@ -359,7 +354,7 @@ TEMPLATE_TEST_CASE("PoolHandle: a handle rebuilt from its layout and location an
   const PoolLocation  where  = sdf.rebasedView(mirror).location();
   const TestSDF<T>    onMirror(sdf.layout(), where);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : rebaseProbes<T>()) {
     REQUIRE(onMirror.signedDistance(p) == sdf.signedDistance(p));
   }
 }
@@ -389,7 +384,7 @@ TEMPLATE_TEST_CASE("PoolLocation: a view rebased onto a staging mirror can be re
   REQUIRE(stagingView.getRoot().location().isAttachedTo(staging));
   REQUIRE(finalView.getRoot().location().m_control == nullptr);
 
-  for (const auto& p : probes<T>()) {
+  for (const auto& p : rebaseProbes<T>()) {
     REQUIRE(stagingView.signedDistance(p) == sdf.signedDistance(p));
     REQUIRE(finalView.signedDistance(p) == sdf.signedDistance(p));
   }
@@ -509,7 +504,7 @@ TEMPLATE_TEST_CASE("Pool::forImage: structures rebuilt from a copy of a pool's i
     triLayout  = tri.layout();
     tapeLayout = tape.layout();
 
-    for (const auto& p : probes<T>()) {
+    for (const auto& p : rebaseProbes<T>()) {
       triValues.push_back(tri.signedDistance(p));
       tapeValues.push_back(tape.signedDistance(p));
     }
@@ -528,7 +523,7 @@ TEMPLATE_TEST_CASE("Pool::forImage: structures rebuilt from a copy of a pool's i
 
   REQUIRE(tri.isAttachedTo(copy));
 
-  const auto points = probes<T>();
+  const auto points = rebaseProbes<T>();
 
   for (size_t i = 0; i < points.size(); i++) {
     REQUIRE(tri.signedDistance(points[i]) == triValues[i]);

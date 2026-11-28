@@ -16,12 +16,6 @@ namespace EBGeometryTestFused {
 
 using namespace EBGeometry;
 
-inline std::string
-dodecahedron()
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/dodecahedron.stl";
-}
-
 // Query points spread over a few units around the origin, none on a symmetry plane.
 template <class T>
 std::vector<Vec3T<T>>

@@ -13,6 +13,7 @@
 #include "TestFloatingPointUtils.hpp"
 #include "TestFusedHelpers.hpp"
 #include "TestPointCloudQueries.hpp"
+#include "TestUtilities.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -78,7 +79,7 @@ TEMPLATE_TEST_CASE("Threads: queries on a shared tape holding a mesh equal the s
 
   Pool pool(hostMemoryResource());
 
-  const auto                mesh = Parser::readIntoDCEL<T>(EBGeometryTestFused::dodecahedron(), pool);
+  const auto                mesh = Parser::readIntoDCEL<T>(dodecahedron(), pool);
   const TriMeshSDF<T, K, W> triMesh(mesh, pool, BVH::Construction::SAH, 4);
   const SphereSDF<T>        sphere(Vec3(T(0.8), T(0.2), T(-0.1)), T(0.5));
   const BoxSDF<T>           box(Vec3(T(-0.3), T(-0.3), T(-0.3)), Vec3(T(0.3), T(0.3), T(0.3)));
@@ -185,7 +186,7 @@ TEMPLATE_TEST_CASE("Threads: tapes and mesh SDFs built into one pool per thread 
   constexpr size_t W = TriangleSoA::DefaultWidth<T>();
 
   // Shared, read-only sources: a polygon soup and an expression of analytic shapes.
-  const PolygonSoup<T> soup = Parser::readIntoPolygonSoup<T>(EBGeometryTestFused::dodecahedron());
+  const PolygonSoup<T> soup = Parser::readIntoPolygonSoup<T>(dodecahedron());
   const SphereSDF<T>   sphere(Vec3(T(0.8), T(0.2), T(-0.1)), T(0.5));
   const BoxSDF<T>      box(Vec3(T(-0.3), T(-0.3), T(-0.3)), Vec3(T(0.3), T(0.3), T(0.3)));
   const Expr<T>        expression = SmoothUnion(sphere, box, T(0.1));

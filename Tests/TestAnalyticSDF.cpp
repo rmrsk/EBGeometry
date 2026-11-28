@@ -6,6 +6,7 @@
 #include "TestExactSDF.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestGPU.hpp"
+#include "TestUtilities.hpp"
 
 #include <cmath>
 #include <cstring>
@@ -345,22 +346,6 @@ TEMPLATE_TEST_CASE("InfiniteConeSDF and ConeSDF: open along -y from the tip", "[
 }
 
 namespace {
-
-// Random points in the cube [-a_extent, a_extent]^3, for comparing two shapes that should agree.
-template <class T>
-std::vector<Vec3T<T>>
-randomPoints(const T a_extent, const int a_count)
-{
-  std::mt19937                      rng(2468);
-  std::uniform_real_distribution<T> coord(-a_extent, a_extent);
-  std::vector<Vec3T<T>>             points;
-
-  for (int i = 0; i < a_count; i++) {
-    points.emplace_back(coord(rng), coord(rng), coord(rng));
-  }
-
-  return points;
-}
 
 // Requires two shapes to give the same signed distance at random points.
 template <class T, class A, class B>
@@ -1109,196 +1094,52 @@ TEST_CASE("Analytic shapes: invalid constructor arguments abort with a message",
   using T    = double;
   using Vec3 = Vec3T<T>;
 
-  REQUIRE(abortsWith(
-    [] {
-      const PlaneSDF<T> plane(Vec3(0, 0, 0), Vec3(0, 0, 0));
-
-      (void)plane;
-    },
-    "PlaneSDF: the normal must be nonzero (0, 0, 0)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const SphereSDF<T> sphere(Vec3(0, 0, 0), T(-1));
-
-      (void)sphere;
-    },
-    "SphereSDF: the radius must be finite and positive (-1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const BoxSDF<T> box(Vec3(0, 0, 0), Vec3(1, -1, 1));
-
-      (void)box;
-    },
-    "BoxSDF: the low corner (0, 0, 0) must be below the high corner (1, -1, 1) in every direction"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const TorusSDF<T> torus(Vec3(0, 0, 0), T(1), T(2));
-
-      (void)torus;
-    },
-    "TorusSDF: the minor radius (2) must be less than the major radius (1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CylinderSDF<T> cylinder(Vec3(1, 2, 3), Vec3(1, 2, 3), T(1));
-
-      (void)cylinder;
-    },
-    "CylinderSDF: the two centers must differ, but both are (1, 2, 3)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const InfiniteCylinderSDF<T> cylinder(Vec3(0, 0, 0), T(1), 3);
-
-      (void)cylinder;
-    },
-    "InfiniteCylinderSDF: the axis must be 0, 1 or 2 (3)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CapsuleSDF<T> capsule(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1));
-
-      (void)capsule;
-    },
-    "CapsuleSDF: the tips must be at least two radii apart (distance 1, radius 1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const InfiniteConeSDF<T> cone(Vec3(0, 0, 0), T(180));
-
-      (void)cone;
-    },
-    "InfiniteConeSDF: the angle must be in (0, 180) degrees (180)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const ConeSDF<T> cone(Vec3(0, 0, 0), T(0), T(30));
-
-      (void)cone;
-    },
-    "ConeSDF: the height must be finite and positive (0)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const RoundedBoxSDF<T> box(Vec3(0, 0, 0), Vec3(1, 0.2, 1), T(0.1));
-
-      (void)box;
-    },
-    "RoundedBoxSDF: the size (1, 0.2, 1) must be finite and exceed twice the curvature (0.1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const PerlinSDF<T> perlin(std::numeric_limits<T>::infinity(), Vec3::ones(), T(0.5), 1U);
-
-      (void)perlin;
-    },
-    "PerlinSDF: the noise amplitude must be finite (inf)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const RoundedCylinderSDF<T> cylinder(Vec3(0, 0, 0), T(1), T(0.5), T(1));
-
-      (void)cylinder;
-    },
-    "RoundedCylinderSDF: twice the curvature (0.5) must be less than the height (1)"));
-  REQUIRE(abortsWith(
-    [] {
-      const EllipsoidSDF<T> e(Vec3(0, 0, 0), Vec3(1, 0, 1));
-
-      (void)e;
-    },
-    "EllipsoidSDF: the radii must be finite and positive (1, 0, 1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CappedConeSDF<T> c(Vec3(0, 0, 0), Vec3(0, 1, 0), T(0), T(0));
-
-      (void)c;
-    },
-    "CappedConeSDF: the radii must be finite, at least 0 and not both 0 (0, 0)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CappedConeSDF<T> c(Vec3(1, 2, 3), Vec3(1, 2, 3), T(1), T(0));
-
-      (void)c;
-    },
-    "CappedConeSDF: the two centers must differ, but both are (1, 2, 3)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const RoundConeSDF<T> c(Vec3(0, 0, 0), Vec3(0, 1, 0), T(2), T(0.5));
-
-      (void)c;
-    },
-    "RoundConeSDF: the difference of the radii (2, 0.5) must be less than the distance between the centers (1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const PolygonPrismSDF<T> p(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), 2U, Vec3(1, 0, 0));
-
-      (void)p;
-    },
-    "PolygonPrismSDF: the number of sides must be at least 3 (2)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const PolygonPrismSDF<T> p(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), 6U, Vec3(0, 2, 0));
-
-      (void)p;
-    },
-    "PolygonPrismSDF: the vertex direction (0, 2, 0) must have a part across the axis"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const TubeSDF<T> t(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), T(0.5));
-
-      (void)t;
-    },
-    "TubeSDF: the radii must satisfy 0 < inner (1) < outer (0.5)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CappedTorusSDF<T> t(Vec3(0, 0, 0), T(1), T(0.5), T(400));
-
-      (void)t;
-    },
-    "CappedTorusSDF: the angle must be in (0, 360] degrees (400)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CappedTorusSDF<T> t(Vec3(0, 0, 0), T(1), T(1), T(90));
-
-      (void)t;
-    },
-    "CappedTorusSDF: the radii must satisfy 0 < minor (1) < major (1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CutSphereSDF<T> c(Vec3(0, 0, 0), T(1), T(1));
-
-      (void)c;
-    },
-    "CutSphereSDF: the height (1) must be between minus and plus the radius (1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const CutHollowSphereSDF<T> c(Vec3(0, 0, 0), T(1), T(0), T(2));
-
-      (void)c;
-    },
-    "CutHollowSphereSDF: the thickness (2) must be positive and less than twice the radius (1)"));
-
-  REQUIRE(abortsWith(
-    [] {
-      const WedgeSDF<T> w(Vec3(0, 0, 0), T(180));
-
-      (void)w;
-    },
-    "WedgeSDF: the angle must be in (0, 180) degrees (180)"));
+  requireAbortsWith({
+    {[] { (void)PlaneSDF<T>(Vec3(0, 0, 0), Vec3(0, 0, 0)); }, "PlaneSDF: the normal must be nonzero (0, 0, 0)"},
+    {[] { (void)SphereSDF<T>(Vec3(0, 0, 0), T(-1)); }, "SphereSDF: the radius must be finite and positive (-1)"},
+    {[] { (void)BoxSDF<T>(Vec3(0, 0, 0), Vec3(1, -1, 1)); },
+     "BoxSDF: the low corner (0, 0, 0) must be below the high corner (1, -1, 1) in every direction"},
+    {[] { (void)TorusSDF<T>(Vec3(0, 0, 0), T(1), T(2)); },
+     "TorusSDF: the minor radius (2) must be less than the major radius (1)"},
+    {[] { (void)CylinderSDF<T>(Vec3(1, 2, 3), Vec3(1, 2, 3), T(1)); },
+     "CylinderSDF: the two centers must differ, but both are (1, 2, 3)"},
+    {[] { (void)InfiniteCylinderSDF<T>(Vec3(0, 0, 0), T(1), 3); },
+     "InfiniteCylinderSDF: the axis must be 0, 1 or 2 (3)"},
+    {[] { (void)CapsuleSDF<T>(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1)); },
+     "CapsuleSDF: the tips must be at least two radii apart (distance 1, radius 1)"},
+    {[] { (void)InfiniteConeSDF<T>(Vec3(0, 0, 0), T(180)); },
+     "InfiniteConeSDF: the angle must be in (0, 180) degrees (180)"},
+    {[] { (void)ConeSDF<T>(Vec3(0, 0, 0), T(0), T(30)); }, "ConeSDF: the height must be finite and positive (0)"},
+    {[] { (void)RoundedBoxSDF<T>(Vec3(0, 0, 0), Vec3(1, 0.2, 1), T(0.1)); },
+     "RoundedBoxSDF: the size (1, 0.2, 1) must be finite and exceed twice the curvature (0.1)"},
+    {[] { (void)PerlinSDF<T>(std::numeric_limits<T>::infinity(), Vec3::ones(), T(0.5), 1U); },
+     "PerlinSDF: the noise amplitude must be finite (inf)"},
+    {[] { (void)RoundedCylinderSDF<T>(Vec3(0, 0, 0), T(1), T(0.5), T(1)); },
+     "RoundedCylinderSDF: twice the curvature (0.5) must be less than the height (1)"},
+    {[] { (void)EllipsoidSDF<T>(Vec3(0, 0, 0), Vec3(1, 0, 1)); },
+     "EllipsoidSDF: the radii must be finite and positive (1, 0, 1)"},
+    {[] { (void)CappedConeSDF<T>(Vec3(0, 0, 0), Vec3(0, 1, 0), T(0), T(0)); },
+     "CappedConeSDF: the radii must be finite, at least 0 and not both 0 (0, 0)"},
+    {[] { (void)CappedConeSDF<T>(Vec3(1, 2, 3), Vec3(1, 2, 3), T(1), T(0)); },
+     "CappedConeSDF: the two centers must differ, but both are (1, 2, 3)"},
+    {[] { (void)RoundConeSDF<T>(Vec3(0, 0, 0), Vec3(0, 1, 0), T(2), T(0.5)); },
+     "RoundConeSDF: the difference of the radii (2, 0.5) must be less than the distance between the centers (1)"},
+    {[] { (void)PolygonPrismSDF<T>(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), 2U, Vec3(1, 0, 0)); },
+     "PolygonPrismSDF: the number of sides must be at least 3 (2)"},
+    {[] { (void)PolygonPrismSDF<T>(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), 6U, Vec3(0, 2, 0)); },
+     "PolygonPrismSDF: the vertex direction (0, 2, 0) must have a part across the axis"},
+    {[] { (void)TubeSDF<T>(Vec3(0, 0, 0), Vec3(0, 1, 0), T(1), T(0.5)); },
+     "TubeSDF: the radii must satisfy 0 < inner (1) < outer (0.5)"},
+    {[] { (void)CappedTorusSDF<T>(Vec3(0, 0, 0), T(1), T(0.5), T(400)); },
+     "CappedTorusSDF: the angle must be in (0, 360] degrees (400)"},
+    {[] { (void)CappedTorusSDF<T>(Vec3(0, 0, 0), T(1), T(1), T(90)); },
+     "CappedTorusSDF: the radii must satisfy 0 < minor (1) < major (1)"},
+    {[] { (void)CutSphereSDF<T>(Vec3(0, 0, 0), T(1), T(1)); },
+     "CutSphereSDF: the height (1) must be between minus and plus the radius (1)"},
+    {[] { (void)CutHollowSphereSDF<T>(Vec3(0, 0, 0), T(1), T(0), T(2)); },
+     "CutHollowSphereSDF: the thickness (2) must be positive and less than twice the radius (1)"},
+    {[] { (void)WedgeSDF<T>(Vec3(0, 0, 0), T(180)); }, "WedgeSDF: the angle must be in (0, 180) degrees (180)"},
+  });
 }
 
 TEST_CASE("ThrowOnRequire: a failed check throws RequireError with its message inside a scope",
@@ -1372,60 +1213,6 @@ struct ShapeDistanceQuery
   }
 };
 
-} // namespace
-
-TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance matches the host",
-                   "[AnalyticSDF][gpu]",
-                   EBGEOMETRY_TEST_PRECISIONS)
-{
-  using T = TestType;
-
-  using namespace EBGeometryTestGPU;
-
-  if (!deviceAvailable()) {
-    SKIP("no GPU device available");
-  }
-
-  const AllShapes<T> shapes;
-
-  // The shapes are centered at (or anchored to) the origin and extend at most ~1.1 from it, so this grid
-  // covers points inside, outside and near every surface, including the thin (radius 0.1) tubes.
-  // PerlinSDF is a positive noise field with no surface, so it is simply sampled over the same box.
-  const auto points = queryGrid<T>(Vec3T<T>(T(-1.5), T(-1.5), T(-1.5)), Vec3T<T>(T(1.5), T(1.5), T(1.5)), 15);
-
-  const auto check = [&](const auto& a_shape, const char* a_name) {
-    using Shape = std::decay_t<decltype(a_shape)>;
-
-    INFO(a_name);
-    requireSameResults(evaluateOnDevice<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points),
-                       evaluateOnHost<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points));
-  };
-
-  check(shapes.plane, "PlaneSDF");
-  check(shapes.sphere, "SphereSDF");
-  check(shapes.box, "BoxSDF");
-  check(shapes.torus, "TorusSDF");
-  check(shapes.cylinder, "CylinderSDF");
-  check(shapes.infiniteCylinder, "InfiniteCylinderSDF");
-  check(shapes.capsule, "CapsuleSDF");
-  check(shapes.infiniteCone, "InfiniteConeSDF");
-  check(shapes.cone, "ConeSDF");
-  check(shapes.roundedBox, "RoundedBoxSDF");
-  check(shapes.perlin, "PerlinSDF");
-  check(shapes.roundedCylinder, "RoundedCylinderSDF");
-  check(shapes.ellipsoid, "EllipsoidSDF");
-  check(shapes.cappedCone, "CappedConeSDF");
-  check(shapes.roundCone, "RoundConeSDF");
-  check(shapes.polygonPrism, "PolygonPrismSDF");
-  check(shapes.tube, "TubeSDF");
-  check(shapes.cappedTorus, "CappedTorusSDF");
-  check(shapes.cutSphere, "CutSphereSDF");
-  check(shapes.cutHollowSphere, "CutHollowSphereSDF");
-  check(shapes.wedge, "WedgeSDF");
-}
-
-namespace {
-
 // One bounding-box coordinate per query: 0-2 are the low corner, 3-5 the high corner.
 template <class T, class Shape>
 struct ShapeBoxQuery
@@ -1444,7 +1231,7 @@ struct ShapeBoxQuery
 
 } // namespace
 
-TEMPLATE_TEST_CASE("Analytic shapes: device computeBoundingVolume matches the host",
+TEMPLATE_TEST_CASE("Analytic shapes: device signedDistance and computeBoundingVolume match the host",
                    "[AnalyticSDF][gpu]",
                    EBGEOMETRY_TEST_PRECISIONS)
 {
@@ -1456,13 +1243,21 @@ TEMPLATE_TEST_CASE("Analytic shapes: device computeBoundingVolume matches the ho
     SKIP("no GPU device available");
   }
 
-  const AllShapes<T>     shapes;
+  const AllShapes<T> shapes;
+
+  // The shapes are centered at (or anchored to) the origin and extend at most ~1.1 from it, so this grid
+  // covers points inside, outside and near every surface, including the thin (radius 0.1) tubes.
+  // PerlinSDF is a positive noise field with no surface, so it is simply sampled over the same box.
+  const auto points = queryGrid<T>(Vec3T<T>(T(-1.5), T(-1.5), T(-1.5)), Vec3T<T>(T(1.5), T(1.5), T(1.5)), 15);
+
   const std::vector<int> coordinates{0, 1, 2, 3, 4, 5};
 
   const auto check = [&](const auto& a_shape, const char* a_name) {
     using Shape = std::decay_t<decltype(a_shape)>;
 
     INFO(a_name);
+    requireSameResults(evaluateOnDevice<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points),
+                       evaluateOnHost<T>(ShapeDistanceQuery<T, Shape>{a_shape}, points));
     requireSameResults(evaluateOnDevice<T>(ShapeBoxQuery<T, Shape>{a_shape}, coordinates),
                        evaluateOnHost<T>(ShapeBoxQuery<T, Shape>{a_shape}, coordinates));
   };

@@ -128,9 +128,10 @@ Viewer-SDL2
 ~~~~~~~~~~~
 
 Installs SDL2 and configures the ``debug`` preset with ``-DEBGEOMETRY_VIEWER=SDL2`` and ``-Werror``, the
-only lane that compiles the viewer window (:ref:`Sec:ConfigViewer`). It builds and runs ``TestRender``,
-builds every example that calls ``Render::view()`` and runs them without a display, where ``view()``
-returns at once, and builds them again with ``make VIEWER=SDL2``.
+only lane that compiles the viewer window (:ref:`Sec:ConfigViewer`). It builds and runs the renderer's
+tests (``TestRender``, ``TestRenderShading`` and ``TestRenderDevice``), builds every example that calls
+``Render::view()`` and runs them without a display, where ``view()`` returns at once, and builds them again
+with ``make VIEWER=SDL2``.
 
 Performance-smoke
 ~~~~~~~~~~~~~~~~~

@@ -10,6 +10,7 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <cstdint>
 #include <string>
@@ -22,12 +23,6 @@
 using namespace EBGeometry;
 
 namespace {
-
-std::string
-dataFile(const std::string& a_name)
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_name;
-}
 
 // Check a shape's part at each point against the part expected there.
 template <class T, class S>
@@ -160,11 +155,11 @@ TEMPLATE_TEST_CASE("Parts: a mesh's part is the face a point is beside",
 
   Pool pool(hostMemoryResource());
 
-  const auto soup = Parser::readIntoPolygonSoup<T>(dataFile("cube_quads.obj"));
+  const auto soup = Parser::readIntoPolygonSoup<T>(dataPath("cube_quads.obj"));
 
-  const auto tri  = Parser::readIntoTriMeshSDF<T>(dataFile("cube_quads.obj"), pool);
-  const auto dcel = Parser::readIntoMeshSDF<T>(dataFile("cube_quads.obj"), pool);
-  const auto flat = Parser::readIntoFlatMeshSDF<T>(dataFile("cube_quads.obj"), pool);
+  const auto tri  = Parser::readIntoTriMeshSDF<T>(dataPath("cube_quads.obj"), pool);
+  const auto dcel = Parser::readIntoMeshSDF<T>(dataPath("cube_quads.obj"), pool);
+  const auto flat = Parser::readIntoFlatMeshSDF<T>(dataPath("cube_quads.obj"), pool);
 
   CHECK(tri.getNumParts() == 6U);
   CHECK(dcel.getNumParts() == 6U);
@@ -197,7 +192,7 @@ TEMPLATE_TEST_CASE("Parser: OBJ groups and STL solids are kept as face groups",
 {
   using T = TestType;
 
-  const auto cube = Parser::readOBJ<T>(dataFile("cube_groups.obj"));
+  const auto cube = Parser::readOBJ<T>(dataPath("cube_groups.obj"));
 
   const FaceGroups& groups = cube.getFaceGroups();
 
@@ -205,20 +200,20 @@ TEMPLATE_TEST_CASE("Parser: OBJ groups and STL solids are kept as face groups",
   REQUIRE(groups.m_group == std::vector<uint32_t>{0, 1, 2, 2, 2, FaceGroups::None});
 
   // Every solid of an STL file is read, each named one a group.
-  const auto tetrahedron = Parser::readSTL<T>(dataFile("tetrahedron_solids.stl"));
+  const auto tetrahedron = Parser::readSTL<T>(dataPath("tetrahedron_solids.stl"));
 
   CHECK(tetrahedron.numFacets() == 4U);
   CHECK(tetrahedron.getFaceGroups().m_names == std::vector<std::string>{"base", "sides"});
   CHECK(tetrahedron.getFaceGroups().m_group == std::vector<uint32_t>{0, 1, 1, 1});
 
   // A solid that starts before the previous one has ended ends it.
-  const auto open = Parser::readSTL<T>(dataFile("tetrahedron_solids_open.stl"));
+  const auto open = Parser::readSTL<T>(dataPath("tetrahedron_solids_open.stl"));
 
   CHECK(open.getFaceGroups().m_group == std::vector<uint32_t>{0, 1, 1, 1});
 
   // A file without groups has none.
-  CHECK(Parser::readOBJ<T>(dataFile("cube_quads.obj")).getFaceGroups().empty());
-  CHECK(Parser::readSTL<T>(dataFile("tetrahedron.stl")).getFaceGroups().m_names ==
+  CHECK(Parser::readOBJ<T>(dataPath("cube_quads.obj")).getFaceGroups().empty());
+  CHECK(Parser::readSTL<T>(dataPath("tetrahedron.stl")).getFaceGroups().m_names ==
         std::vector<std::string>{"tetrahedron"});
 }
 
@@ -232,8 +227,8 @@ TEMPLATE_TEST_CASE("SurfaceLabel: face groups label a mesh's faces in a tape, ov
 
   Pool pool(hostMemoryResource());
 
-  const auto soup = Parser::readIntoPolygonSoup<T>(dataFile("cube_groups.obj"));
-  const Mesh cube = Parser::readIntoTriMeshSDF<T>(dataFile("cube_groups.obj"), pool);
+  const auto soup = Parser::readIntoPolygonSoup<T>(dataPath("cube_groups.obj"));
+  const Mesh cube = Parser::readIntoTriMeshSDF<T>(dataPath("cube_groups.obj"), pool);
 
   // The cube labeled "part" as a whole and its faces by group; a ball far away labeled "ball".
   const Expr<T> expr = Union(SurfaceLabel(SurfaceLabel(cube, soup.getFaceGroups()), "part"),

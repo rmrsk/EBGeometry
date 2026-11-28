@@ -8,6 +8,7 @@
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
 #include "TestLocale.hpp"
+#include "TestUtilities.hpp"
 
 #include <array>
 #include <cstddef>
@@ -28,12 +29,6 @@
 using namespace EBGeometry;
 
 namespace {
-
-std::string
-dataPath(const std::string& a_filename)
-{
-  return std::string(EBGEOMETRY_TEST_DATA_DIR) + "/" + a_filename;
-}
 
 std::string
 readBytes(const std::string& a_path)

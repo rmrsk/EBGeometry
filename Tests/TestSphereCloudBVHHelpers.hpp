@@ -9,6 +9,7 @@
 #define EBGEOMETRY_TESTSPHERECLOUDBVHHELPERS_HPP
 
 #include "EBGeometry.hpp"
+#include "TestUtilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -60,30 +61,6 @@ makeQueries(const std::size_t a_n, const unsigned a_seed)
   }
 
   return queries;
-}
-
-// The signed distance from a point to one sphere's surface, the oracle's own arithmetic.
-template <class T>
-T
-sphereDistance(const SphereCloud::Sphere<T>& a_sphere, const Vec3T<T>& a_point)
-{
-  const Vec3T<T> d = a_point - a_sphere.m_center;
-
-  return std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]) - a_sphere.m_radius;
-}
-
-// The smallest signed distance over every sphere: an oracle independent of the library.
-template <class T>
-T
-bruteForceDistance(const std::vector<SphereCloud::Sphere<T>>& a_spheres, const Vec3T<T>& a_point)
-{
-  T best = std::numeric_limits<T>::max();
-
-  for (const auto& sphere : a_spheres) {
-    best = std::min(best, sphereDistance(sphere, a_point));
-  }
-
-  return best;
 }
 
 // The closest sphere's index and the signed distance to it, for a device kernel.
@@ -317,22 +294,10 @@ struct ContactSeparationSum
   }
 };
 
-// Memory a build through GPU::parallelFor() writes and the host reads: managed memory in a CUDA or HIP build, where
-// the build's steps run as kernels, and emulated device memory otherwise, where they run as host loops.
-inline MemoryResource&
-parallelBuildResource() noexcept
-{
-#if defined(EBGEOMETRY_CUDA) || defined(EBGEOMETRY_HIP)
-  return managedMemoryResource();
-#else
-  return emulatedDeviceMemoryResource();
-#endif
-}
-
 // Two BVHs are the same tree, array for array: every node and its box, and every group's spheres and ids.
 template <class T>
 void
-requireSameTree(const SphereCloudBVH<T>& a_cloud, const SphereCloudBVH<T>& a_reference)
+requireSameSphereTree(const SphereCloudBVH<T>& a_cloud, const SphereCloudBVH<T>& a_reference)
 {
   const auto bvh = a_cloud.getBVH();
   const auto ref = a_reference.getBVH();

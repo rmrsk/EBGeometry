@@ -8,6 +8,7 @@
 #include "EBGeometry.hpp"
 #include "TestDeath.hpp"
 #include "TestFloatingPointUtils.hpp"
+#include "TestUtilities.hpp"
 
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -23,22 +24,6 @@ constexpr size_t W = 4;
 
 template <class T>
 using SoA = PointSoAT<T, W>;
-
-// Four disjoint, well-separated positions, spread out along x so each one is unambiguously the
-// closest for a query point placed near it.
-template <class T>
-std::vector<Vec3T<T>>
-fourPositions()
-{
-  using Vec3 = Vec3T<T>;
-
-  std::vector<Vec3> positions;
-  positions.reserve(4);
-  for (int i = 0; i < 4; i++) {
-    positions.emplace_back(T(3.0 * i), T(0), T(0));
-  }
-  return positions;
-}
 
 template <class T>
 T
@@ -62,21 +47,6 @@ maxDistance2(const std::vector<Vec3T<T>>& a_positions, const Vec3T<T>& a_query)
   return best2;
 }
 
-template <class T>
-std::vector<Vec3T<T>>
-queryPoints()
-{
-  using Vec3 = Vec3T<T>;
-  return {
-    Vec3(0.1, 0.1, 0.1),
-    Vec3(3.2, -0.1, 0.05),
-    Vec3(6.0, 0.3, 0),
-    Vec3(9.1, 0, 0),
-    Vec3(-5, -5, -5),
-    Vec3(20, 20, 20),
-  };
-}
-
 } // namespace
 
 TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 match the closest position when fully "
@@ -92,7 +62,7 @@ TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 match the 
   SoA<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
@@ -112,7 +82,7 @@ TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 unaffected
   SoA<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
@@ -132,7 +102,7 @@ TEMPLATE_TEST_CASE("PointSoAT: getMinimumDistance/getMinimumDistance2 handle a s
   SoA<T> group;
   group.pack(positions.data(), 1);
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = (positions.front() - q).length2();
 
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
@@ -151,7 +121,7 @@ TEMPLATE_TEST_CASE("PointSoAT: getMaximumDistance/getMaximumDistance2 match the 
   SoA<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = maxDistance2<T>(positions, q);
 
     REQUIRE_THAT(group.getMaximumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
@@ -171,7 +141,7 @@ TEMPLATE_TEST_CASE("PointSoAT: getMaximumDistance2 unaffected by padding (padded
   SoA<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     REQUIRE_THAT(group.getMaximumDistance2(q), withinAbsT(maxDistance2<T>(positions, q), looseMargin<T>()));
   }
 }
@@ -189,7 +159,7 @@ TEMPLATE_TEST_CASE("PointSoAT: getDistances2/getDistances return every lane's di
   SoA<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const Array<T, W> d2 = group.getDistances2(q);
     const Array<T, W> d  = group.getDistances(q);
 
@@ -268,7 +238,7 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getMinimumDistance/getMinimumDistance2 matc
   SoA8<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
@@ -288,7 +258,7 @@ TEMPLATE_TEST_CASE("PointSoAT (W=8): getMinimumDistance/getMinimumDistance2 unaf
   SoA8<T> group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
@@ -319,7 +289,7 @@ TEMPLATE_TEST_CASE("PointSoAT: omitting W defaults to PointSoA::DefaultWidth<T>(
   DefaultWidthSoA group;
   group.pack(positions.data(), static_cast<uint32_t>(positions.size()));
 
-  for (const auto& q : queryPoints<T>()) {
+  for (const auto& q : fourPositionsQueries<T>()) {
     const T expected2 = minDistance2<T>(positions, q);
 
     REQUIRE_THAT(group.getMinimumDistance2(q), withinAbsT(expected2, looseMargin<T>()));
