@@ -178,7 +178,7 @@ The same kind of scene, written in the `.ebg` language: a cable in a box of air,
 and a flow past it.
 
 ```text
-ebg 0
+ebg 1
 
 param r_core = 0.5
 

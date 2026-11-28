@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # The classic CSG solid: a cube rounded off by a ball, drilled through along all three axes. The same solid as the
 # BasicCSG example builds in C++, here read at run time: edit a number and run again, no compiling.

@@ -24,7 +24,7 @@ the block itself, the model's object:
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    param length    = 4
    param width     = 2
@@ -85,7 +85,7 @@ program reads (any names; the language gives them no meaning):
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    material steel { conductivity = 45, density = 7850, heat_capacity = 490 }
    material water { conductivity = 0.6, density = 1000, viscosity = 1.0e-3, heat_capacity = 4180 }
@@ -99,7 +99,7 @@ materials it needs. The flow runs in the water, enters at the inlet and leaves a
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    include("model.ebg")
    include("materials.ebg")
@@ -140,7 +140,7 @@ The heat runs in the steel: heated through the base, cooled through the channel,
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    include("model.ebg")
    include("materials.ebg")
@@ -161,7 +161,7 @@ the wall; ``check`` makes sure they hold the same surfaces:
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    include("flow.ebg")
    include("heat.ebg")

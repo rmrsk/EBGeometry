@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # The heat in the steel, heated from below, cooled by the water, insulated elsewhere: a setup of its own.
 include("model.ebg")

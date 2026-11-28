@@ -766,7 +766,7 @@ instantiateFunctionTemplates()
     Pool languagePool(hostMemoryResource());
 
     const Language::Model<T> model =
-      Language::parse<T>("ebg 0\nobject sphere((0, 0, 0), 1)\n", "model.ebg", languagePool, {{"r", "1"}});
+      Language::parse<T>("ebg 1\nobject sphere((0, 0, 0), 1)\n", "model.ebg", languagePool, {{"r", "1"}});
     const Tape<T> tape(languagePool, model.object());
 
     (void)Language::read<T>("model.ebg", languagePool);

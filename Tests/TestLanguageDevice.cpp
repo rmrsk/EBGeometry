@@ -58,7 +58,7 @@ TEMPLATE_TEST_CASE("Language: tables of properties in the pool, read on a device
 
   Pool pool(hostMemoryResource());
 
-  const auto model = Language::parse<T>(R"(ebg 0
+  const auto model = Language::parse<T>(R"(ebg 1
 object overlay {
   region air   = box((-2, -2, -2), (2, 2, 2)) material air
   region solid = sphere((0, 0, 0), 1) material steel

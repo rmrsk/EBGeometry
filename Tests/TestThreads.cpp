@@ -152,7 +152,7 @@ TEMPLATE_TEST_CASE("Threads: queries on a shared tape read from the .ebg languag
 
   Pool pool(hostMemoryResource());
 
-  const std::string text = R"(ebg 0
+  const std::string text = R"(ebg 1
 a = sphere((0, 0, 0), 0.6)
 b = box((-0.2, -0.2, -0.9), (0.2, 0.2, 0.9))
 object smooth_union(a, b, smooth = 0.1)

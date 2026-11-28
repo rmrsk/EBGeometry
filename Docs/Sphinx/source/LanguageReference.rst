@@ -3,7 +3,7 @@
 Reference
 =========
 
-The grammar and every keyword of version ``ebg 0``, the view block's keys, the limits, and the errors and
+The grammar and every keyword of version ``ebg 1``, the view block's keys, the limits, and the errors and
 warnings a reader reports. :ref:`Chap:LanguageModels` and :ref:`Chap:LanguageDomains` explain what the
 statements are for.
 
@@ -76,7 +76,7 @@ Expressions
             | "(" expr ")" | "(" expr "," expr "," expr ")"     # grouping, a vector
             | "(" expr "," expr ")"                            # a pair: only a selector's between = (a, b)
             | name "(" [ args ] ")"
-            | "overlay" "{" { "region" name "=" expr [ "material" name ] NEWLINE } "}"
+            | "overlay" [ "(" args ")" ] "{" { "region" name "=" expr [ "material" name ] NEWLINE } "}"
    args    := arg { "," arg }        arg := expr | name "=" expr
 
 Values are numbers, vectors, strings, bools and shapes. ``+`` and ``-`` take two numbers or two vectors, ``*`` a number
@@ -141,7 +141,7 @@ Limits
 * An expression nests at most 256 deep, counting parentheses, calls, operators in a chain (a sum of 300 terms is too
   deep) and methods in a chain.
 * ``blur``, ``mollify``, ``repeat`` and the BVH operations (``bvh_union``, ``bvh_difference``,
-  ``smooth_union(..., bvh = true)``) each start a sub-program of the tape; they nest at most
+  ``smooth_union(..., bvh = true)``, ``overlay(bvh = true)``) each start a sub-program of the tape; they nest at most
   ``Tape::MaxCallDepth`` (4) deep, through names too.
 * A shape is built at most 4096 operations deep.
 * A ``polygon_prism`` has 3 to 4096 sides, and ``mollify`` takes 1 to 64 samples per axis.
@@ -197,7 +197,7 @@ Common errors, as a reader words them:
      - an overlay where the region of a point would not be clear
    * - ``'a.ebg' includes itself, through the files that include it``
      - a cycle of includes
-   * - ``version 1 is unknown; this reader knows version 0``
+   * - ``version 2 is unknown; this reader knows version 1``
      - a file of another version of the language
    * - ``the model has no param 'q' (did you mean 'r'?); known: r``
      - an override of a name that is not a param

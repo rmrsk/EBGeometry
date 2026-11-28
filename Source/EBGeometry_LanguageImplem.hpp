@@ -40,6 +40,16 @@ namespace Language {
 namespace LanguageDetail {
 
 /**
+ * @brief Where an overlay through a BVH (overlay(bvh = true)) may be used, for the errors that refuse the rest.
+ * @details A BVH over an overlay's regions searches their boxes, so the overlay's regions must be what the boxes
+ * hold: no mask from an operation above it (a clip or a drill of it, or of an overlay in it) and no other overlay
+ * around it. Moving it moves the boxes with it.
+ */
+inline constexpr const char* regionBVHUses =
+  "it can be the object or be moved (translate, rotate, scale, reflect), but not clipped, drilled, labeled or "
+  "placed in another overlay";
+
+/**
  * @brief The language's built-in shapes and operations, by name: the shapes first, then the operations.
  * @details Every name here has its line in the Sphinx pages of shapes and operations and is used once in
  * Studio/Models/gallery, which the unit tests check.
@@ -325,6 +335,17 @@ struct Shape
    * @brief Whether it holds regions: an Overlay, maybe moved or clipped.
    */
   bool m_partition = false;
+
+  /**
+   * @brief Whether it is an overlay whose regions are searched through a BVH (overlay(bvh = true)), maybe moved.
+   */
+  bool m_regionBVH = false;
+
+  /**
+   * @brief Whether it holds regions and was clipped or drilled (the first operand of intersection or difference),
+   * maybe moved or labeled since, or holds such an overlay at any depth.
+   */
+  bool m_clipped = false;
 
   /**
    * @brief The names of the regions and region groups in it, and where each is given.
@@ -2587,6 +2608,25 @@ private:
   }
 
   /**
+   * @brief A shape value with its overlay flags set.
+   * @param[in] a_value     The value.
+   * @param[in] a_regionBVH Whether it is an overlay through a BVH, maybe moved.
+   * @param[in] a_clipped   Whether it holds regions and was clipped or drilled, or holds such an overlay.
+   * @return The value, with a copy of its shape.
+   */
+  static V
+  flagged(V a_value, const bool a_regionBVH, const bool a_clipped)
+  {
+    auto shape = std::make_shared<S>(*a_value.m_shape);
+
+    shape->m_regionBVH = a_regionBVH;
+    shape->m_clipped   = a_clipped;
+    a_value.m_shape    = shape;
+
+    return a_value;
+  }
+
+  /**
    * @brief A label added to a site's: one shape used with two labels for the same surfaces lists both.
    * @param[in, out] a_site  The site's label.
    * @param[in]      a_label The label.
@@ -2707,6 +2747,13 @@ private:
                     ": which region a point belongs to would not be clear. An overlay can be the object, moved "
                     "(translate, rotate, scale, reflect), clipped (the first operand of intersection or difference), "
                     "labeled, or a region of another overlay");
+    }
+
+    if (a_value->m_shape->m_regionBVH && a_operation != "translate" && a_operation != "rotate" &&
+        a_operation != "scale" && a_operation != "reflect") {
+      throw Error(a_value->m_span,
+                  "an overlay through a BVH (overlay(bvh = true)) cannot be an operand of " + a_operation + ": " +
+                    LanguageDetail::regionBVHUses);
     }
 
     return realize(*a_value->m_shape);
@@ -3294,7 +3341,7 @@ private:
       const auto names     = mergeNames(b.m_shapes);
 
       if (name == "intersection") {
-        return composed(Intersection(operands), span, partition, names);
+        return flagged(composed(Intersection(operands), span, partition, names), false, partition);
       }
 
       return composed(Union(operands, name == "bvh_union" ? Accelerate::BVH : Accelerate::None), span, false, names);
@@ -3367,10 +3414,12 @@ private:
           SmoothDifference(first, others, number(b.m_values[2]), blend(b.m_values[3])), span, false, names);
       }
 
-      return composed(Difference(first, others, name == "bvh_difference" ? Accelerate::BVH : Accelerate::None),
-                      span,
-                      partition,
-                      names);
+      return flagged(composed(Difference(first, others, name == "bvh_difference" ? Accelerate::BVH : Accelerate::None),
+                              span,
+                              partition,
+                              names),
+                     false,
+                     partition);
     }
     if (name == "complement") {
       const Bound b = this->bind(a_call, name, {{"a", Kind::Shape}}, a_args);
@@ -3400,24 +3449,31 @@ private:
       const bool    partition = b.m_values[0]->m_shape->m_partition;
       const auto&   names     = b.m_values[0]->m_shape->m_names;
 
+      // A moved overlay is still through a BVH, or clipped, if it was.
+      const auto moved = [&](const Expr<T>& a_moved) {
+        return flagged(composed(a_moved, span, partition, names),
+                       b.m_values[0]->m_shape->m_regionBVH,
+                       b.m_values[0]->m_shape->m_clipped);
+      };
+
       if (name == "translate") {
-        return composed(Translate(a, vector(b.m_values[1])), span, partition, names);
+        return moved(Translate(a, vector(b.m_values[1])));
       }
       if (name == "scale") {
         if (number(b.m_values[1]) <= T(0)) {
           throw Error(b.m_values[1]->m_span, "scale: the factor is positive");
         }
 
-        return composed(Scale(a, number(b.m_values[1])), span, partition, names);
+        return moved(Scale(a, number(b.m_values[1])));
       }
       if (name == "reflect") {
-        return composed(Reflect(a, axis(b.m_values[1])), span, partition, names);
+        return moved(Reflect(a, axis(b.m_values[1])));
       }
       if (b.m_values[2]->m_type == VT::Vector) {
-        return composed(Rotate(a, number(b.m_values[1]), vector(b.m_values[2])), span, partition, names);
+        return moved(Rotate(a, number(b.m_values[1]), vector(b.m_values[2])));
       }
 
-      return composed(Rotate(a, number(b.m_values[1]), axis(b.m_values[2])), span, partition, names);
+      return moved(Rotate(a, number(b.m_values[1]), axis(b.m_values[2])));
     }
     if (name == "offset" || name == "annular" || name == "elongate") {
       const Kind  kind = name == "elongate" ? Kind::Vector : Kind::Number;
@@ -3809,6 +3865,12 @@ private:
 
     const S& shape = *receiver.m_shape;
 
+    if (shape.m_regionBVH) {
+      throw Error(receiver.m_span,
+                  "an overlay through a BVH (overlay(bvh = true)) cannot be labeled: " +
+                    std::string(LanguageDetail::regionBVHUses));
+    }
+
     if (!parts.empty() && !shape.m_plain) {
       throw Error(parts[0].second->m_span,
                   "label: only one shape's own parts can be named; name them on the shape, before it is moved or "
@@ -3863,7 +3925,9 @@ private:
       return value;
     }
 
-    return composed(SurfaceLabel(*shape.m_expr, whole), a_call.m_span, shape.m_partition, shape.m_names);
+    return flagged(composed(SurfaceLabel(*shape.m_expr, whole), a_call.m_span, shape.m_partition, shape.m_names),
+                   false,
+                   shape.m_clipped);
   }
 
   /**
@@ -3922,15 +3986,42 @@ private:
     std::vector<std::pair<std::string, Span>> names;
     std::vector<V>                            shapes;
 
-    // Its settings: weld, the interface tolerance as a length, for the whole object.
-    for (size_t i = 0; i < a_node.m_options.size(); i++) {
-      const Node& option = a_node.m_options[i];
+    // Its settings: weld, the interface tolerance as a length, for the whole object; bvh, whether its regions are
+    // searched through a BVH over their boxes. A tape has no BVH over an overlay's regions yet, so bvh = true gives
+    // the same overlay, searched region by region; the language already holds such an overlay to what a BVH over its
+    // regions allows (see LanguageDetail::regionBVHUses), so that a model written for it means the same once it has
+    // one.
+    bool                bvh = false;
+    std::optional<Span> bvhSpan;
 
-      if (a_node.m_keys[i] != "weld") {
-        throw Error(option.m_span, "an overlay has no setting '" + a_node.m_keys[i] + "' (it has weld)");
+    // Whether a region is a clipped overlay or holds one: an overlay through a BVH around this one refuses it.
+    bool clipped = false;
+
+    for (size_t i = 0; i < a_node.m_options.size(); i++) {
+      const Node&        option = a_node.m_options[i];
+      const std::string& key    = a_node.m_keys[i];
+
+      if (key != "weld" && key != "bvh") {
+        throw Error(option.m_span, "an overlay has no setting '" + key + "' (it has weld and bvh)");
       }
 
       const V value = this->eval(option);
+
+      if (key == "bvh") {
+        if (value.m_type != VT::Bool) {
+          throw Error(option.m_span, "bvh is true or false (whether the overlay's regions are searched through a BVH)");
+        }
+
+        if (bvhSpan.has_value()) {
+          throw Error(option.m_span, "bvh is set once for an overlay, and is already set at " + place(*bvhSpan));
+        }
+
+        bvhSpan = option.m_span;
+        bvh     = value.m_number != 0.0;
+
+        // The rest of the loop reads weld.
+        continue;
+      }
 
       if (value.m_type != VT::Number || !(value.m_number >= 0.0) || !(value.m_number < 1e300)) {
         throw Error(option.m_span, "weld is a length of at least 0 (the gap regions are welded across)");
@@ -3957,6 +4048,22 @@ private:
         throw Error(value.m_span,
                     "region '" + region.m_text + "' is a shape, not " + LanguageDetail::valueTypeName<T>(value.m_type));
       }
+
+      if (value.m_shape->m_regionBVH) {
+        throw Error(value.m_span,
+                    "region '" + region.m_text +
+                      "': an overlay through a BVH (overlay(bvh = true)) cannot be a region of another overlay; it "
+                      "can be the object or be moved");
+      }
+
+      if (bvh && value.m_shape->m_clipped) {
+        throw Error(value.m_span,
+                    "region '" + region.m_text +
+                      "': in an overlay through a BVH (overlay(bvh = true)), an overlay can be moved, but not clipped "
+                      "or drilled, nor hold one that is");
+      }
+
+      clipped = clipped || value.m_shape->m_clipped;
 
       for (const auto& other : names) {
         if (other.first == region.m_text) {
@@ -4011,7 +4118,8 @@ private:
       regions.push_back(&shape);
     }
 
-    return deepened(std::move(value), regions, false, a_node.m_span);
+    // Through a BVH, the overlay counts as a sub-program of the tape, as a BVH union does.
+    return flagged(deepened(std::move(value), regions, bvh, a_node.m_span), bvh, clipped);
   }
 
   /**
@@ -6023,7 +6131,7 @@ print(const Model<T>& a_model, const bool a_flatten)
   const std::vector<Syntax::File>& sources = a_model.sources();
 
   if (sources.empty()) {
-    return "ebg 0\n";
+    return "ebg 1\n";
   }
 
   std::string out = "ebg " + std::to_string(sources[0].m_version);

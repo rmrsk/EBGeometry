@@ -1,4 +1,4 @@
-ebg 0
+ebg 1
 
 # A cable along z, wholly inside a box of air with a cross-flow along x: a copper core inside a PTFE jacket, and a steel
 # sensor in the flow downstream. The core stops short of the cable's ends, where it meets the air.

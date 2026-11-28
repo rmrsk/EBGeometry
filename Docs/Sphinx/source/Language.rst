@@ -31,7 +31,7 @@ model is two files, as most models are. The geometry, ``cable/model.ebg``:
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    # A cable along z, wholly inside a box of air with a cross-flow along x: a copper core inside a PTFE jacket, and a steel
    # sensor in the flow downstream. The core stops short of the cable's ends, where it meets the air.
@@ -56,7 +56,7 @@ model is two files, as most models are. The geometry, ``cable/model.ebg``:
 
 Line by line:
 
-* ``ebg 0`` is the language's version, on the first line of every file.
+* ``ebg 1`` is the language's version, on the first line of every file.
 * A ``param`` is a value that can be changed from outside the file (``-D length=8`` to ``ebgstudio``, or an
   override passed to the reader), so that one file describes a family of cables.
 * ``conductor``, ``insulation`` and ``air_box`` are shapes, calls of the built-in shapes
@@ -71,7 +71,7 @@ the file a program reads:
 
 .. code-block:: text
 
-   ebg 0
+   ebg 1
 
    include("model.ebg")
 
